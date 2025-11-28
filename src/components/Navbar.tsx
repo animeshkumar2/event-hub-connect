@@ -50,7 +50,7 @@ export const Navbar = () => {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-3 border-t border-border animate-in slide-in-from-top-2">
+          <div className="md:hidden py-4 space-y-3 border-t border-border">
             <Link
               to="/search"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
