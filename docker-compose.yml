@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: event-hub-connect
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      # Exclude node_modules from host, use container's version
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+

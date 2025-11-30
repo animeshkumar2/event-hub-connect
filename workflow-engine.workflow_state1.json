@@ -1,0 +1,2676 @@
+[{
+  "_id": {
+    "$oid": "69145406ecec4dca987520a1"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "task-schedule-completion-notification",
+  "key": "schedule-completion-notification",
+  "type": "TASK",
+  "status": "SUCCESS",
+  "parentKey": "publish-schedule",
+  "context": {
+    "eventType": "TASK_COMPLETED",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "taskId": "publish-schedule",
+    "status": "SUCCESS",
+    "correlationId": "test-event-123",
+    "command": "COMPLETION_EVENT",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "schedule-completion-notification_status": "SUCCESS",
+    "contentSourceId": "181619",
+    "schedule-completion-notification_eventType": "TASK_COMPLETED",
+    "timeSlots": [
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 14:55:11",
+          "endDatetime": "2025-11-21 16:03:16",
+          "localStartTime": "2025-11-21T06:55:11",
+          "localEndTime": "2025-11-21T08:03:16"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 16:03:16",
+          "endDatetime": "2025-11-21 17:11:21",
+          "localStartTime": "2025-11-21T08:03:16",
+          "localEndTime": "2025-11-21T09:11:21"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 17:11:21",
+          "endDatetime": "2025-11-21 18:19:26",
+          "localStartTime": "2025-11-21T09:11:21",
+          "localEndTime": "2025-11-21T10:19:26"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 18:19:26",
+          "endDatetime": "2025-11-21 19:27:31",
+          "localStartTime": "2025-11-21T10:19:26",
+          "localEndTime": "2025-11-21T11:27:31"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 19:27:31",
+          "endDatetime": "2025-11-21 20:35:36",
+          "localStartTime": "2025-11-21T11:27:31",
+          "localEndTime": "2025-11-21T12:35:36"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 20:35:36",
+          "endDatetime": "2025-11-21 21:43:41",
+          "localStartTime": "2025-11-21T12:35:36",
+          "localEndTime": "2025-11-21T13:43:41"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 21:43:41",
+          "endDatetime": "2025-11-21 22:51:46",
+          "localStartTime": "2025-11-21T13:43:41",
+          "localEndTime": "2025-11-21T14:51:46"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 22:51:46",
+          "endDatetime": "2025-11-21 23:59:51",
+          "localStartTime": "2025-11-21T14:51:46",
+          "localEndTime": "2025-11-21T15:59:51"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 23:59:51",
+          "endDatetime": "2025-11-22 01:07:56",
+          "localStartTime": "2025-11-21T15:59:51",
+          "localEndTime": "2025-11-21T17:07:56"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 01:07:56",
+          "endDatetime": "2025-11-22 02:16:01",
+          "localStartTime": "2025-11-21T17:07:56",
+          "localEndTime": "2025-11-21T18:16:01"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 02:16:01",
+          "endDatetime": "2025-11-22 03:24:06",
+          "localStartTime": "2025-11-21T18:16:01",
+          "localEndTime": "2025-11-21T19:24:06"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 03:24:06",
+          "endDatetime": "2025-11-22 04:32:11",
+          "localStartTime": "2025-11-21T19:24:06",
+          "localEndTime": "2025-11-21T20:32:11"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 04:32:11",
+          "endDatetime": "2025-11-22 05:40:16",
+          "localStartTime": "2025-11-21T20:32:11",
+          "localEndTime": "2025-11-21T21:40:16"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 05:40:16",
+          "endDatetime": "2025-11-22 06:48:21",
+          "localStartTime": "2025-11-21T21:40:16",
+          "localEndTime": "2025-11-21T22:48:21"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 06:48:21",
+          "endDatetime": "2025-11-22 07:56:26",
+          "localStartTime": "2025-11-21T22:48:21",
+          "localEndTime": "2025-11-21T23:56:26"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 07:56:26",
+          "endDatetime": "2025-11-22 09:04:31",
+          "localStartTime": "2025-11-21T23:56:26",
+          "localEndTime": "2025-11-22T01:04:31"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      }
+    ],
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "COMMAND_OUTPUT_MAPPABLE_BATCH_COMPLETED": "Mapping for batch finished, Schedule triggered",
+    "programMappingSchemeId": "158",
+    "token": null,
+    "COMMAND_OUTPUT_SCHEDULE_COMPLETION": "Schedule Event Completed",
+    "schedule-completion-notification_completedAt": "2025-11-12T09:31:51.497511911Z",
+    "COMMAND_OUTPUT_TIMESTAMP": [
+      2025,
+      11,
+      12,
+      9,
+      31,
+      51,
+      135543573
+    ],
+    "scheduleDate": "2025-11-21",
+    "responseMessage": "SCHEDULED MARKED COMPLETED",
+    "status": "SUCCESS"
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:50.825787013Z",
+  "updatedAt": "2025-11-12T09:31:51.497537881Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+},
+{
+  "_id": {
+    "$oid": "691453fdecec4dca98752075"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "68d5268e3b710af7767442a0",
+  "key": "schedule",
+  "type": "MILESTONE",
+  "status": "SUCCESS",
+  "parentKey": "mapping",
+  "context": {
+    "eventType": "TASK_COMPLETED",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "taskId": "create-mappables",
+    "status": "SUCCESS",
+    "correlationId": "test-event-123",
+    "command": "COMPLETION_EVENT",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "batchData": [
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710"
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710"
+      }
+    ],
+    "programMappingSchemeId": "158"
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:41.184537030Z",
+  "updatedAt": "2025-11-12T09:31:51.703735139Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+},
+{
+  "_id": {
+    "$oid": "691453f5ecec4dca98752062"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "68d526783b710af77674429e",
+  "key": "mapping",
+  "type": "MILESTONE",
+  "status": "SUCCESS",
+  "parentKey": "linear-journey",
+  "context": {
+    "eventType": "WORKFLOW_START",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "workflowKey": "linear-journey",
+    "correlationId": "test-event-123",
+    "command": "TRIGGER_WORKFLOW",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "batchData": [
+      {
+        "tmsId": null,
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "contentSourceId": "181619",
+        "programTitleInfo": null,
+        "programDescriptionInfo": [
+          {
+            "description": "Enjoy this Relaxing Beach Campfire at Sunset any time of day! Perfect for Relaxing, Studying, Date Night, Dinner Parties or Family Gatherings.",
+            "descriptionLanguage": null,
+            "descriptionType": "",
+            "descriptionLength": null
+          }
+        ],
+        "languageInfo": null,
+        "credits": null,
+        "sportsInfo": null,
+        "alternateIds": null,
+        "genreInfo": {
+          "genre": [
+            "Entertainment"
+          ],
+          "subGenre": null
+        },
+        "additionalMetadata": null,
+        "attributes": null,
+        "releases": null,
+        "availabilityInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-07 08:14:01",
+          "endDatetime": "2025-11-07 09:22:06"
+        },
+        "providerData": {
+          "userData": null,
+          "oadCountry": null,
+          "provider": null,
+          "countryOfOrigin": "US",
+          "additionalClientProviderIds": null
+        },
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ],
+        "production": null,
+        "programType": "Episode",
+        "subtype": null,
+        "programAvailability": null,
+        "episodeInfo": null,
+        "industryNumbers": null,
+        "images": [
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w1920_h1080/otwrv46e99ubze751l5ukfm4.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w960_h540/cjtukmqks7jm1p7eor9gn1200.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w256_h144/1kydlbuzy9lop13n22bjs5d792.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w480_h270/tb8bbc02aljq139ems5rpe5ks.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w1920_h1080/otwrv46e99ubze751l5ukfm4.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w1280_h720/tlbvvlm9xjel19jk6hbaz3kq1.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w640_h360/cs3f6as27kth1dm2so38azktt.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          }
+        ],
+        "referenceInfo": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "metadataHash": "88f83d7b4b07dd123b73d67a3b69db615c6ec5e5ca8614117ef163dd9cbc30e7"
+      },
+      {
+        "tmsId": null,
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "contentSourceId": "181619",
+        "programTitleInfo": null,
+        "programDescriptionInfo": [
+          {
+            "description": "Enjoy this Lakeside Sunset Campfire any time of day! Perfect for Relaxing, Studying, Date Night, Dinner Parties or Family Gatherings.",
+            "descriptionLanguage": null,
+            "descriptionType": "",
+            "descriptionLength": null
+          }
+        ],
+        "languageInfo": null,
+        "credits": null,
+        "sportsInfo": null,
+        "alternateIds": null,
+        "genreInfo": {
+          "genre": [
+            "Entertainment"
+          ],
+          "subGenre": null
+        },
+        "additionalMetadata": null,
+        "attributes": null,
+        "releases": null,
+        "availabilityInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-07 07:05:56",
+          "endDatetime": "2025-11-07 08:14:01"
+        },
+        "providerData": {
+          "userData": null,
+          "oadCountry": null,
+          "provider": null,
+          "countryOfOrigin": "US",
+          "additionalClientProviderIds": null
+        },
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ],
+        "production": null,
+        "programType": "Film",
+        "subtype": null,
+        "programAvailability": null,
+        "episodeInfo": null,
+        "industryNumbers": null,
+        "images": [
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w1920_h1080/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w960_h540/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w256_h144/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w1920_h1080/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w480_h270/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w1280_h720/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w640_h360/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          }
+        ],
+        "referenceInfo": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "metadataHash": "4754d0653a9fc5d688a074e85c9d9f5fbf6c7214493c58cd8378ca6cc805b02b"
+      }
+    ],
+    "contentSourceId": "181619"
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:33.824883112Z",
+  "updatedAt": "2025-11-12T09:31:51.778950394Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+},
+{
+  "_id": {
+    "$oid": "691453f5ecec4dca98752061"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "68d5266e3b710af77674429d",
+  "key": "linear-journey",
+  "type": "WORKFLOW",
+  "status": "SUCCESS",
+  "context": {
+    "eventType": "WORKFLOW_START",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "workflowKey": "linear-journey",
+    "correlationId": "test-event-123",
+    "command": "TRIGGER_WORKFLOW",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "batchData": [
+      {
+        "tmsId": null,
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "contentSourceId": "181619",
+        "programTitleInfo": null,
+        "programDescriptionInfo": [
+          {
+            "description": "Enjoy this Relaxing Beach Campfire at Sunset any time of day! Perfect for Relaxing, Studying, Date Night, Dinner Parties or Family Gatherings.",
+            "descriptionLanguage": null,
+            "descriptionType": "",
+            "descriptionLength": null
+          }
+        ],
+        "languageInfo": null,
+        "credits": null,
+        "sportsInfo": null,
+        "alternateIds": null,
+        "genreInfo": {
+          "genre": [
+            "Entertainment"
+          ],
+          "subGenre": null
+        },
+        "additionalMetadata": null,
+        "attributes": null,
+        "releases": null,
+        "availabilityInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-07 08:14:01",
+          "endDatetime": "2025-11-07 09:22:06"
+        },
+        "providerData": {
+          "userData": null,
+          "oadCountry": null,
+          "provider": null,
+          "countryOfOrigin": "US",
+          "additionalClientProviderIds": null
+        },
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ],
+        "production": null,
+        "programType": "Episode",
+        "subtype": null,
+        "programAvailability": null,
+        "episodeInfo": null,
+        "industryNumbers": null,
+        "images": [
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w1920_h1080/otwrv46e99ubze751l5ukfm4.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w960_h540/cjtukmqks7jm1p7eor9gn1200.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w256_h144/1kydlbuzy9lop13n22bjs5d792.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w480_h270/tb8bbc02aljq139ems5rpe5ks.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w1920_h1080/otwrv46e99ubze751l5ukfm4.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w1280_h720/tlbvvlm9xjel19jk6hbaz3kq1.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/7302853992874825616/solid/rectangle/w640_h360/cs3f6as27kth1dm2so38azktt.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          }
+        ],
+        "referenceInfo": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "metadataHash": "88f83d7b4b07dd123b73d67a3b69db615c6ec5e5ca8614117ef163dd9cbc30e7"
+      },
+      {
+        "tmsId": null,
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "contentSourceId": "181619",
+        "programTitleInfo": null,
+        "programDescriptionInfo": [
+          {
+            "description": "Enjoy this Lakeside Sunset Campfire any time of day! Perfect for Relaxing, Studying, Date Night, Dinner Parties or Family Gatherings.",
+            "descriptionLanguage": null,
+            "descriptionType": "",
+            "descriptionLength": null
+          }
+        ],
+        "languageInfo": null,
+        "credits": null,
+        "sportsInfo": null,
+        "alternateIds": null,
+        "genreInfo": {
+          "genre": [
+            "Entertainment"
+          ],
+          "subGenre": null
+        },
+        "additionalMetadata": null,
+        "attributes": null,
+        "releases": null,
+        "availabilityInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-07 07:05:56",
+          "endDatetime": "2025-11-07 08:14:01"
+        },
+        "providerData": {
+          "userData": null,
+          "oadCountry": null,
+          "provider": null,
+          "countryOfOrigin": "US",
+          "additionalClientProviderIds": null
+        },
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ],
+        "production": null,
+        "programType": "Film",
+        "subtype": null,
+        "programAvailability": null,
+        "episodeInfo": null,
+        "industryNumbers": null,
+        "images": [
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w1920_h1080/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w960_h540/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w256_h144/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w1920_h1080/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w480_h270/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w1280_h720/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          },
+          {
+            "imageUrl": "https://images.frequency.com/video/15f4s7szm2qak1wquj2exouh5/w640_h360/15f4s7szm2qak1wquj2exouh5.jpg",
+            "exifImageOrientation": null,
+            "orientation": null,
+            "aspectRatio": null,
+            "imageFileType": null,
+            "resolution": null,
+            "imageSize": null,
+            "imageType": ""
+          }
+        ],
+        "referenceInfo": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "metadataHash": "4754d0653a9fc5d688a074e85c9d9f5fbf6c7214493c58cd8378ca6cc805b02b"
+      }
+    ],
+    "contentSourceId": "181619"
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:33.447602226Z",
+  "updatedAt": "2025-11-12T09:31:51.934526457Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+},
+{
+  "_id": {
+    "$oid": "691453f5ecec4dca98752063"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "task-create-mappables",
+  "key": "create-mappables",
+  "type": "TASK",
+  "status": "SUCCESS",
+  "parentKey": "mapping",
+  "context": {
+    "eventType": "WORKFLOW_START",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "workflowKey": "linear-journey",
+    "correlationId": "test-event-123",
+    "command": "TRIGGER_WORKFLOW",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "contentSourceId": "181619",
+    "batchData": [
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710"
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710"
+      }
+    ],
+    "create-mappables_status": "SUCCESS",
+    "create-mappables_eventType": "TASK_COMPLETED",
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "programMappingSchemeId": "158",
+    "create-mappables_completedAt": "2025-11-12T09:31:41.015545249Z"
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:33.895446141Z",
+  "updatedAt": "2025-11-12T09:31:41.015626690Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+},
+{
+  "_id": {
+    "$oid": "691453fdecec4dca98752076"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "task-notify-transit",
+  "key": "notify-transit",
+  "type": "TASK",
+  "status": "SUCCESS",
+  "parentKey": "schedule",
+  "context": {
+    "eventType": "TASK_COMPLETED",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "taskId": "create-mappables",
+    "status": "SUCCESS",
+    "correlationId": "test-event-123",
+    "command": "COMPLETION_EVENT",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "notify-transit_status": "SUCCESS",
+    "notify-transit_completedAt": "2025-11-12T09:31:43.035134745Z",
+    "contentSourceId": "181619",
+    "batchData": [
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710"
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710"
+      }
+    ],
+    "notify-transit_eventType": "TASK_COMPLETED",
+    "COMMAND_OUTPUT_TIMESTAMP": [
+      2025,
+      11,
+      12,
+      9,
+      31,
+      42,
+      937122558
+    ],
+    "scheduleDate": "2025-11-21",
+    "timeSlots": [
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 14:55:11",
+          "endDatetime": "2025-11-21 16:03:16",
+          "localStartTime": "2025-11-21T06:55:11",
+          "localEndTime": "2025-11-21T08:03:16"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 16:03:16",
+          "endDatetime": "2025-11-21 17:11:21",
+          "localStartTime": "2025-11-21T08:03:16",
+          "localEndTime": "2025-11-21T09:11:21"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 17:11:21",
+          "endDatetime": "2025-11-21 18:19:26",
+          "localStartTime": "2025-11-21T09:11:21",
+          "localEndTime": "2025-11-21T10:19:26"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 18:19:26",
+          "endDatetime": "2025-11-21 19:27:31",
+          "localStartTime": "2025-11-21T10:19:26",
+          "localEndTime": "2025-11-21T11:27:31"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 19:27:31",
+          "endDatetime": "2025-11-21 20:35:36",
+          "localStartTime": "2025-11-21T11:27:31",
+          "localEndTime": "2025-11-21T12:35:36"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 20:35:36",
+          "endDatetime": "2025-11-21 21:43:41",
+          "localStartTime": "2025-11-21T12:35:36",
+          "localEndTime": "2025-11-21T13:43:41"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 21:43:41",
+          "endDatetime": "2025-11-21 22:51:46",
+          "localStartTime": "2025-11-21T13:43:41",
+          "localEndTime": "2025-11-21T14:51:46"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 22:51:46",
+          "endDatetime": "2025-11-21 23:59:51",
+          "localStartTime": "2025-11-21T14:51:46",
+          "localEndTime": "2025-11-21T15:59:51"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 23:59:51",
+          "endDatetime": "2025-11-22 01:07:56",
+          "localStartTime": "2025-11-21T15:59:51",
+          "localEndTime": "2025-11-21T17:07:56"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 01:07:56",
+          "endDatetime": "2025-11-22 02:16:01",
+          "localStartTime": "2025-11-21T17:07:56",
+          "localEndTime": "2025-11-21T18:16:01"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 02:16:01",
+          "endDatetime": "2025-11-22 03:24:06",
+          "localStartTime": "2025-11-21T18:16:01",
+          "localEndTime": "2025-11-21T19:24:06"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 03:24:06",
+          "endDatetime": "2025-11-22 04:32:11",
+          "localStartTime": "2025-11-21T19:24:06",
+          "localEndTime": "2025-11-21T20:32:11"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 04:32:11",
+          "endDatetime": "2025-11-22 05:40:16",
+          "localStartTime": "2025-11-21T20:32:11",
+          "localEndTime": "2025-11-21T21:40:16"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 05:40:16",
+          "endDatetime": "2025-11-22 06:48:21",
+          "localStartTime": "2025-11-21T21:40:16",
+          "localEndTime": "2025-11-21T22:48:21"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 06:48:21",
+          "endDatetime": "2025-11-22 07:56:26",
+          "localStartTime": "2025-11-21T22:48:21",
+          "localEndTime": "2025-11-21T23:56:26"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 07:56:26",
+          "endDatetime": "2025-11-22 09:04:31",
+          "localStartTime": "2025-11-21T23:56:26",
+          "localEndTime": "2025-11-22T01:04:31"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      }
+    ],
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "COMMAND_OUTPUT_MAPPABLE_BATCH_COMPLETED": "Mapping for batch finished, Schedule triggered",
+    "programMappingSchemeId": "158",
+    "token": null
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:41.508352903Z",
+  "updatedAt": "2025-11-12T09:31:43.035160295Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+},
+{
+  "_id": {
+    "$oid": "691453ffecec4dca9875207c"
+  },
+  "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+  "definitionId": "68d526a73b710af7767442a2",
+  "key": "publish-schedule",
+  "type": "TASK",
+  "status": "SUCCESS",
+  "parentKey": "schedule",
+  "context": {
+    "eventType": "TASK_COMPLETED",
+    "executionId": "3fc4dd98-1709-4e1f-931a-63c0d805920d",
+    "taskId": "notify-transit",
+    "status": "SUCCESS",
+    "correlationId": "test-event-123",
+    "command": "COMPLETION_EVENT",
+    "providerId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "providerType": "TRANSIT_SERVICE",
+    "deliveryAttempt": 1
+  },
+  "payload": {
+    "contentSourceId": "181619",
+    "publish-schedule_eventType": "TASK_COMPLETED",
+    "timeSlots": [
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 14:55:11",
+          "endDatetime": "2025-11-21 16:03:16",
+          "localStartTime": "2025-11-21T06:55:11",
+          "localEndTime": "2025-11-21T08:03:16"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 16:03:16",
+          "endDatetime": "2025-11-21 17:11:21",
+          "localStartTime": "2025-11-21T08:03:16",
+          "localEndTime": "2025-11-21T09:11:21"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 17:11:21",
+          "endDatetime": "2025-11-21 18:19:26",
+          "localStartTime": "2025-11-21T09:11:21",
+          "localEndTime": "2025-11-21T10:19:26"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 18:19:26",
+          "endDatetime": "2025-11-21 19:27:31",
+          "localStartTime": "2025-11-21T10:19:26",
+          "localEndTime": "2025-11-21T11:27:31"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 19:27:31",
+          "endDatetime": "2025-11-21 20:35:36",
+          "localStartTime": "2025-11-21T11:27:31",
+          "localEndTime": "2025-11-21T12:35:36"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 20:35:36",
+          "endDatetime": "2025-11-21 21:43:41",
+          "localStartTime": "2025-11-21T12:35:36",
+          "localEndTime": "2025-11-21T13:43:41"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 21:43:41",
+          "endDatetime": "2025-11-21 22:51:46",
+          "localStartTime": "2025-11-21T13:43:41",
+          "localEndTime": "2025-11-21T14:51:46"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 22:51:46",
+          "endDatetime": "2025-11-21 23:59:51",
+          "localStartTime": "2025-11-21T14:51:46",
+          "localEndTime": "2025-11-21T15:59:51"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-21 23:59:51",
+          "endDatetime": "2025-11-22 01:07:56",
+          "localStartTime": "2025-11-21T15:59:51",
+          "localEndTime": "2025-11-21T17:07:56"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 01:07:56",
+          "endDatetime": "2025-11-22 02:16:01",
+          "localStartTime": "2025-11-21T17:07:56",
+          "localEndTime": "2025-11-21T18:16:01"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 02:16:01",
+          "endDatetime": "2025-11-22 03:24:06",
+          "localStartTime": "2025-11-21T18:16:01",
+          "localEndTime": "2025-11-21T19:24:06"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 03:24:06",
+          "endDatetime": "2025-11-22 04:32:11",
+          "localStartTime": "2025-11-21T19:24:06",
+          "localEndTime": "2025-11-21T20:32:11"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 04:32:11",
+          "endDatetime": "2025-11-22 05:40:16",
+          "localStartTime": "2025-11-21T20:32:11",
+          "localEndTime": "2025-11-21T21:40:16"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 05:40:16",
+          "endDatetime": "2025-11-22 06:48:21",
+          "localStartTime": "2025-11-21T21:40:16",
+          "localEndTime": "2025-11-21T22:48:21"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "a98a2a1da7a32fa46ce17f50edf00845",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 06:48:21",
+          "endDatetime": "2025-11-22 07:56:26",
+          "localStartTime": "2025-11-21T22:48:21",
+          "localEndTime": "2025-11-21T23:56:26"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_CampfirebyBeachSunset_Th_en_V2"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      },
+      {
+        "contentId": "78127b8fa3b1287d5483613ec737d81d",
+        "versionMappingId": "101826710",
+        "contentSourceId": "181619",
+        "dateInfo": {
+          "originalAirDate": null,
+          "airDate": null,
+          "exactStartTime": null,
+          "exactEndTime": null,
+          "estimatedAirtimeEnd": null,
+          "sourceDate": null,
+          "startDatetime": "2025-11-22 07:56:26",
+          "endDatetime": "2025-11-22 09:04:31",
+          "localStartTime": "2025-11-21T23:56:26",
+          "localEndTime": "2025-11-22T01:04:31"
+        },
+        "runtime": {
+          "duration": 4085000,
+          "actualDurationMins": null,
+          "exactDuration": null
+        },
+        "scheduleQualifier": null,
+        "contentRights": null,
+        "miscIdentifiers": [
+          {
+            "type": "RemoteProgramId",
+            "value": "SC_LakesideSunsetCampfire_Th_HD_en"
+          }
+        ],
+        "ratings": [
+          {
+            "ratingBody": null,
+            "ratingValue": "TVG",
+            "advisories": null
+          }
+        ]
+      }
+    ],
+    "publish-schedule_status": "SUCCESS",
+    "batchId": "b2ef8997-784f-48bc-8da3-711caf056510#181619#2025-11-21",
+    "COMMAND_OUTPUT_MAPPABLE_BATCH_COMPLETED": "Mapping for batch finished, Schedule triggered",
+    "programMappingSchemeId": "158",
+    "token": null,
+    "publish-schedule_completedAt": "2025-11-12T09:31:50.783861670Z",
+    "COMMAND_OUTPUT_TIMESTAMP": [
+      2025,
+      11,
+      12,
+      9,
+      31,
+      42,
+      937122558
+    ],
+    "scheduleDate": "2025-11-21",
+    "responseMessage": "",
+    "status": "SUCCESS"
+  },
+  "isParallel": false,
+  "isMergePoint": false,
+  "pendingBranches": 0,
+  "completedBranches": 0,
+  "totalBranches": 0,
+  "retryCount": 0,
+  "createdAt": "2025-11-12T09:31:43.177080816Z",
+  "updatedAt": "2025-11-12T09:31:50.783890571Z",
+  "createdBy": "WORKFLOW_ENGINE",
+  "updatedBy": "SYSTEM",
+  "_class": "com.gracenote.repository.entity.WorkflowStateEntity"
+}]

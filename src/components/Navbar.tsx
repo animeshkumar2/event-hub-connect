@@ -1,10 +1,14 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Menu } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart, User, Menu, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useCart } from "@/contexts/CartContext";
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { getItemCount } = useCart();
+  const cartCount = getItemCount();
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -21,12 +25,21 @@ export const Navbar = () => {
             <Link to="/search" className="text-sm font-medium hover:text-primary transition-colors">
               Find Vendors
             </Link>
+            <Link to="/event-planner" className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
+              <Sparkles className="h-4 w-4" />
+              Event Planner
+            </Link>
             <Link to="/vendors" className="text-sm font-medium hover:text-primary transition-colors">
               Become a Vendor
             </Link>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild className="relative">
               <Link to="/cart">
                 <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {cartCount}
+                  </Badge>
+                )}
               </Link>
             </Button>
             <Button variant="ghost" size="icon" asChild>
@@ -58,10 +71,24 @@ export const Navbar = () => {
               Find Vendors
             </Link>
             <Link
+              to="/event-planner"
+              className="block py-2 text-sm font-medium hover:text-primary transition-colors flex items-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Event Planner
+            </Link>
+            <Link
               to="/vendors"
               className="block py-2 text-sm font-medium hover:text-primary transition-colors"
             >
               Become a Vendor
+            </Link>
+            <Link
+              to="/cart"
+              className="block py-2 text-sm font-medium hover:text-primary transition-colors flex items-center gap-2"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Cart {cartCount > 0 && `(${cartCount})`}
             </Link>
             <div className="flex items-center space-x-3 pt-2">
               <Button variant="outline" size="sm" asChild className="flex-1">
