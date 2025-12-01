@@ -39,7 +39,7 @@ export const PremiumVendorCard = ({ vendor }: PremiumVendorCardProps) => {
   };
 
   return (
-    <Link to={`/vendor/${vendor.id}`}>
+    <Link to={`/vendor/${vendor.id}?tab=packages`}>
       <Card className="group overflow-hidden cursor-pointer transition-all duration-500 hover-lift rounded-2xl border-0 shadow-card">
         <div className="relative aspect-[4/3] overflow-hidden">
           <img

@@ -262,7 +262,7 @@ export const InteractiveEventShowcase = () => {
                     asChild
                   >
                     <Link to={activeCard.link}>
-                      Explore {activeCard.title} Vendors
+                      Explore {activeCard.title} Packages
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>

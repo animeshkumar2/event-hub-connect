@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BookableSetup } from '@/data/mockData';
+import { BookableSetup, getVendorById } from '@/data/mockData';
 
 interface TrendingSetupCardProps {
   setup: BookableSetup;
@@ -13,6 +13,25 @@ interface TrendingSetupCardProps {
 }
 
 export const TrendingSetupCard = ({ setup, vendorName, eventType, city }: TrendingSetupCardProps) => {
+  // Try to find matching package
+  const vendor = getVendorById(setup.vendorId);
+  let packageId = setup.packageId;
+  
+  if (!packageId && vendor) {
+    // Try to find a package that matches the setup title
+    const matchingPackage = vendor.packages.find(
+      pkg => pkg.name.toLowerCase().includes(setup.title.toLowerCase().split(' ')[0]) ||
+             setup.title.toLowerCase().includes(pkg.name.toLowerCase().split(' ')[0])
+    );
+    if (matchingPackage) {
+      packageId = matchingPackage.id;
+    }
+  }
+  
+  const detailsUrl = packageId 
+    ? `/vendor/${setup.vendorId}?tab=packages&packageId=${packageId}`
+    : `/vendor/${setup.vendorId}?tab=packages`;
+
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-0 shadow-lg hover-lift min-w-[320px]">
       <div className="relative aspect-[4/5] overflow-hidden">
@@ -57,7 +76,7 @@ export const TrendingSetupCard = ({ setup, vendorName, eventType, city }: Trendi
             className="w-full bg-white text-foreground hover:bg-white/90 font-semibold rounded-xl"
             asChild
           >
-            <Link to={`/vendor/${setup.vendorId}`}>
+            <Link to={detailsUrl}>
               View Details
             </Link>
           </Button>

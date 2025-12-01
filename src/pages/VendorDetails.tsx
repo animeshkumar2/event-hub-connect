@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Star, MapPin, Check, X, Clock, MessageCircle, ShoppingCart, AlertCircle
 import { getVendorById } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
+import { cn } from '@/lib/utils';
 import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
 import { PremiumChatWindow } from '@/components/PremiumChatWindow';
 import { PremiumPackageCard } from '@/components/PremiumPackageCard';
@@ -20,13 +21,50 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const VendorDetails = () => {
   const { vendorId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { addToCart } = useCart();
   const [selectedDate, setSelectedDate] = useState<string>();
   const [selectedTime, setSelectedTime] = useState<string>();
   const [showChat, setShowChat] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [highlightedPackageId, setHighlightedPackageId] = useState<string | null>(null);
+  const [showAllPackages, setShowAllPackages] = useState(false);
   const vendor = vendorId ? getVendorById(vendorId) : null;
+
+  // Handle URL parameters for tab and package highlighting
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const packageId = searchParams.get('packageId') || searchParams.get('package'); // Support both 'packageId' and 'package' for backward compatibility
+    
+    // If packageId is present but tab is not 'packages', switch to packages tab
+    if (packageId && tab !== 'packages') {
+      const params = new URLSearchParams(searchParams);
+      params.set('tab', 'packages');
+      params.set('packageId', packageId);
+      params.delete('package'); // Remove old parameter if present
+      setSearchParams(params, { replace: true });
+      return;
+    }
+    
+    if (tab === 'packages') {
+      if (packageId) {
+        setHighlightedPackageId(packageId);
+        setShowAllPackages(false);
+      }
+      // Scroll to packages section after a brief delay
+      setTimeout(() => {
+        const packagesSection = document.getElementById('packages-section');
+        if (packagesSection) {
+          packagesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    } else {
+      // Reset highlighting when not on packages tab
+      setHighlightedPackageId(null);
+      setShowAllPackages(false);
+    }
+  }, [searchParams, setSearchParams]);
 
   if (!vendor) {
     return (
@@ -138,7 +176,16 @@ const VendorDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs value={searchParams.get('tab') || 'overview'} className="w-full" onValueChange={(value) => {
+              const params = new URLSearchParams(searchParams);
+              if (value === 'overview') {
+                params.delete('tab');
+                params.delete('packageId');
+              } else {
+                params.set('tab', value);
+              }
+              setSearchParams(params, { replace: true });
+            }}>
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="packages">Packages</TabsTrigger>
@@ -212,7 +259,7 @@ const VendorDetails = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="packages" className="space-y-6">
+              <TabsContent value="packages" id="packages-section" className="space-y-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-3xl font-bold">Packages</h2>
                   <p className="text-muted-foreground">{vendor.packages.length} package{vendor.packages.length > 1 ? 's' : ''} available</p>
@@ -228,22 +275,37 @@ const VendorDetails = () => {
                       mua: 'wedding',
                     };
                     const theme = themeMap[vendor.category] || 'wedding';
+                    const isHighlighted = highlightedPackageId === pkg.id;
+                    const shouldShow = showAllPackages || !highlightedPackageId || isHighlighted;
+                    
+                    if (!shouldShow) return null;
                     
                     return (
-                      <PremiumPackageCard
+                      <div
                         key={pkg.id}
-                        pkg={pkg}
-                        vendorId={vendor.id}
-                        vendorName={vendor.businessName}
-                        onBook={(pkg, addOns, customizations) => {
-                          const totalPrice =
-                            pkg.price +
-                            addOns.reduce((sum, a) => sum + a.price, 0) +
-                            customizations.reduce((sum, c) => sum + c.price, 0);
-                          handleBookPackage(pkg.id, pkg.name, totalPrice, addOns, customizations);
-                        }}
-                        theme={theme}
-                      />
+                        className={cn(
+                          "transition-all duration-500",
+                          highlightedPackageId && !showAllPackages && !isHighlighted
+                            ? "opacity-30 blur-sm pointer-events-none"
+                            : ""
+                        )}
+                      >
+                        <PremiumPackageCard
+                          pkg={pkg}
+                          vendorId={vendor.id}
+                          vendorName={vendor.businessName}
+                          onBook={(pkg, addOns, customizations) => {
+                            const totalPrice =
+                              pkg.price +
+                              addOns.reduce((sum, a) => sum + a.price, 0) +
+                              customizations.reduce((sum, c) => sum + c.price, 0);
+                            handleBookPackage(pkg.id, pkg.name, totalPrice, addOns, customizations);
+                          }}
+                          theme={theme}
+                          showOtherPackagesButton={isHighlighted && !showAllPackages && highlightedPackageId}
+                          onShowOtherPackages={() => setShowAllPackages(true)}
+                        />
+                      </div>
                     );
                   })}
                 </div>

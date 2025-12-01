@@ -10,7 +10,7 @@ interface VendorCardProps {
 
 export const VendorCard = ({ vendor }: VendorCardProps) => {
   return (
-    <Link to={`/vendor/${vendor.id}`}>
+    <Link to={`/vendor/${vendor.id}?tab=packages`}>
       <Card className="group overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-elegant hover:-translate-y-1">
         <div className="aspect-[4/3] overflow-hidden">
           <img

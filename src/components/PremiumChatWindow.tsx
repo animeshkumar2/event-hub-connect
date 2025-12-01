@@ -182,3 +182,4 @@ export const PremiumChatWindow = ({ vendorId, vendorName, onClose }: PremiumChat
   );
 };
 
+

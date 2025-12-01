@@ -50,3 +50,4 @@ export const CategoryTile = ({ id, name, icon, theme, description }: CategoryTil
   );
 };
 
+

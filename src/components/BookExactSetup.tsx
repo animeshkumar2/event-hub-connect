@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BookableSetup } from '@/data/mockData';
+import { BookableSetup, getVendorById } from '@/data/mockData';
 import { ShoppingCart, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
@@ -17,12 +17,35 @@ export const BookExactSetup = ({ setup, vendorName }: BookExactSetupProps) => {
   const { addToCart } = useCart();
   const { toast } = useToast();
 
+  const handleViewDetails = () => {
+    // Try to find matching package by title or use packageId if available
+    const vendor = getVendorById(setup.vendorId);
+    let packageId = setup.packageId;
+    
+    if (!packageId && vendor) {
+      // Try to find a package that matches the setup title
+      const matchingPackage = vendor.packages.find(
+        pkg => pkg.name.toLowerCase().includes(setup.title.toLowerCase().split(' ')[0]) ||
+               setup.title.toLowerCase().includes(pkg.name.toLowerCase().split(' ')[0])
+      );
+      if (matchingPackage) {
+        packageId = matchingPackage.id;
+      }
+    }
+    
+    // Navigate to packages tab, with packageId if found
+    const url = packageId 
+      ? `/vendor/${setup.vendorId}?tab=packages&packageId=${packageId}`
+      : `/vendor/${setup.vendorId}?tab=packages`;
+    navigate(url);
+  };
+
   const handleBookNow = () => {
     // Add to cart with the setup details
     addToCart({
       vendorId: setup.vendorId,
       vendorName: vendorName,
-      packageId: setup.packageId || 'setup-package',
+      packageId: setup.packageId || `setup-${setup.id}`,
       packageName: setup.title,
       price: setup.price,
       basePrice: setup.price,
@@ -64,14 +87,14 @@ export const BookExactSetup = ({ setup, vendorName }: BookExactSetupProps) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/vendor/${setup.vendorId}`)}
+              onClick={handleViewDetails}
             >
               <Eye className="h-4 w-4 mr-1" />
-              View
+              View Details
             </Button>
             <Button size="sm" onClick={handleBookNow}>
               <ShoppingCart className="h-4 w-4 mr-1" />
-              Book Now
+              Add to Cart
             </Button>
           </div>
         </div>

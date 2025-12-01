@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, X, Clock, AlertCircle, ShoppingCart, Settings } from 'lucide-react';
+import { Check, X, Clock, AlertCircle, ShoppingCart, Settings, Grid3x3 } from 'lucide-react';
 import { Package } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -13,6 +13,8 @@ interface PremiumPackageCardProps {
   vendorName: string;
   onBook: (pkg: Package, addOns: any[], customizations: any[]) => void;
   theme?: 'wedding' | 'dj' | 'birthday' | 'corporate';
+  showOtherPackagesButton?: boolean;
+  onShowOtherPackages?: () => void;
 }
 
 const themeColors = {
@@ -43,7 +45,9 @@ export const PremiumPackageCard = ({
   vendorId, 
   vendorName, 
   onBook,
-  theme = 'wedding' 
+  theme = 'wedding',
+  showOtherPackagesButton = false,
+  onShowOtherPackages
 }: PremiumPackageCardProps) => {
   const colors = themeColors[theme];
 
@@ -149,6 +153,20 @@ export const PremiumPackageCard = ({
                 </Badge>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Show Other Packages Button */}
+        {showOtherPackagesButton && onShowOtherPackages && (
+          <div className="pt-2 border-t">
+            <Button
+              variant="outline"
+              className="w-full rounded-xl"
+              onClick={onShowOtherPackages}
+            >
+              <Grid3x3 className="mr-2 h-4 w-4" />
+              Show Other Packages
+            </Button>
           </div>
         )}
 
