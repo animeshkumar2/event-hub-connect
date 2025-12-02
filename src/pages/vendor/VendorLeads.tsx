@@ -123,15 +123,15 @@ export default function VendorLeads() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Leads & Quote Requests</h1>
-            <p className="text-white/60">{leads.length} total leads • {leads.filter(l => l.status === 'new').length} new</p>
+            <h1 className="text-2xl font-bold text-foreground">Leads & Quote Requests</h1>
+            <p className="text-muted-foreground">{leads.length} total leads • {leads.filter(l => l.status === 'new').length} new</p>
           </div>
           <div className="flex gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-              <Input placeholder="Search leads..." className="pl-10 bg-white/5 border-white/10 text-white w-64" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search leads..." className="pl-10 bg-background border-border text-foreground w-64" />
             </div>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            <Button variant="outline" className="border-border hover:bg-muted">
               <Filter className="mr-2 h-4 w-4" /> Filter
             </Button>
           </div>
@@ -139,20 +139,20 @@ export default function VendorLeads() {
 
         {/* Filters */}
         <Tabs value={activeFilter} onValueChange={setActiveFilter}>
-          <TabsList className="bg-white/5 border border-white/10">
-            <TabsTrigger value="all" className="data-[state=active]:bg-vendor-gold data-[state=active]:text-vendor-dark">
+          <TabsList className="bg-muted/50 border border-border">
+            <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               All ({leads.length})
             </TabsTrigger>
-            <TabsTrigger value="new" className="data-[state=active]:bg-vendor-gold data-[state=active]:text-vendor-dark">
+            <TabsTrigger value="new" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               New ({leads.filter(l => l.status === 'new').length})
             </TabsTrigger>
-            <TabsTrigger value="open" className="data-[state=active]:bg-vendor-gold data-[state=active]:text-vendor-dark">
+            <TabsTrigger value="open" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Open
             </TabsTrigger>
-            <TabsTrigger value="quoted" className="data-[state=active]:bg-vendor-gold data-[state=active]:text-vendor-dark">
+            <TabsTrigger value="quoted" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Quoted
             </TabsTrigger>
-            <TabsTrigger value="accepted" className="data-[state=active]:bg-vendor-gold data-[state=active]:text-vendor-dark">
+            <TabsTrigger value="accepted" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Accepted
             </TabsTrigger>
           </TabsList>
@@ -165,26 +165,26 @@ export default function VendorLeads() {
               <Card 
                 key={lead.id}
                 onClick={() => setSelectedLead(lead)}
-                className={`glass-card border-white/10 cursor-pointer transition-all hover:border-white/20 ${
-                  selectedLead?.id === lead.id ? 'border-vendor-gold' : ''
+                className={`border-border shadow-card cursor-pointer transition-all hover:shadow-elegant ${
+                  selectedLead?.id === lead.id ? 'border-primary' : ''
                 }`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-vendor-purple/20 flex items-center justify-center">
-                        <span className="text-vendor-purple font-semibold">{lead.name[0]}</span>
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-primary font-semibold">{lead.name[0]}</span>
                       </div>
                       <div>
-                        <p className="text-white font-medium">{lead.name}</p>
-                        <p className="text-sm text-white/60">{lead.event}</p>
+                        <p className="text-foreground font-medium">{lead.name}</p>
+                        <p className="text-sm text-foreground/60">{lead.event}</p>
                       </div>
                     </div>
                     <Badge className={getStatusColor(lead.status)}>
                       {lead.status}
                     </Badge>
                   </div>
-                  <div className="space-y-2 text-sm text-white/60">
+                  <div className="space-y-2 text-sm text-foreground/60">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       {lead.date}
@@ -194,7 +194,7 @@ export default function VendorLeads() {
                       {lead.budget}
                     </div>
                   </div>
-                  <p className="text-xs text-white/40 mt-3">{lead.createdAt}</p>
+                  <p className="text-xs text-foreground/40 mt-3">{lead.createdAt}</p>
                 </CardContent>
               </Card>
             ))}
@@ -203,129 +203,129 @@ export default function VendorLeads() {
           {/* Lead Details */}
           <div className="lg:col-span-2">
             {selectedLead ? (
-              <Card className="glass-card border-white/10">
+              <Card className="border-border shadow-card border-border">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
-                    <CardTitle className="text-white text-xl">{selectedLead.name}</CardTitle>
-                    <p className="text-white/60">{selectedLead.event}</p>
+                    <CardTitle className="text-foreground text-xl">{selectedLead.name}</CardTitle>
+                    <p className="text-foreground/60">{selectedLead.event}</p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} className="text-white/60">
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} className="text-foreground/60">
                     <X className="h-4 w-4" />
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Event Details */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-2 text-white/60 mb-1">
+                    <div className="p-4 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-2 text-foreground/60 mb-1">
                         <Calendar className="h-4 w-4" /> Event Date
                       </div>
-                      <p className="text-white font-medium">{selectedLead.date}</p>
+                      <p className="text-foreground font-medium">{selectedLead.date}</p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-2 text-white/60 mb-1">
+                    <div className="p-4 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-2 text-foreground/60 mb-1">
                         <MapPin className="h-4 w-4" /> Venue
                       </div>
-                      <p className="text-white font-medium">{selectedLead.venue}</p>
+                      <p className="text-foreground font-medium">{selectedLead.venue}</p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-2 text-white/60 mb-1">
+                    <div className="p-4 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-2 text-foreground/60 mb-1">
                         <Users className="h-4 w-4" /> Guests
                       </div>
-                      <p className="text-white font-medium">{selectedLead.guests} people</p>
+                      <p className="text-foreground font-medium">{selectedLead.guests} people</p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/5">
-                      <div className="flex items-center gap-2 text-white/60 mb-1">
+                    <div className="p-4 rounded-xl bg-muted/50">
+                      <div className="flex items-center gap-2 text-foreground/60 mb-1">
                         <IndianRupee className="h-4 w-4" /> Budget
                       </div>
-                      <p className="text-white font-medium">{selectedLead.budget}</p>
+                      <p className="text-foreground font-medium">{selectedLead.budget}</p>
                     </div>
                   </div>
 
                   {/* Message */}
-                  <div className="p-4 rounded-xl bg-white/5">
-                    <p className="text-white/60 text-sm mb-2">Message:</p>
-                    <p className="text-white">{selectedLead.message}</p>
+                  <div className="p-4 rounded-xl bg-muted/50">
+                    <p className="text-foreground/60 text-sm mb-2">Message:</p>
+                    <p className="text-foreground">{selectedLead.message}</p>
                   </div>
 
                   {/* Contact */}
-                  <div className="p-4 rounded-xl bg-white/5">
-                    <p className="text-white/60 text-sm mb-2">Contact:</p>
-                    <p className="text-white">{selectedLead.email}</p>
-                    <p className="text-white">{selectedLead.phone}</p>
+                  <div className="p-4 rounded-xl bg-muted/50">
+                    <p className="text-foreground/60 text-sm mb-2">Contact:</p>
+                    <p className="text-foreground">{selectedLead.email}</p>
+                    <p className="text-foreground">{selectedLead.phone}</p>
                   </div>
 
                   {/* Actions */}
                   <div className="flex flex-wrap gap-3">
                     <Button 
                       onClick={() => navigate('/vendor/chat')}
-                      className="bg-vendor-purple hover:bg-vendor-purple/80"
+                      className="bg-primary hover:bg-primary/80"
                     >
                       <MessageSquare className="mr-2 h-4 w-4" /> Reply in Chat
                     </Button>
                     <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
                       <DialogTrigger asChild>
-                        <Button className="bg-vendor-gold text-vendor-dark hover:bg-vendor-gold/90">
+                        <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
                           <FileText className="mr-2 h-4 w-4" /> Create Quote
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="bg-vendor-dark border-white/10 max-w-2xl">
+                      <DialogContent className="bg-card border-border max-w-2xl">
                         <DialogHeader>
-                          <DialogTitle className="text-white">Create Quote for {selectedLead.name}</DialogTitle>
+                          <DialogTitle className="text-foreground">Create Quote for {selectedLead.name}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 pt-4">
                           {/* Quote Items */}
                           <div className="space-y-3">
-                            <Label className="text-white">Line Items</Label>
+                            <Label className="text-foreground">Line Items</Label>
                             <div className="space-y-2">
                               <div className="flex gap-2">
-                                <Input placeholder="Item description" className="flex-1 bg-white/5 border-white/10 text-white" defaultValue="Wedding Photography - Full Day" />
-                                <Input placeholder="Price" className="w-32 bg-white/5 border-white/10 text-white" defaultValue="₹45,000" />
+                                <Input placeholder="Item description" className="flex-1 bg-muted/50 border-border text-foreground" defaultValue="Wedding Photography - Full Day" />
+                                <Input placeholder="Price" className="w-32 bg-muted/50 border-border text-foreground" defaultValue="₹45,000" />
                               </div>
                               <div className="flex gap-2">
-                                <Input placeholder="Item description" className="flex-1 bg-white/5 border-white/10 text-white" defaultValue="Pre-wedding Shoot" />
-                                <Input placeholder="Price" className="w-32 bg-white/5 border-white/10 text-white" defaultValue="₹15,000" />
+                                <Input placeholder="Item description" className="flex-1 bg-muted/50 border-border text-foreground" defaultValue="Pre-wedding Shoot" />
+                                <Input placeholder="Price" className="w-32 bg-muted/50 border-border text-foreground" defaultValue="₹15,000" />
                               </div>
                             </div>
-                            <Button variant="outline" size="sm" className="border-white/20 text-white">
+                            <Button variant="outline" size="sm" className="border-border text-foreground">
                               <Plus className="mr-2 h-4 w-4" /> Add Item
                             </Button>
                           </div>
 
                           {/* Summary */}
-                          <div className="p-4 rounded-xl bg-white/5 space-y-2">
-                            <div className="flex justify-between text-white/60">
+                          <div className="p-4 rounded-xl bg-muted/50 space-y-2">
+                            <div className="flex justify-between text-foreground/60">
                               <span>Subtotal</span>
                               <span>₹60,000</span>
                             </div>
-                            <div className="flex justify-between text-white/60">
+                            <div className="flex justify-between text-foreground/60">
                               <span>GST (18%)</span>
                               <span>₹10,800</span>
                             </div>
-                            <div className="flex justify-between text-white font-bold text-lg border-t border-white/10 pt-2">
+                            <div className="flex justify-between text-foreground font-bold text-lg border-t border-border pt-2">
                               <span>Total</span>
                               <span>₹70,800</span>
                             </div>
                           </div>
 
                           <div className="space-y-2">
-                            <Label className="text-white">Validity</Label>
-                            <Input type="date" className="bg-white/5 border-white/10 text-white" />
+                            <Label className="text-foreground">Validity</Label>
+                            <Input type="date" className="bg-muted/50 border-border text-foreground" />
                           </div>
 
                           <div className="space-y-2">
-                            <Label className="text-white">Notes</Label>
+                            <Label className="text-foreground">Notes</Label>
                             <Textarea 
                               placeholder="Add any additional terms or notes..."
-                              className="bg-white/5 border-white/10 text-white"
+                              className="bg-muted/50 border-border text-foreground"
                             />
                           </div>
 
                           <div className="flex gap-3">
-                            <Button variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">
+                            <Button variant="outline" className="flex-1 border-border text-foreground hover:bg-muted">
                               <Download className="mr-2 h-4 w-4" /> Download PDF
                             </Button>
-                            <Button onClick={handleCreateQuote} className="flex-1 bg-vendor-gold text-vendor-dark">
+                            <Button onClick={handleCreateQuote} className="flex-1 bg-secondary text-secondary-foreground">
                               <Send className="mr-2 h-4 w-4" /> Send Quote
                             </Button>
                           </div>
@@ -343,10 +343,10 @@ export default function VendorLeads() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="glass-card border-white/10 h-full flex items-center justify-center">
+              <Card className="border-border shadow-card border-border h-full flex items-center justify-center">
                 <div className="text-center py-12">
-                  <MessageSquare className="h-12 w-12 text-white/20 mx-auto mb-4" />
-                  <p className="text-white/40">Select a lead to view details</p>
+                  <MessageSquare className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
+                  <p className="text-foreground/40">Select a lead to view details</p>
                 </div>
               </Card>
             )}

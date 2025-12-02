@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthProps {
@@ -40,6 +41,10 @@ const Auth = ({ mode }: AuthProps) => {
     });
 
     if (mode === "signup" && isVendor) {
+      // Store email for vendor onboarding
+      sessionStorage.setItem('vendorSignupData', JSON.stringify({
+        email: formData.email,
+      }));
       navigate("/vendor/onboarding");
     } else {
       navigate("/");
@@ -113,7 +118,7 @@ const Auth = ({ mode }: AuthProps) => {
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 p-4 rounded-lg bg-muted/50 border border-border">
                   <Checkbox
                     id="vendor"
                     checked={isVendor}

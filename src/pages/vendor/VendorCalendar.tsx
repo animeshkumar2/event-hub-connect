@@ -110,46 +110,46 @@ export default function VendorCalendar() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Calendar & Availability</h1>
-            <p className="text-white/60">Manage your schedule and block dates</p>
+            <h1 className="text-2xl font-bold text-foreground">Calendar & Availability</h1>
+            <p className="text-foreground/60">Manage your schedule and block dates</p>
           </div>
           <div className="flex gap-3">
             <Button 
               variant="outline" 
-              className="border-white/20 text-white hover:bg-white/10"
+              className="border-white/20 text-foreground hover:bg-white/10"
               onClick={() => setShowSyncModal(true)}
             >
               <RefreshCw className="mr-2 h-4 w-4" /> Sync Google Calendar
             </Button>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-vendor-gold text-vendor-dark">
+                <Button className="bg-secondary text-secondary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Create Slot
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-vendor-dark border-white/10">
+              <DialogContent className="bg-card border-border">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Create Availability Slot</DialogTitle>
+                  <DialogTitle className="text-foreground">Create Availability Slot</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label className="text-white">Date</Label>
-                    <Input type="date" className="bg-white/5 border-white/10 text-white" />
+                    <Label className="text-foreground">Date</Label>
+                    <Input type="date" className="bg-muted/50 border-border text-foreground" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-white">Start Time</Label>
-                      <Input type="time" className="bg-white/5 border-white/10 text-white" />
+                      <Label className="text-foreground">Start Time</Label>
+                      <Input type="time" className="bg-muted/50 border-border text-foreground" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-white">End Time</Label>
-                      <Input type="time" className="bg-white/5 border-white/10 text-white" />
+                      <Label className="text-foreground">End Time</Label>
+                      <Input type="time" className="bg-muted/50 border-border text-foreground" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-white">Repeat</Label>
+                    <Label className="text-foreground">Repeat</Label>
                     <Select>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                      <SelectTrigger className="bg-muted/50 border-border text-foreground">
                         <SelectValue placeholder="Does not repeat" />
                       </SelectTrigger>
                       <SelectContent>
@@ -160,7 +160,7 @@ export default function VendorCalendar() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button className="w-full bg-vendor-gold text-vendor-dark">Create Slot</Button>
+                  <Button className="w-full bg-secondary text-secondary-foreground">Create Slot</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -177,7 +177,7 @@ export default function VendorCalendar() {
           ].map((item) => (
             <div key={item.status} className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${item.color}`} />
-              <span className="text-sm text-white/60">{item.label}</span>
+              <span className="text-sm text-foreground/60">{item.label}</span>
             </div>
           ))}
         </div>
@@ -189,19 +189,19 @@ export default function VendorCalendar() {
             const monthData = getCalendarData(monthDate.getMonth(), monthDate.getFullYear());
 
             return (
-              <Card key={offset} className="glass-card border-white/10">
+              <Card key={offset} className="border-border shadow-card border-border">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   {offset === 0 && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                      className="text-white/60 hover:text-white"
+                      className="text-foreground/60 hover:text-foreground"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                   )}
-                  <CardTitle className="text-white text-lg flex-1 text-center">
+                  <CardTitle className="text-foreground text-lg flex-1 text-center">
                     {months[monthDate.getMonth()]} {monthDate.getFullYear()}
                   </CardTitle>
                   {offset === 2 && (
@@ -209,7 +209,7 @@ export default function VendorCalendar() {
                       variant="ghost"
                       size="icon"
                       onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                      className="text-white/60 hover:text-white"
+                      className="text-foreground/60 hover:text-foreground"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -219,7 +219,7 @@ export default function VendorCalendar() {
                 <CardContent>
                   <div className="grid grid-cols-7 gap-1">
                     {days.map((day) => (
-                      <div key={day} className="text-center text-xs text-white/40 py-2">
+                      <div key={day} className="text-center text-xs text-foreground/40 py-2">
                         {day}
                       </div>
                     ))}
@@ -232,7 +232,7 @@ export default function VendorCalendar() {
                           disabled={!isCurrentMonth}
                           className={`
                             aspect-square rounded-lg text-sm flex items-center justify-center transition-all
-                            ${isCurrentMonth ? getStatusColor(day.status) : 'text-white/20'}
+                            ${isCurrentMonth ? getStatusColor(day.status) : 'text-foreground/20'}
                             ${isCurrentMonth && day.status === 'available' ? 'cursor-pointer' : ''}
                           `}
                         >
@@ -249,12 +249,12 @@ export default function VendorCalendar() {
 
         {/* Selected Date Details */}
         {selectedDate && (
-          <Card className="glass-card border-white/10">
+          <Card className="border-border shadow-card border-border">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white">
+              <CardTitle className="text-foreground">
                 {selectedDate.date} {months[selectedDate.month]} {selectedDate.year}
               </CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(null)} className="text-white/60">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(null)} className="text-foreground/60">
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
@@ -266,20 +266,20 @@ export default function VendorCalendar() {
               </div>
 
               {selectedDate.booking && (
-                <div className="p-4 rounded-xl bg-white/5">
-                  <p className="text-white font-medium">{selectedDate.booking.event}</p>
-                  <p className="text-white/60 text-sm">{selectedDate.booking.client}</p>
+                <div className="p-4 rounded-xl bg-muted/50">
+                  <p className="text-foreground font-medium">{selectedDate.booking.event}</p>
+                  <p className="text-foreground/60 text-sm">{selectedDate.booking.client}</p>
                 </div>
               )}
 
               <div className="flex gap-3">
                 {selectedDate.status === 'available' && (
-                  <Button onClick={handleBlockDate} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  <Button onClick={handleBlockDate} variant="outline" className="border-white/20 text-foreground hover:bg-white/10">
                     Block This Date
                   </Button>
                 )}
                 {selectedDate.status === 'blocked' && (
-                  <Button onClick={handleUnblockDate} className="bg-green-500 hover:bg-green-600 text-white">
+                  <Button onClick={handleUnblockDate} className="bg-green-500 hover:bg-green-600 text-foreground">
                     Unblock Date
                   </Button>
                 )}
@@ -290,23 +290,23 @@ export default function VendorCalendar() {
 
         {/* Google Calendar Sync Modal */}
         <Dialog open={showSyncModal} onOpenChange={setShowSyncModal}>
-          <DialogContent className="bg-vendor-dark border-white/10">
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-white">Sync with Google Calendar</DialogTitle>
+              <DialogTitle className="text-foreground">Sync with Google Calendar</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
-              <p className="text-white/60">Connect your Google Calendar to automatically sync your availability.</p>
-              <div className="p-4 rounded-xl bg-white/5 space-y-3">
+              <p className="text-foreground/60">Connect your Google Calendar to automatically sync your availability.</p>
+              <div className="p-4 rounded-xl bg-muted/50 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-white">Import events as blocked dates</span>
+                  <span className="text-foreground">Import events as blocked dates</span>
                   <Switch defaultChecked />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white">Export bookings to Google Calendar</span>
+                  <span className="text-foreground">Export bookings to Google Calendar</span>
                   <Switch defaultChecked />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white">Two-way sync</span>
+                  <span className="text-foreground">Two-way sync</span>
                   <Switch />
                 </div>
               </div>

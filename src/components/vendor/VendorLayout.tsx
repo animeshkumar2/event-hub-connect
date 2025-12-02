@@ -7,9 +7,9 @@ interface VendorLayoutProps {
 
 export const VendorLayout = ({ children }: VendorLayoutProps) => {
   return (
-    <div className="min-h-screen bg-vendor-dark">
+    <div className="min-h-screen bg-background">
       <VendorSidebar />
-      <main className="ml-64 min-h-screen">
+      <main className="ml-64 min-h-screen bg-background transition-all duration-300">
         {children}
       </main>
     </div>

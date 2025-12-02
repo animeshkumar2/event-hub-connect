@@ -91,39 +91,39 @@ export default function VendorReviews() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Reviews & Reputation</h1>
-            <p className="text-white/60">Manage your customer reviews</p>
+            <h1 className="text-2xl font-bold text-foreground">Reviews & Reputation</h1>
+            <p className="text-foreground/60">Manage your customer reviews</p>
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="bg-vendor-gold text-vendor-dark">
+              <Button className="bg-secondary text-secondary-foreground">
                 <Mail className="mr-2 h-4 w-4" /> Request Review
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-vendor-dark border-white/10">
+            <DialogContent className="bg-card border-border">
               <DialogHeader>
-                <DialogTitle className="text-white">Request a Review</DialogTitle>
+                <DialogTitle className="text-foreground">Request a Review</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
-                <p className="text-white/60">Send a review request email to a recent customer.</p>
-                <div className="p-4 rounded-xl bg-white/5 space-y-3">
+                <p className="text-foreground/60">Send a review request email to a recent customer.</p>
+                <div className="p-4 rounded-xl bg-muted/50 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-white">Sharma Family</span>
+                    <span className="text-foreground">Sharma Family</span>
                     <Badge className="bg-green-500/20 text-green-400">Wedding - Dec 15</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-white">Mehta Corp</span>
+                    <span className="text-foreground">Mehta Corp</span>
                     <Badge className="bg-blue-500/20 text-blue-400">Corporate - Dec 10</Badge>
                   </div>
                 </div>
-                <div className="p-4 rounded-xl bg-white/5">
-                  <p className="text-sm text-white/60 mb-2">Email Preview:</p>
-                  <p className="text-white text-sm">
+                <div className="p-4 rounded-xl bg-muted/50">
+                  <p className="text-sm text-foreground/60 mb-2">Email Preview:</p>
+                  <p className="text-foreground text-sm">
                     "Hi [Customer Name], Thank you for choosing Royal Moments Photography for your [Event]. 
                     We'd love to hear about your experience! Would you mind leaving us a review?"
                   </p>
                 </div>
-                <Button onClick={handleRequestReview} className="w-full bg-vendor-gold text-vendor-dark">
+                <Button onClick={handleRequestReview} className="w-full bg-secondary text-secondary-foreground">
                   Send Review Request
                 </Button>
               </div>
@@ -133,17 +133,17 @@ export default function VendorReviews() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Rating Overview */}
-          <Card className="glass-card border-white/10">
+          <Card className="glass-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Rating Overview</CardTitle>
+              <CardTitle className="text-foreground">Rating Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-5xl font-bold text-white">{overallRating}</span>
-                  <Star className="h-10 w-10 text-vendor-gold fill-vendor-gold" />
+                  <span className="text-5xl font-bold text-foreground">{overallRating}</span>
+                  <Star className="h-10 w-10 text-secondary fill-vendor-gold" />
                 </div>
-                <p className="text-white/60">{totalReviews} reviews</p>
+                <p className="text-foreground/60">{totalReviews} reviews</p>
                 <div className="flex items-center justify-center gap-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-400" />
                   <span className="text-green-400 text-sm">+0.2 this month</span>
@@ -154,16 +154,16 @@ export default function VendorReviews() {
                 {ratingDistribution.map((item) => (
                   <div key={item.stars} className="flex items-center gap-3">
                     <div className="flex items-center gap-1 w-12">
-                      <span className="text-white text-sm">{item.stars}</span>
-                      <Star className="h-3 w-3 text-vendor-gold fill-vendor-gold" />
+                      <span className="text-foreground text-sm">{item.stars}</span>
+                      <Star className="h-3 w-3 text-secondary fill-vendor-gold" />
                     </div>
                     <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-vendor-gold rounded-full"
+                        className="h-full bg-secondary rounded-full"
                         style={{ width: `${item.percentage}%` }}
                       />
                     </div>
-                    <span className="text-white/60 text-sm w-12 text-right">{item.count}</span>
+                    <span className="text-foreground/60 text-sm w-12 text-right">{item.count}</span>
                   </div>
                 ))}
               </div>
@@ -173,39 +173,39 @@ export default function VendorReviews() {
           {/* Reviews List */}
           <div className="lg:col-span-2 space-y-4">
             {reviews.map((review) => (
-              <Card key={review.id} className="glass-card border-white/10">
+              <Card key={review.id} className="glass-card border-border">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-vendor-purple/20 flex items-center justify-center">
-                        <span className="text-vendor-purple font-semibold text-lg">{review.avatar}</span>
+                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-primary font-semibold text-lg">{review.avatar}</span>
                       </div>
                       <div>
-                        <p className="text-white font-medium">{review.customer}</p>
-                        <p className="text-sm text-white/60">{review.event} • {review.date}</p>
+                        <p className="text-foreground font-medium">{review.customer}</p>
+                        <p className="text-sm text-foreground/60">{review.event} • {review.date}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
                         <Star 
                           key={i} 
-                          className={`h-4 w-4 ${i < review.rating ? 'text-vendor-gold fill-vendor-gold' : 'text-white/20'}`}
+                          className={`h-4 w-4 ${i < review.rating ? 'text-secondary fill-vendor-gold' : 'text-foreground/20'}`}
                         />
                       ))}
                     </div>
                   </div>
 
-                  <p className="text-white/80 mb-4">{review.review}</p>
+                  <p className="text-foreground/80 mb-4">{review.review}</p>
 
                   {review.response && (
-                    <div className="p-4 rounded-xl bg-vendor-gold/10 border border-vendor-gold/20 mb-4">
-                      <p className="text-sm text-vendor-gold font-medium mb-1">Your Response:</p>
-                      <p className="text-white/80 text-sm">{review.response}</p>
+                    <div className="p-4 rounded-xl bg-secondary/10 border border-vendor-gold/20 mb-4">
+                      <p className="text-sm text-secondary font-medium mb-1">Your Response:</p>
+                      <p className="text-foreground/80 text-sm">{review.response}</p>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between">
-                    <Button variant="ghost" size="sm" className="text-white/60 hover:text-white">
+                    <Button variant="ghost" size="sm" className="text-foreground/60 hover:text-foreground">
                       <ThumbsUp className="mr-2 h-4 w-4" />
                       {review.helpful} found helpful
                     </Button>
@@ -216,36 +216,36 @@ export default function VendorReviews() {
                             variant="outline" 
                             size="sm"
                             onClick={() => setSelectedReview(review)}
-                            className="border-white/20 text-white hover:bg-white/10"
+                            className="border-white/20 text-foreground hover:bg-white/10"
                           >
                             <MessageSquare className="mr-2 h-4 w-4" /> Respond
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-vendor-dark border-white/10">
+                        <DialogContent className="bg-card border-border">
                           <DialogHeader>
-                            <DialogTitle className="text-white">Respond to Review</DialogTitle>
+                            <DialogTitle className="text-foreground">Respond to Review</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4 pt-4">
-                            <div className="p-4 rounded-xl bg-white/5">
+                            <div className="p-4 rounded-xl bg-muted/50">
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-white font-medium">{review.customer}</span>
+                                <span className="text-foreground font-medium">{review.customer}</span>
                                 <div className="flex">
                                   {[...Array(review.rating)].map((_, i) => (
-                                    <Star key={i} className="h-3 w-3 text-vendor-gold fill-vendor-gold" />
+                                    <Star key={i} className="h-3 w-3 text-secondary fill-vendor-gold" />
                                   ))}
                                 </div>
                               </div>
-                              <p className="text-white/60 text-sm">{review.review}</p>
+                              <p className="text-foreground/60 text-sm">{review.review}</p>
                             </div>
                             <Textarea 
                               value={responseText}
                               onChange={(e) => setResponseText(e.target.value)}
                               placeholder="Write your response..."
-                              className="bg-white/5 border-white/10 text-white min-h-[120px]"
+                              className="bg-muted/50 border-border text-foreground min-h-[120px]"
                             />
                             <Button 
                               onClick={handleSubmitResponse}
-                              className="w-full bg-vendor-gold text-vendor-dark"
+                              className="w-full bg-secondary text-secondary-foreground"
                             >
                               Post Response
                             </Button>

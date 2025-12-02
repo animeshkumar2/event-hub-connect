@@ -23,8 +23,8 @@ export default function VendorAnalytics() {
       change: '+12%', 
       trend: 'up',
       icon: Calendar,
-      color: 'text-vendor-gold',
-      bg: 'bg-vendor-gold/10'
+      color: 'text-secondary',
+      bg: 'bg-secondary/10'
     },
     { 
       label: 'Revenue', 
@@ -41,8 +41,8 @@ export default function VendorAnalytics() {
       change: '+5%', 
       trend: 'up',
       icon: Users,
-      color: 'text-vendor-purple',
-      bg: 'bg-vendor-purple/10'
+      color: 'text-primary',
+      bg: 'bg-primary/10'
     },
     { 
       label: 'Avg Response Time', 
@@ -79,12 +79,12 @@ export default function VendorAnalytics() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Analytics & Insights</h1>
-            <p className="text-white/60">Track your business performance</p>
+            <h1 className="text-2xl font-bold text-foreground">Analytics & Insights</h1>
+            <p className="text-foreground/60">Track your business performance</p>
           </div>
           <div className="flex gap-3">
             <Select defaultValue="last30">
-              <SelectTrigger className="w-40 bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="w-40 bg-muted/50 border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -94,7 +94,7 @@ export default function VendorAnalytics() {
                 <SelectItem value="thisyear">This Year</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            <Button variant="outline" className="border-white/20 text-foreground hover:bg-white/10">
               <Download className="mr-2 h-4 w-4" /> Export
             </Button>
           </div>
@@ -103,7 +103,7 @@ export default function VendorAnalytics() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
-            <Card key={i} className="glass-card border-white/10">
+            <Card key={i} className="border-border shadow-card border-border">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 rounded-xl ${stat.bg}`}>
@@ -114,8 +114,8 @@ export default function VendorAnalytics() {
                     {stat.change}
                   </Badge>
                 </div>
-                <p className="text-3xl font-bold text-white">{stat.value}</p>
-                <p className="text-white/60 text-sm">{stat.label}</p>
+                <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-foreground/60 text-sm">{stat.label}</p>
               </CardContent>
             </Card>
           ))}
@@ -123,10 +123,10 @@ export default function VendorAnalytics() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
-          <Card className="glass-card border-white/10">
+          <Card className="border-border shadow-card border-border">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-vendor-gold" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-secondary" />
                 Revenue Overview
               </CardTitle>
             </CardHeader>
@@ -134,14 +134,14 @@ export default function VendorAnalytics() {
               <div className="space-y-4">
                 {monthlyData.map((data, i) => (
                   <div key={i} className="flex items-center gap-4">
-                    <span className="text-white/60 w-12 text-sm">{data.month}</span>
-                    <div className="flex-1 h-8 bg-white/5 rounded-full overflow-hidden">
+                    <span className="text-foreground/60 w-12 text-sm">{data.month}</span>
+                    <div className="flex-1 h-8 bg-muted/50 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-gradient-to-r from-vendor-gold to-amber-500 rounded-full transition-all duration-500"
                         style={{ width: `${(data.revenue / maxRevenue) * 100}%` }}
                       />
                     </div>
-                    <span className="text-white font-medium w-20 text-right">₹{(data.revenue / 1000).toFixed(0)}K</span>
+                    <span className="text-foreground font-medium w-20 text-right">₹{(data.revenue / 1000).toFixed(0)}K</span>
                   </div>
                 ))}
               </div>
@@ -149,10 +149,10 @@ export default function VendorAnalytics() {
           </Card>
 
           {/* Bookings Chart */}
-          <Card className="glass-card border-white/10">
+          <Card className="border-border shadow-card border-border">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-vendor-purple" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
                 Bookings Trend
               </CardTitle>
             </CardHeader>
@@ -163,13 +163,13 @@ export default function VendorAnalytics() {
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-2">
                       <div className="w-full flex flex-col items-center">
-                        <span className="text-white text-sm mb-2">{data.bookings}</span>
+                        <span className="text-foreground text-sm mb-2">{data.bookings}</span>
                         <div 
                           className="w-full bg-gradient-to-t from-vendor-purple to-vendor-purple/50 rounded-t-lg transition-all duration-500"
                           style={{ height: `${(data.bookings / maxBookings) * 140}px` }}
                         />
                       </div>
-                      <span className="text-white/60 text-xs">{data.month}</span>
+                      <span className="text-foreground/60 text-xs">{data.month}</span>
                     </div>
                   );
                 })}
@@ -179,9 +179,9 @@ export default function VendorAnalytics() {
         </div>
 
         {/* Top Services */}
-        <Card className="glass-card border-white/10">
+        <Card className="border-border shadow-card border-border">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <PieChart className="h-5 w-5 text-green-400" />
               Top Services
             </CardTitle>
@@ -193,24 +193,24 @@ export default function VendorAnalytics() {
                 {topServices.map((service, i) => (
                   <div key={i} className="flex items-center gap-4">
                     <div className={`w-3 h-3 rounded-full ${
-                      i === 0 ? 'bg-vendor-gold' : 
-                      i === 1 ? 'bg-vendor-purple' : 
+                      i === 0 ? 'bg-secondary' : 
+                      i === 1 ? 'bg-primary' : 
                       i === 2 ? 'bg-blue-400' : 'bg-green-400'
                     }`} />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-white font-medium">{service.name}</p>
-                        <p className="text-vendor-gold font-bold">{service.revenue}</p>
+                        <p className="text-foreground font-medium">{service.name}</p>
+                        <p className="text-secondary font-bold">{service.revenue}</p>
                       </div>
-                      <div className="flex items-center justify-between text-sm text-white/60">
+                      <div className="flex items-center justify-between text-sm text-foreground/60">
                         <span>{service.bookings} bookings</span>
                         <span>{service.percentage}%</span>
                       </div>
                       <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full ${
-                            i === 0 ? 'bg-vendor-gold' : 
-                            i === 1 ? 'bg-vendor-purple' : 
+                            i === 0 ? 'bg-secondary' : 
+                            i === 1 ? 'bg-primary' : 
                             i === 2 ? 'bg-blue-400' : 'bg-green-400'
                           }`}
                           style={{ width: `${service.percentage}%` }}
@@ -253,8 +253,8 @@ export default function VendorAnalytics() {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-3xl font-bold text-white">142</p>
-                      <p className="text-sm text-white/60">Total</p>
+                      <p className="text-3xl font-bold text-foreground">142</p>
+                      <p className="text-sm text-foreground/60">Total</p>
                     </div>
                   </div>
                 </div>
@@ -264,9 +264,9 @@ export default function VendorAnalytics() {
         </Card>
 
         {/* Response Time Heatmap */}
-        <Card className="glass-card border-white/10">
+        <Card className="border-border shadow-card border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-400" />
               Response Time by Day & Hour
             </CardTitle>
@@ -274,13 +274,13 @@ export default function VendorAnalytics() {
           <CardContent>
             <div className="overflow-x-auto">
               <div className="grid grid-cols-8 gap-1 min-w-[600px]">
-                <div className="text-white/40 text-xs"></div>
+                <div className="text-foreground/40 text-xs"></div>
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                  <div key={day} className="text-center text-white/40 text-xs py-2">{day}</div>
+                  <div key={day} className="text-center text-foreground/40 text-xs py-2">{day}</div>
                 ))}
                 {['9AM', '12PM', '3PM', '6PM', '9PM'].map((time) => (
                   <>
-                    <div className="text-white/40 text-xs py-2">{time}</div>
+                    <div className="text-foreground/40 text-xs py-2">{time}</div>
                     {[1,2,3,4,5,6,7].map((_, i) => {
                       const intensity = Math.random();
                       return (
@@ -298,7 +298,7 @@ export default function VendorAnalytics() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 mt-4">
-              <span className="text-xs text-white/40">Faster</span>
+              <span className="text-xs text-foreground/40">Faster</span>
               <div className="flex gap-1">
                 {[0.2, 0.4, 0.6, 0.8].map((opacity, i) => (
                   <div 
@@ -308,7 +308,7 @@ export default function VendorAnalytics() {
                   />
                 ))}
               </div>
-              <span className="text-xs text-white/40">Slower</span>
+              <span className="text-xs text-foreground/40">Slower</span>
             </div>
           </CardContent>
         </Card>

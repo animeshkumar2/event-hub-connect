@@ -157,12 +157,12 @@ export default function VendorChat() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
           {/* Chat List */}
           <div className="lg:col-span-1">
-            <Card className="glass-card border-white/10 h-full">
+            <Card className="border-border shadow-card border-border h-full">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">Messages</CardTitle>
+                <CardTitle className="text-foreground">Messages</CardTitle>
                 <div className="relative mt-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-                  <Input placeholder="Search conversations..." className="pl-10 bg-white/5 border-white/10 text-white" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+                  <Input placeholder="Search conversations..." className="pl-10 bg-muted/50 border-border text-foreground" />
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -171,31 +171,31 @@ export default function VendorChat() {
                     <div
                       key={thread.id}
                       onClick={() => setSelectedChat(thread)}
-                      className={`flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-white/5 ${
+                      className={`flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
                         selectedChat?.id === thread.id ? 'bg-white/10' : ''
                       }`}
                     >
                       <div className="relative">
-                        <div className="w-12 h-12 rounded-full bg-vendor-purple/20 flex items-center justify-center">
-                          <span className="text-vendor-purple font-semibold text-lg">{thread.avatar}</span>
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-primary font-semibold text-lg">{thread.avatar}</span>
                         </div>
                         {thread.unread > 0 && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-vendor-gold flex items-center justify-center">
-                            <span className="text-xs text-vendor-dark font-bold">{thread.unread}</span>
+                          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
+                            <span className="text-xs text-secondary-foreground font-bold">{thread.unread}</span>
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="text-white font-medium truncate">{thread.name}</p>
-                          <span className="text-xs text-white/40">{thread.time}</span>
+                          <p className="text-foreground font-medium truncate">{thread.name}</p>
+                          <span className="text-xs text-foreground/40">{thread.time}</span>
                         </div>
-                        <p className="text-sm text-white/60 truncate">{thread.lastMessage}</p>
+                        <p className="text-sm text-foreground/60 truncate">{thread.lastMessage}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge className={thread.status === 'booked' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} variant="outline">
                             {thread.status}
                           </Badge>
-                          <span className="text-xs text-white/40">{thread.event}</span>
+                          <span className="text-xs text-foreground/40">{thread.event}</span>
                         </div>
                       </div>
                     </div>
@@ -208,21 +208,21 @@ export default function VendorChat() {
           {/* Chat Window */}
           <div className="lg:col-span-2">
             {selectedChat ? (
-              <Card className="glass-card border-white/10 h-full flex flex-col">
+              <Card className="border-border shadow-card border-border h-full flex flex-col">
                 {/* Chat Header */}
-                <CardHeader className="border-b border-white/10">
+                <CardHeader className="border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-vendor-purple/20 flex items-center justify-center">
-                        <span className="text-vendor-purple font-semibold text-lg">{selectedChat.avatar}</span>
+                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-primary font-semibold text-lg">{selectedChat.avatar}</span>
                       </div>
                       <div>
-                        <CardTitle className="text-white">{selectedChat.name}</CardTitle>
-                        <p className="text-sm text-white/60">{selectedChat.event}</p>
+                        <CardTitle className="text-foreground">{selectedChat.name}</CardTitle>
+                        <p className="text-sm text-foreground/60">{selectedChat.event}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="text-white/60 hover:text-white">
+                      <Button variant="ghost" size="icon" className="text-foreground/60 hover:text-foreground">
                         <Phone className="h-4 w-4" />
                       </Button>
                     </div>
@@ -230,12 +230,12 @@ export default function VendorChat() {
 
                   {/* Booking CTA */}
                   {selectedChat.status === 'lead' && (
-                    <div className="mt-4 p-3 rounded-xl bg-vendor-gold/10 border border-vendor-gold/20 flex items-center justify-between">
+                    <div className="mt-4 p-3 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-vendor-gold" />
-                        <span className="text-sm text-white">Ready to book?</span>
+                        <MessageSquare className="h-4 w-4 text-secondary" />
+                        <span className="text-sm text-foreground">Ready to book?</span>
                       </div>
-                      <Button size="sm" className="bg-vendor-gold text-vendor-dark hover:bg-vendor-gold/90">
+                      <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
                         Send Booking Link <ChevronRight className="ml-1 h-4 w-4" />
                       </Button>
                     </div>
@@ -254,8 +254,8 @@ export default function VendorChat() {
                           <div
                             className={`max-w-[70%] rounded-2xl p-4 ${
                               message.sender === 'vendor'
-                                ? 'bg-vendor-gold text-vendor-dark rounded-br-none'
-                                : 'bg-white/10 text-white rounded-bl-none'
+                                ? 'bg-secondary text-secondary-foreground rounded-br-none'
+                                : 'bg-white/10 text-foreground rounded-bl-none'
                             }`}
                           >
                             {message.attachment ? (
@@ -276,7 +276,7 @@ export default function VendorChat() {
                               </div>
                             ) : null}
                             {message.text && <p className="text-sm">{message.text}</p>}
-                            <p className={`text-xs mt-1 ${message.sender === 'vendor' ? 'text-vendor-dark/60' : 'text-white/40'}`}>
+                            <p className={`text-xs mt-1 ${message.sender === 'vendor' ? 'text-secondary-foreground/60' : 'text-foreground/40'}`}>
                               {message.time}
                             </p>
                           </div>
@@ -296,7 +296,7 @@ export default function VendorChat() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleCannedReply(reply)}
-                        className="border-white/20 text-white/60 hover:text-white whitespace-nowrap text-xs"
+                        className="border-white/20 text-foreground/60 hover:text-foreground whitespace-nowrap text-xs"
                       >
                         {reply.slice(0, 30)}...
                       </Button>
@@ -305,12 +305,12 @@ export default function VendorChat() {
                 </div>
 
                 {/* Input */}
-                <div className="p-4 border-t border-white/10">
+                <div className="p-4 border-t border-border">
                   <div className="flex gap-3">
-                    <Button variant="ghost" size="icon" className="text-white/60 hover:text-white">
+                    <Button variant="ghost" size="icon" className="text-foreground/60 hover:text-foreground">
                       <Paperclip className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-white/60 hover:text-white">
+                    <Button variant="ghost" size="icon" className="text-foreground/60 hover:text-foreground">
                       <Image className="h-5 w-5" />
                     </Button>
                     <Input
@@ -318,12 +318,12 @@ export default function VendorChat() {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                      className="flex-1 bg-white/5 border-white/10 text-white"
+                      className="flex-1 bg-muted/50 border-border text-foreground"
                     />
                     <Button 
                       onClick={handleSend}
                       disabled={!inputValue.trim()}
-                      className="bg-vendor-gold text-vendor-dark hover:bg-vendor-gold/90"
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
                     >
                       <Send className="h-5 w-5" />
                     </Button>
@@ -331,11 +331,11 @@ export default function VendorChat() {
                 </div>
               </Card>
             ) : (
-              <Card className="glass-card border-white/10 h-full flex items-center justify-center">
+              <Card className="border-border shadow-card border-border h-full flex items-center justify-center">
                 <div className="text-center">
-                  <MessageSquare className="h-16 w-16 text-white/20 mx-auto mb-4" />
-                  <p className="text-white/40 text-lg">Select a conversation</p>
-                  <p className="text-white/30 text-sm">Choose a chat from the list to start messaging</p>
+                  <MessageSquare className="h-16 w-16 text-foreground/20 mx-auto mb-4" />
+                  <p className="text-foreground/40 text-lg">Select a conversation</p>
+                  <p className="text-foreground/30 text-sm">Choose a chat from the list to start messaging</p>
                 </div>
               </Card>
             )}

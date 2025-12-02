@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -42,23 +42,23 @@ export const VendorSidebar = () => {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen transition-all duration-300',
-        'bg-vendor-sidebar backdrop-blur-xl border-r border-white/10',
+        'fixed left-0 top-0 z-40 h-screen transition-all duration-200',
+        'bg-card border-r border-border shadow-elegant',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card">
         {!collapsed && (
-          <span className="font-display text-xl font-bold text-white">
-            Eventory
-          </span>
+          <Link to="/" className="text-xl font-bold text-foreground">
+            EventHub
+          </Link>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="text-white/70 hover:text-white hover:bg-white/10"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
@@ -73,28 +73,38 @@ export const VendorSidebar = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
                 'group relative',
                 isActive
-                  ? 'bg-gradient-to-r from-vendor-gold/20 to-vendor-purple/20 text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  ? 'bg-primary/10 text-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-vendor-gold rounded-r-full" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
               )}
-              <item.icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-vendor-gold')} />
-              {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              <item.icon className={cn(
+                'h-5 w-5 flex-shrink-0',
+                isActive && 'text-primary'
+              )} />
+              {!collapsed && (
+                <span className={cn(
+                  'text-sm font-medium',
+                  isActive && 'font-semibold'
+                )}>
+                  {item.label}
+                </span>
+              )}
             </NavLink>
           );
         })}
       </nav>
 
       {/* Logout */}
-      <div className="p-2 border-t border-white/10">
+      <div className="p-2 border-t border-border">
         <NavLink
           to="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
         >
           <LogOut className="h-5 w-5" />
           {!collapsed && <span className="text-sm font-medium">Exit to Home</span>}
