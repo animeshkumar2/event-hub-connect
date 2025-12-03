@@ -1,73 +1,146 @@
-# Welcome to your Lovable project
+# Event Hub Connect
 
-## Project info
+A comprehensive event planning platform connecting customers with vendors for weddings, corporate events, and more.
 
-**URL**: https://lovable.dev/projects/94428b41-5e4e-4a5e-a9e7-f14f9ea4c566
+## 📁 Project Structure
 
-## How can I edit this code?
+```
+event-hub-connect/
+├── frontend/          # React + TypeScript + Vite
+│   ├── src/
+│   │   ├── app/       # App entry point, routing
+│   │   ├── features/  # Feature-based modules
+│   │   │   ├── home/
+│   │   │   ├── search/
+│   │   │   ├── vendor/
+│   │   │   ├── auth/
+│   │   │   ├── cart/
+│   │   │   └── booking/
+│   │   └── shared/    # Shared components, utils, hooks
+│   │       ├── components/
+│   │       ├── hooks/
+│   │       ├── utils/
+│   │       ├── lib/
+│   │       ├── contexts/
+│   │       └── constants/
+│   ├── public/
+│   └── package.json
+│
+├── backend/           # Spring Boot + Java
+│   ├── src/
+│   │   └── main/
+│   │       ├── java/com/eventhub/
+│   │       │   ├── model/      # JPA Entities
+│   │       │   ├── repository/ # Data Access
+│   │       │   ├── service/    # Business Logic
+│   │       │   ├── controller/ # REST APIs
+│   │       │   └── dto/        # Data Transfer Objects
+│   │       └── resources/
+│   │           └── application.properties
+│   └── pom.xml
+│
+└── database/          # SQL scripts
+    ├── schema_v2.sql
+    ├── seed_data_v2.sql
+    └── storage_policies.sql
+```
 
-There are several ways of editing your application.
+## 🚀 Quick Start
 
-**Use Lovable**
+### Prerequisites
+- Node.js 18+
+- Java 21
+- Maven 3.8+
+- Docker (optional)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/94428b41-5e4e-4a5e-a9e7-f14f9ea4c566) and start prompting.
+### Frontend Setup
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+cd frontend
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Frontend runs on: `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Backend Setup
 
-**Use GitHub Codespaces**
+```bash
+cd backend
+./mvnw spring-boot:run
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Backend runs on: `http://localhost:8081`
 
-## What technologies are used for this project?
+### Docker Setup (Both Services)
 
-This project is built with:
+```bash
+docker compose up
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This starts both frontend and backend services.
 
-## How can I deploy this project?
+## 📚 Documentation
 
-Simply open [Lovable](https://lovable.dev/projects/94428b41-5e4e-4a5e-a9e7-f14f9ea4c566) and click on Share -> Publish.
+- **Frontend**: See `frontend/README.md`
+- **Backend**: See `backend/README.md`
+- **Database**: See `database/README.md`
 
-## Can I connect a custom domain to my Lovable project?
+## 🛠️ Development
 
-Yes, you can!
+### Frontend Structure
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- **Features**: Organized by domain (home, search, vendor, etc.)
+- **Shared**: Reusable components, utilities, hooks
+- **App**: Main application setup, routing
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Backend Structure
+
+- **Model**: JPA entities
+- **Repository**: Data access layer
+- **Service**: Business logic
+- **Controller**: REST API endpoints
+- **DTO**: Data transfer objects
+
+## 🔗 API Endpoints
+
+- `GET /api/vendors` - List vendors
+- `GET /api/vendors/{id}` - Get vendor details
+- `GET /api/listings` - List packages/listings
+- `GET /api/listings/{id}` - Get listing details
+
+## 📝 Environment Variables
+
+Create `.env` file in root:
+
+```env
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## 🧪 Testing
+
+```bash
+# Frontend
+cd frontend
+npm run test
+
+# Backend
+cd backend
+./mvnw test
+```
+
+## 📦 Deployment
+
+See individual README files in `frontend/` and `backend/` directories for deployment instructions.
+
+## 🤝 Contributing
+
+1. Create feature branch
+2. Make changes
+3. Test thoroughly
+4. Submit PR
+
+## 📄 License
+
+MIT

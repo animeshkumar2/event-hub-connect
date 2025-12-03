@@ -1,0 +1,16 @@
+target/
+.mvn/
+.mvn/wrapper/
+*.log
+*.jar
+!target/*.jar
+.git/
+.gitignore
+README.md
+SETUP_GUIDE.md
+QUICK_START.md
+.idea/
+.vscode/
+*.iml
+.DS_Store
+

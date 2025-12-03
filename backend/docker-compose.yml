@@ -1,29 +1,7 @@
 services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: event-hub-frontend
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=development
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://vwhxzxayzpdfmpnnzslq.supabase.co}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3aHh6eGF5enBkZm1wbm56c2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDM4NjksImV4cCI6MjA4MDI3OTg2OX0.eOg_EmPuJA9SJdhkbw1zBH5jthFrZ5Jo9o_zRztfgCY}
-    stdin_open: true
-    tty: true
-    restart: unless-stopped
-    networks:
-      - eventhub-network
-
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: eventhub-backend
     ports:
@@ -43,9 +21,3 @@ services:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=INFO
       - LOGGING_LEVEL_ORG_HIBERNATE_SQL=DEBUG
     restart: unless-stopped
-    networks:
-      - eventhub-network
-
-networks:
-  eventhub-network:
-    driver: bridge
