@@ -13,6 +13,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import EventPlanner from "./pages/EventPlanner";
 import BookingSuccess from "./pages/BookingSuccess";
+import TestImageUpload from "./pages/TestImageUpload";
 
 // Vendor Pages
 import VendorOnboarding from "./pages/vendor/VendorOnboarding";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/login" element={<Auth mode="login" />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
+            <Route path="/test-upload" element={<TestImageUpload />} />
             
             {/* Vendor Routes */}
             <Route path="/vendor/onboarding" element={<VendorOnboarding />} />

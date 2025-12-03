@@ -24,6 +24,9 @@ import {
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { categories, validateListingCategory, suggestCategoryForListing, eventTypes } from '@/data/mockData';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface Listing {
   id: string;
@@ -40,6 +43,18 @@ interface Listing {
 export default function VendorListings() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  
+  // Mock vendor category - in real app, get from auth context
+  const vendorCategory = 'photographer'; // This would come from vendor profile/auth
+  const vendorCategoryName = categories.find(c => c.id === vendorCategory)?.name || vendorCategory;
+  
+  // Form state
+  const [listingTitle, setListingTitle] = useState('');
+  const [listingDescription, setListingDescription] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>(vendorCategory);
+  const [categoryWarning, setCategoryWarning] = useState<string | null>(null);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
 
   const listings: Listing[] = [
     {
@@ -134,9 +149,122 @@ export default function VendorListings() {
                   <DialogTitle className="text-foreground">Create New Listing</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
+                  {/* Vendor Category Info */}
+                  <Alert className="bg-primary/10 border-primary/20">
+                    <AlertDescription className="text-foreground">
+                      <strong>Your Category:</strong> {vendorCategoryName} 📸
+                      <br />
+                      <span className="text-sm text-muted-foreground">
+                        You can list items in your category ({vendorCategoryName}) or in the "Other" category for miscellaneous items.
+                      </span>
+                    </AlertDescription>
+                  </Alert>
+
                   <div className="space-y-2">
                     <Label className="text-foreground">Listing Title</Label>
-                    <Input placeholder="e.g., Wedding Photography - Full Day" className="bg-background border-border text-foreground" />
+                    <Input 
+                      placeholder="e.g., Professional Camera Rental" 
+                      className="bg-background border-border text-foreground"
+                      value={listingTitle}
+                      onChange={(e) => {
+                        setListingTitle(e.target.value);
+                        // Auto-detect category suggestion
+                        if (e.target.value && listingDescription) {
+                          const suggestion = suggestCategoryForListing(e.target.value, listingDescription);
+                          if (suggestion && suggestion !== vendorCategory && suggestion !== 'other') {
+                            setSuggestedCategory(suggestion);
+                            setCategoryWarning(`This item seems to belong to "${categories.find(c => c.id === suggestion)?.name || suggestion}" category. Consider listing it there instead.`);
+                          } else {
+                            setSuggestedCategory(null);
+                            setCategoryWarning(null);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Category</Label>
+                    <Select 
+                      value={selectedCategory} 
+                      onValueChange={(value) => {
+                        setSelectedCategory(value);
+                        // Validate category
+                        if (!validateListingCategory(vendorCategory, value)) {
+                          const categoryName = categories.find(c => c.id === value)?.name || value;
+                          setCategoryWarning(`You cannot list items in "${categoryName}" category. Please select "${vendorCategoryName}" or "Other".`);
+                        } else {
+                          setCategoryWarning(null);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-background border-border text-foreground">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={vendorCategory}>
+                          {vendorCategoryName} (Your Category)
+                        </SelectItem>
+                        <SelectItem value="other">Other (Miscellaneous)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {categoryWarning && (
+                      <Alert className="bg-yellow-500/10 border-yellow-500/20">
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                        <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                          {categoryWarning}
+                          {suggestedCategory && (
+                            <div className="mt-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  toast.info(`Please register as a ${categories.find(c => c.id === suggestedCategory)?.name || suggestedCategory} vendor to list this item.`);
+                                }}
+                              >
+                                Learn More
+                              </Button>
+                            </div>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-foreground">
+                      Event Types <span className="text-muted-foreground text-sm">(Select all applicable)</span>
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background">
+                      {eventTypes.map((eventType) => (
+                        <div key={eventType} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`event-${eventType}`}
+                            checked={selectedEventTypes.includes(eventType)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedEventTypes([...selectedEventTypes, eventType]);
+                              } else {
+                                setSelectedEventTypes(selectedEventTypes.filter(et => et !== eventType));
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                          />
+                          <Label 
+                            htmlFor={`event-${eventType}`}
+                            className="text-sm font-normal text-foreground cursor-pointer"
+                          >
+                            {eventType}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedEventTypes.length === 0 && (
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        ⚠️ Please select at least one event type. This listing will only appear in selected event types.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -163,8 +291,23 @@ export default function VendorListings() {
                   <div className="space-y-2">
                     <Label className="text-foreground">Description</Label>
                     <Textarea 
-                      placeholder="Describe your package..."
+                      placeholder="Describe your listing..."
                       className="bg-background border-border text-foreground min-h-[100px]"
+                      value={listingDescription}
+                      onChange={(e) => {
+                        setListingDescription(e.target.value);
+                        // Auto-detect category suggestion
+                        if (listingTitle && e.target.value) {
+                          const suggestion = suggestCategoryForListing(listingTitle, e.target.value);
+                          if (suggestion && suggestion !== vendorCategory && suggestion !== 'other') {
+                            setSuggestedCategory(suggestion);
+                            setCategoryWarning(`This item seems to belong to "${categories.find(c => c.id === suggestion)?.name || suggestion}" category. Consider listing it there instead.`);
+                          } else {
+                            setSuggestedCategory(null);
+                            setCategoryWarning(null);
+                          }
+                        }
+                      }}
                     />
                   </div>
 
@@ -210,10 +353,33 @@ export default function VendorListings() {
                     <Button variant="outline" className="flex-1 border-border hover:bg-muted" onClick={() => setShowCreateModal(false)}>
                       Save as Draft
                     </Button>
-                    <Button className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow" onClick={() => {
-                      toast.success('Listing published!');
-                      setShowCreateModal(false);
-                    }}>
+                    <Button 
+                      className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow" 
+                      onClick={() => {
+                        // Validate before publishing
+                        if (!validateListingCategory(vendorCategory, selectedCategory)) {
+                          toast.error('Invalid category selected. Please select your category or "Other".');
+                          return;
+                        }
+                        if (!listingTitle.trim()) {
+                          toast.error('Please enter a listing title.');
+                          return;
+                        }
+                        if (selectedEventTypes.length === 0) {
+                          toast.error('Please select at least one event type.');
+                          return;
+                        }
+                        toast.success(`Listing published! Will appear in: ${selectedEventTypes.join(', ')}`);
+                        setShowCreateModal(false);
+                        // Reset form
+                        setListingTitle('');
+                        setListingDescription('');
+                        setSelectedCategory(vendorCategory);
+                        setCategoryWarning(null);
+                        setSuggestedCategory(null);
+                        setSelectedEventTypes([]);
+                      }}
+                    >
                       Publish Listing
                     </Button>
                   </div>

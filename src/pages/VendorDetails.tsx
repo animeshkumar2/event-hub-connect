@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Star, MapPin, Check, X, Clock, MessageCircle, ShoppingCart, AlertCircle } from 'lucide-react';
-import { getVendorById } from '@/data/mockData';
+import { getVendorById, categories } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/contexts/CartContext';
 import { cn } from '@/lib/utils';
@@ -37,30 +37,30 @@ const VendorDetails = () => {
     const tab = searchParams.get('tab');
     const packageId = searchParams.get('packageId') || searchParams.get('package'); // Support both 'packageId' and 'package' for backward compatibility
     
-    // If packageId is present but tab is not 'packages', switch to packages tab
-    if (packageId && tab !== 'packages') {
+    // If packageId is present but tab is not 'listings', switch to listings tab
+    if (packageId && tab !== 'listings') {
       const params = new URLSearchParams(searchParams);
-      params.set('tab', 'packages');
+      params.set('tab', 'listings');
       params.set('packageId', packageId);
       params.delete('package'); // Remove old parameter if present
       setSearchParams(params, { replace: true });
       return;
     }
     
-    if (tab === 'packages') {
+    if (tab === 'listings') {
       if (packageId) {
         setHighlightedPackageId(packageId);
         setShowAllPackages(false);
       }
-      // Scroll to packages section after a brief delay
+      // Scroll to listings section after a brief delay
       setTimeout(() => {
-        const packagesSection = document.getElementById('packages-section');
-        if (packagesSection) {
-          packagesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const listingsSection = document.getElementById('listings-section');
+        if (listingsSection) {
+          listingsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 300);
     } else {
-      // Reset highlighting when not on packages tab
+      // Reset highlighting when not on listings tab
       setHighlightedPackageId(null);
       setShowAllPackages(false);
     }
@@ -188,7 +188,7 @@ const VendorDetails = () => {
             }}>
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="packages">Packages</TabsTrigger>
+                <TabsTrigger value="listings">Listings</TabsTrigger>
                 <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="faqs">FAQs</TabsTrigger>
@@ -259,56 +259,156 @@ const VendorDetails = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="packages" id="packages-section" className="space-y-6">
+              <TabsContent value="listings" id="listings-section" className="space-y-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold">Packages</h2>
-                  <p className="text-muted-foreground">{vendor.packages.length} package{vendor.packages.length > 1 ? 's' : ''} available</p>
+                  <h2 className="text-3xl font-bold">All Listings</h2>
+                  <p className="text-muted-foreground">
+                    {vendor.packages.length + (vendor.listings?.length || 0)} listing{(vendor.packages.length + (vendor.listings?.length || 0)) !== 1 ? 's' : ''} available
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {vendor.packages.map((pkg) => {
-                    const themeMap: Record<string, 'wedding' | 'dj' | 'birthday' | 'corporate'> = {
-                      photographer: 'wedding',
-                      decorator: 'wedding',
-                      dj: 'dj',
-                      'sound-lights': 'dj',
-                      caterer: 'corporate',
-                      mua: 'wedding',
-                    };
-                    const theme = themeMap[vendor.category] || 'wedding';
-                    const isHighlighted = highlightedPackageId === pkg.id;
-                    const shouldShow = showAllPackages || !highlightedPackageId || isHighlighted;
-                    
-                    if (!shouldShow) return null;
-                    
-                    return (
-                      <div
-                        key={pkg.id}
-                        className={cn(
-                          "transition-all duration-500",
-                          highlightedPackageId && !showAllPackages && !isHighlighted
-                            ? "opacity-30 blur-sm pointer-events-none"
-                            : ""
-                        )}
-                      >
-                        <PremiumPackageCard
-                          pkg={pkg}
-                          vendorId={vendor.id}
-                          vendorName={vendor.businessName}
-                          onBook={(pkg, addOns, customizations) => {
-                            const totalPrice =
-                              pkg.price +
-                              addOns.reduce((sum, a) => sum + a.price, 0) +
-                              customizations.reduce((sum, c) => sum + c.price, 0);
-                            handleBookPackage(pkg.id, pkg.name, totalPrice, addOns, customizations);
-                          }}
-                          theme={theme}
-                          showOtherPackagesButton={isHighlighted && !showAllPackages && highlightedPackageId}
-                          onShowOtherPackages={() => setShowAllPackages(true)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                
+                {/* Packages Section - Top */}
+                {vendor.packages.length > 0 && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-semibold">Packages</h3>
+                      <p className="text-muted-foreground">{vendor.packages.length} package{vendor.packages.length > 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {vendor.packages.map((pkg) => {
+                        const themeMap: Record<string, 'wedding' | 'dj' | 'birthday' | 'corporate'> = {
+                          photographer: 'wedding',
+                          decorator: 'wedding',
+                          dj: 'dj',
+                          'sound-lights': 'dj',
+                          caterer: 'corporate',
+                          mua: 'wedding',
+                        };
+                        const theme = themeMap[vendor.category] || 'wedding';
+                        const isHighlighted = highlightedPackageId === pkg.id;
+                        const shouldShow = showAllPackages || !highlightedPackageId || isHighlighted;
+                        
+                        if (!shouldShow) return null;
+                        
+                        return (
+                          <div
+                            key={pkg.id}
+                            className={cn(
+                              "transition-all duration-500",
+                              highlightedPackageId && !showAllPackages && !isHighlighted
+                                ? "opacity-30 blur-sm pointer-events-none"
+                                : ""
+                            )}
+                          >
+                            <PremiumPackageCard
+                              pkg={pkg}
+                              vendorId={vendor.id}
+                              vendorName={vendor.businessName}
+                              vendorCategory={vendor.category}
+                              onBook={(pkg, addOns, customizations) => {
+                                const totalPrice =
+                                  pkg.price +
+                                  addOns.reduce((sum, a) => sum + a.price, 0) +
+                                  customizations.reduce((sum, c) => sum + c.price, 0);
+                                handleBookPackage(pkg.id, pkg.name, totalPrice, addOns, customizations);
+                              }}
+                              theme={theme}
+                              showOtherPackagesButton={isHighlighted && !showAllPackages && highlightedPackageId}
+                              onShowOtherPackages={() => setShowAllPackages(true)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Individual Listings Section - Bottom */}
+                {vendor.listings && vendor.listings.length > 0 && (
+                  <div className="space-y-6 pt-6 border-t">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-semibold">Individual Listings</h3>
+                      <p className="text-muted-foreground">{vendor.listings.length} listing{vendor.listings.length > 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {vendor.listings.map((listing) => {
+                        const listingCategory = listing.category || vendor.category;
+                        const categoryName = categories.find(c => c.id === listingCategory)?.name || listingCategory;
+                        return (
+                          <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-all group">
+                            <div className="relative aspect-video">
+                              <img
+                                src={listing.images[0] || 'https://via.placeholder.com/400x300'}
+                                alt={listing.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              />
+                              <Badge className="absolute top-2 left-2 bg-green-500/90 text-white">
+                                Individual
+                              </Badge>
+                              <Badge className="absolute top-2 right-2 bg-secondary/90 text-white">
+                                {categoryName}
+                              </Badge>
+                              {listing.unit && (
+                                <Badge className="absolute bottom-2 right-2 bg-primary/90 text-white">
+                                  {listing.unit}
+                                </Badge>
+                              )}
+                            </div>
+                            <CardContent className="p-4">
+                              <h3 className="font-bold text-lg mb-2">{listing.name}</h3>
+                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                {listing.description}
+                              </p>
+                              <div className="flex items-center justify-between pt-2 border-t">
+                                <div>
+                                  <div className="text-2xl font-bold text-primary">
+                                    ₹{listing.price.toLocaleString('en-IN')}
+                                  </div>
+                                  {listing.minimumQuantity && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Min: {listing.minimumQuantity} {listing.unit || 'items'}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    addToCart({
+                                      vendorId: vendor.id,
+                                      vendorName: vendor.businessName,
+                                      packageId: listing.id,
+                                      packageName: listing.name,
+                                      price: listing.price,
+                                      basePrice: listing.price,
+                                      addOns: [],
+                                      quantity: 1,
+                                      eventDate: selectedDate,
+                                      eventTime: selectedTime,
+                                    });
+                                    toast({
+                                      title: 'Added to Cart',
+                                      description: `${listing.name} has been added to your cart`,
+                                    });
+                                  }}
+                                >
+                                  <ShoppingCart className="h-4 w-4 mr-2" />
+                                  Add to Cart
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {vendor.packages.length === 0 && (!vendor.listings || vendor.listings.length === 0) && (
+                  <Card className="p-12 text-center">
+                    <p className="text-muted-foreground">No listings available yet.</p>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="portfolio" className="space-y-6">

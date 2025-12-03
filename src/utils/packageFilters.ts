@@ -2,6 +2,7 @@ import { FlattenedPackage } from './packageUtils';
 
 /**
  * Filter packages by category
+ * Strict matching - only returns items that exactly match the category
  */
 export const filterByCategory = (
   packages: FlattenedPackage[],
@@ -10,20 +11,24 @@ export const filterByCategory = (
   if (!category || category === 'all') {
     return packages;
   }
-  return packages.filter(pkg => pkg.category === category);
+  // Strict category matching - each item's category must exactly match
+  return packages.filter(pkg => {
+    // Ensure category exists and matches exactly
+    return pkg.category && pkg.category === category;
+  });
 };
 
 /**
- * Filter packages by package type
+ * Filter packages by listing type (package vs listing)
  */
-export const filterByPackageType = (
+export const filterByListingType = (
   packages: FlattenedPackage[],
-  packageType: string
+  listingType: 'all' | 'packages'
 ): FlattenedPackage[] => {
-  if (!packageType || packageType === 'All Packages') {
+  if (listingType === 'all') {
     return packages;
   }
-  return packages.filter(pkg => pkg.packageType === packageType);
+  return packages.filter(pkg => pkg.type === 'package');
 };
 
 /**
@@ -96,7 +101,7 @@ export const filterByMinRating = (
  */
 export interface PackageFilters {
   category?: string;
-  packageType?: string;
+  listingType?: 'all' | 'packages';
   city?: string;
   minBudget?: number;
   maxBudget?: number;
@@ -115,8 +120,8 @@ export const applyFilters = (
     filtered = filterByCategory(filtered, filters.category);
   }
 
-  if (filters.packageType) {
-    filtered = filterByPackageType(filtered, filters.packageType);
+  if (filters.listingType) {
+    filtered = filterByListingType(filtered, filters.listingType);
   }
 
   if (filters.city) {
@@ -160,7 +165,7 @@ export const searchPackages = (
   const searchTerm = query.toLowerCase().trim();
 
   return packages.filter(pkg => {
-    const matchesName = pkg.packageName.toLowerCase().includes(searchTerm);
+    const matchesName = (pkg.name || pkg.packageName || '').toLowerCase().includes(searchTerm);
     const matchesDescription = pkg.description.toLowerCase().includes(searchTerm);
     const matchesVendor = pkg.vendorName.toLowerCase().includes(searchTerm);
 

@@ -1,10 +1,10 @@
-import { Vendor, Package } from '@/data/mockData';
+import { Vendor, Package, Listing } from '@/data/mockData';
 
 /**
- * Flattened package structure for package-centric display
+ * Flattened package/listing structure for unified display
  */
 export interface FlattenedPackage {
-  packageId: string;
+  id: string; // packageId or listingId
   vendorId: string;
   vendorName: string;
   vendorRating: number;
@@ -12,17 +12,21 @@ export interface FlattenedPackage {
   vendorCity: string;
   vendorCoverageRadius: number;
   category: string;
-  packageName: string;
-  packageType: string;
+  name: string; // packageName or listingName
+  type: 'package' | 'listing'; // Distinguish between package and listing
   price: number;
   description: string;
-  includedItems: string[];
-  excludedItems: string[];
-  deliveryTime: string;
+  includedItems?: string[]; // Only for packages
+  excludedItems?: string[]; // Only for packages
+  deliveryTime?: string;
   images: string[];
   availability: 'available' | 'limited' | 'booked';
   isPopular: boolean;
   isTrending: boolean;
+  // Legacy fields for backward compatibility
+  packageId?: string;
+  packageName?: string;
+  packageType?: string;
 }
 
 /**
@@ -95,54 +99,108 @@ const isPackageTrending = (vendor: Vendor): boolean => {
 };
 
 /**
- * Flatten vendor/package data structure into package-centric format
+ * Flatten vendor/package/listing data structure into unified format
  */
-export const flattenPackages = (vendors: Vendor[], eventType?: string): FlattenedPackage[] => {
+export const flattenPackages = (vendors: Vendor[], eventType?: string, listingType: 'all' | 'packages' = 'all'): FlattenedPackage[] => {
   const flattened: FlattenedPackage[] = [];
 
   vendors.forEach(vendor => {
-    vendor.packages.forEach(pkg => {
-      // Filter by eventType if provided
-      // If package has eventTypes defined, it must include the eventType
-      // If package doesn't have eventTypes, include it for backward compatibility
-      if (eventType) {
-        if (pkg.eventTypes && pkg.eventTypes.length > 0) {
+    // Add packages
+    if (listingType === 'all' || listingType === 'packages') {
+      vendor.packages.forEach(pkg => {
+        // STRICT FILTERING: Filter by eventType if provided
+        // If eventType is specified, package MUST have eventTypes array and MUST include the eventType
+        if (eventType) {
+          // If package has no eventTypes or empty array, skip it (strict filtering)
+          if (!pkg.eventTypes || pkg.eventTypes.length === 0) {
+            return; // Skip packages without eventTypes when eventType filter is active
+          }
+          // Package must explicitly include this eventType
           if (!pkg.eventTypes.includes(eventType)) {
             return; // Skip this package if it doesn't match the event type
           }
         }
-        // If no eventTypes defined, include it (backward compatibility)
-      }
-      
-      flattened.push({
-        packageId: pkg.id,
-        vendorId: vendor.id,
-        vendorName: vendor.businessName,
-        vendorRating: vendor.rating,
-        vendorReviewCount: vendor.reviewCount,
-        vendorCity: vendor.city,
-        vendorCoverageRadius: vendor.coverageRadius,
-        category: vendor.category,
-        packageName: pkg.name,
-        packageType: classifyPackageType(pkg.name),
-        price: pkg.price,
-        description: pkg.description,
-        includedItems: pkg.includedItems,
-        excludedItems: pkg.excludedItems || [],
-        deliveryTime: pkg.deliveryTime,
-        images: pkg.images,
-        availability: getAvailabilityStatus(vendor),
-        isPopular: isPackagePopular(vendor),
-        isTrending: isPackageTrending(vendor),
+        
+        flattened.push({
+          id: pkg.id,
+          packageId: pkg.id, // Legacy support
+          vendorId: vendor.id,
+          vendorName: vendor.businessName,
+          vendorRating: vendor.rating,
+          vendorReviewCount: vendor.reviewCount,
+          vendorCity: vendor.city,
+          vendorCoverageRadius: vendor.coverageRadius,
+          // Packages can have their own category, but default to vendor category
+          // This allows packages to be categorized independently if needed
+          // CRITICAL: Filtering in Search page is based on this category, not vendor category
+          // Ensure category is always set - use package category if available, otherwise vendor category
+          category: (pkg as any).category || vendor.category,
+          name: pkg.name,
+          packageName: pkg.name, // Legacy support
+          type: 'package',
+          packageType: classifyPackageType(pkg.name), // Legacy support
+          price: pkg.price,
+          description: pkg.description,
+          includedItems: pkg.includedItems,
+          excludedItems: pkg.excludedItems || [],
+          deliveryTime: pkg.deliveryTime,
+          images: pkg.images,
+          availability: getAvailabilityStatus(vendor),
+          isPopular: isPackagePopular(vendor),
+          isTrending: isPackageTrending(vendor),
+        });
       });
-    });
+    }
+
+    // Add individual listings
+    if (listingType === 'all' && vendor.listings && vendor.listings.length > 0) {
+      vendor.listings.forEach(listing => {
+        // STRICT FILTERING: Filter by eventType if provided
+        // If eventType is specified, listing MUST have eventTypes array and MUST include the eventType
+        if (eventType) {
+          // If listing has no eventTypes or empty array, skip it (strict filtering)
+          if (!listing.eventTypes || listing.eventTypes.length === 0) {
+            return; // Skip listings without eventTypes when eventType filter is active
+          }
+          // Listing must explicitly include this eventType
+          if (!listing.eventTypes.includes(eventType)) {
+            return; // Skip this listing if it doesn't match the event type
+          }
+        }
+        
+        flattened.push({
+          id: listing.id,
+          vendorId: vendor.id,
+          vendorName: vendor.businessName,
+          vendorRating: vendor.rating,
+          vendorReviewCount: vendor.reviewCount,
+          vendorCity: vendor.city,
+          vendorCoverageRadius: vendor.coverageRadius,
+          // Use listing's own category first, fallback to vendor category only if not specified
+          // This ensures listings are categorized correctly (e.g., decorator listings stay in decorator category)
+          // CRITICAL: Listings MUST have their category set explicitly - they should not inherit vendor category
+          // unless the listing truly belongs to that vendor's primary category
+          category: listing.category || vendor.category,
+          name: listing.name,
+          type: 'listing',
+          price: listing.price,
+          description: listing.description,
+          deliveryTime: listing.deliveryTime,
+          images: listing.images,
+          availability: getAvailabilityStatus(vendor),
+          isPopular: isPackagePopular(vendor),
+          isTrending: isPackageTrending(vendor),
+        });
+      });
+    }
   });
 
   return flattened;
 };
 
 /**
- * Get unique package types for a given category
+ * Get unique package types for a given category (DEPRECATED - kept for backward compatibility)
+ * @deprecated Package type filters are being removed. Use listing type filter instead.
  */
 export const getPackageTypesForCategory = (
   packages: FlattenedPackage[],
@@ -151,8 +209,12 @@ export const getPackageTypesForCategory = (
   const types = new Set<string>();
   
   packages
-    .filter(pkg => pkg.category === category)
-    .forEach(pkg => types.add(pkg.packageType));
+    .filter(pkg => pkg.category === category && pkg.type === 'package')
+    .forEach(pkg => {
+      if (pkg.packageType) {
+        types.add(pkg.packageType);
+      }
+    });
   
   return ['All Packages', ...Array.from(types).sort()];
 };

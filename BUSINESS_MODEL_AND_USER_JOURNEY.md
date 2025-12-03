@@ -20,6 +20,7 @@
 - **Commission-Based Revenue**: Platform earns revenue through transaction fees
 - **Multi-Vendor Booking**: Customers can book multiple vendors in a single transaction
 - **Transparent Pricing**: Fixed pricing model with clear add-on options
+- **Flexible Listing Options**: Vendors can create both packages (bundled services) and individual listings (single items like chairs, tables, equipment, etc.)
 
 ### Key Differentiators
 1. **Multi-Vendor Single Checkout**: Book all event vendors in one transaction
@@ -86,6 +87,7 @@ Total Amount = ₹123,000
 5. **Review System**: Build reputation through customer reviews
 6. **Analytics**: Track bookings and performance metrics
 7. **Reduced Marketing Costs**: Platform handles customer acquisition
+8. **Flexible Listing Options**: Can create both packages (bundled services) and individual listings (single items like chairs, tables, etc.)
 
 ---
 
@@ -248,13 +250,14 @@ Total Amount = ₹123,000
     - Active state (highlighted when selected)
   - Clicking active category deselects it (toggle behavior)
 
-- **Package Type Filters** (Only shown when eventType + category selected)
-  - Horizontal filter chips
-  - Options: "All Packages", plus specific package types
-  - Example types: "Classic Wedding Package", "Pre-Wedding Shoot", etc.
+- **Listing Type Filter** (Only shown when eventType is present)
+  - Filter chips: "All Listings" (default) and "Packages Only"
+  - "All Listings" shows both packages and individual listings
+  - "Packages Only" shows only bundled packages
+  - Defaults to "All Listings" to show everything
 
 - **Filters Panel** (Expandable card)
-  - Package Type dropdown (if eventType present)
+  - Listing Type dropdown (if eventType present): "All Listings" or "Packages Only"
   - Category dropdown
   - City dropdown
   - Min Budget input
@@ -262,7 +265,7 @@ Total Amount = ₹123,000
   - "Clear Filters" button
 
 - **Sort & Results Count**
-  - Results count: "Found X package(s)" or "Found X vendor(s)"
+  - Results count: "Found X listing(s)" or "Found X package(s)" or "Found X vendor(s)"
   - Sort dropdown (if eventType present):
     - Relevance
     - Price: Low to High
@@ -271,16 +274,18 @@ Total Amount = ₹123,000
     - Vendor
 
 - **Results Grid**
-  - **Package View** (if eventType present):
-    - Grid of PackageCard components
+  - **Package/Listing View** (if eventType present):
+    - Grid of PackageCard components (shows both packages and individual listings)
     - Each card shows:
-      - Package image
-      - Package name
+      - Package/Listing image
+      - Package/Listing name
       - Vendor name
       - Category badge
+      - "Individual Listing" badge (if it's a listing, not a package)
       - Price
       - Rating
-      - "View Details" button (links to `/vendor/{vendorId}?tab=packages&packageId={id}`)
+      - Included items (for packages only)
+      - "View Details" button (links to `/vendor/{vendorId}?tab=packages&packageId={id}` or `/vendor/{vendorId}?tab=listings&listingId={id}`)
   
   - **Vendor View** (if no eventType):
     - Grid of VendorCard components
@@ -296,7 +301,7 @@ Total Amount = ₹123,000
 **User Actions:**
 - Type in search bar → Filters results in real-time
 - Click category tab → Filters by category, updates URL
-- Click package type filter → Filters packages by type
+- Click listing type filter → Filters between "All Listings" and "Packages Only"
 - Click Filters button → Expands/collapses filter panel
 - Select filters → Updates results
 - Click "Clear Filters" → Resets all filters
@@ -360,11 +365,25 @@ Total Amount = ₹123,000
      - If packageId in URL, that package is highlighted and others are dimmed
      - "Show Other Packages" button appears on highlighted package
 
-  3. **Portfolio Tab**
+  3. **Listings Tab** (NEW)
+     - Header: "Individual Listings" + count
+     - Grid of listing cards
+     - Each listing card shows:
+       - Listing image
+       - Listing name
+       - Price (large, bold)
+       - Unit (per piece, per set, etc.)
+       - Description
+       - Minimum quantity (if applicable)
+       - "Add to Cart" button
+     - Shows only listings that match vendor's category or are in "Other" category
+     - Empty state if no listings available
+
+  4. **Portfolio Tab**
      - Grid of portfolio images
      - Hover effect: Image scales up, overlay appears
 
-  4. **Reviews Tab**
+  5. **Reviews Tab**
      - List of review cards
      - Each review shows:
        - User avatar (initial)
@@ -374,7 +393,7 @@ Total Amount = ₹123,000
        - Comment text
        - Date
 
-  5. **FAQs Tab**
+  6. **FAQs Tab**
      - Accordion component
      - Expandable Q&A pairs
 
@@ -736,16 +755,17 @@ Total Amount = ₹123,000
 - **User Flow**: Enter budget/details → Get recommendations → Review → Add all to cart
 
 ### 6. Search & Filter System
-- **Purpose**: Help customers find relevant vendors/packages
+- **Purpose**: Help customers find relevant vendors/packages/listings
 - **Filters**:
   - Event type
   - Category
-  - Package type
+  - Listing type (All Listings / Packages Only) - defaults to "All Listings"
   - City
   - Budget range
   - Search query
 - **Sort Options**: Relevance, Price (low/high), Rating, Vendor
-- **User Flow**: Enter search/filters → View results → Refine → Select vendor
+- **User Flow**: Enter search/filters → View results → Refine → Select vendor/package/listing
+- **Note**: Vendors can create both packages (bundled services) and individual listings (single items)
 
 ### 7. Vendor Verification & Reviews
 - **Purpose**: Build trust and help customers make decisions
@@ -767,6 +787,20 @@ Total Amount = ₹123,000
   - Opens in dialog
   - Vendor-specific chat
 - **User Flow**: Click "Chat Now" → Dialog opens → Send messages → Close dialog
+
+### 11. Category-Based Listing System
+- **Purpose**: Ensure listings are properly categorized and vendors can only list relevant items
+- **Features**:
+  - Vendors can only create listings in their own category or "Other" category
+  - Category validation prevents mis-categorization (e.g., photographer cannot list food plates)
+  - Automatic category suggestion based on listing name/description
+  - "Other" category for miscellaneous items that don't fit specific categories
+  - Listings displayed in vendor profile under "Listings" tab
+- **Category Rules**:
+  - Vendor category must match listing category OR listing must be in "Other"
+  - System suggests correct category if vendor tries to list outside their category
+  - Example: If photographer tries to list "Food Plates", system suggests "Catering" category
+- **User Flow**: Vendor creates listing → System validates category → If invalid, shows warning and suggestion → Vendor selects correct category → Listing published
 
 ### 9. Payment Protection
 - **Purpose**: Ensure secure and protected transactions
@@ -876,4 +910,5 @@ Event Hub Connect operates as a comprehensive marketplace platform connecting ev
 The user journey is designed to be intuitive and efficient, allowing customers to discover, customize, and book multiple vendors in a single transaction. The platform's key differentiators include multi-vendor booking, transparent pricing, real-time availability, and AI-powered recommendations.
 
 This documentation covers every button, interaction, and flow in the platform, providing a complete understanding of the business model and user experience.
+
 

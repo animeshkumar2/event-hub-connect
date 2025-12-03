@@ -1,4 +1,4 @@
-// SOLUTION 1: All 12 Categories
+// SOLUTION 1: All 12 Categories + Other
 export const categories = [
   { id: 'photographer', name: 'Photography', icon: '📸' },
   { id: 'cinematographer', name: 'Cinematography', icon: '🎬' },
@@ -12,6 +12,7 @@ export const categories = [
   { id: 'live-music', name: 'Live Music', icon: '🎤' },
   { id: 'anchors', name: 'Anchors', icon: '🎙️' },
   { id: 'event-coordinator', name: 'Event Coordinators', icon: '📋' },
+  { id: 'other', name: 'Other', icon: '📦' }, // For miscellaneous listings
 ];
 
 export const cities = [
@@ -50,6 +51,7 @@ export interface Package {
   addOns: AddOn[];
   bookableSetup?: string; // For SOLUTION 4: "Book This Exact Setup"
   eventTypes?: string[]; // Event types this package is suitable for (e.g., ['Wedding', 'Engagement'])
+  category?: string; // Package's own category (if not specified, uses vendor.category)
 }
 
 export interface AddOn {
@@ -59,6 +61,85 @@ export interface AddOn {
   price: number;
   description?: string;
 }
+
+// Individual Listing (for single items like chairs, tables, etc.)
+export interface Listing {
+  id: string;
+  vendorId: string;
+  name: string;
+  price: number;
+  description: string;
+  images: string[];
+  category: string; // Must match vendor's category or be 'other'
+  eventTypes?: string[]; // Event types this listing is suitable for
+  unit?: string; // e.g., "per piece", "per set", "per hour"
+  minimumQuantity?: number; // Minimum order quantity
+  deliveryTime?: string;
+  extraCharges?: string[];
+}
+
+/**
+ * Validates if a listing category is allowed for a vendor category
+ * Vendors can only list items in their own category or 'other' category
+ */
+export const validateListingCategory = (vendorCategory: string, listingCategory: string): boolean => {
+  // Vendors can list items in their own category
+  if (vendorCategory === listingCategory) {
+    return true;
+  }
+  // Vendors can also list items in 'other' category
+  if (listingCategory === 'other') {
+    return true;
+  }
+  // Otherwise, not allowed
+  return false;
+};
+
+/**
+ * Gets suggested category for a listing based on keywords
+ * Used to suggest correct category when vendor tries to list something outside their category
+ */
+export const suggestCategoryForListing = (listingName: string, listingDescription: string): string | null => {
+  const text = `${listingName} ${listingDescription}`.toLowerCase();
+  
+  // Food-related keywords → catering
+  if (text.match(/\b(food|plate|dish|meal|catering|caterer|menu|cuisine|biryani|curry|snack|appetizer|dessert|beverage|drink)\b/)) {
+    return 'caterer';
+  }
+  
+  // Photography equipment → photography
+  if (text.match(/\b(camera|dslr|lens|photography|photo|shoot|photographer)\b/)) {
+    return 'photographer';
+  }
+  
+  // Decor items → decorator
+  if (text.match(/\b(chair|table|decoration|decor|flower|floral|centerpiece|light|led|stage|backdrop|arch)\b/)) {
+    return 'decorator';
+  }
+  
+  // Sound/lighting equipment → sound-lights
+  if (text.match(/\b(sound|speaker|microphone|mic|lighting|light|dmx|amplifier|mixer|dj equipment)\b/)) {
+    return 'sound-lights';
+  }
+  
+  // Music equipment → live-music or dj
+  if (text.match(/\b(instrument|guitar|piano|keyboard|drums|music|band|musician)\b/)) {
+    return 'live-music';
+  }
+  
+  // Makeup/styling → mua
+  if (text.match(/\b(makeup|cosmetic|stylist|hair|beauty|bridal makeup|mua)\b/)) {
+    return 'mua';
+  }
+  
+  // Video equipment → cinematographer
+  if (text.match(/\b(video|camera|cinematography|cinematographer|film|recording)\b/)) {
+    return 'cinematographer';
+  }
+  
+  // If no match, return null (will use 'other')
+  return null;
+};
 
 // SOLUTION 2: Enhanced Vendor with FAQs, reviews, coverage radius
 export interface Review {
@@ -111,6 +192,7 @@ export interface Vendor {
   coverImage: string;
   portfolioImages: string[];
   packages: Package[];
+  listings?: Listing[]; // Individual listings (e.g., chairs, tables, etc.)
   faqs: FAQ[]; // NEW
   reviews: Review[]; // NEW
   coverageRadius: number; // NEW - in km
@@ -408,6 +490,34 @@ export const mockVendors: Vendor[] = [
     ],
     availability: generateAvailability(),
     bookableSetups: generateBookableSetups('v1', 'photographer'),
+    listings: [
+      {
+        id: 'l1',
+        vendorId: 'v1',
+        name: 'Professional Camera Rental',
+        price: 5000,
+        description: 'High-end DSLR camera rental for events. Includes camera body, lens, and basic accessories.',
+        images: ['https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800&h=600&fit=crop&q=80'],
+        category: 'photographer',
+        unit: 'per day',
+        minimumQuantity: 1,
+        deliveryTime: 'Same day pickup available',
+        eventTypes: ['Wedding', 'Birthday', 'Corporate'],
+      },
+      {
+        id: 'l2',
+        vendorId: 'v1',
+        name: 'Additional Photographer',
+        price: 8000,
+        description: 'Extra photographer for your event. Professional with 5+ years experience.',
+        images: ['https://images.unsplash.com/photo-1519741497674-611481863552?w=800&h=600&fit=crop&q=80'],
+        category: 'photographer',
+        unit: 'per event',
+        minimumQuantity: 1,
+        deliveryTime: 'Available on event day',
+        eventTypes: ['Wedding', 'Engagement', 'Anniversary'],
+      },
+    ],
   },
   {
     id: 'v2',
@@ -530,6 +640,47 @@ export const mockVendors: Vendor[] = [
     ],
     availability: generateAvailability(),
     bookableSetups: generateBookableSetups('v2', 'decorator'),
+    listings: [
+      {
+        id: 'l3',
+        vendorId: 'v2',
+        name: 'Premium Chairs (Gold)',
+        price: 150,
+        description: 'Elegant gold-colored premium chairs. Perfect for weddings and formal events.',
+        images: ['https://picsum.photos/id/1015/800/600'],
+        category: 'decorator',
+        unit: 'per piece',
+        minimumQuantity: 50,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Anniversary', 'Corporate'],
+      },
+      {
+        id: 'l4',
+        vendorId: 'v2',
+        name: 'Floral Centerpiece',
+        price: 2500,
+        description: 'Beautiful floral centerpiece for tables. Fresh flowers arranged elegantly.',
+        images: ['https://picsum.photos/id/1018/800/600'],
+        category: 'decorator',
+        unit: 'per piece',
+        minimumQuantity: 10,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Anniversary', 'Birthday'],
+      },
+      {
+        id: 'l5',
+        vendorId: 'v2',
+        name: 'LED String Lights',
+        price: 500,
+        description: 'Warm white LED string lights for ambiance. 50 meters length.',
+        images: ['https://picsum.photos/id/1020/800/600'],
+        category: 'decorator',
+        unit: 'per set',
+        minimumQuantity: 1,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Birthday', 'Anniversary'],
+      },
+    ],
   },
   {
     id: 'v3',
@@ -615,6 +766,34 @@ export const mockVendors: Vendor[] = [
     reviews: generateReviews('v3', 12),
     coverageRadius: 200,
     availability: generateAvailability(),
+    listings: [
+      {
+        id: 'l6',
+        vendorId: 'v3',
+        name: 'Professional DJ Console Rental',
+        price: 15000,
+        description: 'High-end DJ console with mixing capabilities. Perfect for professional DJs.',
+        images: ['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=600&fit=crop&q=80'],
+        category: 'dj',
+        unit: 'per day',
+        minimumQuantity: 1,
+        deliveryTime: 'Same day pickup available',
+        eventTypes: ['Wedding', 'Birthday', 'Corporate'],
+      },
+      {
+        id: 'l7',
+        vendorId: 'v3',
+        name: 'Wireless Microphone Set',
+        price: 3000,
+        description: 'Professional wireless microphone system with 2 handheld mics and receiver.',
+        images: ['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop&q=80'],
+        category: 'dj',
+        unit: 'per set',
+        minimumQuantity: 1,
+        deliveryTime: 'Available on event day',
+        eventTypes: ['Wedding', 'Corporate', 'Birthday'],
+      },
+    ],
   },
   {
     id: 'v4',
@@ -732,6 +911,47 @@ export const mockVendors: Vendor[] = [
     reviews: generateReviews('v4', 15),
     coverageRadius: 80,
     availability: generateAvailability(),
+    listings: [
+      {
+        id: 'l8',
+        vendorId: 'v4',
+        name: 'Per Plate Catering',
+        price: 500,
+        description: 'Delicious multi-cuisine meal per person. Includes main course, rice, roti, and dessert.',
+        images: ['https://picsum.photos/id/292/800/600'],
+        category: 'caterer',
+        unit: 'per plate',
+        minimumQuantity: 50,
+        deliveryTime: 'Served fresh on event day',
+        eventTypes: ['Wedding', 'Birthday', 'Anniversary', 'Corporate'],
+      },
+      {
+        id: 'l9',
+        vendorId: 'v4',
+        name: 'Live Cooking Station',
+        price: 15000,
+        description: 'Interactive live cooking counter with chef. Popular dishes prepared fresh.',
+        images: ['https://picsum.photos/id/312/800/600'],
+        category: 'caterer',
+        unit: 'per station',
+        minimumQuantity: 1,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Corporate'],
+      },
+      {
+        id: 'l10',
+        vendorId: 'v4',
+        name: 'Dessert Station Setup',
+        price: 8000,
+        description: 'Beautiful dessert station with 5+ varieties of sweets and pastries.',
+        images: ['https://picsum.photos/id/326/800/600'],
+        category: 'caterer',
+        unit: 'per station',
+        minimumQuantity: 1,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Birthday', 'Anniversary'],
+      },
+    ],
   },
   {
     id: 'v5',
@@ -814,6 +1034,47 @@ export const mockVendors: Vendor[] = [
     reviews: generateReviews('v5', 18),
     coverageRadius: 50,
     availability: generateAvailability(),
+    listings: [
+      {
+        id: 'l11',
+        vendorId: 'v5',
+        name: 'Hair Styling Service',
+        price: 5000,
+        description: 'Professional hair styling for any occasion. Includes blow dry and styling.',
+        images: ['https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800&h=600&fit=crop&q=80'],
+        category: 'mua',
+        unit: 'per person',
+        minimumQuantity: 1,
+        deliveryTime: 'On event day',
+        eventTypes: ['Wedding', 'Engagement', 'Birthday'],
+      },
+      {
+        id: 'l12',
+        vendorId: 'v5',
+        name: 'Saree Draping Service',
+        price: 2000,
+        description: 'Expert saree draping with perfect pleats and pallu styling.',
+        images: ['https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800&h=600&fit=crop&q=80'],
+        category: 'mua',
+        unit: 'per person',
+        minimumQuantity: 1,
+        deliveryTime: 'On event day',
+        eventTypes: ['Wedding', 'Engagement'],
+      },
+      {
+        id: 'l13',
+        vendorId: 'v5',
+        name: 'Makeup Trial Session',
+        price: 3000,
+        description: 'Pre-event makeup trial to finalize your look. Includes consultation.',
+        images: ['https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&h=600&fit=crop&q=80'],
+        category: 'mua',
+        unit: 'per session',
+        minimumQuantity: 1,
+        deliveryTime: 'Scheduled appointment',
+        eventTypes: ['Wedding', 'Engagement'],
+      },
+    ],
   },
   // Adding more vendors for other categories
   {
@@ -867,6 +1128,34 @@ export const mockVendors: Vendor[] = [
     reviews: generateReviews('v6', 8),
     coverageRadius: 120,
     availability: generateAvailability(),
+    listings: [
+      {
+        id: 'l14',
+        vendorId: 'v6',
+        name: 'Drone Photography & Videography',
+        price: 15000,
+        description: 'Aerial shots and videos using professional drone equipment. Breathtaking views.',
+        images: ['https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=600&fit=crop&q=80'],
+        category: 'cinematographer',
+        unit: 'per event',
+        minimumQuantity: 1,
+        deliveryTime: 'Included in final video',
+        eventTypes: ['Wedding', 'Engagement'],
+      },
+      {
+        id: 'l15',
+        vendorId: 'v6',
+        name: 'Same-Day Highlight Reel',
+        price: 20000,
+        description: 'Quick edit and delivery of highlight reel on the same day of event.',
+        images: ['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=600&fit=crop&q=80'],
+        category: 'cinematographer',
+        unit: 'per reel',
+        minimumQuantity: 1,
+        deliveryTime: 'Same day',
+        eventTypes: ['Wedding', 'Engagement'],
+      },
+    ],
   },
   {
     id: 'v7',
@@ -918,6 +1207,47 @@ export const mockVendors: Vendor[] = [
     reviews: generateReviews('v7', 6),
     coverageRadius: 100,
     availability: generateAvailability(),
+    listings: [
+      {
+        id: 'l16',
+        vendorId: 'v7',
+        name: 'Professional Sound System',
+        price: 20000,
+        description: 'High-quality sound system with speakers, amplifiers, and mixer. Perfect for large events.',
+        images: ['https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=600&fit=crop&q=80'],
+        category: 'sound-lights',
+        unit: 'per event',
+        minimumQuantity: 1,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Corporate', 'Birthday'],
+      },
+      {
+        id: 'l17',
+        vendorId: 'v7',
+        name: 'LED Stage Lighting Setup',
+        price: 15000,
+        description: 'Dynamic LED stage lighting with color-changing effects and DMX control.',
+        images: ['https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=600&fit=crop&q=80'],
+        category: 'sound-lights',
+        unit: 'per setup',
+        minimumQuantity: 1,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Corporate', 'Birthday'],
+      },
+      {
+        id: 'l18',
+        vendorId: 'v7',
+        name: 'Wireless Microphone System',
+        price: 5000,
+        description: 'Professional wireless microphone with receiver and stand. Clear audio quality.',
+        images: ['https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=600&fit=crop&q=80'],
+        category: 'sound-lights',
+        unit: 'per set',
+        minimumQuantity: 1,
+        deliveryTime: 'Setup on event day',
+        eventTypes: ['Wedding', 'Corporate'],
+      },
+    ],
   },
 ];
 

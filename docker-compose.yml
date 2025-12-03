@@ -13,8 +13,13 @@ services:
       - .:/app
       # Exclude node_modules from host, use container's version
       - /app/node_modules
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
+      # Supabase Configuration - explicitly pass from .env
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://vwhxzxayzpdfmpnnzslq.supabase.co}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3aHh6eGF5enBkZm1wbm56c2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDM4NjksImV4cCI6MjA4MDI3OTg2OX0.eOg_EmPuJA9SJdhkbw1zBH5jthFrZ5Jo9o_zRztfgCY}
     stdin_open: true
     tty: true
     restart: unless-stopped
