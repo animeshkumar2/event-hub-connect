@@ -215,17 +215,30 @@ export const PackageCard: React.FC<PackageCardProps> = ({
 
         {/* Rating, Location, and High Rating Badge - All in one line */}
         <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground flex-wrap">
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span className="font-semibold text-foreground">{pkg.vendorRating.toFixed(1)}</span>
-            <span>({pkg.vendorReviewCount})</span>
-          </div>
-          <span>•</span>
-          <div className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            <span>{pkg.vendorCity}</span>
-          </div>
-          {pkg.vendorRating > 4.5 && (
+          {pkg.vendorRating !== undefined && pkg.vendorRating !== null && (
+            <>
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                <span className="font-semibold text-foreground">{pkg.vendorRating.toFixed(1)}</span>
+                {pkg.vendorReviewCount !== undefined && pkg.vendorReviewCount !== null && (
+                  <span>({pkg.vendorReviewCount})</span>
+                )}
+              </div>
+              <span>•</span>
+            </>
+          )}
+          {pkg.vendorCity && (
+            <>
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                <span>{pkg.vendorCity}</span>
+              </div>
+              {pkg.vendorRating !== undefined && pkg.vendorRating !== null && pkg.vendorRating > 4.5 && (
+                <span>•</span>
+              )}
+            </>
+          )}
+          {pkg.vendorRating !== undefined && pkg.vendorRating !== null && pkg.vendorRating > 4.5 && (
             <>
               <span>•</span>
               <span className="text-yellow-600 font-medium">⭐ Highly Rated</span>
@@ -239,7 +252,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
             "font-bold text-primary",
             isPackage ? "text-xl" : "text-lg" // Reduced price size
           )}>
-            ₹{pkg.price.toLocaleString('en-IN')}
+            ₹{(pkg.price || 0).toLocaleString('en-IN')}
           </div>
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" />

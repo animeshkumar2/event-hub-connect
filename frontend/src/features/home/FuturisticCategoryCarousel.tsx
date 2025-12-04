@@ -150,7 +150,7 @@ export const FuturisticCategoryCarousel = () => {
             {categories.map((category, index) => (
               <Link
                 key={category.id}
-                to={`/search?category=${category.id}`}
+                to={`/search?category=${category.id}&view=vendors`}
                 className="flex-shrink-0 w-[360px]"
                 style={{ scrollSnapAlign: 'start' }}
               >

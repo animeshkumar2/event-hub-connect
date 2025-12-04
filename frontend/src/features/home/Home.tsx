@@ -11,9 +11,13 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, CheckCircle2, Star, TrendingUp, Zap, Shield, Users, Award, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { mockVendors, eventTypes } from '@/shared/constants/mockData';
 import { cn } from '@/shared/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useStats } from '@/shared/hooks/useApi';
 
 const Home = () => {
+  // Fetch stats from API
+  const { data: statsData, loading: statsLoading } = useStats();
+
   // Get trending setups
   const trendingSetups = mockVendors
     .filter(v => v.bookableSetups && v.bookableSetups.length > 0)
@@ -50,12 +54,45 @@ const Home = () => {
     setActiveSetupIndex((prev) => (prev - 1 + trendingSetups.length) % trendingSetups.length);
   };
 
-  const stats = [
-    { icon: Users, value: '500+', label: 'Verified Vendors', color: 'text-blue-500' },
-    { icon: Award, value: '10K+', label: 'Events Completed', color: 'text-purple-500' },
-    { icon: Star, value: '4.8', label: 'Average Rating', color: 'text-yellow-500' },
-    { icon: TrendingUp, value: '98%', label: 'Satisfaction Rate', color: 'text-green-500' },
-  ];
+  // Transform API stats to display format
+  const stats = useMemo(() => {
+    if (!statsData) {
+      // Fallback to default stats while loading
+      return [
+        { icon: Users, value: '500+', label: 'Verified Vendors', color: 'text-blue-500' },
+        { icon: Award, value: '10K+', label: 'Events Completed', color: 'text-purple-500' },
+        { icon: Star, value: '4.8', label: 'Average Rating', color: 'text-yellow-500' },
+        { icon: TrendingUp, value: '98%', label: 'Satisfaction Rate', color: 'text-green-500' },
+      ];
+    }
+
+    return [
+      { 
+        icon: Users, 
+        value: statsData.totalVendors ? `${statsData.totalVendors}+` : '500+', 
+        label: 'Verified Vendors', 
+        color: 'text-blue-500' 
+      },
+      { 
+        icon: Award, 
+        value: statsData.totalEventsCompleted ? `${statsData.totalEventsCompleted}+` : '10K+', 
+        label: 'Events Completed', 
+        color: 'text-purple-500' 
+      },
+      { 
+        icon: Star, 
+        value: statsData.averageRating ? statsData.averageRating.toFixed(1) : '4.8', 
+        label: 'Average Rating', 
+        color: 'text-yellow-500' 
+      },
+      { 
+        icon: TrendingUp, 
+        value: statsData.satisfactionRate ? `${Math.round(statsData.satisfactionRate)}%` : '98%', 
+        label: 'Satisfaction Rate', 
+        color: 'text-green-500' 
+      },
+    ];
+  }, [statsData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">

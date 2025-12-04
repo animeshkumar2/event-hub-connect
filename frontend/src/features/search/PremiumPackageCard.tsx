@@ -59,7 +59,7 @@ export const PremiumPackageCard = ({
     <Card className="overflow-hidden rounded-2xl border-0 shadow-card hover-lift">
       <div className="relative aspect-video overflow-hidden group">
         <img
-          src={pkg.images[0]}
+          src={pkg.images?.[0] || 'https://via.placeholder.com/400x300'}
           alt={pkg.name}
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
         />
@@ -99,16 +99,19 @@ export const PremiumPackageCard = ({
             What's Included:
           </h4>
           <ul className="grid grid-cols-1 gap-2">
-            {pkg.includedItems.slice(0, 4).map((item, index) => (
+            {(pkg.includedItems || []).slice(0, 4).map((item, index) => (
               <li key={index} className="flex items-start gap-2 text-sm">
                 <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                 <span className="text-muted-foreground">{item}</span>
               </li>
             ))}
-            {pkg.includedItems.length > 4 && (
+            {(pkg.includedItems || []).length > 4 && (
               <li className="text-xs text-muted-foreground pl-6">
-                +{pkg.includedItems.length - 4} more items
+                +{(pkg.includedItems || []).length - 4} more items
               </li>
+            )}
+            {(pkg.includedItems || []).length === 0 && (
+              <li className="text-xs text-muted-foreground">No items listed</li>
             )}
           </ul>
         </div>
@@ -121,7 +124,7 @@ export const PremiumPackageCard = ({
               Not Included:
             </h4>
             <ul className="space-y-1">
-              {pkg.excludedItems.slice(0, 2).map((item, index) => (
+              {(pkg.excludedItems || []).slice(0, 2).map((item, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
                   <X className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
                   <span className="text-muted-foreground">{item}</span>
@@ -161,13 +164,13 @@ export const PremiumPackageCard = ({
         )}
 
         {/* Add-ons Preview */}
-        {pkg.addOns.length > 0 && (
+        {pkg.addOns && pkg.addOns.length > 0 && (
           <div>
             <div className="text-xs text-muted-foreground mb-2">
               {pkg.addOns.length} add-on{pkg.addOns.length > 1 ? 's' : ''} available
             </div>
             <div className="flex flex-wrap gap-2">
-              {pkg.addOns.slice(0, 3).map((addon) => (
+              {(pkg.addOns || []).slice(0, 3).map((addon) => (
                 <Badge key={addon.id} variant="outline" className="text-xs">
                   {addon.title} (+₹{addon.price.toLocaleString()})
                 </Badge>

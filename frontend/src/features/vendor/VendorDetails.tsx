@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/features/home/Navbar';
 import { Button } from '@/shared/components/ui/button';
@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Badge } from '@/shared/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
-import { Star, MapPin, Check, X, Clock, MessageCircle, ShoppingCart, AlertCircle } from 'lucide-react';
-import { getVendorById, categories } from '@/shared/constants/mockData';
+import { Star, MapPin, Check, X, Clock, MessageCircle, ShoppingCart, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useCart } from '@/shared/contexts/CartContext';
 import { cn } from '@/shared/lib/utils';
@@ -18,6 +17,16 @@ import { PackageCustomization } from '@/features/vendor/PackageCustomization';
 import { BookExactSetup } from '@/features/vendor/BookExactSetup';
 import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
+import { 
+  useVendor, 
+  useVendorListings, 
+  useVendorReviews, 
+  useVendorFAQs, 
+  useVendorPastEvents, 
+  useVendorBookableSetups,
+  useVendorAvailability,
+  useCategories
+} from '@/shared/hooks/useApi';
 
 const VendorDetails = () => {
   const { vendorId } = useParams();
@@ -30,19 +39,111 @@ const VendorDetails = () => {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [highlightedPackageId, setHighlightedPackageId] = useState<string | null>(null);
   const [showAllPackages, setShowAllPackages] = useState(false);
-  const vendor = vendorId ? getVendorById(vendorId) : null;
+
+  // Fetch data from API
+  const { data: vendorData, loading: vendorLoading, error: vendorError } = useVendor(vendorId || null);
+  const { data: listingsData, loading: listingsLoading } = useVendorListings(vendorId || null);
+  const { data: reviewsData, loading: reviewsLoading } = useVendorReviews(vendorId || null);
+  const { data: faqsData, loading: faqsLoading } = useVendorFAQs(vendorId || null);
+  const { data: pastEventsData, loading: pastEventsLoading } = useVendorPastEvents(vendorId || null);
+  const { data: bookableSetupsData, loading: bookableSetupsLoading } = useVendorBookableSetups(vendorId || null);
+  const { data: availabilityData } = useVendorAvailability(vendorId || null);
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData || [];
+
+  // Transform API data to match component expectations
+  const vendor = useMemo(() => {
+    if (!vendorData) return null;
+
+    // Separate packages and items from listings
+    const allListings = listingsData || [];
+    const packages = allListings
+      .filter((l: any) => l.type === 'package')
+      .map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        description: l.description,
+        price: parseFloat(l.price),
+        images: l.images || [],
+        includedItems: l.includedItemsText || [],
+        excludedItems: l.excludedItemsText || [],
+        deliveryTime: l.deliveryTime,
+        extraCharges: l.extraCharges || [],
+        category: l.categoryId,
+        isPopular: l.isPopular,
+        isTrending: l.isTrending,
+      }));
+
+    const listings = allListings
+      .filter((l: any) => l.type === 'item')
+      .map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        description: l.description,
+        price: parseFloat(l.price),
+        images: l.images || [],
+        category: l.categoryId,
+        unit: l.unit,
+        minimumQuantity: l.minimumQuantity,
+      }));
+
+    return {
+      id: vendorData.id,
+      businessName: vendorData.businessName,
+      category: vendorData.categoryId || vendorData.categoryName || '',
+      city: vendorData.cityName || '',
+      bio: vendorData.bio || '',
+      rating: parseFloat(vendorData.rating || 0),
+      reviewCount: vendorData.reviewCount || 0,
+      startingPrice: parseFloat(vendorData.startingPrice || 0),
+      coverImage: vendorData.coverImage || '',
+      portfolioImages: vendorData.portfolioImages || [],
+      coverageRadius: vendorData.coverageRadius || 0,
+      isVerified: vendorData.isVerified || false,
+      packages,
+      listings,
+      reviews: (reviewsData || []).map((r: any) => ({
+        id: r.id,
+        userName: r.userName || 'Anonymous',
+        rating: parseFloat(r.rating || 0),
+        comment: r.comment || '',
+        eventType: r.eventType,
+        date: r.createdAt || r.date,
+        images: r.images || [],
+      })),
+      faqs: (faqsData || []).map((f: any) => ({
+        id: f.id,
+        question: f.question,
+        answer: f.answer,
+      })),
+      pastEvents: (pastEventsData || []).map((e: any) => ({
+        id: e.id,
+        image: e.image,
+        eventType: e.eventType,
+        date: e.eventDate || e.date,
+      })),
+      bookableSetups: (bookableSetupsData || []).map((s: any) => ({
+        id: s.id,
+        image: s.image,
+        title: s.title,
+        description: s.description,
+        price: parseFloat(s.price || 0),
+        category: s.categoryId,
+      })),
+      availability: availabilityData || [],
+    };
+  }, [vendorData, listingsData, reviewsData, faqsData, pastEventsData, bookableSetupsData, availabilityData]);
 
   // Handle URL parameters for tab and package highlighting
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const packageId = searchParams.get('packageId') || searchParams.get('package'); // Support both 'packageId' and 'package' for backward compatibility
+    const packageId = searchParams.get('packageId') || searchParams.get('package');
     
-    // If packageId is present but tab is not 'listings', switch to listings tab
     if (packageId && tab !== 'listings') {
       const params = new URLSearchParams(searchParams);
       params.set('tab', 'listings');
       params.set('packageId', packageId);
-      params.delete('package'); // Remove old parameter if present
+      params.delete('package');
       setSearchParams(params, { replace: true });
       return;
     }
@@ -52,7 +153,6 @@ const VendorDetails = () => {
         setHighlightedPackageId(packageId);
         setShowAllPackages(false);
       }
-      // Scroll to listings section after a brief delay
       setTimeout(() => {
         const listingsSection = document.getElementById('listings-section');
         if (listingsSection) {
@@ -60,18 +160,33 @@ const VendorDetails = () => {
         }
       }, 300);
     } else {
-      // Reset highlighting when not on listings tab
       setHighlightedPackageId(null);
       setShowAllPackages(false);
     }
   }, [searchParams, setSearchParams]);
 
-  if (!vendor) {
+  // Loading state
+  if (vendorLoading || listingsLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading vendor details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (vendorError || !vendor) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
           <h1 className="text-2xl font-bold mb-4">Vendor not found</h1>
+          <p className="text-muted-foreground mb-6">{vendorError || 'The vendor you are looking for does not exist.'}</p>
           <Button asChild>
             <Link to="/search">Back to Search</Link>
           </Button>
@@ -122,7 +237,7 @@ const VendorDetails = () => {
       {/* Premium Hero Section */}
       <div className="relative h-[500px] overflow-hidden">
         <img
-          src={vendor.coverImage}
+          src={vendor.coverImage || 'https://via.placeholder.com/1200x500'}
           alt={vendor.businessName}
           className="w-full h-full object-cover"
         />
@@ -201,11 +316,11 @@ const VendorDetails = () => {
                     <CardTitle>About</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">{vendor.bio}</p>
+                    <p className="text-muted-foreground">{vendor.bio || 'No description available.'}</p>
                   </CardContent>
                 </Card>
 
-                {/* Book Exact Setups - SOLUTION 4 */}
+                {/* Book Exact Setups */}
                 {vendor.bookableSetups && vendor.bookableSetups.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -236,8 +351,8 @@ const VendorDetails = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {vendor.pastEvents.map((event, index) => (
-                          <div key={index} className="space-y-2">
+                        {vendor.pastEvents.map((event) => (
+                          <div key={event.id} className="space-y-2">
                             <div className="aspect-square overflow-hidden rounded-lg">
                               <img
                                 src={event.image}
@@ -338,7 +453,7 @@ const VendorDetails = () => {
                           <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-all group">
                             <div className="relative aspect-video">
                               <img
-                                src={listing.images[0] || 'https://via.placeholder.com/400x300'}
+                                src={listing.images?.[0] || 'https://via.placeholder.com/400x300'}
                                 alt={listing.name}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                               />
@@ -417,21 +532,25 @@ const VendorDetails = () => {
                     <CardTitle>Portfolio</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {vendor.portfolioImages.map((image, index) => (
-                        <div
-                          key={index}
-                          className="relative aspect-square overflow-hidden rounded-lg group cursor-pointer"
-                        >
-                          <img
-                            src={image}
-                            alt={`Portfolio ${index + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors" />
-                        </div>
-                      ))}
-                    </div>
+                    {vendor.portfolioImages && vendor.portfolioImages.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {vendor.portfolioImages.map((image, index) => (
+                          <div
+                            key={index}
+                            className="relative aspect-square overflow-hidden rounded-lg group cursor-pointer"
+                          >
+                            <img
+                              src={image}
+                              alt={`Portfolio ${index + 1}`}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/10 transition-colors" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No portfolio images available.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -442,43 +561,47 @@ const VendorDetails = () => {
                     <CardTitle>Reviews ({vendor.reviews.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      {vendor.reviews.map((review) => (
-                        <div key={review.id} className="flex gap-4 pb-6 border-b last:border-0">
-                          <Avatar>
-                            <AvatarFallback>
-                              {review.userName.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold">{review.userName}</span>
-                              <div className="flex items-center gap-1">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`h-4 w-4 ${
-                                      i < Math.floor(review.rating)
-                                        ? 'fill-secondary text-secondary'
-                                        : 'text-muted-foreground'
-                                    }`}
-                                  />
-                                ))}
+                    {vendor.reviews.length > 0 ? (
+                      <div className="space-y-6">
+                        {vendor.reviews.map((review) => (
+                          <div key={review.id} className="flex gap-4 pb-6 border-b last:border-0">
+                            <Avatar>
+                              <AvatarFallback>
+                                {review.userName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-semibold">{review.userName}</span>
+                                <div className="flex items-center gap-1">
+                                  {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`h-4 w-4 ${
+                                        i < Math.floor(review.rating)
+                                          ? 'fill-secondary text-secondary'
+                                          : 'text-muted-foreground'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                {review.eventType && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {review.eventType}
+                                  </Badge>
+                                )}
                               </div>
-                              {review.eventType && (
-                                <Badge variant="outline" className="text-xs">
-                                  {review.eventType}
-                                </Badge>
-                              )}
+                              <p className="text-muted-foreground mb-2">{review.comment}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(review.date).toLocaleDateString()}
+                              </p>
                             </div>
-                            <p className="text-muted-foreground mb-2">{review.comment}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(review.date).toLocaleDateString()}
-                            </p>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No reviews yet.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -489,14 +612,18 @@ const VendorDetails = () => {
                     <CardTitle>Frequently Asked Questions</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                      {vendor.faqs.map((faq) => (
-                        <AccordionItem key={faq.id} value={faq.id}>
-                          <AccordionTrigger>{faq.question}</AccordionTrigger>
-                          <AccordionContent>{faq.answer}</AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
+                    {vendor.faqs.length > 0 ? (
+                      <Accordion type="single" collapsible className="w-full">
+                        {vendor.faqs.map((faq) => (
+                          <AccordionItem key={faq.id} value={faq.id}>
+                            <AccordionTrigger>{faq.question}</AccordionTrigger>
+                            <AccordionContent>{faq.answer}</AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No FAQs available.</p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -513,7 +640,7 @@ const VendorDetails = () => {
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">Starting Price</div>
                   <div className="text-2xl font-bold text-primary">
-                    ₹{vendor.startingPrice.toLocaleString()}
+                    ₹{vendor.startingPrice.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div>
@@ -549,7 +676,7 @@ const VendorDetails = () => {
               </CardContent>
             </Card>
 
-            {/* SOLUTION 5: Availability Calendar */}
+            {/* Availability Calendar */}
             <AvailabilityCalendar
               availability={vendor.availability}
               onSlotSelect={handleSlotSelect}
