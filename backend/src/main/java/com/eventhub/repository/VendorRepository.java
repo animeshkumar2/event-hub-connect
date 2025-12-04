@@ -30,13 +30,13 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
            "ORDER BY v.rating DESC, v.reviewCount DESC")
     List<Vendor> findFeaturedVendors();
     
-    @Query("SELECT v FROM Vendor v WHERE v.isActive = true " +
-           "AND (:categoryId IS NULL OR v.vendorCategory.id = :categoryId) " +
-           "AND (:cityName IS NULL OR v.cityName = :cityName) " +
-           "AND (:minPrice IS NULL OR v.startingPrice >= :minPrice) " +
-           "AND (:maxPrice IS NULL OR v.startingPrice <= :maxPrice) " +
-           "AND (:searchQuery IS NULL OR LOWER(v.businessName) LIKE LOWER(CONCAT('%', :searchQuery, '%')) " +
-           "OR LOWER(v.bio) LIKE LOWER(CONCAT('%', :searchQuery, '%')))")
+    @Query(value = "SELECT * FROM vendors v WHERE v.is_active = true " +
+           "AND (:categoryId IS NULL OR v.vendor_category_id = :categoryId) " +
+           "AND (:cityName IS NULL OR v.city_name = :cityName) " +
+           "AND (:minPrice IS NULL OR v.starting_price >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR v.starting_price <= :maxPrice) " +
+           "AND (:searchQuery IS NULL OR CAST(v.business_name AS TEXT) ILIKE '%' || :searchQuery || '%')",
+           nativeQuery = true)
     List<Vendor> searchVendors(
         @Param("categoryId") String categoryId,
         @Param("cityName") String cityName,

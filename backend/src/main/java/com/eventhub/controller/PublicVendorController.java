@@ -1,8 +1,12 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.dto.ListingDTO;
+import com.eventhub.dto.VendorDTO;
 import com.eventhub.model.*;
 import com.eventhub.service.VendorProfileService;
+import com.eventhub.util.ListingMapper;
+import com.eventhub.util.VendorMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/public/vendors")
@@ -20,23 +25,28 @@ import java.util.UUID;
 public class PublicVendorController {
     
     private final VendorProfileService vendorProfileService;
+    private final VendorMapper vendorMapper;
+    private final ListingMapper listingMapper;
     
     @GetMapping("/{vendorId}")
-    public ResponseEntity<ApiResponse<Vendor>> getVendor(@PathVariable UUID vendorId) {
+    public ResponseEntity<ApiResponse<VendorDTO>> getVendor(@PathVariable UUID vendorId) {
         Vendor vendor = vendorProfileService.getVendorProfile(vendorId);
-        return ResponseEntity.ok(ApiResponse.success(vendor));
+        VendorDTO dto = vendorMapper.toDTO(vendor);
+        return ResponseEntity.ok(ApiResponse.success(dto));
     }
     
     @GetMapping("/{vendorId}/packages")
-    public ResponseEntity<ApiResponse<List<Listing>>> getVendorPackages(@PathVariable UUID vendorId) {
+    public ResponseEntity<ApiResponse<List<ListingDTO>>> getVendorPackages(@PathVariable UUID vendorId) {
         List<Listing> packages = vendorProfileService.getVendorPackages(vendorId);
-        return ResponseEntity.ok(ApiResponse.success(packages));
+        List<ListingDTO> dtos = listingMapper.toDTOList(packages);
+        return ResponseEntity.ok(ApiResponse.success(dtos));
     }
     
     @GetMapping("/{vendorId}/listings")
-    public ResponseEntity<ApiResponse<List<Listing>>> getVendorListings(@PathVariable UUID vendorId) {
+    public ResponseEntity<ApiResponse<List<ListingDTO>>> getVendorListings(@PathVariable UUID vendorId) {
         List<Listing> listings = vendorProfileService.getVendorListings(vendorId);
-        return ResponseEntity.ok(ApiResponse.success(listings));
+        List<ListingDTO> dtos = listingMapper.toDTOList(listings);
+        return ResponseEntity.ok(ApiResponse.success(dtos));
     }
     
     @GetMapping("/{vendorId}/reviews")

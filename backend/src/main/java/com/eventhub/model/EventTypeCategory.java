@@ -14,13 +14,19 @@ import java.time.LocalDateTime;
 @IdClass(EventTypeCategoryId.class)
 public class EventTypeCategory {
     @Id
-    @ManyToOne
-    @JoinColumn(name = "event_type_id", nullable = false)
-    private EventType eventType;
+    @Column(name = "event_type_id", nullable = false)
+    private Integer eventTypeId;
     
     @Id
+    @Column(name = "category_id", nullable = false, length = 50)
+    private String categoryId;
+    
     @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "event_type_id", insertable = false, updatable = false)
+    private EventType eventType;
+    
+    @ManyToOne
+    @JoinColumn(name = "category_id", insertable = false, updatable = false)
     private Category category;
     
     @Column(name = "created_at")

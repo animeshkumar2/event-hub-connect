@@ -23,7 +23,7 @@ public class Listing {
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = ListingTypeConverter.class)
     @Column(nullable = false, length = 20)
     private ListingType type; // 'package' or 'item'
     

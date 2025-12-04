@@ -2,6 +2,7 @@ package com.eventhub.service;
 
 import com.eventhub.dto.request.CreateLeadRequest;
 import com.eventhub.model.Lead;
+import com.eventhub.model.Vendor;
 import com.eventhub.repository.LeadRepository;
 import com.eventhub.repository.VendorRepository;
 import com.eventhub.exception.NotFoundException;

@@ -52,8 +52,10 @@ public class PaymentService {
      * In production, this would verify with payment gateway
      */
     public Payment verifyPayment(String transactionId, String paymentGatewayResponse) {
-        Payment payment = paymentRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new NotFoundException("Payment not found"));
+        Payment payment = paymentRepository.findByTransactionId(transactionId);
+        if (payment == null) {
+            throw new NotFoundException("Payment not found");
+        }
         
         // In production, verify with payment gateway
         // For now, mark as completed

@@ -10,7 +10,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderAddOnId implements Serializable {
-    private UUID order;
-    private UUID addOn;
+    private UUID orderId;
+    private UUID addOnId;
 }
 

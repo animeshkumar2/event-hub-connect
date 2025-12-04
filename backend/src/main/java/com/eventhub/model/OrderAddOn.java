@@ -15,13 +15,19 @@ import java.util.UUID;
 @IdClass(OrderAddOnId.class)
 public class OrderAddOn {
     @Id
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    @Column(name = "order_id", nullable = false)
+    private UUID orderId;
     
     @Id
+    @Column(name = "add_on_id", nullable = false)
+    private UUID addOnId;
+    
     @ManyToOne
-    @JoinColumn(name = "add_on_id", nullable = false)
+    @JoinColumn(name = "order_id", insertable = false, updatable = false)
+    private Order order;
+    
+    @ManyToOne
+    @JoinColumn(name = "add_on_id", insertable = false, updatable = false)
     private AddOn addOn;
     
     @Column(nullable = false)

@@ -1,9 +1,13 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.dto.ListingDTO;
+import com.eventhub.dto.VendorDTO;
 import com.eventhub.model.Listing;
 import com.eventhub.model.Vendor;
 import com.eventhub.service.SearchService;
+import com.eventhub.util.ListingMapper;
+import com.eventhub.util.VendorMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +21,11 @@ import java.util.List;
 public class PublicSearchController {
     
     private final SearchService searchService;
+    private final ListingMapper listingMapper;
+    private final VendorMapper vendorMapper;
     
     @GetMapping("/listings")
-    public ResponseEntity<ApiResponse<List<Listing>>> searchListings(
+    public ResponseEntity<ApiResponse<List<ListingDTO>>> searchListings(
             @RequestParam(required = false) Integer eventType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String listingType,
@@ -35,11 +41,13 @@ public class PublicSearchController {
         List<Listing> listings = searchService.searchListings(
                 eventType, category, type, city, minBudget, maxBudget, q);
         
-        return ResponseEntity.ok(ApiResponse.success(listings));
+        List<ListingDTO> listingDTOs = listingMapper.toDTOList(listings);
+        
+        return ResponseEntity.ok(ApiResponse.success(listingDTOs));
     }
     
     @GetMapping("/vendors")
-    public ResponseEntity<ApiResponse<List<Vendor>>> searchVendors(
+    public ResponseEntity<ApiResponse<List<VendorDTO>>> searchVendors(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) BigDecimal minBudget,
@@ -47,7 +55,8 @@ public class PublicSearchController {
             @RequestParam(required = false) String q) {
         
         List<Vendor> vendors = searchService.searchVendors(category, city, minBudget, maxBudget, q);
-        return ResponseEntity.ok(ApiResponse.success(vendors));
+        List<VendorDTO> vendorDTOs = vendorMapper.toDTOList(vendors);
+        return ResponseEntity.ok(ApiResponse.success(vendorDTOs));
     }
 }
 
