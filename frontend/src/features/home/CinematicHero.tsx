@@ -21,7 +21,7 @@ export const CinematicHero = () => {
   }, []);
 
   return (
-    <section className="relative min-h-[100vh] overflow-hidden pb-32">
+    <section className="relative min-h-[85vh] overflow-hidden pb-20">
       {/* Single Background Image */}
       <div className="absolute inset-0">
         <div 
@@ -40,20 +40,20 @@ export const CinematicHero = () => {
 
       {/* Content - Left Aligned, Bold Typography */}
       <div className="relative z-10 container mx-auto px-4 md:px-8 lg:px-12">
-        <div className="flex items-center min-h-[100vh] py-20">
-          <div className="max-w-4xl space-y-8">
+        <div className="flex items-center min-h-[85vh] py-16">
+          <div className="max-w-3xl space-y-6">
             {/* Main Headline - Bold, Stretched Typography */}
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-white leading-[0.9] tracking-tight">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
               BOOK EVENT
               <br />
               VENDORS
             </h1>
             
             {/* Subtext Line */}
-            <div className="h-1 w-24 bg-white/80" />
+            <div className="h-0.5 w-20 bg-white/80" />
             
             {/* Animated Text Slides Container */}
-            <div className="relative min-h-[320px] md:min-h-[280px] overflow-visible">
+            <div className="relative min-h-[240px] md:min-h-[200px] overflow-visible">
               {/* Slide 1: Vendor Types */}
               <div
                 className={cn(
@@ -63,26 +63,26 @@ export const CinematicHero = () => {
                     : "opacity-0 -translate-x-full z-0"
                 )}
               >
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 leading-tight">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 leading-tight">
                   Find All Your
                   <br />
                   <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
                     Event Vendors
                   </span>
                 </h2>
-                <p className="text-xl md:text-2xl text-white/90 font-light tracking-wide max-w-3xl leading-relaxed mb-8">
+                <p className="text-base md:text-lg text-white/90 font-light tracking-wide max-w-2xl leading-relaxed mb-6">
                   Photographers · Decorators · DJs · Makeup Artists · Caterers · More — All in One Place.
                 </p>
-                <div className="pt-4 relative z-20">
+                <div className="pt-2 relative z-20">
                   <Button 
-                    size="lg" 
-                    className="text-lg px-10 py-7 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-2xl hover:shadow-primary/50 hover-lift transition-all duration-300 group"
+                    size="default" 
+                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group"
                     asChild
                   >
                     <Link to="/search">
-                      <Search className="mr-2 h-5 w-5" />
+                      <Search className="mr-2 h-4 w-4" />
                       Browse Categories
-                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>
                 </div>
@@ -97,26 +97,26 @@ export const CinematicHero = () => {
                     : "opacity-0 translate-x-full z-0"
                 )}
               >
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 leading-tight">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 leading-tight">
                   Plan Your Complete
                   <br />
                   <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
                     Event Experience
                   </span>
                 </h2>
-                <p className="text-xl md:text-2xl text-white/90 font-light tracking-wide max-w-3xl leading-relaxed mb-8">
+                <p className="text-base md:text-lg text-white/90 font-light tracking-wide max-w-2xl leading-relaxed mb-6">
                   Tell us your budget and event details. We'll recommend the perfect vendors and you can book them all in one checkout!
                 </p>
-                <div className="pt-4 relative z-20">
+                <div className="pt-2 relative z-20">
                   <Button 
-                    size="lg" 
-                    className="text-lg px-10 py-7 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-2xl hover:shadow-primary/50 hover-lift transition-all duration-300 group"
+                    size="default" 
+                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group"
                     asChild
                   >
                     <Link to="/event-planner">
-                      <Sparkles className="mr-2 h-5 w-5" />
+                      <Sparkles className="mr-2 h-4 w-4" />
                       Start Planning Now
-                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>
                 </div>

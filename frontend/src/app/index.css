@@ -305,4 +305,33 @@ All colors MUST be HSL.
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Calendar availability day styles */
+  .rdp-day_available {
+    @apply bg-green-100 border-2 border-green-500 text-green-900 font-semibold rounded-md;
+  }
+
+  .rdp-day_available:hover {
+    @apply bg-green-200;
+  }
+
+  .rdp-day_busy {
+    @apply bg-yellow-100 border-2 border-yellow-500 text-yellow-900 font-semibold rounded-md;
+  }
+
+  .rdp-day_busy:hover {
+    @apply bg-yellow-200;
+  }
+
+  .rdp-day_booked {
+    @apply bg-red-100 border-2 border-red-500 text-red-900 opacity-60 rounded-md;
+    cursor: not-allowed;
+  }
 }

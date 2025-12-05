@@ -79,8 +79,28 @@ const Search = () => {
     listingType: listingType === 'packages' ? 'packages' : undefined,
   });
 
-  const vendors = vendorsData || [];
-  const listings = listingsData || [];
+  // Ensure data is always an array - handle both direct arrays and wrapped responses
+  const vendors = useMemo(() => {
+    if (!vendorsData) return [];
+    if (Array.isArray(vendorsData)) return vendorsData;
+    // If data is wrapped in an object with a data property
+    if (vendorsData && typeof vendorsData === 'object' && 'data' in vendorsData) {
+      const data = (vendorsData as any).data;
+      return Array.isArray(data) ? data : (data ? [data] : []);
+    }
+    return [vendorsData];
+  }, [vendorsData]);
+
+  const listings = useMemo(() => {
+    if (!listingsData) return [];
+    if (Array.isArray(listingsData)) return listingsData;
+    // If data is wrapped in an object with a data property
+    if (listingsData && typeof listingsData === 'object' && 'data' in listingsData) {
+      const data = (listingsData as any).data;
+      return Array.isArray(data) ? data : (data ? [data] : []);
+    }
+    return [listingsData];
+  }, [listingsData]);
 
   // Transform API listings to match component expectations
   const transformedListings = useMemo(() => {
@@ -213,12 +233,18 @@ const Search = () => {
 
   // Debug: Log data to help diagnose issues
   useEffect(() => {
-    if (listingsData) {
-      console.log('Listings data received:', listingsData.length, 'items');
-      console.log('Transformed listings:', transformedListings.length, 'items');
-      console.log('Filtered listings:', filteredListings.length, 'items');
-    }
-  }, [listingsData, transformedListings, filteredListings]);
+    console.log('Search component state:', {
+      showVendors,
+      selectedCategory,
+      eventTypeParam,
+      vendorsData,
+      listingsData,
+      vendorsLoading,
+      listingsLoading,
+      vendorsError,
+      listingsError,
+    });
+  }, [showVendors, selectedCategory, eventTypeParam, vendorsData, listingsData, vendorsLoading, listingsLoading, vendorsError, listingsError]);
 
   return (
     <div className="min-h-screen bg-background">

@@ -94,7 +94,7 @@ export const FuturisticCategoryCarousel = () => {
   };
 
   return (
-    <section className="relative py-20 md:py-32 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden">
+    <section className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl animate-pulse" />
@@ -104,57 +104,57 @@ export const FuturisticCategoryCarousel = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
-        <div className="mb-12 text-center animate-fade-in-up">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 px-4 py-2">
-            <Sparkles className="h-3 w-3 mr-2" />
+        <div className="mb-8 text-center animate-fade-in-up">
+          <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
+            <Sparkles className="h-3 w-3 mr-1.5" />
             Explore Categories
           </Badge>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground mb-4 leading-tight">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
             Browse by
             <br />
             <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
               Category
             </span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Explore our curated selection of event vendors
           </p>
         </div>
 
         {/* Carousel Container */}
-        <div className="relative px-12">
+        <div className="relative px-8 md:px-10">
           {/* Navigation Arrows - Fixed positioning */}
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110"
             aria-label="Previous"
           >
-            <ChevronLeft className="h-6 w-6 text-primary" />
+            <ChevronLeft className="h-5 w-5 text-primary" />
           </button>
 
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110"
             aria-label="Next"
           >
-            <ChevronRight className="h-6 w-6 text-primary" />
+            <ChevronRight className="h-5 w-5 text-primary" />
           </button>
 
           {/* Cards Container */}
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-8"
-            style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 12px' }}
+            className="flex gap-4 md:gap-5 overflow-x-auto scrollbar-hide pb-6"
+            style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 8px' }}
           >
             {categories.map((category, index) => (
               <Link
                 key={category.id}
                 to={`/search?category=${category.id}&view=vendors`}
-                className="flex-shrink-0 w-[360px]"
+                className="flex-shrink-0 w-[280px] md:w-[300px]"
                 style={{ scrollSnapAlign: 'start' }}
               >
-                <Card className="group relative h-[500px] overflow-hidden rounded-2xl border-0 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+                <Card className="group relative h-[380px] md:h-[400px] overflow-hidden rounded-xl border-0 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                   {/* Full-bleed Image */}
                   <div className="absolute inset-0">
                     <img
@@ -166,38 +166,39 @@ export const FuturisticCategoryCarousel = () => {
                   </div>
 
                   {/* Brand Colored Top Bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary-glow to-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-primary-glow to-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                   {/* Content Overlay */}
-                  <CardContent className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                    <div className="space-y-4">
+                  <CardContent className="absolute bottom-0 left-0 right-0 p-5 md:p-6 text-white">
+                    <div className="space-y-3">
                       {/* Category Badge */}
-                      <Badge className="bg-primary/20 backdrop-blur-md border-primary/30 text-white">
+                      <Badge className="bg-primary/20 backdrop-blur-md border-primary/30 text-white text-xs px-2.5 py-0.5">
                         {category.name}
                       </Badge>
 
-                      <h3 className="text-3xl md:text-4xl font-black mb-2 group-hover:text-primary-glow transition-colors duration-300">
+                      <h3 className="text-2xl md:text-3xl font-black mb-1.5 group-hover:text-primary-glow transition-colors duration-300">
                         {category.name}
                       </h3>
-                      <p className="text-white/80 text-sm group-hover:text-white transition-colors duration-300">
+                      <p className="text-white/80 text-xs group-hover:text-white transition-colors duration-300">
                         {category.description}
                       </p>
 
                       {/* CTA Button */}
-                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pt-4">
+                      <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pt-3">
                         <Button
-                          className="bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-lg rounded-xl transition-all duration-300"
+                          size="sm"
+                          className="bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-lg rounded-lg transition-all duration-300 text-xs px-4 py-2"
                         >
                           Browse {category.name}s
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
                   </CardContent>
 
                   {/* Subtle Glow Border */}
-                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <div className="absolute inset-0 rounded-2xl border-2 border-primary/40 shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <div className="absolute inset-0 rounded-xl border-2 border-primary/40 shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
                   </div>
                 </Card>
               </Link>

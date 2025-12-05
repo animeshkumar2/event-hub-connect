@@ -5,8 +5,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { useToast } from "@/shared/hooks/use-toast";
+import { useAuth } from "@/shared/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 interface AuthProps {
   mode: "login" | "signup";
@@ -15,39 +16,98 @@ interface AuthProps {
 const Auth = ({ mode }: AuthProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login, register, isAuthenticated } = useAuth();
   const [isVendor, setIsVendor] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    phone: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  if (isAuthenticated && !isLoading) {
+    navigate("/");
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (mode === "signup" && formData.password !== formData.confirmPassword) {
+    setIsLoading(true);
+
+    try {
+      if (mode === "signup") {
+        // Validation
+        if (formData.password !== formData.confirmPassword) {
+          toast({
+            title: "Error",
+            description: "Passwords do not match",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (formData.password.length < 6) {
+          toast({
+            title: "Error",
+            description: "Password must be at least 6 characters",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (!formData.name.trim()) {
+          toast({
+            title: "Error",
+            description: "Full name is required",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Register
+        await register({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.name,
+          phone: formData.phone || undefined,
+          isVendor: isVendor,
+        });
+
+        toast({
+          title: "Account created!",
+          description: "Your account has been created successfully.",
+        });
+
+        if (isVendor) {
+          navigate("/vendor/onboarding");
+        } else {
+          navigate("/");
+        }
+      } else {
+        // Login
+        await login(formData.email, formData.password);
+
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
+
+        navigate("/");
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Passwords do not match",
+        description: error.message || (mode === "login" ? "Login failed. Please check your credentials." : "Registration failed. Please try again."),
         variant: "destructive",
       });
-      return;
-    }
-
-    toast({
-      title: mode === "login" ? "Welcome back!" : "Account created!",
-      description: mode === "login" ? "You have successfully logged in." : "Your account has been created successfully.",
-    });
-
-    if (mode === "signup" && isVendor) {
-      // Store email for vendor onboarding
-      sessionStorage.setItem('vendorSignupData', JSON.stringify({
-        email: formData.email,
-      }));
-      navigate("/vendor/onboarding");
-    } else {
-      navigate("/");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -78,6 +138,7 @@ const Auth = ({ mode }: AuthProps) => {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
+                  disabled={isLoading}
                 />
               </div>
             )}
@@ -91,6 +152,7 @@ const Auth = ({ mode }: AuthProps) => {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -99,9 +161,12 @@ const Auth = ({ mode }: AuthProps) => {
               <Input
                 id="password"
                 type="password"
+                placeholder={mode === "login" ? "Enter your password" : "At least 6 characters"}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
+                disabled={isLoading}
+                minLength={mode === "signup" ? 6 : undefined}
               />
             </div>
 
@@ -112,9 +177,23 @@ const Auth = ({ mode }: AuthProps) => {
                   <Input
                     id="confirmPassword"
                     type="password"
+                    placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone (Optional)</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+91 9876543210"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -123,6 +202,7 @@ const Auth = ({ mode }: AuthProps) => {
                     id="vendor"
                     checked={isVendor}
                     onCheckedChange={(checked) => setIsVendor(checked as boolean)}
+                    disabled={isLoading}
                   />
                   <Label htmlFor="vendor" className="text-sm font-normal cursor-pointer">
                     I want to register as a vendor
@@ -131,8 +211,15 @@ const Auth = ({ mode }: AuthProps) => {
               </>
             )}
 
-            <Button type="submit" className="w-full">
-              {mode === "login" ? "Sign In" : "Create Account"}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {mode === "login" ? "Signing in..." : "Creating account..."}
+                </>
+              ) : (
+                mode === "login" ? "Sign In" : "Create Account"
+              )}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">

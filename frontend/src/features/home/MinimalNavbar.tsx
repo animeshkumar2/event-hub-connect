@@ -4,6 +4,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { ShoppingCart, User, Menu, Sparkles, ChevronDown, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/shared/contexts/CartContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { cn } from '@/shared/lib/utils';
 
 // Vendor categories
@@ -39,6 +40,7 @@ export const MinimalNavbar = () => {
   const [eventTypesDropdownOpen, setEventTypesDropdownOpen] = useState(false);
   const { getItemCount } = useCart();
   const cartCount = getItemCount();
+  const { user, isAuthenticated, logout } = useAuth();
   const vendorsDropdownRef = useRef<HTMLDivElement>(null);
   const eventTypesDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -275,37 +277,78 @@ export const MinimalNavbar = () => {
               </Link>
             </Button>
 
-            {/* Login */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
-                scrolled 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-              asChild
-            >
-              <Link to="/login">
-                <User className="h-3.5 w-3.5 mr-1.5" />
-                Login
-              </Link>
-            </Button>
-
-            {/* Sign Up */}
-            <Button
-              size="sm"
-              className={cn(
-                'h-8 px-4 text-xs font-semibold transition-all duration-200 rounded-md',
-                scrolled 
-                  ? 'bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg' 
-                  : 'bg-white/95 hover:bg-white text-foreground shadow-md hover:shadow-lg border border-white/20'
-              )}
-              asChild
-            >
-              <Link to="/signup">Sign Up</Link>
-            </Button>
+            {/* User Menu or Login/Signup */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
+                    scrolled 
+                      ? 'text-foreground hover:text-primary hover:bg-primary/5' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                  )}
+                  asChild
+                >
+                  {user.role === 'VENDOR' ? (
+                    <Link to="/vendor/dashboard">
+                      <User className="h-3.5 w-3.5 mr-1.5" />
+                      Dashboard
+                    </Link>
+                  ) : (
+                    <Link to="/">
+                      <User className="h-3.5 w-3.5 mr-1.5" />
+                      {user.fullName || user.email.split('@')[0]}
+                    </Link>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
+                    scrolled 
+                      ? 'border-border' 
+                      : 'border-white/20 text-white/90 hover:bg-white/10'
+                  )}
+                  onClick={logout}
+                >
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
+                    scrolled 
+                      ? 'text-foreground hover:text-primary hover:bg-primary/5' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                  )}
+                  asChild
+                >
+                  <Link to="/login">
+                    <User className="h-3.5 w-3.5 mr-1.5" />
+                    Login
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  className={cn(
+                    'h-8 px-4 text-xs font-semibold transition-all duration-200 rounded-md',
+                    scrolled 
+                      ? 'bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg' 
+                      : 'bg-white/95 hover:bg-white text-foreground shadow-md hover:shadow-lg border border-white/20'
+                  )}
+                  asChild
+                >
+                  <Link to="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -476,34 +519,79 @@ export const MinimalNavbar = () => {
             </Link>
 
             <div className="flex items-center gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                asChild 
-                className={cn(
-                  'flex-1 h-8 text-xs font-medium',
-                  scrolled 
-                    ? 'border-border' 
-                    : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
-                )}
-              >
-                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <User className="h-3.5 w-3.5 mr-1.5" />
-                  Login
-                </Link>
-              </Button>
-              <Button 
-                size="sm" 
-                asChild 
-                className={cn(
-                  'flex-1 h-8 text-xs font-semibold',
-                  scrolled 
-                    ? 'bg-primary hover:bg-primary/90 shadow-md' 
-                    : 'bg-white/95 hover:bg-white text-foreground shadow-md border border-white/20'
-                )}
-              >
-                <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
-              </Button>
+              {isAuthenticated && user ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    asChild 
+                    className={cn(
+                      'flex-1 h-8 text-xs font-medium',
+                      scrolled 
+                        ? 'border-border' 
+                        : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
+                    )}
+                  >
+                    {user.role === 'VENDOR' ? (
+                      <Link to="/vendor/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                        <User className="h-3.5 w-3.5 mr-1.5" />
+                        Dashboard
+                      </Link>
+                    ) : (
+                      <Link to="/" onClick={() => setMobileMenuOpen(false)}>
+                        <User className="h-3.5 w-3.5 mr-1.5" />
+                        {user.fullName || user.email.split('@')[0]}
+                      </Link>
+                    )}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    className={cn(
+                      'flex-1 h-8 text-xs font-semibold',
+                      scrolled 
+                        ? 'bg-primary hover:bg-primary/90 shadow-md' 
+                        : 'bg-white/95 hover:bg-white text-foreground shadow-md border border-white/20'
+                    )}
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    asChild 
+                    className={cn(
+                      'flex-1 h-8 text-xs font-medium',
+                      scrolled 
+                        ? 'border-border' 
+                        : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
+                    )}
+                  >
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <User className="h-3.5 w-3.5 mr-1.5" />
+                      Login
+                    </Link>
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    asChild 
+                    className={cn(
+                      'flex-1 h-8 text-xs font-semibold',
+                      scrolled 
+                        ? 'bg-primary hover:bg-primary/90 shadow-md' 
+                        : 'bg-white/95 hover:bg-white text-foreground shadow-md border border-white/20'
+                    )}
+                  >
+                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         )}
