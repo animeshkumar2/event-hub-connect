@@ -29,6 +29,9 @@ public class UserProfile {
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
     
+    @Column(name = "password_hash", columnDefinition = "TEXT")
+    private String passwordHash; // BCrypt hashed password
+    
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private Role role = Role.CUSTOMER;

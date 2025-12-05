@@ -19,6 +19,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
     
+    @ExceptionHandler(VendorProfileNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleVendorProfileNotFoundException(VendorProfileNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(ex.getCode(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+    
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
         ErrorResponse error = new ErrorResponse(ex.getCode(), ex.getMessage());
@@ -48,8 +54,10 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        // Log the full stack trace for debugging
+        ex.printStackTrace();
         ErrorResponse error = new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred");
-        error.setDetails(ex.getMessage());
+        error.setDetails(ex.getMessage() + " - " + ex.getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

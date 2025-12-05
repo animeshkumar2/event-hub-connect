@@ -44,5 +44,7 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
         @Param("maxPrice") BigDecimal maxPrice,
         @Param("searchQuery") String searchQuery
     );
+    
+    java.util.Optional<Vendor> findByUserId(UUID userId);
 }
 

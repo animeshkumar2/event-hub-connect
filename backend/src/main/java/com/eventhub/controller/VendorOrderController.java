@@ -3,6 +3,7 @@ package com.eventhub.controller;
 import com.eventhub.dto.ApiResponse;
 import com.eventhub.model.Order;
 import com.eventhub.service.VendorOrderService;
+import com.eventhub.util.VendorIdResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,13 +20,15 @@ import java.util.UUID;
 public class VendorOrderController {
     
     private final VendorOrderService orderService;
+    private final VendorIdResolver vendorIdResolver;
     
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Order>>> getOrders(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Pageable pageable = PageRequest.of(page, size);
         Order.OrderStatus orderStatus = status != null ? Order.OrderStatus.valueOf(status) : null;
         Page<Order> orders = orderService.getVendorOrders(vendorId, orderStatus, pageable);
@@ -34,31 +37,36 @@ public class VendorOrderController {
     
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<Order>> getOrder(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID orderId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Order order = orderService.getOrderById(orderId, vendorId);
         return ResponseEntity.ok(ApiResponse.success(order));
     }
     
     @PutMapping("/{orderId}/status")
     public ResponseEntity<ApiResponse<Order>> updateOrderStatus(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID orderId,
             @RequestBody UpdateStatusRequest request) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Order order = orderService.updateOrderStatus(orderId, vendorId, Order.OrderStatus.valueOf(request.getStatus()));
         return ResponseEntity.ok(ApiResponse.success("Order status updated", order));
     }
     
     @PostMapping("/{orderId}/confirm")
     public ResponseEntity<ApiResponse<Order>> confirmOrder(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID orderId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Order order = orderService.confirmOrder(orderId, vendorId);
         return ResponseEntity.ok(ApiResponse.success("Order confirmed", order));
     }
     
     @GetMapping("/upcoming")
-    public ResponseEntity<ApiResponse<List<Order>>> getUpcomingOrders(@RequestHeader("X-Vendor-Id") UUID vendorId) {
+    public ResponseEntity<ApiResponse<List<Order>>> getUpcomingOrders(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         List<Order> orders = orderService.getUpcomingOrders(vendorId);
         return ResponseEntity.ok(ApiResponse.success(orders));
     }

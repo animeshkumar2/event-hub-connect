@@ -1,5 +1,7 @@
 package com.eventhub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,6 +16,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Prevent lazy loading issues
 public class Vendor {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -70,6 +73,7 @@ public class Vendor {
     private LocalDateTime updatedAt;
     
     @OneToMany(mappedBy = "vendor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore // Prevent circular serialization
     private List<Listing> listings;
     
     @PrePersist
