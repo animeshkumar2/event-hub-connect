@@ -41,7 +41,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Allow localhost for development
         configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+        // Allow Vercel frontend URLs for production (supports wildcards)
+        configuration.setAllowedOriginPatterns(List.of(
+            "https://event-hub-connect-*.vercel.app",
+            "https://*.vercel.app"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
