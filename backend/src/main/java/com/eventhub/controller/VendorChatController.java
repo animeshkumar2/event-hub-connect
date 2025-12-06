@@ -4,6 +4,7 @@ import com.eventhub.dto.ApiResponse;
 import com.eventhub.model.ChatThread;
 import com.eventhub.model.Message;
 import com.eventhub.service.ChatService;
+import com.eventhub.util.VendorIdResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,9 +21,12 @@ import java.util.UUID;
 public class VendorChatController {
     
     private final ChatService chatService;
+    private final VendorIdResolver vendorIdResolver;
     
     @GetMapping("/threads")
-    public ResponseEntity<ApiResponse<List<ChatThread>>> getThreads(@RequestHeader("X-Vendor-Id") UUID vendorId) {
+    public ResponseEntity<ApiResponse<List<ChatThread>>> getThreads(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         List<ChatThread> threads = chatService.getVendorThreads(vendorId);
         return ResponseEntity.ok(ApiResponse.success(threads));
     }
@@ -39,17 +43,19 @@ public class VendorChatController {
     
     @PostMapping("/threads/{threadId}/messages")
     public ResponseEntity<ApiResponse<Message>> sendMessage(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID threadId,
             @RequestBody SendMessageRequest request) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Message message = chatService.sendMessage(threadId, vendorId, Message.SenderType.VENDOR, request.getContent());
         return ResponseEntity.ok(ApiResponse.success("Message sent", message));
     }
     
     @PutMapping("/threads/{threadId}/read")
     public ResponseEntity<ApiResponse<Void>> markAsRead(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID threadId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         chatService.markThreadAsRead(threadId, vendorId, true);
         return ResponseEntity.ok(ApiResponse.success("Thread marked as read", null));
     }
