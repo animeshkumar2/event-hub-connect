@@ -15,34 +15,28 @@ import java.util.UUID;
 @AllArgsConstructor
 public class VendorWallet {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(name = "vendor_id")
+    private UUID vendorId;
     
-    @ManyToOne
-    @JoinColumn(name = "vendor_id", nullable = false, unique = true)
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
     
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
     
-    @Column(name = "pending_balance", precision = 10, scale = 2)
-    private BigDecimal pendingBalance = BigDecimal.ZERO; // Amount in pending orders
+    @Column(name = "pending_payouts", precision = 10, scale = 2)
+    private BigDecimal pendingPayouts = BigDecimal.ZERO; // Amount in pending payouts
     
-    @Column(name = "total_earned", precision = 10, scale = 2)
-    private BigDecimal totalEarned = BigDecimal.ZERO;
-    
-    @Column(name = "total_withdrawn", precision = 10, scale = 2)
-    private BigDecimal totalWithdrawn = BigDecimal.ZERO;
-    
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "total_earnings", precision = 10, scale = 2)
+    private BigDecimal totalEarnings = BigDecimal.ZERO;
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
     

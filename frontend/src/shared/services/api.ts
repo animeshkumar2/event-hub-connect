@@ -66,12 +66,33 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Request failed' }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: 'Request failed' };
+        }
+        const errorMessage = errorData.message || errorData.details || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      return data;
+      
+      // Handle ApiResponse wrapper - backend returns { success, data, message }
+      if (data && typeof data === 'object' && 'success' in data) {
+        // If success is false, throw error
+        if (!data.success) {
+          throw new Error(data.message || 'Request failed');
+        }
+        return data;
+      }
+      
+      // If response is not wrapped, wrap it
+      return {
+        success: true,
+        data: data,
+        message: 'Success'
+      };
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
@@ -167,6 +188,10 @@ export const publicApi = {
   getPackage: (packageId: string) => apiClient.get<any>(`/public/packages/${packageId}`),
   getListing: (listingId: string) => apiClient.get<any>(`/public/listings/${listingId}`),
   
+  // Event Planner
+  getRecommendations: (data: { budget: number; eventType: string; guestCount: number }) =>
+    apiClient.post<any[]>('/public/event-planner/recommendations', data),
+  
   // Reference data
   getEventTypes: () => apiClient.get<any[]>('/public/event-types'),
   getCategories: () => apiClient.get<any[]>('/public/categories'),
@@ -208,7 +233,7 @@ export const customerApi = {
   
   // Event Planner
   getRecommendations: (data: { budget: number; eventType: string; guestCount: number }) =>
-    apiClient.post<any[]>('/customers/event-planner/recommendations', data),
+    apiClient.post<any[]>('/public/event-planner/recommendations', data),
   
   // Chat
   getChatThreads: () => apiClient.get<any[]>('/customers/chat/threads'),
@@ -231,9 +256,13 @@ export const customerApi = {
 
 // Vendor API
 export const vendorApi = {
+  // Onboarding
+  onboard: (data: any) => apiClient.post<any>('/vendors/onboarding', data),
+  
   // Profile
   getProfile: () => apiClient.get<any>('/vendors/profile'),
   updateProfile: (data: any) => apiClient.put<any>('/vendors/profile', data),
+  getVendorByUserId: (userId: string) => apiClient.get<any>(`/vendors/by-user/${userId}`),
   
   // Listings
   getListings: () => apiClient.get<any[]>('/vendors/listings'),

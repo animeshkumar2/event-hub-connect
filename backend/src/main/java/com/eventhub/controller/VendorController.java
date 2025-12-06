@@ -32,5 +32,11 @@ public class VendorController {
         com.eventhub.dto.VendorDTO vendor = vendorService.getVendorById(id);
         return ResponseEntity.ok(com.eventhub.dto.ApiResponse.success(vendor));
     }
+    
+    @GetMapping("/by-user/{userId}")
+    public ResponseEntity<com.eventhub.dto.ApiResponse<com.eventhub.dto.VendorDTO>> getVendorByUserId(@PathVariable UUID userId) {
+        com.eventhub.dto.VendorDTO vendor = vendorService.getVendorByUserId(userId);
+        return ResponseEntity.ok(com.eventhub.dto.ApiResponse.success(vendor));
+    }
 }
 

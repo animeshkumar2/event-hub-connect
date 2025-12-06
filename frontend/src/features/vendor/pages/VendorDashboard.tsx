@@ -14,31 +14,195 @@ import {
   Users,
   TrendingUp,
   Star,
-  Bell
+  Bell,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useVendorDashboardStats, useVendorProfile, useVendorUpcomingOrders, useVendorLeads } from '@/shared/hooks/useApi';
+import { format } from 'date-fns';
+import { useMemo, useEffect } from 'react';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
 
-  const stats = [
-    { label: 'Upcoming Bookings', value: '8', icon: Calendar, color: 'text-secondary', bg: 'bg-secondary/10', trend: '+2 this week' },
-    { label: 'Pending Leads', value: '12', icon: Users, color: 'text-primary', bg: 'bg-primary/10', trend: '3 new today' },
-    { label: 'Wallet Balance', value: '₹45,000', icon: Wallet, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-500/10', trend: 'Ready to withdraw' },
-    { label: 'This Month Revenue', value: '₹1,25,000', icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10', trend: '+18% vs last month' },
-  ];
+  // Redirect to login if not authenticated or not a vendor
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        navigate('/login?redirect=/vendor/dashboard');
+        return;
+      }
+      if (user?.role !== 'VENDOR') {
+        navigate('/');
+        return;
+      }
+      // Check if vendor_id is set
+      const vendorId = localStorage.getItem('vendor_id');
+      if (!vendorId) {
+        // Vendor might not have completed onboarding
+        console.warn('Vendor ID not found in localStorage');
+      }
+    }
+  }, [isAuthenticated, user, authLoading, navigate]);
+  
+  // Fetch real data
+  const { data: statsData, loading: statsLoading, error: statsError } = useVendorDashboardStats();
+  const { data: profileData, loading: profileLoading } = useVendorProfile();
+  const { data: upcomingOrdersData, loading: ordersLoading } = useVendorUpcomingOrders();
+  const { data: leadsData, loading: leadsLoading } = useVendorLeads();
 
-  const todaySchedule = [
-    { time: '10:00 AM', event: 'Pre-wedding shoot consultation', client: 'Priya & Rahul' },
-    { time: '2:00 PM', event: 'Wedding ceremony coverage', client: 'Sharma Family' },
-    { time: '6:00 PM', event: 'Reception shoot', client: 'Sharma Family' },
-  ];
+  // Transform stats data
+  const stats = useMemo(() => {
+    if (!statsData) return null;
+    return [
+      { 
+        label: 'Upcoming Bookings', 
+        value: statsData.upcomingBookings?.toString() || '0', 
+        icon: Calendar, 
+        color: 'text-secondary', 
+        bg: 'bg-secondary/10', 
+        trend: 'View calendar' 
+      },
+      { 
+        label: 'Pending Leads', 
+        value: statsData.pendingLeads?.toString() || '0', 
+        icon: Users, 
+        color: 'text-primary', 
+        bg: 'bg-primary/10', 
+        trend: 'Respond to leads' 
+      },
+      { 
+        label: 'Wallet Balance', 
+        value: `₹${statsData.walletBalance ? Number(statsData.walletBalance).toLocaleString('en-IN') : '0'}`, 
+        icon: Wallet, 
+        color: 'text-green-600 dark:text-green-400', 
+        bg: 'bg-green-500/10', 
+        trend: statsData.walletBalance && Number(statsData.walletBalance) > 0 ? 'Ready to withdraw' : 'No balance' 
+      },
+      { 
+        label: 'This Month Revenue', 
+        value: `₹${statsData.monthlyRevenue ? Number(statsData.monthlyRevenue).toLocaleString('en-IN') : '0'}`, 
+        icon: TrendingUp, 
+        color: 'text-blue-600 dark:text-blue-400', 
+        bg: 'bg-blue-500/10', 
+        trend: 'View analytics' 
+      },
+    ];
+  }, [statsData]);
 
-  const recentLeads = [
-    { id: 1, name: 'Anita Desai', event: 'Birthday Party', date: 'Dec 15', budget: '₹15,000', status: 'new' },
-    { id: 2, name: 'Vikram Singh', event: 'Corporate Event', date: 'Dec 20', budget: '₹50,000', status: 'quoted' },
-    { id: 3, name: 'Meera Patel', event: 'Engagement', date: 'Jan 5', budget: '₹25,000', status: 'new' },
-  ];
+  // Get today's schedule from upcoming orders
+  const todaySchedule = useMemo(() => {
+    if (!upcomingOrdersData || !Array.isArray(upcomingOrdersData)) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return upcomingOrdersData
+      .filter((order: any) => {
+        if (!order.eventDate) return false;
+        const orderDate = new Date(order.eventDate);
+        orderDate.setHours(0, 0, 0, 0);
+        return orderDate.getTime() === today.getTime();
+      })
+      .slice(0, 3)
+      .map((order: any) => ({
+        time: order.eventTime || 'TBD',
+        event: order.listingName || 'Event',
+        client: order.customerName || 'Customer',
+        orderId: order.id,
+      }));
+  }, [upcomingOrdersData]);
+
+  // Get recent leads
+  const recentLeads = useMemo(() => {
+    if (!leadsData || !Array.isArray(leadsData)) return [];
+    return leadsData
+      .slice(0, 3)
+      .map((lead: any) => ({
+        id: lead.id,
+        name: lead.customerName || 'Customer',
+        event: lead.eventType || 'Event',
+        date: lead.eventDate ? format(new Date(lead.eventDate), 'MMM d') : 'TBD',
+        budget: lead.budget ? `₹${Number(lead.budget).toLocaleString('en-IN')}` : 'TBD',
+        status: lead.status?.toLowerCase() || 'new',
+      }));
+  }, [leadsData]);
+
+  const vendorName = profileData?.businessName || 'Vendor';
+  const vendorRating = profileData?.rating || 0;
+  const reviewCount = profileData?.reviewCount || 0;
+  const isActive = profileData?.isActive !== false;
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <VendorLayout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated || user?.role !== 'VENDOR') {
+    return null;
+  }
+
+  if (statsLoading || profileLoading) {
+    return (
+      <VendorLayout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  if (statsError) {
+    const vendorId = localStorage.getItem('vendor_id');
+    return (
+      <VendorLayout>
+        <div className="p-6">
+          <Card className="border-destructive">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                <div>
+                  <p className="font-semibold text-destructive">Failed to load dashboard</p>
+                  <p className="text-sm text-muted-foreground">{statsError}</p>
+                </div>
+              </div>
+              {!vendorId && (
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    <strong>Note:</strong> Vendor ID not found. You may need to complete vendor onboarding first.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/vendor/onboarding')}
+                    className="mt-2"
+                    variant="outline"
+                  >
+                    Go to Onboarding
+                  </Button>
+                </div>
+              )}
+              <div className="mt-4">
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
 
   return (
     <VendorLayout>
@@ -49,18 +213,24 @@ export default function VendorDashboard() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold text-foreground">
-                  Welcome back, Royal Moments!
+                  Welcome back, {vendorName}!
                 </h1>
-                <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
-                  Profile Live
-                </Badge>
+                {isActive && (
+                  <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                    Profile Live
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-4 text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-secondary fill-secondary" /> 4.9 rating
-                </span>
-                <span>•</span>
-                <span>142 bookings completed</span>
+                {vendorRating > 0 && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-secondary fill-secondary" /> {vendorRating.toFixed(1)} rating
+                    </span>
+                    <span>•</span>
+                  </>
+                )}
+                <span>{reviewCount} review{reviewCount !== 1 ? 's' : ''}</span>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -89,28 +259,36 @@ export default function VendorDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat, i) => (
-            <Card 
-              key={i} 
-              className="border-border hover:shadow-elegant transition-all cursor-pointer group hover-lift"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className={`p-3 rounded-xl ${stat.bg} transition-transform group-hover:scale-110`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map((stat, i) => (
+              <Card 
+                key={i} 
+                className="border-border hover:shadow-elegant transition-all cursor-pointer group hover-lift"
+                onClick={() => {
+                  if (i === 0) navigate('/vendor/calendar');
+                  if (i === 1) navigate('/vendor/leads');
+                  if (i === 2) navigate('/vendor/wallet');
+                  if (i === 3) navigate('/vendor/analytics');
+                }}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className={`p-3 rounded-xl ${stat.bg} transition-transform group-hover:scale-110`}>
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors group-hover:translate-x-1 group-hover:-translate-y-1" />
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors group-hover:translate-x-1 group-hover:-translate-y-1" />
-                </div>
-                <div className="mt-4">
-                  <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-muted-foreground text-sm">{stat.label}</p>
-                  <p className="text-xs text-secondary mt-1 font-medium">{stat.trend}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <div className="mt-4">
+                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-muted-foreground text-sm">{stat.label}</p>
+                    <p className="text-xs text-secondary mt-1 font-medium">{stat.trend}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Today's Schedule */}
@@ -130,22 +308,27 @@ export default function VendorDashboard() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              {todaySchedule.map((item, i) => (
-                <div 
-                  key={i} 
-                  className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all hover-lift cursor-pointer"
-                >
-                  <div className="text-center">
-                    <p className="text-secondary font-semibold">{item.time.split(' ')[0]}</p>
-                    <p className="text-xs text-muted-foreground">{item.time.split(' ')[1]}</p>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-foreground font-medium">{item.event}</p>
-                    <p className="text-sm text-muted-foreground">{item.client}</p>
-                  </div>
+              {ordersLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                 </div>
-              ))}
-              {todaySchedule.length === 0 && (
+              ) : todaySchedule.length > 0 ? (
+                todaySchedule.map((item, i) => (
+                  <div 
+                    key={i} 
+                    className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all hover-lift cursor-pointer"
+                    onClick={() => navigate(`/vendor/orders?orderId=${item.orderId}`)}
+                  >
+                    <div className="text-center">
+                      <p className="text-secondary font-semibold">{item.time}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-foreground font-medium">{item.event}</p>
+                      <p className="text-sm text-muted-foreground">{item.client}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No events scheduled for today
                 </div>
@@ -170,28 +353,39 @@ export default function VendorDashboard() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              {recentLeads.map((lead, i) => (
-                <div 
-                  key={lead.id} 
-                  className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all hover-lift cursor-pointer"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <span className="text-primary font-semibold">{lead.name[0]}</span>
-                    </div>
-                    <div>
-                      <p className="text-foreground font-medium">{lead.name}</p>
-                      <p className="text-sm text-muted-foreground">{lead.event} • {lead.date}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-secondary font-semibold">{lead.budget}</p>
-                    <Badge className={lead.status === 'new' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'}>
-                      {lead.status}
-                    </Badge>
-                  </div>
+              {leadsLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                 </div>
-              ))}
+              ) : recentLeads.length > 0 ? (
+                recentLeads.map((lead) => (
+                  <div 
+                    key={lead.id} 
+                    className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all hover-lift cursor-pointer"
+                    onClick={() => navigate(`/vendor/leads?leadId=${lead.id}`)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-primary font-semibold">{lead.name[0]}</span>
+                      </div>
+                      <div>
+                        <p className="text-foreground font-medium">{lead.name}</p>
+                        <p className="text-sm text-muted-foreground">{lead.event} • {lead.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-secondary font-semibold">{lead.budget}</p>
+                      <Badge className={lead.status === 'new' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'}>
+                        {lead.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No leads yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -6,114 +6,233 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { Switch } from '@/shared/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
 import { 
   Plus, 
   Search, 
   Edit, 
-  Copy, 
   Trash2, 
   Eye, 
-  Zap,
-  Upload,
-  Instagram,
-  ImagePlus,
-  MoreVertical
+  Loader2,
+  Package,
+  Box,
+  MoreVertical,
+  X
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { categories, validateListingCategory, suggestCategoryForListing, eventTypes } from '@/shared/constants/mockData';
-import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert';
+import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-
-interface Listing {
-  id: string;
-  title: string;
-  price: number;
-  billingType: string;
-  image: string;
-  instantBook: boolean;
-  status: 'active' | 'draft' | 'paused';
-  bookings: number;
-  views: number;
-}
+import { useMyVendorListings, useVendorProfile, useEventTypes, useCategories } from '@/shared/hooks/useApi';
+import { vendorApi } from '@/shared/services/api';
 
 export default function VendorListings() {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
+  const [listingType, setListingType] = useState<'PACKAGE' | 'ITEM'>('PACKAGE');
+  const [editingListing, setEditingListing] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Mock vendor category - in real app, get from auth context
-  const vendorCategory = 'photographer'; // This would come from vendor profile/auth
-  const vendorCategoryName = categories.find(c => c.id === vendorCategory)?.name || vendorCategory;
-  
+  // Fetch data
+  const { data: listingsData, loading: listingsLoading, error: listingsError, refetch } = useMyVendorListings();
+  const { data: profileData } = useVendorProfile();
+  const { data: eventTypesData } = useEventTypes();
+  const { data: categoriesData } = useCategories();
+
   // Form state
-  const [listingTitle, setListingTitle] = useState('');
-  const [listingDescription, setListingDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>(vendorCategory);
-  const [categoryWarning, setCategoryWarning] = useState<string | null>(null);
-  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    categoryId: '',
+    eventTypeIds: [] as number[],
+    images: [] as string[],
+    // Package fields
+    includedItemsText: [] as string[],
+    excludedItemsText: [] as string[],
+    deliveryTime: '',
+    extraCharges: [] as string[],
+    // Item fields
+    unit: '',
+    minimumQuantity: 1,
+  });
 
-  const listings: Listing[] = [
-    {
-      id: '1',
-      title: 'Wedding Photography - Full Day',
-      price: 45000,
-      billingType: 'Fixed',
-      image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-      instantBook: true,
-      status: 'active',
-      bookings: 24,
-      views: 342,
-    },
-    {
-      id: '2',
-      title: 'Pre-Wedding Shoot',
-      price: 15000,
-      billingType: 'Per Day',
-      image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=400',
-      instantBook: false,
-      status: 'active',
-      bookings: 18,
-      views: 256,
-    },
-    {
-      id: '3',
-      title: 'Corporate Event Photography',
-      price: 25000,
-      billingType: 'Per Day',
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
-      instantBook: true,
-      status: 'active',
-      bookings: 12,
-      views: 189,
-    },
-    {
-      id: '4',
-      title: 'Birthday Party Coverage',
-      price: 8000,
-      billingType: 'Fixed',
-      image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400',
-      instantBook: true,
-      status: 'draft',
-      bookings: 0,
-      views: 0,
-    },
-  ];
+  // Get vendor category
+  const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
+  const vendorCategoryName = profileData?.vendorCategory?.name || profileData?.categoryName || '';
 
-  const handleClone = (listing: Listing) => {
-    toast.success(`"${listing.title}" cloned successfully`);
+  // Filter listings
+  const filteredListings = useMemo(() => {
+    if (!listingsData || !Array.isArray(listingsData)) return [];
+    if (!searchQuery) return listingsData;
+    const query = searchQuery.toLowerCase();
+    return listingsData.filter((listing: any) =>
+      listing.name?.toLowerCase().includes(query) ||
+      listing.description?.toLowerCase().includes(query)
+    );
+  }, [listingsData, searchQuery]);
+
+  const packages = useMemo(() => filteredListings.filter((l: any) => l.type === 'PACKAGE'), [filteredListings]);
+  const items = useMemo(() => filteredListings.filter((l: any) => l.type === 'ITEM'), [filteredListings]);
+
+  // Initialize form when editing
+  useEffect(() => {
+    if (editingListing) {
+      setFormData({
+        name: editingListing.name || '',
+        description: editingListing.description || '',
+        price: editingListing.price?.toString() || '',
+        categoryId: editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId,
+        eventTypeIds: editingListing.eventTypes?.map((et: any) => et.id || et) || [],
+        images: editingListing.images || [],
+        includedItemsText: editingListing.includedItemsText || [],
+        excludedItemsText: editingListing.excludedItemsText || [],
+        deliveryTime: editingListing.deliveryTime || '',
+        extraCharges: editingListing.extraCharges || [],
+        unit: editingListing.unit || '',
+        minimumQuantity: editingListing.minimumQuantity || 1,
+      });
+      setListingType(editingListing.type || 'PACKAGE');
+    } else {
+      // Reset form
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        categoryId: vendorCategoryId,
+        eventTypeIds: [],
+        images: [],
+        includedItemsText: [],
+        excludedItemsText: [],
+        deliveryTime: '',
+        extraCharges: [],
+        unit: '',
+        minimumQuantity: 1,
+      });
+      setListingType('PACKAGE');
+    }
+  }, [editingListing, vendorCategoryId]);
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const payload: any = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        categoryId: formData.categoryId,
+        eventTypeIds: formData.eventTypeIds,
+        images: formData.images,
+      };
+
+      if (listingType === 'PACKAGE') {
+        payload.includedItemsText = formData.includedItemsText;
+        payload.excludedItemsText = formData.excludedItemsText;
+        payload.deliveryTime = formData.deliveryTime;
+        payload.extraCharges = formData.extraCharges;
+      } else {
+        payload.unit = formData.unit;
+        payload.minimumQuantity = formData.minimumQuantity;
+        payload.deliveryTime = formData.deliveryTime;
+        payload.extraCharges = formData.extraCharges;
+      }
+
+      if (editingListing) {
+        // Update existing listing
+        const response = await vendorApi.updateListing(editingListing.id, payload);
+        if (response.success) {
+          toast.success('Listing updated successfully!');
+          setShowCreateModal(false);
+          setEditingListing(null);
+          refetch();
+        } else {
+          throw new Error(response.message || 'Failed to update listing');
+        }
+      } else {
+        // Create new listing
+        const response = listingType === 'PACKAGE'
+          ? await vendorApi.createPackage(payload)
+          : await vendorApi.createItem(payload);
+        
+        if (response.success) {
+          toast.success(`${listingType === 'PACKAGE' ? 'Package' : 'Item'} created successfully!`);
+          setShowCreateModal(false);
+          refetch();
+        } else {
+          throw new Error(response.message || 'Failed to create listing');
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred');
+    }
   };
 
-  const handleDelete = (listing: Listing) => {
-    toast.error(`"${listing.title}" deleted`);
+  const handleDelete = async (listing: any) => {
+    if (!confirm(`Are you sure you want to delete "${listing.name}"?`)) return;
+
+    try {
+      const response = await vendorApi.deleteListing(listing.id);
+      if (response.success) {
+        toast.success('Listing deleted successfully!');
+        refetch();
+      } else {
+        throw new Error(response.message || 'Failed to delete listing');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete listing');
+    }
   };
 
-  const handleToggleInstantBook = (listing: Listing) => {
-    toast.success(`Instant book ${listing.instantBook ? 'disabled' : 'enabled'} for "${listing.title}"`);
+  const handleToggleActive = async (listing: any) => {
+    try {
+      const response = await vendorApi.updateListing(listing.id, {
+        ...listing,
+        isActive: !listing.isActive,
+      });
+      if (response.success) {
+        toast.success(`Listing ${listing.isActive ? 'deactivated' : 'activated'}!`);
+        refetch();
+      }
+    } catch (error: any) {
+      toast.error('Failed to update listing status');
+    }
   };
+
+  const addImageUrl = () => {
+    const url = prompt('Enter image URL:');
+    if (url) {
+      setFormData({ ...formData, images: [...formData.images, url] });
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData({ ...formData, images: formData.images.filter((_, i) => i !== index) });
+  };
+
+  const addIncludedItem = () => {
+    const item = prompt('Enter included item:');
+    if (item) {
+      setFormData({ ...formData, includedItemsText: [...formData.includedItemsText, item] });
+    }
+  };
+
+  const removeIncludedItem = (index: number) => {
+    setFormData({ ...formData, includedItemsText: formData.includedItemsText.filter((_, i) => i !== index) });
+  };
+
+  if (listingsLoading) {
+    return (
+      <VendorLayout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </VendorLayout>
+    );
+  }
 
   return (
     <VendorLayout>
@@ -121,24 +240,25 @@ export default function VendorListings() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Packages & Listings
-            </h1>
-            <p className="text-muted-foreground">{listings.length} listings • {listings.filter(l => l.status === 'active').length} active</p>
+            <h1 className="text-2xl font-bold text-foreground">Packages & Listings</h1>
+            <p className="text-muted-foreground">
+              {filteredListings.length} listings • {filteredListings.filter((l: any) => l.isActive).length} active
+            </p>
           </div>
           <div className="flex gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search listings..." className="pl-10 bg-background border-border text-foreground w-64" />
+              <Input
+                placeholder="Search listings..."
+                className="pl-10 bg-background border-border text-foreground w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <Button 
-              variant="outline" 
-              className="border-border hover:bg-muted transition-all"
-              onClick={() => setShowImportModal(true)}
-            >
-              <Instagram className="mr-2 h-4 w-4" /> Import
-            </Button>
-            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+            <Dialog open={showCreateModal} onOpenChange={(open) => {
+              setShowCreateModal(open);
+              if (!open) setEditingListing(null);
+            }}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all">
                   <Plus className="mr-2 h-4 w-4" /> Add Listing
@@ -146,241 +266,194 @@ export default function VendorListings() {
               </DialogTrigger>
               <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-foreground">Create New Listing</DialogTitle>
+                  <DialogTitle className="text-foreground">
+                    {editingListing ? 'Edit Listing' : 'Create New Listing'}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  {/* Vendor Category Info */}
-                  <Alert className="bg-primary/10 border-primary/20">
-                    <AlertDescription className="text-foreground">
-                      <strong>Your Category:</strong> {vendorCategoryName} 📸
-                      <br />
-                      <span className="text-sm text-muted-foreground">
-                        You can list items in your category ({vendorCategoryName}) or in the "Other" category for miscellaneous items.
-                      </span>
-                    </AlertDescription>
-                  </Alert>
-
                   <div className="space-y-2">
-                    <Label className="text-foreground">Listing Title</Label>
-                    <Input 
-                      placeholder="e.g., Professional Camera Rental" 
-                      className="bg-background border-border text-foreground"
-                      value={listingTitle}
-                      onChange={(e) => {
-                        setListingTitle(e.target.value);
-                        // Auto-detect category suggestion
-                        if (e.target.value && listingDescription) {
-                          const suggestion = suggestCategoryForListing(e.target.value, listingDescription);
-                          if (suggestion && suggestion !== vendorCategory && suggestion !== 'other') {
-                            setSuggestedCategory(suggestion);
-                            setCategoryWarning(`This item seems to belong to "${categories.find(c => c.id === suggestion)?.name || suggestion}" category. Consider listing it there instead.`);
-                          } else {
-                            setSuggestedCategory(null);
-                            setCategoryWarning(null);
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Category</Label>
-                    <Select 
-                      value={selectedCategory} 
-                      onValueChange={(value) => {
-                        setSelectedCategory(value);
-                        // Validate category
-                        if (!validateListingCategory(vendorCategory, value)) {
-                          const categoryName = categories.find(c => c.id === value)?.name || value;
-                          setCategoryWarning(`You cannot list items in "${categoryName}" category. Please select "${vendorCategoryName}" or "Other".`);
-                        } else {
-                          setCategoryWarning(null);
-                        }
-                      }}
-                    >
+                    <Label className="text-foreground">Listing Type</Label>
+                    <Select value={listingType} onValueChange={(value: 'PACKAGE' | 'ITEM') => setListingType(value)}>
                       <SelectTrigger className="bg-background border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={vendorCategory}>
-                          {vendorCategoryName} (Your Category)
-                        </SelectItem>
-                        <SelectItem value="other">Other (Miscellaneous)</SelectItem>
+                        <SelectItem value="PACKAGE">Package</SelectItem>
+                        <SelectItem value="ITEM">Item</SelectItem>
                       </SelectContent>
                     </Select>
-                    {categoryWarning && (
-                      <Alert className="bg-yellow-500/10 border-yellow-500/20">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                          {categoryWarning}
-                          {suggestedCategory && (
-                            <div className="mt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  toast.info(`Please register as a ${categories.find(c => c.id === suggestedCategory)?.name || suggestedCategory} vendor to list this item.`);
-                                }}
-                              >
-                                Learn More
-                              </Button>
-                            </div>
-                          )}
-                        </AlertDescription>
-                      </Alert>
-                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-foreground">
-                      Event Types <span className="text-muted-foreground text-sm">(Select all applicable)</span>
-                    </Label>
-                    <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background">
-                      {eventTypes.map((eventType) => (
-                        <div key={eventType} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`event-${eventType}`}
-                            checked={selectedEventTypes.includes(eventType)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedEventTypes([...selectedEventTypes, eventType]);
-                              } else {
-                                setSelectedEventTypes(selectedEventTypes.filter(et => et !== eventType));
-                              }
-                            }}
-                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                          />
-                          <Label 
-                            htmlFor={`event-${eventType}`}
-                            className="text-sm font-normal text-foreground cursor-pointer"
-                          >
-                            {eventType}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedEventTypes.length === 0 && (
-                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                        ⚠️ Please select at least one event type. This listing will only appear in selected event types.
-                      </p>
-                    )}
+                    <Label className="text-foreground">Name *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="bg-background border-border text-foreground"
+                      placeholder="e.g., Wedding Photography Package"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Description</Label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="bg-background border-border text-foreground min-h-[100px]"
+                      placeholder="Describe your listing..."
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-foreground">Price (₹)</Label>
-                      <Input type="number" placeholder="25000" className="bg-background border-border text-foreground" />
+                      <Label className="text-foreground">Price (₹) *</Label>
+                      <Input
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="bg-background border-border text-foreground"
+                        placeholder="25000"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-foreground">Billing Type</Label>
-                      <Select>
+                      <Label className="text-foreground">Category *</Label>
+                      <Select
+                        value={formData.categoryId}
+                        onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                      >
                         <SelectTrigger className="bg-background border-border text-foreground">
-                          <SelectValue placeholder="Select" />
+                          <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="fixed">Fixed Price</SelectItem>
-                          <SelectItem value="per-hour">Per Hour</SelectItem>
-                          <SelectItem value="per-day">Per Day</SelectItem>
-                          <SelectItem value="per-plate">Per Plate</SelectItem>
+                          {categoriesData && Array.isArray(categoriesData) && categoriesData.map((cat: any) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-foreground">Description</Label>
-                    <Textarea 
-                      placeholder="Describe your listing..."
-                      className="bg-background border-border text-foreground min-h-[100px]"
-                      value={listingDescription}
-                      onChange={(e) => {
-                        setListingDescription(e.target.value);
-                        // Auto-detect category suggestion
-                        if (listingTitle && e.target.value) {
-                          const suggestion = suggestCategoryForListing(listingTitle, e.target.value);
-                          if (suggestion && suggestion !== vendorCategory && suggestion !== 'other') {
-                            setSuggestedCategory(suggestion);
-                            setCategoryWarning(`This item seems to belong to "${categories.find(c => c.id === suggestion)?.name || suggestion}" category. Consider listing it there instead.`);
-                          } else {
-                            setSuggestedCategory(null);
-                            setCategoryWarning(null);
-                          }
-                        }
-                      }}
-                    />
+                    <Label className="text-foreground">Event Types *</Label>
+                    <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
+                      {eventTypesData && Array.isArray(eventTypesData) && eventTypesData.map((et: any) => (
+                        <div key={et.id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.eventTypeIds.includes(et.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({ ...formData, eventTypeIds: [...formData.eventTypeIds, et.id] });
+                              } else {
+                                setFormData({ ...formData, eventTypeIds: formData.eventTypeIds.filter(id => id !== et.id) });
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                          />
+                          <Label className="text-sm font-normal text-foreground cursor-pointer">
+                            {et.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {formData.eventTypeIds.length === 0 && (
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        ⚠️ Please select at least one event type
+                      </p>
+                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-foreground">What's Included</Label>
-                    <Textarea 
-                      placeholder="• Item 1&#10;• Item 2&#10;• Item 3"
-                      className="bg-background border-border text-foreground"
-                    />
-                  </div>
+                  {listingType === 'PACKAGE' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Included Items</Label>
+                        <div className="space-y-2">
+                          {formData.includedItemsText.map((item, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <Input value={item} disabled className="flex-1" />
+                              <Button size="sm" variant="ghost" onClick={() => removeIncludedItem(i)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button size="sm" variant="outline" onClick={addIncludedItem}>
+                            <Plus className="h-4 w-4 mr-2" /> Add Item
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-foreground">Delivery Time</Label>
+                        <Input
+                          value={formData.deliveryTime}
+                          onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
+                          className="bg-background border-border text-foreground"
+                          placeholder="e.g., 2-3 weeks"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {listingType === 'ITEM' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-foreground">Unit</Label>
+                          <Input
+                            value={formData.unit}
+                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                            className="bg-background border-border text-foreground"
+                            placeholder="e.g., per piece"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-foreground">Minimum Quantity</Label>
+                          <Input
+                            type="number"
+                            value={formData.minimumQuantity}
+                            onChange={(e) => setFormData({ ...formData, minimumQuantity: parseInt(e.target.value) || 1 })}
+                            className="bg-background border-border text-foreground"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="space-y-2">
                     <Label className="text-foreground">Images</Label>
-                    <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-secondary transition-colors cursor-pointer hover-lift">
-                      <ImagePlus className="h-8 w-8 text-muted-foreground mx-auto" />
-                      <p className="text-muted-foreground mt-2">Click to upload or drag & drop</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB each</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-foreground">Add-ons (Optional)</Label>
                     <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input placeholder="Add-on name" className="flex-1 bg-background border-border text-foreground" />
-                        <Input placeholder="Price" className="w-32 bg-background border-border text-foreground" />
-                      </div>
+                      {formData.images.map((img, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <img src={img} alt={`Image ${i + 1}`} className="w-16 h-16 object-cover rounded" />
+                          <Input value={img} disabled className="flex-1" />
+                          <Button size="sm" variant="ghost" onClick={() => removeImage(i)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button size="sm" variant="outline" onClick={addImageUrl}>
+                        <Plus className="h-4 w-4 mr-2" /> Add Image URL
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="border-border hover:bg-muted">
-                      <Plus className="mr-2 h-4 w-4" /> Add More
-                    </Button>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
-                    <div>
-                      <p className="text-foreground font-medium">Enable Instant Book</p>
-                      <p className="text-sm text-muted-foreground">Let customers book directly without approval</p>
-                    </div>
-                    <Switch />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 border-border hover:bg-muted" onClick={() => setShowCreateModal(false)}>
-                      Save as Draft
-                    </Button>
-                    <Button 
-                      className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow" 
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-border hover:bg-muted"
                       onClick={() => {
-                        // Validate before publishing
-                        if (!validateListingCategory(vendorCategory, selectedCategory)) {
-                          toast.error('Invalid category selected. Please select your category or "Other".');
-                          return;
-                        }
-                        if (!listingTitle.trim()) {
-                          toast.error('Please enter a listing title.');
-                          return;
-                        }
-                        if (selectedEventTypes.length === 0) {
-                          toast.error('Please select at least one event type.');
-                          return;
-                        }
-                        toast.success(`Listing published! Will appear in: ${selectedEventTypes.join(', ')}`);
                         setShowCreateModal(false);
-                        // Reset form
-                        setListingTitle('');
-                        setListingDescription('');
-                        setSelectedCategory(vendorCategory);
-                        setCategoryWarning(null);
-                        setSuggestedCategory(null);
-                        setSelectedEventTypes([]);
+                        setEditingListing(null);
                       }}
                     >
-                      Publish Listing
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow"
+                      onClick={handleSubmit}
+                    >
+                      {editingListing ? 'Update' : 'Create'} Listing
                     </Button>
                   </div>
                 </div>
@@ -389,139 +462,156 @@ export default function VendorListings() {
           </div>
         </div>
 
-        {/* Listings Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.map((listing, index) => (
-            <Card 
-              key={listing.id} 
-              className="border-border overflow-hidden group hover:shadow-elegant transition-all hover-lift"
-            >
-              <div className="relative aspect-video">
-                <img 
-                  src={listing.image} 
-                  alt={listing.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute top-3 left-3 flex gap-2">
-                  <Badge className={listing.status === 'active' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'}>
-                    {listing.status}
-                  </Badge>
-                  {listing.instantBook && (
-                    <Badge className="bg-secondary/20 text-secondary">
-                      <Zap className="h-3 w-3 mr-1" /> Instant
-                    </Badge>
-                  )}
-                </div>
-                <div className="absolute top-3 right-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="bg-black/30 backdrop-blur-sm hover:bg-black/50">
-                        <MoreVertical className="h-4 w-4 text-white" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-card border-border">
-                      <DropdownMenuItem className="text-foreground hover:bg-muted">
-                        <Eye className="mr-2 h-4 w-4" /> Preview
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-foreground hover:bg-muted">
-                        <Edit className="mr-2 h-4 w-4" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleClone(listing)} className="text-foreground hover:bg-muted">
-                        <Copy className="mr-2 h-4 w-4" /> Clone
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(listing)} className="text-red-600 dark:text-red-400 hover:bg-red-500/10">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="absolute bottom-3 right-3">
-                  <Badge className="bg-background/90 text-foreground font-bold text-lg px-3 py-1 border border-border">
-                    ₹{listing.price.toLocaleString()}
-                  </Badge>
-                </div>
-              </div>
-              <CardContent className="p-4 space-y-4">
-                <div>
-                  <h3 className="text-foreground font-semibold text-lg">{listing.title}</h3>
-                  <p className="text-muted-foreground text-sm">{listing.billingType}</p>
-                </div>
+        {listingsError && (
+          <Alert className="border-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{listingsError}</AlertDescription>
+          </Alert>
+        )}
 
-                <div className="flex items-center justify-between text-sm">
-                  <div className="text-muted-foreground">
-                    <span className="text-foreground font-medium">{listing.bookings}</span> bookings
-                  </div>
-                  <div className="text-muted-foreground">
-                    <span className="text-foreground font-medium">{listing.views}</span> views
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Instant Book</span>
-                    <Switch 
-                      checked={listing.instantBook} 
-                      onCheckedChange={() => handleToggleInstantBook(listing)}
+        {/* Packages Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold text-foreground">Packages ({packages.length})</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packages.map((listing: any) => (
+              <Card key={listing.id} className="border-border overflow-hidden group hover:shadow-elegant transition-all">
+                <div className="relative aspect-video">
+                  {listing.images && listing.images.length > 0 ? (
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <Package className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3">
+                    <Badge className={listing.isActive ? 'bg-green-500/20 text-green-600' : 'bg-gray-500/20 text-gray-600'}>
+                      {listing.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80">
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  <div className="absolute top-3 right-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="bg-black/30 backdrop-blur-sm hover:bg-black/50">
+                          <MoreVertical className="h-4 w-4 text-white" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-card border-border">
+                        <DropdownMenuItem onClick={() => {
+                          setEditingListing(listing);
+                          setShowCreateModal(true);
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleActive(listing)}>
+                          {listing.isActive ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(listing)} className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="absolute bottom-3 right-3">
+                    <Badge className="bg-background/90 text-foreground font-bold text-lg px-3 py-1">
+                      ₹{Number(listing.price).toLocaleString('en-IN')}
+                    </Badge>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {/* Add New Card */}
-          <Card 
-            onClick={() => setShowCreateModal(true)}
-            className="border-border border-dashed cursor-pointer hover:border-secondary transition-all hover-lift flex items-center justify-center min-h-[300px]"
-          >
-            <div className="text-center">
-              <Plus className="h-12 w-12 text-muted-foreground mx-auto transition-transform group-hover:scale-110" />
-              <p className="text-muted-foreground mt-2 font-medium">Add New Listing</p>
-            </div>
-          </Card>
+                <CardContent className="p-4">
+                  <h3 className="text-foreground font-semibold text-lg mb-1">{listing.name}</h3>
+                  <p className="text-muted-foreground text-sm line-clamp-2">{listing.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
-        {/* Instagram Import Modal */}
-        <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-foreground flex items-center gap-2">
-                <Instagram className="h-5 w-5" /> Import from Instagram
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <p className="text-muted-foreground">Connect your Instagram to import portfolio images and create listings faster.</p>
-              
-              <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Instagram className="h-6 w-6 text-white" />
+        {/* Items Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Box className="h-5 w-5 text-secondary" />
+            <h2 className="text-xl font-semibold text-foreground">Items ({items.length})</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map((listing: any) => (
+              <Card key={listing.id} className="border-border overflow-hidden group hover:shadow-elegant transition-all">
+                <div className="relative aspect-video">
+                  {listing.images && listing.images.length > 0 ? (
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <Box className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 left-3">
+                    <Badge className={listing.isActive ? 'bg-green-500/20 text-green-600' : 'bg-gray-500/20 text-gray-600'}>
+                      {listing.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <div>
-                    <p className="text-foreground font-medium">@royalmoments</p>
-                    <p className="text-sm text-muted-foreground">Not connected</p>
+                  <div className="absolute top-3 right-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="bg-black/30 backdrop-blur-sm hover:bg-black/50">
+                          <MoreVertical className="h-4 w-4 text-white" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-card border-border">
+                        <DropdownMenuItem onClick={() => {
+                          setEditingListing(listing);
+                          setShowCreateModal(true);
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleActive(listing)}>
+                          {listing.isActive ? 'Deactivate' : 'Activate'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(listing)} className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="absolute bottom-3 right-3">
+                    <Badge className="bg-background/90 text-foreground font-bold text-lg px-3 py-1">
+                      ₹{Number(listing.price).toLocaleString('en-IN')}
+                    </Badge>
                   </div>
                 </div>
-                
-                <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg transition-all">
-                  Connect Instagram
-                </Button>
-              </div>
+                <CardContent className="p-4">
+                  <h3 className="text-foreground font-semibold text-lg mb-1">{listing.name}</h3>
+                  <p className="text-muted-foreground text-sm line-clamp-2">{listing.description}</p>
+                  {listing.unit && (
+                    <p className="text-xs text-muted-foreground mt-1">{listing.unit}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-              <div className="text-center py-8 border-t border-border">
-                <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
-                <p className="text-muted-foreground mt-2">Or upload images manually</p>
-                <Button variant="outline" className="mt-4 border-border hover:bg-muted">
-                  Upload Images
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {filteredListings.length === 0 && (
+          <Card className="border-border">
+            <CardContent className="p-12 text-center">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No listings yet</h3>
+              <p className="text-muted-foreground mb-4">Create your first package or item to get started</p>
+              <Button onClick={() => setShowCreateModal(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Create Listing
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </VendorLayout>
   );

@@ -5,6 +5,7 @@ import com.eventhub.dto.request.CreatePackageRequest;
 import com.eventhub.dto.request.CreateItemRequest;
 import com.eventhub.model.Listing;
 import com.eventhub.service.VendorListingService;
+import com.eventhub.util.VendorIdResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,42 +20,49 @@ import java.util.UUID;
 public class VendorListingController {
     
     private final VendorListingService vendorListingService;
+    private final VendorIdResolver vendorIdResolver;
     
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Listing>>> getListings(@RequestHeader("X-Vendor-Id") UUID vendorId) {
+    public ResponseEntity<ApiResponse<List<Listing>>> getListings(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         List<Listing> listings = vendorListingService.getVendorListings(vendorId);
         return ResponseEntity.ok(ApiResponse.success(listings));
     }
     
     @PostMapping("/packages")
     public ResponseEntity<ApiResponse<Listing>> createPackage(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @Valid @RequestBody CreatePackageRequest request) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Listing listing = vendorListingService.createPackage(vendorId, request);
         return ResponseEntity.ok(ApiResponse.success("Package created successfully", listing));
     }
     
     @PostMapping("/items")
     public ResponseEntity<ApiResponse<Listing>> createItem(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @Valid @RequestBody CreateItemRequest request) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Listing listing = vendorListingService.createItem(vendorId, request);
         return ResponseEntity.ok(ApiResponse.success("Item created successfully", listing));
     }
     
     @PutMapping("/{listingId}")
     public ResponseEntity<ApiResponse<Listing>> updateListing(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID listingId,
             @RequestBody Listing listing) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Listing updated = vendorListingService.updateListing(listingId, vendorId, listing);
         return ResponseEntity.ok(ApiResponse.success("Listing updated successfully", updated));
     }
     
     @DeleteMapping("/{listingId}")
     public ResponseEntity<ApiResponse<Void>> deleteListing(
-            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID listingId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         vendorListingService.deleteListing(listingId, vendorId);
         return ResponseEntity.ok(ApiResponse.success("Listing deleted successfully", null));
     }

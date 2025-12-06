@@ -36,6 +36,9 @@ public class AuthService {
                 ? UserProfile.Role.VENDOR 
                 : UserProfile.Role.CUSTOMER);
         
+        // Hash and store password
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        
         userProfileRepository.save(user);
         
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
@@ -47,8 +50,11 @@ public class AuthService {
         UserProfile user = userProfileRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ValidationException("Invalid email or password"));
         
-        // In production, verify password with Supabase Auth
-        // For now, we'll just check if user exists
+        // Verify password
+        if (user.getPasswordHash() == null || 
+            !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new ValidationException("Invalid email or password");
+        }
         
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
         

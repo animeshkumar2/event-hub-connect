@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS availability_slots (
     vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
     date DATE NOT NULL,
     time_slot VARCHAR(10) NOT NULL, -- HH:MM format
-    status VARCHAR(20) NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'booked', 'busy', 'blocked')),
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE', 'BOOKED', 'BUSY', 'BLOCKED')),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(vendor_id, date, time_slot)

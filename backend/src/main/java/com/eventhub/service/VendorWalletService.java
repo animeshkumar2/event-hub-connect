@@ -37,14 +37,14 @@ public class VendorWalletService {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
         
-        return vendorWalletRepository.findByVendor(vendor)
+                return vendorWalletRepository.findByVendor(vendor)
                 .orElseGet(() -> {
                     VendorWallet wallet = new VendorWallet();
                     wallet.setVendor(vendor);
+                    wallet.setVendorId(vendor.getId());
                     wallet.setBalance(BigDecimal.ZERO);
-                    wallet.setPendingBalance(BigDecimal.ZERO);
-                    wallet.setTotalEarned(BigDecimal.ZERO);
-                    wallet.setTotalWithdrawn(BigDecimal.ZERO);
+                    wallet.setPendingPayouts(BigDecimal.ZERO);
+                    wallet.setTotalEarnings(BigDecimal.ZERO);
                     return vendorWalletRepository.save(wallet);
                 });
     }
