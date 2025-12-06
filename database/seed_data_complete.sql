@@ -281,16 +281,16 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO availability_slots (id, vendor_id, date, time_slot, status) VALUES
 -- Moments Photography - Available slots
-('f0000001-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '7 days', '09:00', 'available'),
-('f0000002-0000-0000-0000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '7 days', '14:00', 'available'),
-('f0000003-0000-0000-0000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '14 days', '09:00', 'available'),
-('f0000004-0000-0000-0000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '14 days', '14:00', 'available'),
+('f0000001-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '7 days', '09:00', 'AVAILABLE'),
+('f0000002-0000-0000-0000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '7 days', '14:00', 'AVAILABLE'),
+('f0000003-0000-0000-0000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '14 days', '09:00', 'AVAILABLE'),
+('f0000004-0000-0000-0000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', CURRENT_DATE + INTERVAL '14 days', '14:00', 'AVAILABLE'),
 -- Glamour Studio
-('f0000005-0000-0000-0000-000000000005', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', CURRENT_DATE + INTERVAL '7 days', '08:00', 'available'),
-('f0000006-0000-0000-0000-000000000006', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', CURRENT_DATE + INTERVAL '14 days', '08:00', 'available'),
+('f0000005-0000-0000-0000-000000000005', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', CURRENT_DATE + INTERVAL '7 days', '08:00', 'AVAILABLE'),
+('f0000006-0000-0000-0000-000000000006', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', CURRENT_DATE + INTERVAL '14 days', '08:00', 'AVAILABLE'),
 -- Royal Decorators
-('f0000007-0000-0000-0000-000000000007', 'cccccccc-cccc-cccc-cccc-cccccccccccc', CURRENT_DATE + INTERVAL '7 days', '06:00', 'available'),
-('f0000008-0000-0000-0000-000000000008', 'cccccccc-cccc-cccc-cccc-cccccccccccc', CURRENT_DATE + INTERVAL '14 days', '06:00', 'available')
+('f0000007-0000-0000-0000-000000000007', 'cccccccc-cccc-cccc-cccc-cccccccccccc', CURRENT_DATE + INTERVAL '7 days', '06:00', 'AVAILABLE'),
+('f0000008-0000-0000-0000-000000000008', 'cccccccc-cccc-cccc-cccc-cccccccccccc', CURRENT_DATE + INTERVAL '14 days', '06:00', 'AVAILABLE')
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================

@@ -9,9 +9,10 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Switch } from '@/shared/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
-import { Upload, CheckCircle, Sparkles, ArrowRight, Phone, Mail, MapPin, Camera, Instagram, HelpCircle } from 'lucide-react';
+import { Upload, CheckCircle, Sparkles, ArrowRight, Phone, Mail, MapPin, Camera, Instagram, HelpCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { categories, cities } from '@/shared/constants/mockData';
+import { vendorApi } from '@/shared/services/api';
 
 type OnboardingStep = 'welcome' | 'basic-info' | 'listing' | 'preview' | 'success';
 
@@ -141,7 +142,9 @@ export default function VendorOnboarding() {
     }
   };
 
-  const handlePublish = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handlePublish = async () => {
     // Validation
     if (!listingTitle.trim()) {
       toast.error('Listing title is required');
@@ -163,9 +166,53 @@ export default function VendorOnboarding() {
       toast.error('Inclusions are required (3 bullets max)');
       return;
     }
+    if (!businessName || !category || !city || !phone) {
+      toast.error('Please complete all required fields in Basic Info');
+      return;
+    }
 
-    toast.success('Your listing is now live! You\'ll receive a preview link via WhatsApp.');
-    setStep('success');
+    setIsSubmitting(true);
+    try {
+      // Parse inclusions into array
+      const includedItems = inclusions.split('\n')
+        .filter(line => line.trim())
+        .map(line => line.trim())
+        .slice(0, 3); // Max 3 items
+
+      const onboardingData = {
+        businessName,
+        categoryId: category,
+        cityName: city,
+        phone,
+        email,
+        instagram,
+        bio: description || businessName, // Use business name as fallback
+        listingName: listingTitle,
+        price: Number(price),
+        description: description || `${includedItems.join('. ')}`,
+        includedItemsText: includedItems,
+        images: primaryImage ? [primaryImage] : [],
+        isActive: instantBook,
+      };
+
+      const response = await vendorApi.onboard(onboardingData);
+      
+      if (response.success && response.data) {
+        // Store vendor ID in localStorage
+        const vendorId = response.data.id;
+        localStorage.setItem('vendor_id', vendorId);
+        
+        toast.success('Your listing is now live! You\'ll receive a preview link via WhatsApp.');
+        setStep('success');
+      } else {
+        toast.error(response.message || 'Failed to create vendor profile');
+      }
+    } catch (error: any) {
+      console.error('Onboarding error:', error);
+      toast.error(error.message || 'An error occurred during onboarding. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const priceRange = category && city ? getPriceRange(city, category) : null;
@@ -628,9 +675,19 @@ export default function VendorOnboarding() {
               </Button>
               <Button 
                 onClick={handlePublish}
+                disabled={isSubmitting}
                 className="flex-1 bg-gradient-to-r from-secondary to-primary text-foreground font-semibold hover:shadow-lg"
               >
-                Publish listing & Go Live <CheckCircle className="ml-2 h-4 w-4" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    Publish listing & Go Live <CheckCircle className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>

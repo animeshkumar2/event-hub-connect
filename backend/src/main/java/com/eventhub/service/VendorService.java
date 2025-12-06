@@ -47,6 +47,12 @@ public class VendorService {
         return toDTO(vendor);
     }
     
+    public VendorDTO getVendorByUserId(UUID userId) {
+        Vendor vendor = vendorRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("Vendor not found for user: " + userId));
+        return toDTO(vendor);
+    }
+    
     private VendorDTO toDTO(Vendor vendor) {
         VendorDTO dto = new VendorDTO();
         dto.setId(vendor.getId());

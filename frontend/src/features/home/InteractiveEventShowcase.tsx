@@ -132,7 +132,7 @@ export const InteractiveEventShowcase = () => {
 
   return (
     <section 
-      className="relative py-20 md:py-32 overflow-hidden bg-gradient-to-b from-background to-muted/30"
+      className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-b from-background to-muted/30"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -162,12 +162,12 @@ export const InteractiveEventShowcase = () => {
       {/* Content */}
       <div className="relative z-20 container mx-auto px-4">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <Badge className="mb-4 bg-white/20 backdrop-blur-md text-white border-white/30 px-4 py-2 text-sm font-medium">
-            <Sparkles className="h-3 w-3 mr-2" />
+        <div className="text-center mb-8">
+          <Badge className="mb-3 bg-white/20 backdrop-blur-md text-white border-white/30 px-3 py-1 text-xs font-medium">
+            <Sparkles className="h-3 w-3 mr-1.5" />
             Explore Event Types
           </Badge>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-3">
             Plan Your Perfect
             <br />
             <span className="bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
@@ -181,25 +181,25 @@ export const InteractiveEventShowcase = () => {
           {/* Navigation Arrows */}
           <button
             onClick={goToPrevious}
-            className="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 z-40 p-4 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
+            className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
             aria-label="Previous event"
           >
-            <ChevronLeft className="h-6 w-6 text-primary" />
+            <ChevronLeft className="h-5 w-5 text-primary" />
           </button>
 
           <button
             onClick={goToNext}
-            className="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 z-40 p-4 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
+            className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
             aria-label="Next event"
           >
-            <ChevronRight className="h-6 w-6 text-primary" />
+            <ChevronRight className="h-5 w-5 text-primary" />
           </button>
 
           {/* Active Card */}
-          <Card className="relative border-0 shadow-2xl overflow-hidden bg-white rounded-2xl">
+          <Card className="relative border-0 shadow-xl overflow-hidden bg-white rounded-xl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
               {/* Image Side - Clear without blur */}
-              <div className="relative aspect-square md:aspect-auto md:h-[500px] overflow-hidden">
+              <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
                 <img
                   src={activeCard.cardImage || activeCard.image}
                   alt={activeCard.title}
@@ -208,46 +208,46 @@ export const InteractiveEventShowcase = () => {
               </div>
               
               {/* Content Side */}
-              <CardContent className="flex flex-col justify-between p-6 md:p-8 bg-gradient-to-br from-slate-50 to-white">
-                <div className="space-y-4">
+              <CardContent className="flex flex-col justify-between p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white">
+                <div className="space-y-3">
                   {/* Icon and Badge */}
-                  <div className="flex items-center gap-3">
-                    <div className="text-4xl md:text-5xl">
+                  <div className="flex items-center gap-2.5">
+                    <div className="text-3xl md:text-4xl">
                       {activeCard.icon}
                     </div>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
+                    <Badge className="bg-primary/10 text-primary border-primary/20 px-2.5 py-0.5 text-xs font-medium">
                       {activeCard.subtitle}
                     </Badge>
                   </div>
 
                   {/* Title - Smaller */}
-                  <h3 className="text-2xl md:text-3xl font-black text-foreground leading-tight">
+                  <h3 className="text-xl md:text-2xl font-black text-foreground leading-tight">
                     {activeCard.title}
                   </h3>
 
                   {/* Description - Smaller */}
-                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {activeCard.description}
                   </p>
 
                   {/* Stats - Smaller */}
-                  <div className="flex items-center gap-6 pt-2">
+                  <div className="flex items-center gap-4 pt-1">
                     <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Users className="h-4 w-4 text-primary" />
+                      <div className="p-1.5 rounded-lg bg-primary/10">
+                        <Users className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-foreground">{activeCard.stats.value}</div>
+                        <div className="text-base font-bold text-foreground">{activeCard.stats.value}</div>
                         <div className="text-xs text-muted-foreground">{activeCard.stats.label}</div>
                       </div>
                     </div>
-                    <div className="h-8 w-px bg-border" />
+                    <div className="h-6 w-px bg-border" />
                     <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <MapPin className="h-4 w-4 text-primary" />
+                      <div className="p-1.5 rounded-lg bg-primary/10">
+                        <MapPin className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-foreground">8+</div>
+                        <div className="text-base font-bold text-foreground">8+</div>
                         <div className="text-xs text-muted-foreground">Cities</div>
                       </div>
                     </div>
@@ -255,15 +255,15 @@ export const InteractiveEventShowcase = () => {
                 </div>
 
                 {/* CTA Button */}
-                <div className="pt-6 border-t">
+                <div className="pt-4 border-t">
                   <Button 
-                    size="lg" 
-                    className="w-full text-base px-8 py-6 rounded-xl bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group"
+                    size="default" 
+                    className="w-full text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group"
                     asChild
                   >
                     <Link to={activeCard.link}>
                       Explore {activeCard.title} Packages
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>
                 </div>
@@ -286,7 +286,7 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* All Event Types - Bottom Navigation */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-3 md:gap-4">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 md:gap-3">
           {eventTypes.map((eventType) => {
             const card = eventCards.find(c => c.title === eventType);
             const isActive = activeCard.title === eventType;
@@ -296,14 +296,14 @@ export const InteractiveEventShowcase = () => {
                 key={eventType}
                 onClick={() => goToEvent(eventType)}
                 className={cn(
-                  'px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover-lift backdrop-blur-md border-2',
+                  'px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 hover-lift backdrop-blur-md border-2',
                   isActive
                     ? 'bg-white/30 border-white/50 text-white shadow-lg scale-105'
                     : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20 hover:border-white/30'
                 )}
               >
-                <span className="flex items-center gap-2">
-                  {card?.icon && <span className="text-xl">{card.icon}</span>}
+                <span className="flex items-center gap-1.5">
+                  {card?.icon && <span className="text-base">{card.icon}</span>}
                   <span>{eventType}</span>
                 </span>
               </button>

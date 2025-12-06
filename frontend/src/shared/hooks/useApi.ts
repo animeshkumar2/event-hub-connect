@@ -23,14 +23,22 @@ export function useApi<T>(
         setError(null);
         const response = await apiCall();
         if (!cancelled) {
-          if (response.success) {
-            setData(response.data);
+          if (response && response.success) {
+            // Handle case where data might be wrapped
+            const responseData = response.data;
+            // If data is an object with a data property, unwrap it
+            if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+              setData((responseData as any).data);
+            } else {
+              setData(responseData);
+            }
           } else {
-            setError(response.message || 'Failed to fetch data');
+            setError(response?.message || 'Failed to fetch data');
           }
         }
       } catch (err: any) {
         if (!cancelled) {
+          console.error('API call error:', err);
           setError(err.message || 'An error occurred');
         }
       } finally {
@@ -50,9 +58,17 @@ export function useApi<T>(
   return { data, loading, error, refetch: () => {
     setLoading(true);
     apiCall().then(response => {
-      if (response.success) {
-        setData(response.data);
+      if (response && response.success) {
+        const responseData = response.data;
+        if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+          setData((responseData as any).data);
+        } else {
+          setData(responseData);
+        }
       }
+      setLoading(false);
+    }).catch(err => {
+      console.error('Refetch error:', err);
       setLoading(false);
     });
   }};
@@ -157,5 +173,78 @@ export function useVendorAvailability(vendorId: string | null, startDate?: strin
 
 export function useStats() {
   return useApi(() => publicApi.getStats());
+}
+
+// Vendor API hooks (for vendor's own data)
+export function useVendorProfile() {
+  return useApi(() => vendorApi.getProfile());
+}
+
+export function useMyVendorListings() {
+  return useApi(() => vendorApi.getListings());
+}
+
+export function useVendorOrders(status?: string, page = 0, size = 10) {
+  return useApi(
+    () => vendorApi.getOrders(status, page, size),
+    [status, page, size]
+  );
+}
+
+export function useVendorLeads() {
+  return useApi(() => vendorApi.getLeads());
+}
+
+export function useMyVendorReviews(page = 0, size = 10) {
+  return useApi(
+    () => vendorApi.getReviews(page, size),
+    [page, size]
+  );
+}
+
+export function useVendorReviewStatistics() {
+  return useApi(() => vendorApi.getReviewStatistics());
+}
+
+export function useMyVendorFAQs() {
+  return useApi(() => vendorApi.getFAQs());
+}
+
+export function useVendorChatThreads() {
+  return useApi(() => vendorApi.getChatThreads());
+}
+
+export function useVendorWallet() {
+  return useApi(() => vendorApi.getWallet());
+}
+
+export function useVendorWalletTransactions(page = 0, size = 10) {
+  return useApi(
+    () => vendorApi.getWalletTransactions(page, size),
+    [page, size]
+  );
+}
+
+export function useVendorDashboardStats() {
+  return useApi(() => vendorApi.getDashboardStats());
+}
+
+export function useMyVendorPastEvents() {
+  return useApi(() => vendorApi.getPastEvents());
+}
+
+export function useMyVendorAvailability(startDate?: string, endDate?: string) {
+  return useApi(
+    () => vendorApi.getAvailability(startDate, endDate),
+    [startDate, endDate]
+  );
+}
+
+export function useMyVendorBookableSetups() {
+  return useApi(() => vendorApi.getBookableSetups());
+}
+
+export function useVendorUpcomingOrders() {
+  return useApi(() => vendorApi.getUpcomingOrders());
 }
 
