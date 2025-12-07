@@ -22,6 +22,7 @@ public class CartService {
     private final ListingRepository listingRepository;
     private final VendorRepository vendorRepository;
     private final AddOnRepository addOnRepository;
+    private final CartItemAddOnRepository cartItemAddOnRepository;
     
     /**
      * Add item to cart
@@ -36,34 +37,94 @@ public class CartService {
         }
         
         Vendor vendor = listing.getVendor();
+        if (vendor == null) {
+            throw new BusinessRuleException("Listing vendor is not set");
+        }
+        
         BigDecimal basePrice = listing.getPrice();
+        if (basePrice == null) {
+            throw new BusinessRuleException("Listing price is not set");
+        }
         BigDecimal finalPrice = basePrice;
         
         // Calculate add-ons total
         if (addOnIds != null && !addOnIds.isEmpty() && listing.getType() == Listing.ListingType.PACKAGE) {
             for (UUID addOnId : addOnIds) {
-                AddOn addOn = addOnRepository.findById(addOnId)
-                        .orElseThrow(() -> new NotFoundException("Add-on not found"));
-                if (addOn.getPackageListing().getId().equals(listingId) && addOn.getIsActive()) {
-                    finalPrice = finalPrice.add(addOn.getPrice());
+                try {
+                    AddOn addOn = addOnRepository.findById(addOnId).orElse(null);
+                    if (addOn != null && addOn.getIsActive() != null && addOn.getIsActive()) {
+                        // Check if add-on belongs to this listing
+                        if (addOn.getPackageListing() != null && 
+                            addOn.getPackageListing().getId().equals(listingId)) {
+                            if (addOn.getPrice() != null) {
+                                finalPrice = finalPrice.add(addOn.getPrice());
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip invalid add-on IDs - log but don't fail
+                    System.err.println("Warning: Error processing add-on " + addOnId + ": " + e.getMessage());
                 }
             }
         }
         
-        // Calculate customizations (if any)
-        // This would be implemented based on customization structure
+        // Calculate customizations price (if any)
+        BigDecimal customizationsPrice = BigDecimal.ZERO;
+        if (customizations != null && customizations.containsKey("price")) {
+            Object priceObj = customizations.get("price");
+            if (priceObj instanceof Number) {
+                customizationsPrice = BigDecimal.valueOf(((Number) priceObj).doubleValue());
+            } else if (priceObj instanceof String) {
+                try {
+                    customizationsPrice = new BigDecimal((String) priceObj);
+                } catch (NumberFormatException e) {
+                    // Ignore invalid price
+                }
+            }
+        }
+        finalPrice = finalPrice.add(customizationsPrice);
         
         CartItem cartItem = new CartItem();
         cartItem.setUserId(userId);
         cartItem.setVendor(vendor);
         cartItem.setListing(listing);
-        cartItem.setItemType(listing.getType());
-        cartItem.setQuantity(quantity);
+        
+        // Ensure itemType is set correctly - convert enum to lowercase string for database
+        Listing.ListingType listingType = listing.getType();
+        if (listingType == null) {
+            throw new BusinessRuleException("Listing type is not set");
+        }
+        // Convert enum to lowercase string to match database constraint
+        cartItem.setItemTypeEnum(listingType);
+        
+        cartItem.setQuantity(quantity != null && quantity > 0 ? quantity : 1);
         cartItem.setBasePrice(basePrice);
-        cartItem.setFinalPrice(finalPrice.multiply(BigDecimal.valueOf(quantity)));
+        cartItem.setFinalPrice(finalPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         cartItem.setCustomizations(customizations);
         
-        return cartItemRepository.save(cartItem);
+        CartItem savedItem = cartItemRepository.save(cartItem);
+        
+        // Save cart item add-ons if provided (optional - don't fail if repository unavailable)
+        if (addOnIds != null && !addOnIds.isEmpty() && savedItem.getId() != null) {
+            try {
+                for (UUID addOnId : addOnIds) {
+                    AddOn addOn = addOnRepository.findById(addOnId).orElse(null);
+                    if (addOn != null) {
+                        CartItemAddOn cartItemAddOn = new CartItemAddOn();
+                        cartItemAddOn.setCartItem(savedItem);
+                        cartItemAddOn.setAddOn(addOn);
+                        cartItemAddOn.setQuantity(1);
+                        cartItemAddOn.setPrice(addOn.getPrice());
+                        cartItemAddOnRepository.save(cartItemAddOn);
+                    }
+                }
+            } catch (Exception e) {
+                // Log but don't fail - add-ons are already in price
+                System.err.println("Warning: Could not save cart item add-ons: " + e.getMessage());
+            }
+        }
+        
+        return savedItem;
     }
     
     /**
@@ -118,13 +179,35 @@ public class CartService {
         // Recalculate add-ons
         if (addOnIds != null && !addOnIds.isEmpty()) {
             for (UUID addOnId : addOnIds) {
-                AddOn addOn = addOnRepository.findById(addOnId)
-                        .orElseThrow(() -> new NotFoundException("Add-on not found"));
-                if (addOn.getIsActive()) {
-                    finalPrice = finalPrice.add(addOn.getPrice());
+                try {
+                    AddOn addOn = addOnRepository.findById(addOnId).orElse(null);
+                    if (addOn != null && addOn.getIsActive() != null && addOn.getIsActive()) {
+                        if (addOn.getPrice() != null) {
+                            finalPrice = finalPrice.add(addOn.getPrice());
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip invalid add-on IDs - log but don't fail
+                    System.err.println("Warning: Error processing add-on " + addOnId + ": " + e.getMessage());
                 }
             }
         }
+        
+        // Recalculate customizations price
+        BigDecimal customizationsPrice = BigDecimal.ZERO;
+        if (customizations != null && customizations.containsKey("price")) {
+            Object priceObj = customizations.get("price");
+            if (priceObj instanceof Number) {
+                customizationsPrice = BigDecimal.valueOf(((Number) priceObj).doubleValue());
+            } else if (priceObj instanceof String) {
+                try {
+                    customizationsPrice = new BigDecimal((String) priceObj);
+                } catch (NumberFormatException e) {
+                    // Ignore invalid price
+                }
+            }
+        }
+        finalPrice = finalPrice.add(customizationsPrice);
         
         cartItem.setFinalPrice(finalPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         cartItem.setCustomizations(customizations);

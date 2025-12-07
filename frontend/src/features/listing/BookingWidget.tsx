@@ -78,6 +78,16 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
   };
 
   const handleAddToCart = () => {
+    // Require date selection before adding to cart
+    if (!selectedDate) {
+      toast({
+        title: 'Date Required',
+        description: 'Please select an event date before adding to cart',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const selectedAddOnsList = listing.addOns?.filter(addOn => 
       selectedAddOns.has(addOn.id)
     ) || [];
@@ -95,6 +105,7 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
         price: a.price,
       })),
       quantity,
+      eventDate: format(selectedDate, 'yyyy-MM-dd'),
       date: selectedDate,
     });
 
@@ -105,6 +116,16 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
   };
 
   const handleBookNow = () => {
+    // Require date selection before booking
+    if (!selectedDate) {
+      toast({
+        title: 'Date Required',
+        description: 'Please select an event date before booking',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (onBookNow) {
       onBookNow();
     } else {
@@ -147,20 +168,22 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Date Selection */}
+        {/* Date Selection - Required */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold">Select Date</Label>
+          <Label className="text-sm font-semibold">
+            Select Event Date <span className="text-destructive">*</span>
+          </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !selectedDate && "text-muted-foreground"
+                  !selectedDate && "text-muted-foreground border-destructive/50"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                {selectedDate ? format(selectedDate, "PPP") : "Pick a date (required)"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -173,6 +196,9 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
               />
             </PopoverContent>
           </Popover>
+          {!selectedDate && (
+            <p className="text-xs text-destructive">Please select an event date to continue</p>
+          )}
         </div>
 
         {/* Quantity Selector (for items) */}
@@ -287,6 +313,7 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
           <Button
             className="w-full bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold h-12"
             onClick={handleBookNow}
+            disabled={!selectedDate}
           >
             <Zap className="mr-2 h-4 w-4" />
             Book Now
@@ -295,10 +322,16 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
             variant="outline"
             className="w-full h-12"
             onClick={handleAddToCart}
+            disabled={!selectedDate}
           >
             <ShoppingCart className="mr-2 h-4 w-4" />
             Add to Cart
           </Button>
+          {!selectedDate && (
+            <p className="text-xs text-center text-muted-foreground">
+              Select a date above to enable booking
+            </p>
+          )}
         </div>
 
         {/* Important Info */}

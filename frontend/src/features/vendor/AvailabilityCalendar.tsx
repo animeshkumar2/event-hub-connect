@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Calendar } from '@/shared/components/ui/calendar';
-import { CheckCircle2, XCircle, Clock, Calendar as CalendarIcon, Info } from 'lucide-react';
+import { CheckCircle2, XCircle, Calendar as CalendarIcon, Info } from 'lucide-react';
 import { format, isSameDay, parseISO, isPast, startOfDay, addDays, isToday, isFuture } from 'date-fns';
 import { cn } from '@/shared/lib/utils';
 
@@ -22,7 +22,7 @@ interface AvailabilityCalendarProps {
   selectedDate?: string;
 }
 
-type DayStatus = 'available' | 'busy' | 'booked' | 'none';
+type DayStatus = 'available' | 'booked' | 'none';
 
 export const AvailabilityCalendar = ({
   availability,
@@ -31,13 +31,13 @@ export const AvailabilityCalendar = ({
 }: AvailabilityCalendarProps) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
-  // Normalize status to lowercase
-  const normalizeStatus = (status: string | undefined): 'available' | 'booked' | 'busy' => {
-    if (!status) return 'busy';
+  // Normalize status to lowercase - only available or booked
+  const normalizeStatus = (status: string | undefined): 'available' | 'booked' => {
+    if (!status) return 'booked';
     const normalized = status.toLowerCase();
     if (normalized === 'available') return 'available';
-    if (normalized === 'booked' || normalized === 'blocked') return 'booked';
-    return 'busy';
+    // Everything else (booked, blocked, busy) is treated as booked
+    return 'booked';
   };
 
   // Parse date string to Date object
@@ -76,29 +76,24 @@ export const AvailabilityCalendar = ({
       });
     }
     
-    // If no data for this date, return 'none'
+    // If no data for this date, default to 'available'
     if (!slot || !slot.slots || slot.slots.length === 0) {
-      return 'none';
+      return 'available';
     }
     
     // Determine day status based on slots
     const statuses = slot.slots.map(s => normalizeStatus(s.status));
     
-    // If any slot is available, day is available
-    if (statuses.some(s => s === 'available')) {
-      return 'available';
-    }
-    
-    // If all slots are booked, day is booked
-    if (statuses.every(s => s === 'booked')) {
+    // If any slot is booked, day is booked
+    if (statuses.some(s => s === 'booked')) {
       return 'booked';
     }
     
-    // Otherwise, day is busy
-    return 'busy';
+    // Otherwise, day is available (default)
+    return 'available';
   };
 
-  // Check if a date is selectable (available or busy, but not booked or past)
+  // Check if a date is selectable (only available, not booked or past)
   const isDateSelectable = (date: Date): boolean => {
     // Disable past dates (except today)
     if (isPast(startOfDay(date)) && !isToday(date)) {
@@ -107,17 +102,13 @@ export const AvailabilityCalendar = ({
     
     const status = getDayStatus(date);
     
-    // Allow available and busy days, but not booked or none (if no data)
-    if (status === 'available' || status === 'busy') {
+    // Allow only available days
+    if (status === 'available') {
       return true;
     }
     
-    // If no data, allow future dates (vendor might be available)
-    if (status === 'none' && (isFuture(startOfDay(date)) || isToday(date))) {
-      return true;
-    }
-    
-    return false;
+    // All available days are selectable
+    return status === 'available';
   };
 
   // Get available dates count for the next 30 days
@@ -146,8 +137,8 @@ export const AvailabilityCalendar = ({
       const dateStr = formatDateString(date);
       const status = getDayStatus(date);
       
-      // Only allow selection of available or busy days
-      if ((status === 'available' || status === 'busy') && onSlotSelect) {
+      // Only allow selection of available days
+      if (status === 'available' && onSlotSelect) {
         onSlotSelect(dateStr);
       }
     }
@@ -157,41 +148,39 @@ export const AvailabilityCalendar = ({
   const selectedDayStatus = selectedDate ? getDayStatus(parseISO(selectedDate)) : null;
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <CalendarIcon className="h-4 w-4" />
             Check Availability
           </CardTitle>
         </div>
         {hasAvailabilityData && availableDatesCount > 0 && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1.5">
             {availableDatesCount} available date{availableDatesCount !== 1 ? 's' : ''} in the next 30 days
           </p>
         )}
         {!hasAvailabilityData && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1.5">
             Select a date to check availability
           </p>
         )}
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
+      <CardContent className="space-y-4 pt-0">
+        <div className="border rounded-lg p-2 bg-background">
           <Calendar
             mode="single"
             selected={selectedDate ? parseISO(selectedDate) : currentDate}
             onSelect={handleDateSelect}
             disabled={(date) => !isDateSelectable(date)}
-            className="rounded-md border"
+            className="w-full"
             modifiers={{
               available: (date) => getDayStatus(date) === 'available',
-              busy: (date) => getDayStatus(date) === 'busy',
               booked: (date) => getDayStatus(date) === 'booked',
             }}
             modifiersClassNames={{
               available: 'rdp-day_available',
-              busy: 'rdp-day_busy',
               booked: 'rdp-day_booked',
             }}
             fromDate={new Date()}
@@ -201,74 +190,47 @@ export const AvailabilityCalendar = ({
 
         {selectedDate && selectedDayStatus && (
           <div className={cn(
-            "pt-4 border-t rounded-lg p-4",
-            selectedDayStatus === 'available' && "bg-green-50 border-green-200",
-            selectedDayStatus === 'busy' && "bg-yellow-50 border-yellow-200",
-            selectedDayStatus === 'booked' && "bg-red-50 border-red-200"
+            "pt-3 border-t rounded-lg p-3 bg-muted/30",
           )}>
-            <div className="flex items-center gap-3">
-              {selectedDayStatus === 'available' && <CheckCircle2 className="h-5 w-5 text-green-600" />}
-              {selectedDayStatus === 'busy' && <Clock className="h-5 w-5 text-yellow-600" />}
-              {selectedDayStatus === 'booked' && <XCircle className="h-5 w-5 text-red-600" />}
-              <div className="flex-1">
-                <p className={cn(
-                  "text-sm font-medium",
-                  selectedDayStatus === 'available' && "text-green-900",
-                  selectedDayStatus === 'busy' && "text-yellow-900",
-                  selectedDayStatus === 'booked' && "text-red-900"
-                )}>
+            <div className="flex items-start gap-2.5">
+              {selectedDayStatus === 'available' && (
+                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              )}
+              {selectedDayStatus === 'booked' && (
+                <XCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">
                   {format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}
                 </p>
-                <p className={cn(
-                  "text-xs mt-0.5",
-                  selectedDayStatus === 'available' && "text-green-700",
-                  selectedDayStatus === 'busy' && "text-yellow-700",
-                  selectedDayStatus === 'booked' && "text-red-700"
-                )}>
-                  {selectedDayStatus === 'available' && 'This date is available for booking'}
-                  {selectedDayStatus === 'busy' && 'This date may have limited availability'}
-                  {selectedDayStatus === 'booked' && 'This date is fully booked'}
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {selectedDayStatus === 'available' && 'Available for booking'}
+                  {selectedDayStatus === 'booked' && 'Not available'}
                 </p>
               </div>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-xs font-semibold",
-                  selectedDayStatus === 'available' && "bg-green-100 text-green-800 border-green-300",
-                  selectedDayStatus === 'busy' && "bg-yellow-100 text-yellow-800 border-yellow-300",
-                  selectedDayStatus === 'booked' && "bg-red-100 text-red-800 border-red-300"
-                )}
-              >
-                {selectedDayStatus === 'available' && 'Available'}
-                {selectedDayStatus === 'busy' && 'Busy'}
-                {selectedDayStatus === 'booked' && 'Booked'}
-              </Badge>
             </div>
           </div>
         )}
 
         {!hasAvailabilityData && (
-          <div className="text-center py-4 border rounded-lg bg-blue-50">
-            <Info className="h-5 w-5 mx-auto mb-2 text-blue-600" />
-            <p className="text-sm text-blue-900 font-medium">No availability schedule loaded</p>
-            <p className="text-xs text-blue-700 mt-1">You can still select a date to proceed with booking</p>
+          <div className="text-center py-3 border rounded-lg bg-muted/30">
+            <Info className="h-4 w-4 mx-auto mb-1.5 text-muted-foreground" />
+            <p className="text-xs text-foreground font-medium">No availability schedule loaded</p>
+            <p className="text-xs text-muted-foreground mt-0.5">You can still select a date to proceed with booking</p>
           </div>
         )}
 
-        <div className="pt-4 border-t">
-          <p className="text-xs font-medium text-muted-foreground mb-3">Legend</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="flex items-center gap-2 p-2 rounded-md bg-green-50 border border-green-200">
-              <div className="h-4 w-4 rounded-full bg-green-500 border-2 border-green-600"></div>
-              <span className="text-xs font-medium text-green-900">Available</span>
+        <div className="pt-2 border-t">
+          <div className="flex items-center justify-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-sm bg-foreground"></div>
+              <span className="text-muted-foreground">Available</span>
             </div>
-            <div className="flex items-center gap-2 p-2 rounded-md bg-yellow-50 border border-yellow-200">
-              <div className="h-4 w-4 rounded-full bg-yellow-500 border-2 border-yellow-600"></div>
-              <span className="text-xs font-medium text-yellow-900">Busy</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-md bg-red-50 border border-red-200">
-              <div className="h-4 w-4 rounded-full bg-red-500 border-2 border-red-600"></div>
-              <span className="text-xs font-medium text-red-900">Booked</span>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-sm bg-muted-foreground/40 relative">
+                <div className="absolute inset-0 border-t border-muted-foreground/50 rotate-45 top-1/2 left-0 right-0"></div>
+              </div>
+              <span className="text-muted-foreground">Booked</span>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/features/home/Navbar';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -31,6 +31,7 @@ import {
 
 const VendorDetails = () => {
   const { vendorId } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { addToCart } = useCart();
@@ -195,13 +196,11 @@ const VendorDetails = () => {
         return; // Invalid time slot, skip
       }
       
-      // Normalize status
+      // Normalize status - only available or booked
       const normalizedStatus = status ? String(status).toLowerCase() : 'available';
       const finalStatus = normalizedStatus === 'available' 
         ? 'available' 
-        : normalizedStatus === 'booked' || normalizedStatus === 'blocked' 
-          ? 'booked' 
-          : 'busy';
+        : 'booked'; // Everything else (booked, blocked, busy) is treated as booked
       
       if (!groupedByDate.has(dateStr)) {
         groupedByDate.set(dateStr, []);
@@ -311,27 +310,8 @@ const VendorDetails = () => {
     addOns: any[] = [],
     customizations: any[] = []
   ) => {
-    const pkg = vendor.packages.find((p) => p.id === packageId);
-    if (!pkg) return;
-
-    addToCart({
-      vendorId: vendor.id,
-      vendorName: vendor.businessName,
-      packageId: pkg.id,
-      packageName: pkg.name,
-      price: price,
-      basePrice: pkg.price,
-      addOns: addOns,
-      customizations: customizations,
-      quantity: 1,
-      eventDate: selectedDate,
-      eventTime: selectedTime,
-    });
-
-    toast({
-      title: 'Added to Cart',
-      description: `${packageName} has been added to your cart`,
-    });
+    // Navigate to listing detail page where user can select date
+    navigate(`/listing/${packageId}`);
   };
 
   const handleSlotSelect = (date: string) => {
@@ -423,11 +403,12 @@ const VendorDetails = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             <Tabs 
+              defaultValue="overview"
               value={searchParams.get('tab') || 'overview'} 
               className="w-full" 
               onValueChange={(value) => {
@@ -436,65 +417,65 @@ const VendorDetails = () => {
                 setSearchParams(params, { replace: true });
               }}
             >
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="listings">Listings</TabsTrigger>
-                <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="faqs">FAQs</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-5 h-9">
+                <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+                <TabsTrigger value="listings" className="text-xs">Listings</TabsTrigger>
+                <TabsTrigger value="portfolio" className="text-xs">Portfolio</TabsTrigger>
+                <TabsTrigger value="reviews" className="text-xs">Reviews</TabsTrigger>
+                <TabsTrigger value="faqs" className="text-xs">FAQs</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6 mt-6">
+              <TabsContent value="overview" className="space-y-3 mt-3">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Award className="h-5 w-5 text-primary" />
+                    <CardContent className="p-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="p-1 bg-primary/10 rounded">
+                          <Award className="h-3.5 w-3.5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Rating</p>
-                          <p className="text-2xl font-bold">{averageRating.toFixed(1)}</p>
+                          <p className="text-[10px] text-muted-foreground">Rating</p>
+                          <p className="text-sm font-bold">{averageRating.toFixed(1)}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-500/10 rounded-lg">
-                          <Users className="h-5 w-5 text-green-600" />
+                    <CardContent className="p-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="p-1 bg-green-500/10 rounded">
+                          <Users className="h-3.5 w-3.5 text-green-600" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Reviews</p>
-                          <p className="text-2xl font-bold">{totalReviews}</p>
+                          <p className="text-[10px] text-muted-foreground">Reviews</p>
+                          <p className="text-sm font-bold">{totalReviews}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-500/10 rounded-lg">
-                          <ShoppingCart className="h-5 w-5 text-blue-600" />
+                    <CardContent className="p-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="p-1 bg-blue-500/10 rounded">
+                          <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Packages</p>
-                          <p className="text-2xl font-bold">{totalPackages}</p>
+                          <p className="text-[10px] text-muted-foreground">Packages</p>
+                          <p className="text-sm font-bold">{totalPackages}</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                   <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-500/10 rounded-lg">
-                          <Calendar className="h-5 w-5 text-purple-600" />
+                    <CardContent className="p-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="p-1 bg-purple-500/10 rounded">
+                          <Calendar className="h-3.5 w-3.5 text-purple-600" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Past Events</p>
-                          <p className="text-2xl font-bold">{vendor.pastEvents?.length || 0}</p>
+                          <p className="text-[10px] text-muted-foreground">Past Events</p>
+                          <p className="text-sm font-bold">{vendor.pastEvents?.length || 0}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -503,60 +484,60 @@ const VendorDetails = () => {
 
                 {/* About */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>About {vendor.businessName}</CardTitle>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">About {vendor.businessName}</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     {vendor.bio ? (
-                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{vendor.bio}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{vendor.bio}</p>
                     ) : (
-                      <p className="text-muted-foreground italic">No description available.</p>
+                      <p className="text-xs text-muted-foreground italic">No description available.</p>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Quick Stats */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Information</CardTitle>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Quick Information</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Location</p>
-                          <p className="text-sm text-muted-foreground">{vendor.city}</p>
+                          <p className="text-xs font-medium">Location</p>
+                          <p className="text-xs text-muted-foreground">{vendor.city}</p>
                           {vendor.coverageRadius > 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               Coverage: {vendor.coverageRadius}km radius
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="flex items-start gap-2">
+                        <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Starting Price</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs font-medium">Starting Price</p>
+                          <p className="text-xs text-muted-foreground">
                             ₹{vendor.startingPrice.toLocaleString('en-IN')}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <Award className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="flex items-start gap-2">
+                        <Award className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Category</p>
-                          <Badge variant="secondary" className="capitalize mt-1">
+                          <p className="text-xs font-medium">Category</p>
+                          <Badge variant="secondary" className="capitalize mt-1 text-xs">
                             {categoryDisplayName}
                           </Badge>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-muted-foreground mt-0.5" />
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">Status</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs font-medium">Status</p>
+                          <p className="text-xs text-muted-foreground">
                             {verifiedBadge ? 'Verified Vendor' : 'Active Vendor'}
                           </p>
                         </div>
@@ -568,17 +549,18 @@ const VendorDetails = () => {
                 {/* Featured Packages Preview */}
                 {vendor.packages.length > 0 && (
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div>
-                          <CardTitle>Featured Packages</CardTitle>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <CardTitle className="text-sm font-semibold">Featured Packages</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {totalPackages} package{totalPackages > 1 ? 's' : ''} available
                           </p>
                         </div>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-7 text-xs"
                           onClick={() => {
                             const params = new URLSearchParams(searchParams);
                             params.set('tab', 'listings');
@@ -589,8 +571,8 @@ const VendorDetails = () => {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {vendor.packages.slice(0, 2).map((pkg) => {
                           const themeMap: Record<string, 'wedding' | 'dj' | 'birthday' | 'corporate'> = {
                             photographer: 'wedding',
@@ -673,14 +655,14 @@ const VendorDetails = () => {
                 {/* Past Events */}
                 {vendor.pastEvents && vendor.pastEvents.length > 0 && (
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Past Events</CardTitle>
-                      <p className="text-sm text-muted-foreground">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold">Past Events</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         Showcasing our previous work
                       </p>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {vendor.pastEvents.map((event) => (
                           <div key={event.id} className="space-y-2 group cursor-pointer">
                             <div className="aspect-square overflow-hidden rounded-lg relative">
@@ -712,24 +694,24 @@ const VendorDetails = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="listings" id="listings-section" className="space-y-6 mt-6">
-                <div className="flex items-center justify-between mb-6">
+              <TabsContent value="listings" id="listings-section" className="space-y-4 mt-4">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-3xl font-bold">All Listings</h2>
-                    <p className="text-muted-foreground mt-1">
+                    <h2 className="text-xl font-bold">All Listings</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {totalPackages + totalListings} listing{(totalPackages + totalListings) !== 1 ? 's' : ''} available
                     </p>
                   </div>
                 </div>
                 
                 {/* Packages Section - Top */}
-                <div className="space-y-6">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-2xl font-semibold">Packages</h3>
-                    <p className="text-muted-foreground">{totalPackages} package{totalPackages > 1 ? 's' : ''}</p>
+                    <h3 className="text-base font-semibold">Packages</h3>
+                    <p className="text-xs text-muted-foreground">{totalPackages} package{totalPackages > 1 ? 's' : ''}</p>
                   </div>
                   {vendor.packages.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       {vendor.packages.map((pkg) => {
                         const themeMap: Record<string, 'wedding' | 'dj' | 'birthday' | 'corporate'> = {
                           photographer: 'wedding',
@@ -785,12 +767,12 @@ const VendorDetails = () => {
 
                 {/* Individual Listings Section - Bottom */}
                 {vendor.listings && vendor.listings.length > 0 && (
-                  <div className="space-y-6 pt-6 border-t">
+                  <div className="space-y-3 pt-4 border-t">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-semibold">Individual Listings</h3>
-                      <p className="text-muted-foreground">{totalListings} listing{totalListings > 1 ? 's' : ''}</p>
+                      <h3 className="text-base font-semibold">Individual Listings</h3>
+                      <p className="text-xs text-muted-foreground">{totalListings} listing{totalListings > 1 ? 's' : ''}</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {vendor.listings.map((listing) => {
                         const listingCategory = listing.category || vendor.category;
                         const categoryName = categories.find(c => c.id === listingCategory)?.name || listingCategory;
@@ -836,22 +818,8 @@ const VendorDetails = () => {
                                 <Button
                                   size="sm"
                                   onClick={() => {
-                                    addToCart({
-                                      vendorId: vendor.id,
-                                      vendorName: vendor.businessName,
-                                      packageId: listing.id,
-                                      packageName: listing.name,
-                                      price: listing.price,
-                                      basePrice: listing.price,
-                                      addOns: [],
-                                      quantity: 1,
-                                      eventDate: selectedDate,
-                                      eventTime: selectedTime,
-                                    });
-                                    toast({
-                                      title: 'Added to Cart',
-                                      description: `${listing.name} has been added to your cart`,
-                                    });
+                                    // Navigate to listing detail page where user can select date
+                                    navigate(`/listing/${listing.id}`);
                                   }}
                                 >
                                   <ShoppingCart className="h-4 w-4 mr-2" />
@@ -875,17 +843,17 @@ const VendorDetails = () => {
                 )}
               </TabsContent>
 
-              <TabsContent value="portfolio" className="space-y-6 mt-6">
+              <TabsContent value="portfolio" className="space-y-4 mt-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Portfolio Gallery</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Portfolio Gallery</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {vendor.portfolioImages?.length || 0} image{(vendor.portfolioImages?.length || 0) !== 1 ? 's' : ''} available
                     </p>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     {vendor.portfolioImages && vendor.portfolioImages.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {vendor.portfolioImages.map((image, index) => (
                           <div
                             key={index}
@@ -904,49 +872,49 @@ const VendorDetails = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12">
-                        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                        <p className="text-muted-foreground">No portfolio images available.</p>
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-3 text-muted-foreground opacity-50" />
+                        <p className="text-xs text-muted-foreground">No portfolio images available.</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="reviews" className="space-y-6 mt-6">
+              <TabsContent value="reviews" className="space-y-4 mt-4">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle>Customer Reviews</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <CardTitle className="text-sm font-semibold">Customer Reviews</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'} from verified customers
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
-                        <span className="text-2xl font-bold">{averageRating.toFixed(1)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-base font-bold">{averageRating.toFixed(1)}</span>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     {vendor.reviews.length > 0 ? (
-                      <div className="space-y-6">
+                      <div className="space-y-3">
                         {vendor.reviews.map((review) => (
-                          <div key={review.id} className="flex gap-4 pb-6 border-b last:border-0">
-                            <Avatar>
-                              <AvatarFallback>
+                          <div key={review.id} className="flex gap-2.5 pb-3 border-b last:border-0">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">
                                 {review.userName.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-semibold">{review.userName}</span>
-                                <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="font-semibold text-sm">{review.userName}</span>
+                                <div className="flex items-center gap-0.5">
                                   {Array.from({ length: 5 }).map((_, i) => (
                                     <Star
                                       key={i}
-                                      className={`h-4 w-4 ${
+                                      className={`h-3 w-3 ${
                                         i < Math.floor(review.rating)
                                           ? 'fill-yellow-400 text-yellow-400'
                                           : 'text-muted-foreground'
@@ -955,20 +923,20 @@ const VendorDetails = () => {
                                   ))}
                                 </div>
                                 {review.eventType && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge variant="outline" className="text-[10px] px-1 py-0">
                                     {review.eventType}
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-muted-foreground mb-2 leading-relaxed">{review.comment}</p>
+                              <p className="text-xs text-muted-foreground mb-1.5 leading-relaxed">{review.comment}</p>
                               {review.images && review.images.length > 0 && (
-                                <div className="grid grid-cols-3 gap-2 mb-2">
+                                <div className="grid grid-cols-3 gap-1.5 mb-1.5">
                                   {review.images.map((img, idx) => (
                                     <img
                                       key={idx}
                                       src={img}
                                       alt={`Review image ${idx + 1}`}
-                                      className="w-full h-20 object-cover rounded"
+                                      className="w-full h-16 object-cover rounded"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).src = 'https://via.placeholder.com/100x100';
                                       }}
@@ -976,7 +944,7 @@ const VendorDetails = () => {
                                   ))}
                                 </div>
                               )}
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-[10px] text-muted-foreground">
                                 {new Date(review.date).toLocaleDateString('en-IN', {
                                   month: 'long',
                                   day: 'numeric',
@@ -988,41 +956,41 @@ const VendorDetails = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12">
-                        <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                        <p className="text-muted-foreground">No reviews yet.</p>
-                        <p className="text-sm text-muted-foreground mt-2">Be the first to review this vendor!</p>
+                      <div className="text-center py-8">
+                        <Star className="h-8 w-8 mx-auto mb-3 text-muted-foreground opacity-50" />
+                        <p className="text-xs text-muted-foreground">No reviews yet.</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Be the first to review this vendor!</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="faqs" className="space-y-6 mt-6">
+              <TabsContent value="faqs" className="space-y-4 mt-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Frequently Asked Questions</CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Frequently Asked Questions</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {vendor.faqs.length} {vendor.faqs.length === 1 ? 'question' : 'questions'} answered
                     </p>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     {vendor.faqs.length > 0 ? (
                       <Accordion type="single" collapsible className="w-full">
                         {vendor.faqs.map((faq) => (
                           <AccordionItem key={faq.id} value={faq.id}>
-                            <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
-                            <AccordionContent className="text-muted-foreground leading-relaxed">
+                            <AccordionTrigger className="text-left text-sm py-2">{faq.question}</AccordionTrigger>
+                            <AccordionContent className="text-xs text-muted-foreground leading-relaxed">
                               {faq.answer}
                             </AccordionContent>
                           </AccordionItem>
                         ))}
                       </Accordion>
                     ) : (
-                      <div className="text-center py-12">
-                        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                        <p className="text-muted-foreground">No FAQs available.</p>
-                        <p className="text-sm text-muted-foreground mt-2">Contact the vendor for more information.</p>
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-3 text-muted-foreground opacity-50" />
+                        <p className="text-xs text-muted-foreground">No FAQs available.</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Contact the vendor for more information.</p>
                       </div>
                     )}
                   </CardContent>
@@ -1032,64 +1000,64 @@ const VendorDetails = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Quick Info</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Quick Info</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 pt-0">
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Starting Price</div>
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-xs text-muted-foreground mb-0.5">Starting Price</div>
+                  <div className="text-lg font-bold text-primary">
                     ₹{vendor.startingPrice.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Location</div>
-                  <div className="font-semibold flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
+                  <div className="text-xs text-muted-foreground mb-0.5">Location</div>
+                  <div className="text-sm font-semibold flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
                     {vendor.city}
                   </div>
                   {vendor.coverageRadius > 0 && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Coverage: {vendor.coverageRadius}km radius
                     </div>
                   )}
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Category</div>
-                  <Badge variant="secondary" className="capitalize">
+                  <div className="text-xs text-muted-foreground mb-0.5">Category</div>
+                  <Badge variant="secondary" className="capitalize text-xs">
                     {categoryDisplayName}
                   </Badge>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Rating</div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{averageRating.toFixed(1)}</span>
+                  <div className="text-xs text-muted-foreground mb-0.5">Rating</div>
+                  <div className="flex items-center gap-1.5">
+                    <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-semibold">{averageRating.toFixed(1)}</span>
                     <span className="text-xs text-muted-foreground">({totalReviews} reviews)</span>
                   </div>
                 </div>
                 {verifiedBadge && (
                   <div>
-                    <div className="text-sm text-muted-foreground mb-1">Verification</div>
-                    <Badge className="bg-green-500 text-white">
+                    <div className="text-xs text-muted-foreground mb-0.5">Verification</div>
+                    <Badge className="bg-green-500 text-white text-xs">
                       <Shield className="h-3 w-3 mr-1" />
                       Verified Vendor
                     </Badge>
                   </div>
                 )}
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Listings</div>
-                  <div className="text-sm font-medium">
+                  <div className="text-xs text-muted-foreground mb-0.5">Listings</div>
+                  <div className="text-xs font-medium">
                     {totalPackages} package{totalPackages !== 1 ? 's' : ''}
                     {totalListings > 0 && `, ${totalListings} item${totalListings !== 1 ? 's' : ''}`}
                   </div>
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button className="w-full rounded-xl shadow-md hover-lift" size="lg">
-                      <MessageCircle className="mr-2 h-4 w-4" />
+                    <Button className="w-full rounded-xl shadow-md hover-lift mt-2" size="sm">
+                      <MessageCircle className="mr-2 h-3.5 w-3.5" />
                       Chat with Vendor
                     </Button>
                   </DialogTrigger>

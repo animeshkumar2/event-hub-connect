@@ -14,6 +14,9 @@ public class ListingDTO {
     private UUID id;
     private UUID vendorId;
     private String vendorName;
+    private String vendorCity;
+    private Double vendorRating;
+    private Integer vendorReviewCount;
     private String type; // 'package' or 'item'
     private String name;
     private String description;

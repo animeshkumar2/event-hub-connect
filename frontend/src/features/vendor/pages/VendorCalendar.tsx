@@ -21,7 +21,8 @@ import {
 import { toast } from 'sonner';
 import { useMyVendorAvailability, useVendorUpcomingOrders } from '@/shared/hooks/useApi';
 import { vendorApi } from '@/shared/services/api';
-import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, parseISO, isToday } from 'date-fns';
+import { cn } from '@/shared/lib/utils';
 
 type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BUSY' | 'BLOCKED';
 
@@ -75,27 +76,23 @@ export default function VendorCalendar() {
         if (!dateStr) return;
         
         const status = slot.status?.toUpperCase() || 'AVAILABLE';
-        const normalizedStatus = status === 'AVAILABLE' ? 'available' : 
-                                status === 'BOOKED' ? 'booked' : 
-                                status === 'BLOCKED' ? 'blocked' : 'busy';
+        // Only handle booked status from availability slots
+        // Available is the default, so we only need to mark booked
+        const normalizedStatus = status === 'BOOKED' ? 'booked' : 'available';
         
         if (!map.has(dateStr)) {
           map.set(dateStr, { status: normalizedStatus, orders: [] });
         } else {
           const existing = map.get(dateStr)!;
           // If any slot is booked, day is booked
-          if (normalizedStatus === 'booked' || existing.status === 'booked') {
+          if (normalizedStatus === 'booked') {
             existing.status = 'booked';
-          } else if (normalizedStatus === 'blocked' && existing.status !== 'booked') {
-            existing.status = 'blocked';
-          } else if (normalizedStatus === 'busy' && existing.status === 'available') {
-            existing.status = 'busy';
           }
         }
       });
     }
     
-    // Add orders to map
+    // Add orders to map - orders mark days as booked
     if (upcomingOrders && Array.isArray(upcomingOrders)) {
       upcomingOrders.forEach((order: any) => {
         if (order.eventDate) {
@@ -106,7 +103,9 @@ export default function VendorCalendar() {
             dateStr = format(new Date(order.eventDate), 'yyyy-MM-dd');
           }
           if (map.has(dateStr)) {
-            map.get(dateStr)!.orders.push(order);
+            const existing = map.get(dateStr)!;
+            existing.orders.push(order);
+            existing.status = 'booked'; // Mark as booked if there's an order
           } else {
             map.set(dateStr, { status: 'booked', orders: [order] });
           }
@@ -137,17 +136,21 @@ export default function VendorCalendar() {
       const dateStr = format(dateObj, 'yyyy-MM-dd');
       const availability = availabilityMap.get(dateStr);
       
-      let status: 'available' | 'booked' | 'busy' | 'blocked' | 'none' = 'none';
+      let status: 'available' | 'booked' | 'busy' | 'blocked' | 'none' = 'available'; // Default to available
       let booking;
       
       if (availability) {
-        status = availability.status;
+        // If there are orders, day is booked
         if (availability.orders && availability.orders.length > 0) {
+          status = 'booked';
           const order = availability.orders[0];
           booking = {
             client: order.customerName || 'Customer',
             event: order.eventType || 'Event'
           };
+        } else {
+          // Use availability status if no orders
+          status = availability.status === 'booked' ? 'booked' : 'available';
         }
       }
 
@@ -160,7 +163,7 @@ export default function VendorCalendar() {
     const nextYear = month === 11 ? year + 1 : year;
     for (let i = 1; i <= remaining; i++) {
       const dateObj = new Date(nextYear, nextMonth, i);
-      calendar.push({ date: i, month: nextMonth, year: nextYear, status: 'none', dateObj });
+      calendar.push({ date: i, month: nextMonth, year: nextYear, status: 'available', dateObj });
     }
 
     return calendar;
@@ -172,9 +175,7 @@ export default function VendorCalendar() {
     switch (status) {
       case 'available': return 'bg-green-500/20 text-green-400 hover:bg-green-500/30';
       case 'booked': return 'bg-red-500/20 text-red-400';
-      case 'blocked': return 'bg-gray-500/20 text-gray-400';
-      case 'busy': return 'bg-yellow-500/20 text-yellow-400';
-      default: return 'bg-muted/20 text-muted-foreground';
+      default: return 'bg-green-500/20 text-green-400 hover:bg-green-500/30'; // Default to available
     }
   };
 
@@ -221,18 +222,24 @@ export default function VendorCalendar() {
       return slotDate === dateStr;
     });
     
-    if (!slots || slots.length === 0) {
-      toast.error('No slots found for this date');
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      // Update all slots for this date
-      for (const slot of slots) {
-        await vendorApi.updateSlot(slot.id, status);
+      if (!slots || slots.length === 0) {
+        // Create a slot for this date if it doesn't exist
+        // Create a default time slot (e.g., 09:00) for day-level availability
+        const timeSlots = [{
+          timeSlot: '09:00',
+          status: status
+        }];
+        await vendorApi.createAvailabilitySlots(dateStr, timeSlots);
+        toast.success('Availability updated');
+      } else {
+        // Update all slots for this date
+        for (const slot of slots) {
+          await vendorApi.updateSlot(slot.id, status);
+        }
+        toast.success('Availability updated');
       }
-      toast.success('Availability updated');
       setSelectedDate(null);
       refetchAvailability();
     } catch (error: any) {
@@ -242,13 +249,6 @@ export default function VendorCalendar() {
     }
   };
 
-  const handleBlockDate = () => {
-    handleUpdateSlot('BLOCKED');
-  };
-
-  const handleUnblockDate = () => {
-    handleUpdateSlot('AVAILABLE');
-  };
 
   return (
     <VendorLayout>
@@ -329,18 +329,17 @@ export default function VendorCalendar() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4">
-          {[
-            { status: 'available', label: 'Available', color: 'bg-green-500' },
-            { status: 'booked', label: 'Booked', color: 'bg-red-500' },
-            { status: 'blocked', label: 'Blocked', color: 'bg-gray-500' },
-            { status: 'busy', label: 'Busy', color: 'bg-yellow-500' },
-          ].map((item) => (
-            <div key={item.status} className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${item.color}`} />
-              <span className="text-sm text-foreground/60">{item.label}</span>
+        <div className="flex items-center justify-center gap-4 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-sm bg-foreground"></div>
+            <span className="text-muted-foreground">Available</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-sm bg-muted-foreground/40 relative">
+              <div className="absolute inset-0 border-t border-muted-foreground/50 rotate-45 top-1/2 left-0 right-0"></div>
             </div>
-          ))}
+            <span className="text-muted-foreground">Booked</span>
+          </div>
         </div>
 
         {availabilityLoading && (
@@ -356,8 +355,8 @@ export default function VendorCalendar() {
             const monthData = getCalendarData(monthDate.getMonth(), monthDate.getFullYear());
 
             return (
-              <Card key={offset} className="border-border shadow-card border-border">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <Card key={offset} className="border shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
                   {offset === 0 && (
                     <Button
                       variant="ghost"
@@ -368,7 +367,7 @@ export default function VendorCalendar() {
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                   )}
-                  <CardTitle className="text-foreground text-lg flex-1 text-center">
+                  <CardTitle className="text-foreground text-base font-semibold flex-1 text-center">
                     {months[monthDate.getMonth()]} {monthDate.getFullYear()}
                   </CardTitle>
                   {offset === 2 && (
@@ -383,27 +382,34 @@ export default function VendorCalendar() {
                   )}
                   {offset !== 0 && offset !== 2 && <div className="w-9" />}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3">
                   <div className="grid grid-cols-7 gap-1">
                     {days.map((day) => (
-                      <div key={day} className="text-center text-xs text-foreground/40 py-2">
+                      <div key={day} className="text-center text-xs text-muted-foreground font-medium py-2 uppercase tracking-wide">
                         {day}
                       </div>
                     ))}
                     {monthData.map((day, i) => {
                       const isCurrentMonth = day.month === monthDate.getMonth();
+                      const isToday = isSameDay(day.dateObj, new Date());
                       return (
                         <button
                           key={i}
-                          onClick={() => isCurrentMonth && setSelectedDate(day)}
-                          disabled={!isCurrentMonth}
-                          className={`
-                            aspect-square rounded-lg text-sm flex items-center justify-center transition-all
-                            ${isCurrentMonth ? getStatusColor(day.status) : 'text-foreground/20'}
-                            ${isCurrentMonth && day.status === 'available' ? 'cursor-pointer' : ''}
-                          `}
+                          onClick={() => isCurrentMonth && day.status === 'available' && setSelectedDate(day)}
+                          disabled={!isCurrentMonth || day.status === 'booked'}
+                          className={cn(
+                            "h-10 w-10 rounded-md text-sm flex items-center justify-center transition-all duration-150",
+                            !isCurrentMonth && "text-muted-foreground/30 cursor-not-allowed",
+                            isCurrentMonth && day.status === 'available' && "text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                            isCurrentMonth && day.status === 'booked' && "text-muted-foreground opacity-40 cursor-not-allowed relative",
+                            isToday && isCurrentMonth && "border border-border font-semibold",
+                            selectedDate && isSameDay(day.dateObj, selectedDate.dateObj) && "bg-primary text-primary-foreground hover:bg-primary font-medium"
+                          )}
                         >
-                          {day.date}
+                          {day.status === 'booked' && isCurrentMonth && (
+                            <div className="absolute inset-0 border-t border-muted-foreground/30 rotate-45 top-1/2 left-2 right-2"></div>
+                          )}
+                          <span className="relative z-10">{day.date}</span>
                         </button>
                       );
                     })}
@@ -442,27 +448,29 @@ export default function VendorCalendar() {
               <div className="flex gap-3">
                 {selectedDate.status === 'available' && (
                   <Button 
-                    onClick={handleBlockDate} 
+                    onClick={() => handleUpdateSlot('BOOKED')} 
                     variant="outline" 
                     className="border-border text-foreground hover:bg-muted"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Block This Date
-                  </Button>
-                )}
-                {selectedDate.status === 'blocked' && (
-                  <Button 
-                    onClick={handleUnblockDate} 
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Unblock Date
+                    Mark as Booked
                   </Button>
                 )}
                 {selectedDate.status === 'booked' && (
-                  <Badge className="bg-red-500/20 text-red-400">This date has a booking</Badge>
+                  <>
+                    <Button 
+                      onClick={() => handleUpdateSlot('AVAILABLE')} 
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Mark as Available
+                    </Button>
+                    {selectedDate.booking && (
+                      <Badge className="bg-red-500/20 text-red-400">This date has a booking</Badge>
+                    )}
+                  </>
                 )}
               </div>
             </CardContent>

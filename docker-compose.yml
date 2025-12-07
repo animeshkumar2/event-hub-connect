@@ -9,12 +9,15 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    # Note: Vite automatically loads .env.local from the mounted volume
+    # Don't set VITE_API_BASE_URL here to allow .env.local to take precedence
     env_file:
       - .env
     environment:
       - NODE_ENV=development
       - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://vwhxzxayzpdfmpnnzslq.supabase.co}
       - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3aHh6eGF5enBkZm1wbm56c2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDM4NjksImV4cCI6MjA4MDI3OTg2OX0.eOg_EmPuJA9SJdhkbw1zBH5jthFrZ5Jo9o_zRztfgCY}
+      # VITE_API_BASE_URL is NOT set here - it will be read from .env.local (local dev) or .env (production)
     stdin_open: true
     tty: true
     restart: unless-stopped

@@ -313,26 +313,39 @@ All colors MUST be HSL.
     overflow: hidden;
   }
 
-  /* Calendar availability day styles */
+  /* Airbnb-style calendar availability day styles */
   .rdp-day_available {
-    @apply bg-green-100 border-2 border-green-500 text-green-900 font-semibold rounded-md;
+    @apply text-foreground hover:bg-accent hover:text-accent-foreground transition-colors;
   }
 
   .rdp-day_available:hover {
-    @apply bg-green-200;
+    @apply bg-accent/50;
   }
 
-  .rdp-day_busy {
-    @apply bg-yellow-100 border-2 border-yellow-500 text-yellow-900 font-semibold rounded-md;
-  }
-
-  .rdp-day_busy:hover {
-    @apply bg-yellow-200;
+  .rdp-day_available.rdp-day_selected {
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground;
   }
 
   .rdp-day_booked {
-    @apply bg-red-100 border-2 border-red-500 text-red-900 opacity-60 rounded-md;
-    cursor: not-allowed;
+    @apply text-muted-foreground opacity-50 cursor-not-allowed relative;
+  }
+
+  .rdp-day_booked::before {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      hsl(var(--muted-foreground) / 0.4) calc(50% - 1px),
+      hsl(var(--muted-foreground) / 0.4) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+    transform: rotate(-45deg);
+    pointer-events: none;
+  }
+
+  .rdp-day_booked:hover {
+    @apply bg-transparent;
   }
 
   /* Framer.com-style scroll animations with smooth easing */

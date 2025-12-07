@@ -23,17 +23,12 @@ public class VendorOnboardingRequest {
     private String instagram;
     private String bio;
     
-    // First listing details
-    @NotBlank(message = "Listing name is required")
+    // Listing details - now optional
     private String listingName;
-    
-    @NotNull(message = "Price is required")
-    @Positive(message = "Price must be positive")
     private BigDecimal price;
-    
     private String description;
     private List<String> images;
     private List<String> includedItemsText; // For package listings
-    private Boolean isActive = true;
+    private Boolean isActive;
 }
 

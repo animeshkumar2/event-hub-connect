@@ -17,6 +17,8 @@ import EventPlanner from "@/features/booking/EventPlanner";
 import BookingSuccess from "@/features/booking/BookingSuccess";
 import TestImageUpload from "@/features/vendor/TestImageUpload";
 import ListingDetail from "@/features/listing/ListingDetail";
+import UserProfile from "@/features/user/pages/UserProfile";
+import OrderDetails from "@/features/user/pages/OrderDetails";
 
 // Vendor Pages
 import VendorOnboarding from "@/features/vendor/pages/VendorOnboarding";
@@ -57,6 +59,10 @@ const App = () => (
             <Route path="/login" element={<Auth mode="login" />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
             <Route path="/test-upload" element={<TestImageUpload />} />
+            
+            {/* User Routes */}
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/orders/:orderId" element={<OrderDetails />} />
             
             {/* Vendor Routes */}
             <Route path="/vendor/onboarding" element={<VendorOnboarding />} />

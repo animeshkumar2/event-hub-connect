@@ -64,28 +64,31 @@ public class VendorOnboardingService {
         
         vendor = vendorRepository.save(vendor);
         
-        // Create first listing
-        Listing listing = new Listing();
-        listing.setVendor(vendor);
-        listing.setName(request.getListingName());
-        listing.setDescription(request.getDescription());
-        listing.setPrice(request.getPrice());
-        listing.setType(Listing.ListingType.PACKAGE);
-        listing.setListingCategory(category);
-        listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
-        listing.setIsPopular(false);
-        listing.setIsTrending(false);
-        
-        // Set included items if provided
-        if (request.getIncludedItemsText() != null && !request.getIncludedItemsText().isEmpty()) {
-            listing.setIncludedItemsText(request.getIncludedItemsText());
+        // Create first listing only if listing details are provided
+        if (request.getListingName() != null && !request.getListingName().trim().isEmpty() 
+            && request.getPrice() != null && request.getPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            Listing listing = new Listing();
+            listing.setVendor(vendor);
+            listing.setName(request.getListingName());
+            listing.setDescription(request.getDescription());
+            listing.setPrice(request.getPrice());
+            listing.setType(Listing.ListingType.PACKAGE);
+            listing.setListingCategory(category);
+            listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+            listing.setIsPopular(false);
+            listing.setIsTrending(false);
+            
+            // Set included items if provided
+            if (request.getIncludedItemsText() != null && !request.getIncludedItemsText().isEmpty()) {
+                listing.setIncludedItemsText(request.getIncludedItemsText());
+            }
+            
+            if (request.getImages() != null && !request.getImages().isEmpty()) {
+                listing.setImages(request.getImages());
+            }
+            
+            listingRepository.save(listing);
         }
-        
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            listing.setImages(request.getImages());
-        }
-        
-        listingRepository.save(listing);
         
         return vendor;
     }

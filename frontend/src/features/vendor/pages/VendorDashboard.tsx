@@ -19,7 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useVendorDashboardStats, useVendorProfile, useVendorUpcomingOrders, useVendorLeads } from '@/shared/hooks/useApi';
+import { useVendorDashboardStats, useVendorProfile, useVendorUpcomingOrders, useVendorLeads, useMyVendorListings } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
 import { useMemo, useEffect } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -53,6 +53,7 @@ export default function VendorDashboard() {
   const { data: profileData, loading: profileLoading } = useVendorProfile();
   const { data: upcomingOrdersData, loading: ordersLoading } = useVendorUpcomingOrders();
   const { data: leadsData, loading: leadsLoading } = useVendorLeads();
+  const { data: listingsData, loading: listingsLoading } = useMyVendorListings();
 
   // Transform stats data
   const stats = useMemo(() => {
@@ -134,6 +135,7 @@ export default function VendorDashboard() {
   const vendorRating = profileData?.rating || 0;
   const reviewCount = profileData?.reviewCount || 0;
   const isActive = profileData?.isActive !== false;
+  const hasListings = listingsData && Array.isArray(listingsData) && listingsData.length > 0;
 
   // Show loading while checking auth
   if (authLoading) {
@@ -257,6 +259,33 @@ export default function VendorDashboard() {
             </div>
           </div>
         </div>
+
+        {/* No Listings Message */}
+        {!listingsLoading && !hasListings && (
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
+                    Create your first listing to start getting leads
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add your services and packages to make your profile visible to customers and start receiving booking requests.
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/vendor/listings')} 
+                    className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Create Your First Listing
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Grid */}
         {stats && (

@@ -2,6 +2,7 @@ package com.eventhub.util;
 
 import com.eventhub.dto.ListingDTO;
 import com.eventhub.model.Listing;
+import com.eventhub.model.Vendor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,8 +18,15 @@ public class ListingMapper {
         
         ListingDTO dto = new ListingDTO();
         dto.setId(listing.getId());
-        dto.setVendorId(listing.getVendor() != null ? listing.getVendor().getId() : null);
-        dto.setVendorName(listing.getVendor() != null ? listing.getVendor().getBusinessName() : null);
+        if (listing.getVendor() != null) {
+            Vendor vendor = listing.getVendor();
+            dto.setVendorId(vendor.getId());
+            dto.setVendorName(vendor.getBusinessName());
+            dto.setVendorCity(vendor.getCity() != null ? vendor.getCity().getName() : vendor.getCityName());
+            // Use vendor's stored rating and review count (updated by review service)
+            dto.setVendorRating(vendor.getRating() != null ? vendor.getRating().doubleValue() : null);
+            dto.setVendorReviewCount(vendor.getReviewCount() != null ? vendor.getReviewCount() : 0);
+        }
         dto.setType(listing.getType() != null ? listing.getType().name().toLowerCase() : null);
         dto.setName(listing.getName());
         dto.setDescription(listing.getDescription());

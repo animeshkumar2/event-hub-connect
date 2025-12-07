@@ -5,30 +5,29 @@ import jakarta.persistence.Converter;
 import org.springframework.stereotype.Component;
 
 @Component
-@Converter(autoApply = true)
-public class ListingTypeConverter implements AttributeConverter<Listing.ListingType, String> {
+@Converter(autoApply = false)
+public class PaymentStatusConverterForPayment implements AttributeConverter<Payment.PaymentStatus, String> {
     
     @Override
-    public String convertToDatabaseColumn(Listing.ListingType attribute) {
+    public String convertToDatabaseColumn(Payment.PaymentStatus attribute) {
         if (attribute == null) {
             return null;
         }
         // Convert to lowercase for database constraint
-        String dbValue = attribute.name().toLowerCase();
-        System.out.println("DEBUG: ListingTypeConverter - Converting " + attribute.name() + " to " + dbValue);
-        return dbValue;
+        return attribute.name().toLowerCase();
     }
     
     @Override
-    public Listing.ListingType convertToEntityAttribute(String dbData) {
+    public Payment.PaymentStatus convertToEntityAttribute(String dbData) {
         if (dbData == null) {
             return null;
         }
         // Convert from lowercase database value to enum
         try {
-            return Listing.ListingType.valueOf(dbData.toUpperCase());
+            return Payment.PaymentStatus.valueOf(dbData.toUpperCase());
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 }
+

@@ -41,22 +41,9 @@ export const BookExactSetup = ({ setup, vendorName }: BookExactSetupProps) => {
   };
 
   const handleBookNow = () => {
-    // Add to cart with the setup details
-    addToCart({
-      vendorId: setup.vendorId,
-      vendorName: vendorName,
-      packageId: setup.packageId || `setup-${setup.id}`,
-      packageName: setup.title,
-      price: setup.price,
-      basePrice: setup.price,
-      addOns: [],
-      quantity: 1,
-    });
-
-    toast({
-      title: 'Added to Cart!',
-      description: `${setup.title} has been added to your cart`,
-    });
+    // Navigate to listing detail page where user can select date
+    const packageId = setup.packageId || `setup-${setup.id}`;
+    navigate(`/listing/${packageId}`);
   };
 
   return (

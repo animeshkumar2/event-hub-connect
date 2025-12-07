@@ -22,6 +22,7 @@ public class OrderService {
     
     private final OrderRepository orderRepository;
     private final CartItemRepository cartItemRepository;
+    private final CartItemAddOnRepository cartItemAddOnRepository;
     private final ListingRepository listingRepository;
     private final VendorRepository vendorRepository;
     private final AvailabilitySlotRepository availabilitySlotRepository;
@@ -61,25 +62,57 @@ public class OrderService {
             throw new BusinessRuleException("Listing is no longer available");
         }
         
-        // Check availability if date/time provided
-        if (request.getEventDate() != null && request.getEventTime() != null) {
-            AvailabilitySlot slot = availabilitySlotRepository
-                    .findByVendorAndDateAndTimeSlot(vendor, request.getEventDate(), request.getEventTime())
-                    .orElseThrow(() -> new BusinessRuleException("Selected time slot is not available"));
-            
-            if (slot.getStatus() != AvailabilitySlot.SlotStatus.AVAILABLE) {
-                throw new BusinessRuleException("Selected time slot is not available");
+        // Check availability if date/time provided (use cart item date/time if request doesn't have it)
+        LocalDate eventDate = request.getEventDate() != null ? request.getEventDate() : cartItem.getEventDate();
+        String eventTime = request.getEventTime() != null ? request.getEventTime() : cartItem.getEventTime();
+        
+        if (eventDate != null) {
+            // If time slot is provided, check and mark specific slot as booked
+            if (eventTime != null && !eventTime.isEmpty()) {
+                AvailabilitySlot slot = availabilitySlotRepository
+                        .findByVendorAndDateAndTimeSlot(vendor, eventDate, eventTime)
+                        .orElseThrow(() -> new BusinessRuleException("Selected time slot is not available"));
+                
+                if (slot.getStatus() != AvailabilitySlot.SlotStatus.AVAILABLE) {
+                    throw new BusinessRuleException("Selected time slot is not available");
+                }
+                
+                // Mark slot as booked
+                slot.setStatus(AvailabilitySlot.SlotStatus.BOOKED);
+                availabilitySlotRepository.save(slot);
+            } else {
+                // If only date is provided, mark all slots for that day as booked
+                List<AvailabilitySlot> daySlots = availabilitySlotRepository
+                        .findByVendorAndDateAndStatus(vendor, eventDate, AvailabilitySlot.SlotStatus.AVAILABLE);
+                
+                for (AvailabilitySlot slot : daySlots) {
+                    slot.setStatus(AvailabilitySlot.SlotStatus.BOOKED);
+                    availabilitySlotRepository.save(slot);
+                }
             }
-            
-            // Mark slot as booked
-            slot.setStatus(AvailabilitySlot.SlotStatus.BOOKED);
-            availabilitySlotRepository.save(slot);
         }
         
         // Calculate amounts
         BigDecimal baseAmount = cartItem.getBasePrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-        BigDecimal addOnsAmount = BigDecimal.ZERO; // Calculate from cart item add-ons
-        BigDecimal customizationsAmount = BigDecimal.ZERO; // From customizations
+        
+        // Calculate add-ons amount from cart item add-ons
+        BigDecimal addOnsAmount = BigDecimal.ZERO;
+        List<CartItemAddOn> cartItemAddOns = cartItemAddOnRepository.findByCartItem(cartItem);
+        for (CartItemAddOn cartItemAddOn : cartItemAddOns) {
+            BigDecimal addOnTotal = cartItemAddOn.getPrice()
+                    .multiply(BigDecimal.valueOf(cartItemAddOn.getQuantity()));
+            addOnsAmount = addOnsAmount.add(addOnTotal);
+        }
+        
+        // Calculate customizations from cart item customizations JSON
+        BigDecimal customizationsAmount = BigDecimal.ZERO;
+        if (cartItem.getCustomizations() != null && cartItem.getCustomizations().containsKey("price")) {
+            Object priceObj = cartItem.getCustomizations().get("price");
+            if (priceObj instanceof Number) {
+                customizationsAmount = BigDecimal.valueOf(((Number) priceObj).doubleValue());
+            }
+        }
+        
         BigDecimal discountAmount = BigDecimal.ZERO;
         
         // Platform fee: 5% of subtotal
@@ -98,8 +131,8 @@ public class OrderService {
         order.setListing(listing);
         order.setItemType(listing.getType());
         order.setEventType(request.getEventType());
-        order.setEventDate(request.getEventDate());
-        order.setEventTime(request.getEventTime());
+        order.setEventDate(eventDate);
+        order.setEventTime(eventTime);
         order.setVenueAddress(request.getVenueAddress());
         order.setGuestCount(request.getGuestCount());
         order.setBaseAmount(baseAmount);
@@ -112,10 +145,23 @@ public class OrderService {
         order.setCustomerEmail(request.getCustomerEmail());
         order.setCustomerPhone(request.getCustomerPhone());
         order.setNotes(request.getNotes());
+        order.setCustomizations(cartItem.getCustomizations());
         order.setStatus(Order.OrderStatus.PENDING);
         order.setPaymentStatus(Order.PaymentStatus.PENDING);
         
         order = orderRepository.save(order);
+        
+        // Create OrderAddOn records from CartItemAddOn
+        for (CartItemAddOn cartItemAddOn : cartItemAddOns) {
+            OrderAddOn orderAddOn = new OrderAddOn();
+            orderAddOn.setOrderId(order.getId());
+            orderAddOn.setAddOnId(cartItemAddOn.getAddOn().getId());
+            orderAddOn.setOrder(order);
+            orderAddOn.setAddOn(cartItemAddOn.getAddOn());
+            orderAddOn.setQuantity(cartItemAddOn.getQuantity());
+            orderAddOn.setPrice(cartItemAddOn.getPrice());
+            orderAddOnRepository.save(orderAddOn);
+        }
         
         // Create payment record
         Payment payment = new Payment();

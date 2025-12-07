@@ -246,7 +246,7 @@ export const Navbar = () => {
                       Dashboard
                     </Link>
                   ) : (
-                    <Link to="/">
+                    <Link to="/profile">
                       <User className="h-3.5 w-3.5 mr-1.5" />
                       {user.fullName || user.email.split('@')[0]}
                     </Link>
@@ -423,7 +423,7 @@ export const Navbar = () => {
                         Dashboard
                       </Link>
                     ) : (
-                      <Link to="/" onClick={() => setMobileMenuOpen(false)}>
+                      <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                         <User className="h-3.5 w-3.5 mr-1.5" />
                         {user.fullName || user.email.split('@')[0]}
                       </Link>

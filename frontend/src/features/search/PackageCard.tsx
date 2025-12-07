@@ -44,55 +44,9 @@ export const PackageCard: React.FC<PackageCardProps> = ({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     const itemId = pkg.packageId || pkg.id;
-    const itemName = pkg.packageName || pkg.name;
     
-    if (onBookNow) {
-      onBookNow(itemId, pkg.vendorId);
-    } else {
-      // Add to cart functionality
-      const vendor = getVendorById(pkg.vendorId);
-      
-      if (pkg.type === 'package') {
-        const vendorPackage = vendor?.packages.find(p => p.id === itemId);
-        if (vendorPackage) {
-          addToCart({
-            vendorId: pkg.vendorId,
-            vendorName: pkg.vendorName,
-            packageId: itemId,
-            packageName: itemName,
-            price: pkg.price,
-            basePrice: vendorPackage.price,
-            addOns: [],
-            quantity: 1,
-          });
-
-          toast({
-            title: 'Added to Cart!',
-            description: `${itemName} has been added to your cart`,
-          });
-        }
-      } else {
-        // Handle listing
-        const listing = vendor?.listings?.find(l => l.id === itemId);
-        if (listing) {
-          addToCart({
-            vendorId: pkg.vendorId,
-            vendorName: pkg.vendorName,
-            packageId: itemId,
-            packageName: itemName,
-            price: pkg.price,
-            basePrice: listing.price,
-            addOns: [],
-            quantity: 1,
-          });
-
-          toast({
-            title: 'Added to Cart!',
-            description: `${itemName} has been added to your cart`,
-          });
-        }
-      }
-    }
+    // Navigate to listing detail page where user can select date
+    navigate(`/listing/${itemId}`);
   };
 
   // Get first 5 inclusions or all if less than 5 (only for packages)

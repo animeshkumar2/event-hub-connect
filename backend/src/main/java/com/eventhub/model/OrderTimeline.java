@@ -24,7 +24,7 @@ public class OrderTimeline {
     @Column(nullable = false, length = 50)
     private String stage; // e.g., "Lead Received", "Token Paid", "Booking Confirmed"
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = TimelineStatusConverter.class)
     @Column(nullable = false, length = 20)
     private TimelineStatus status = TimelineStatus.PENDING;
     

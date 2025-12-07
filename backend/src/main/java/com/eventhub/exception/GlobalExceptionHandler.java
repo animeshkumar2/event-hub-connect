@@ -56,8 +56,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         // Log the full stack trace for debugging
         ex.printStackTrace();
+        System.err.println("Exception type: " + ex.getClass().getName());
+        System.err.println("Exception message: " + ex.getMessage());
+        if (ex.getCause() != null) {
+            System.err.println("Cause: " + ex.getCause().getClass().getName() + " - " + ex.getCause().getMessage());
+            ex.getCause().printStackTrace();
+        }
         ErrorResponse error = new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred");
-        error.setDetails(ex.getMessage() + " - " + ex.getClass().getSimpleName());
+        String details = ex.getMessage();
+        if (ex.getCause() != null) {
+            details += " | Cause: " + ex.getCause().getMessage();
+        }
+        error.setDetails(details + " - " + ex.getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

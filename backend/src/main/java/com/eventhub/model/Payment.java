@@ -44,7 +44,7 @@ public class Payment {
     @Column(name = "transaction_id", length = 255)
     private String transactionId; // Payment gateway transaction ID
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = PaymentStatusConverterForPayment.class)
     @Column(length = 20)
     private PaymentStatus status = PaymentStatus.PENDING;
     

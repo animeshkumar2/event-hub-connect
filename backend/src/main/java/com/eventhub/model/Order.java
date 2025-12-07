@@ -36,7 +36,7 @@ public class Order {
     @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = ListingTypeConverter.class)
     @Column(name = "item_type", nullable = false, length = 20)
     private Listing.ListingType itemType; // Must match listing.type
     
@@ -81,12 +81,12 @@ public class Order {
     @Column(name = "balance_amount", precision = 10, scale = 2)
     private BigDecimal balanceAmount; // Remaining amount
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = PaymentStatusConverter.class)
     @Column(name = "payment_status", length = 20)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
     
     // Order Status
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OrderStatusConverter.class)
     @Column(length = 20)
     private OrderStatus status = OrderStatus.PENDING;
     

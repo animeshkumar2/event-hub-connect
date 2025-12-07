@@ -14,9 +14,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "cart_items")
+@EntityListeners(CartItemListener.class)
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
+@lombok.EqualsAndHashCode(exclude = {"vendor", "listing"})
 public class CartItem {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -33,9 +34,41 @@ public class CartItem {
     @JoinColumn(name = "listing_id", nullable = false)
     private Listing listing;
     
-    @Enumerated(EnumType.STRING)
     @Column(name = "item_type", nullable = false, length = 20)
-    private Listing.ListingType itemType; // Must match listing.type
+    private String itemType; // Store as lowercase: 'package' or 'item' to match database constraint
+    
+    // Override Lombok's setter to ensure lowercase - CRITICAL for database constraint
+    public void setItemType(String itemType) {
+        if (itemType != null) {
+            this.itemType = itemType.toLowerCase();
+        } else {
+            this.itemType = null;
+        }
+    }
+    
+    public String getItemType() {
+        return itemType;
+    }
+    
+    // Getter that returns enum
+    public Listing.ListingType getItemTypeEnum() {
+        if (itemType == null) return null;
+        try {
+            return Listing.ListingType.valueOf(itemType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+    
+    // Setter that accepts enum and converts to lowercase string
+    public void setItemTypeEnum(Listing.ListingType type) {
+        if (type == null) {
+            this.itemType = null;
+        } else {
+            // Directly set to lowercase - @PrePersist will also ensure it's lowercase
+            this.itemType = type.name().toLowerCase();
+        }
+    }
     
     @Column(nullable = false)
     private Integer quantity = 1;
@@ -66,6 +99,16 @@ public class CartItem {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        // Ensure itemType is set from listing if not already set
+        if (itemType == null && listing != null && listing.getType() != null) {
+            // Set directly to lowercase - bypass setter to ensure it's set correctly
+            this.itemType = listing.getType().name().toLowerCase();
+        }
+        // CRITICAL: Force lowercase by directly setting field - Hibernate uses field access
+        // This ensures the value is lowercase before database insertion
+        if (itemType != null) {
+            this.itemType = itemType.toLowerCase();
+        }
     }
     
     @PreUpdate

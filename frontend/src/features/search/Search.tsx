@@ -408,7 +408,7 @@ const Search = () => {
                 </p>
               </div>
 
-              <div className="grid gap-3 lg:grid-cols-3">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {vendors.map((vendor: any) => (
                   <VendorCard
                     key={vendor.id}
@@ -450,8 +450,7 @@ const Search = () => {
               </div>
 
               <div className={cn(
-                "grid gap-3",
-                listingType === 'packages' ? "lg:grid-cols-3" : "lg:grid-cols-4"
+                "grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
               )}>
                 {filteredListings.map((listing: any) => {
                   try {
