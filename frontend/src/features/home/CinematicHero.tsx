@@ -1,34 +1,27 @@
-import { Button } from '@/shared/components/ui/button';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Search } from 'lucide-react';
+import { Camera, Music, Utensils, Sparkles, Palette, Heart } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { SlidingButtons, buttonOptions } from './SlidingButtons';
 
 export const CinematicHero = () => {
-  const [activeSlide, setActiveSlide] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [description, setDescription] = useState(buttonOptions[0].description);
   const heroRef = useRef<HTMLElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const floatingIconsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % 2);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Parallax effect on scroll (subtle)
+  // Parallax effect on scroll
   useEffect(() => {
     const handleScroll = () => {
       if (!heroRef.current) return;
       const scrolled = window.scrollY;
-      // Only apply parallax when scrolled past hero
       if (scrolled < window.innerHeight) {
-        const parallax = scrolled * 0.3;
+        const parallax = scrolled * 0.5;
         heroRef.current.style.transform = `translateY(${parallax}px)`;
       }
     };
@@ -37,124 +30,227 @@ export const CinematicHero = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Mouse move parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e;
+      const { innerWidth, innerHeight } = window;
+      const x = (clientX / innerWidth - 0.5) * 20;
+      const y = (clientY / innerHeight - 0.5) * 20;
+      setMousePosition({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Floating icons animation
+  const floatingIcons = [
+    { icon: Camera, delay: 0, x: '10%', y: '20%' },
+    { icon: Music, delay: 0.5, x: '85%', y: '30%' },
+    { icon: Utensils, delay: 1, x: '15%', y: '70%' },
+    { icon: Sparkles, delay: 1.5, x: '80%', y: '65%' },
+    { icon: Palette, delay: 2, x: '50%', y: '15%' },
+    { icon: Heart, delay: 2.5, x: '70%', y: '80%' },
+  ];
+
   return (
     <section 
       ref={heroRef}
-      className="relative min-h-[85vh] overflow-hidden pb-20 parallax-slow"
+      className="relative min-h-[90vh] overflow-hidden"
     >
-      {/* Single Background Image */}
+      {/* Background Image with Strong Blur */}
       <div className="absolute inset-0">
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage: 'url(/_.jpeg)',
             backgroundPosition: 'center',
-            filter: 'blur(3px)',
-            transform: 'scale(1.1)',
-            transition: 'transform 0.3s ease-out',
+            filter: 'blur(8px) brightness(0.4)',
+            transform: `scale(1.15) translate(${mousePosition.x * 0.01}px, ${mousePosition.y * 0.01}px)`,
+            transition: 'transform 0.1s ease-out',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
+        {/* Strong Dark Overlay for Better Text Visibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-black/60" />
       </div>
 
-      {/* Dark Gradient Overlay at Bottom */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+      {/* Animated Blur Circles Behind Text */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-5">
+        <div 
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/20 blur-3xl animate-pulse-slow"
+          style={{
+            transform: `translate(${mousePosition.x * 0.05}px, ${mousePosition.y * 0.05}px)`,
+            animation: 'pulse-slow 4s ease-in-out infinite',
+          }}
+        />
+        <div 
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-secondary/20 blur-3xl animate-pulse-slow"
+          style={{
+            transform: `translate(${-mousePosition.x * 0.05}px, ${-mousePosition.y * 0.05}px)`,
+            animation: 'pulse-slow 4s ease-in-out infinite',
+            animationDelay: '2s',
+          }}
+        />
+        <div 
+          className="absolute top-1/2 left-1/2 w-80 h-80 rounded-full bg-primary-glow/15 blur-3xl"
+          style={{
+            transform: `translate(-50%, -50%) translate(${mousePosition.x * 0.03}px, ${mousePosition.y * 0.03}px)`,
+            animation: 'pulse-slow 5s ease-in-out infinite',
+            animationDelay: '1s',
+          }}
+        />
+      </div>
 
-      {/* Content - Left Aligned, Bold Typography */}
+      {/* Floating Icons */}
+      <div ref={floatingIconsRef} className="absolute inset-0 pointer-events-none z-0">
+        {floatingIcons.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={index}
+              className="absolute opacity-25 hover:opacity-40 transition-opacity duration-300 animate-float-icon"
+              style={{
+                left: item.x,
+                top: item.y,
+                transform: `translate(${mousePosition.x * 0.1}px, ${mousePosition.y * 0.1}px)`,
+                animationDelay: `${item.delay}s`,
+              }}
+            >
+              <Icon 
+                className="w-10 h-10 md:w-14 md:h-14 text-white drop-shadow-lg"
+                style={{
+                  filter: 'drop-shadow(0 0 15px rgba(255, 255, 255, 0.4))',
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Content - Center Aligned */}
       <div className="relative z-10 container mx-auto px-4 md:px-8 lg:px-12">
-        <div className="flex items-center min-h-[85vh] py-16">
-          <div className={cn(
-            "max-w-3xl space-y-6 animate-on-scroll",
-            isLoaded && "animate-fade-in-up"
-          )} style={{
-            opacity: isLoaded ? 1 : 0,
-            transform: isLoaded ? 'translateY(0)' : 'translateY(40px)',
-            transition: 'opacity 1s ease-out, transform 1s ease-out',
-          }}>
-            {/* Main Headline - Bold, Stretched Typography */}
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
-              BOOK EVENT
-              <br />
-              VENDORS
-            </h1>
+        <div className="flex items-center justify-center min-h-[90vh] py-20">
+          <div 
+            ref={textRef}
+            className={cn(
+              "max-w-4xl space-y-6 text-center",
+              isLoaded && "animate-fade-in-up"
+            )} 
+            style={{
+              opacity: isLoaded ? 1 : 0,
+              transform: isLoaded ? 'translateY(0)' : 'translateY(40px)',
+              transition: 'opacity 1.2s ease-out, transform 1.2s ease-out',
+            }}
+          >
+            {/* Main Headline - Center Aligned, Smaller */}
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.2] tracking-tight drop-shadow-2xl">
+                <span 
+                  className={cn(
+                    "inline-block",
+                    isLoaded && "animate-hero-slide-in-left"
+                  )}
+                  style={{
+                    animationDelay: isLoaded ? '0.2s' : '0s',
+                    textShadow: '0 4px 20px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  One Stop
+                </span>
+                <br />
+                <span 
+                  className={cn(
+                    "inline-block",
+                    isLoaded && "animate-hero-slide-in-left"
+                  )}
+                  style={{
+                    animationDelay: isLoaded ? '0.4s' : '0s',
+                    textShadow: '0 4px 20px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  for All Your
+                </span>
+                <br />
+                <span 
+                  className={cn(
+                    "inline-block bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent animate-gradient-text",
+                    isLoaded && "animate-hero-slide-in-left"
+                  )}
+                  style={{
+                    animationDelay: isLoaded ? '0.6s' : '0s',
+                    filter: 'drop-shadow(0 4px 20px rgba(120, 103, 220, 0.5))',
+                  }}
+                >
+                  Events
+                </span>
+              </h1>
+            </div>
             
-            {/* Subtext Line */}
-            <div className="h-0.5 w-20 bg-white/80" />
+            {/* Decorative Line - Centered */}
+            <div 
+              className={cn(
+                "h-1 w-20 bg-gradient-to-r from-primary to-secondary rounded-full mx-auto",
+                isLoaded && "animate-hero-expand-width"
+              )}
+              style={{
+                animationDelay: isLoaded ? '0.8s' : '0s',
+              }}
+            />
             
-            {/* Animated Text Slides Container */}
-            <div className="relative min-h-[240px] md:min-h-[200px] overflow-visible">
-              {/* Slide 1: Vendor Types */}
-              <div
-                className={cn(
-                  "absolute inset-0 transition-all duration-700 ease-in-out smooth-transition",
-                  activeSlide === 0
-                    ? "opacity-100 translate-x-0 z-10"
-                    : "opacity-0 -translate-x-full z-0"
-                )}
-              >
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 leading-tight">
-                  Find All Your
-                  <br />
-                  <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
-                    Event Vendors
-                  </span>
-                </h2>
-                <p className="text-base md:text-lg text-white/90 font-light tracking-wide max-w-2xl leading-relaxed mb-6">
-                  Photographers · Decorators · DJs · Makeup Artists · Caterers · More — All in One Place.
-                </p>
-                <div className="pt-2 relative z-20">
-                  <Button 
-                    size="default" 
-                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group micro-bounce"
-                    asChild
-                  >
-                    <Link to="/search">
-                      <Search className="mr-2 h-4 w-4" />
-                      Browse Categories
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform smooth-transition" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Slide 2: Event Planner */}
-              <div
-                className={cn(
-                  "absolute inset-0 transition-all duration-700 ease-in-out smooth-transition",
-                  activeSlide === 1
-                    ? "opacity-100 translate-x-0 z-10"
-                    : "opacity-0 translate-x-full z-0"
-                )}
-              >
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 leading-tight">
-                  Plan Your Complete
-                  <br />
-                  <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
-                    Event Experience
-                  </span>
-                </h2>
-                <p className="text-base md:text-lg text-white/90 font-light tracking-wide max-w-2xl leading-relaxed mb-6">
-                  Tell us your budget and event details. We'll recommend the perfect vendors and you can book them all in one checkout!
-                </p>
-                <div className="pt-2 relative z-20">
-                  <Button 
-                    size="default" 
-                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group micro-bounce"
-                    asChild
-                  >
-                    <Link to="/event-planner">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Start Planning Now
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform smooth-transition" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+            {/* Subheadline - Center Aligned, Smaller - Changes with Sliding Buttons */}
+            <p 
+              key={description}
+              className={cn(
+                "text-base md:text-lg lg:text-xl text-white/95 font-light tracking-wide max-w-2xl mx-auto leading-relaxed transition-opacity duration-500",
+                isLoaded && "animate-hero-fade-in-up"
+              )}
+              style={{
+                animationDelay: isLoaded ? '1s' : '0s',
+                textShadow: '0 2px 10px rgba(0, 0, 0, 0.8), 0 1px 5px rgba(0, 0, 0, 0.6)',
+              }}
+            >
+              {description}
+            </p>
+            
+            {/* Sliding Buttons - Centered */}
+            <div 
+              className={cn(
+                "pt-4 flex justify-center",
+                isLoaded && "animate-hero-bounce-in"
+              )}
+              style={{
+                animationDelay: isLoaded ? '1.2s' : '0s',
+              }}
+            >
+              <SlidingButtons onActiveChange={setDescription} />
             </div>
           </div>
         </div>
       </div>
 
+      {/* Animated Background Particles - More Subtle */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {[...Array(15)].map((_, i) => {
+          const delay = Math.random() * 5;
+          const duration = Math.random() * 10 + 15;
+          return (
+            <div
+              key={i}
+              className="absolute rounded-full bg-white/5 animate-float-particle blur-sm"
+              style={{
+                width: `${Math.random() * 3 + 1}px`,
+                height: `${Math.random() * 3 + 1}px`,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDuration: `${duration}s`,
+                animationDelay: `${delay}s`,
+              }}
+            />
+          );
+        })}
+      </div>
     </section>
   );
 };

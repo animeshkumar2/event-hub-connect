@@ -128,6 +128,8 @@ const Search = () => {
           vendorReviewCount: listing.vendorReviewCount || 0,
           vendorCity: listing.vendorCity || '',
           vendorCoverageRadius: listing.vendorCoverageRadius || 0,
+          // Preserve eventTypeIds for filtering
+          eventTypeIds: listing.eventTypeIds || [],
         };
         return transformed;
       });
@@ -137,14 +139,30 @@ const Search = () => {
     }
   }, [listings]);
 
-  // Filter listings based on listing type
+  // Filter listings based on listing type and event type
   const filteredListings = useMemo(() => {
     let filtered = transformedListings;
+    
+    // Filter by listing type (packages vs items)
     if (listingType === 'packages') {
       filtered = filtered.filter((item: any) => item.type === 'PACKAGE' || item.type === 'package');
     }
+    
+    // Additional frontend filtering: Ensure event type matches if eventTypeId is set
+    if (eventTypeId && !isNaN(eventTypeId)) {
+      filtered = filtered.filter((item: any) => {
+        // If listing has eventTypeIds, check if it includes the selected event type
+        if (item.eventTypeIds && Array.isArray(item.eventTypeIds) && item.eventTypeIds.length > 0) {
+          return item.eventTypeIds.includes(eventTypeId);
+        }
+        // If no eventTypeIds are set, exclude it (safety measure)
+        // This ensures packages without event types don't show up in filtered results
+        return false;
+      });
+    }
+    
     return filtered;
-  }, [transformedListings, listingType]);
+  }, [transformedListings, listingType, eventTypeId]);
 
   // Get current event type name
   const currentEventType = eventTypes.find((et: any) => et.id === eventTypeId);

@@ -503,4 +503,96 @@ All colors MUST be HSL.
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  @keyframes hero-slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes hero-fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes hero-bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.8) translateY(20px);
+    }
+    50% {
+      transform: scale(1.05) translateY(-5px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes hero-expand-width {
+    from {
+      width: 0;
+      opacity: 0;
+    }
+    to {
+      width: 96px;
+      opacity: 1;
+    }
+  }
+
+  @keyframes hero-float-icon {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes float-particle {
+    0%, 100% {
+      transform: translateY(0px) translateX(0px);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translateY(-100px) translateX(50px);
+      opacity: 0.8;
+    }
+  }
+
+  .animate-hero-slide-in-left {
+    animation: hero-slide-in-left 0.8s ease-out both;
+  }
+
+  .animate-hero-fade-in-up {
+    animation: hero-fade-in-up 1s ease-out both;
+  }
+
+  .animate-hero-bounce-in {
+    animation: hero-bounce-in 1s ease-out both;
+  }
+
+  .animate-hero-expand-width {
+    animation: hero-expand-width 1s ease-out both;
+    transform-origin: left;
+  }
+
+  .animate-float-icon {
+    animation: hero-float-icon 6s ease-in-out infinite;
+  }
+
+  .animate-float-particle {
+    animation: float-particle 15s ease-in-out infinite;
+  }
 }
