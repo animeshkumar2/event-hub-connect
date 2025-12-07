@@ -32,8 +32,11 @@ export function useApi<T>(
             } else {
               setData(responseData);
             }
+            setError(null); // Clear any previous errors
           } else {
+            // Handle error response (e.g., 404 with success: false)
             setError(response?.message || 'Failed to fetch data');
+            setData(null); // Clear data on error
           }
         }
       } catch (err: any) {
@@ -246,5 +249,19 @@ export function useMyVendorBookableSetups() {
 
 export function useVendorUpcomingOrders() {
   return useApi(() => vendorApi.getUpcomingOrders());
+}
+
+export function useListingDetails(listingId: string | null) {
+  return useApi(
+    () => listingId ? publicApi.getListing(listingId) : Promise.resolve({ success: false, data: null, message: 'No listing ID' }),
+    [listingId]
+  );
+}
+
+export function usePackageDetails(packageId: string | null) {
+  return useApi(
+    () => packageId ? publicApi.getPackage(packageId) : Promise.resolve({ success: false, data: null, message: 'No package ID' }),
+    [packageId]
+  );
 }
 

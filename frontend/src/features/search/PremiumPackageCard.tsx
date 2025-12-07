@@ -6,6 +6,7 @@ import { Package, categories } from '@/shared/constants/mockData';
 import { cn } from '@/shared/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
 import { PackageCustomization } from '@/features/vendor/PackageCustomization';
+import { useNavigate } from 'react-router-dom';
 
 interface PremiumPackageCardProps {
   pkg: Package;
@@ -51,12 +52,23 @@ export const PremiumPackageCard = ({
   showOtherPackagesButton = false,
   onShowOtherPackages
 }: PremiumPackageCardProps) => {
+  const navigate = useNavigate();
   const colors = themeColors[theme];
   const packageCategory = pkg.category || vendorCategory || '';
   const categoryName = categories.find(c => c.id === packageCategory)?.name || packageCategory;
 
+  const handleCardClick = () => {
+    // Navigate to listing detail page
+    if (pkg.id) {
+      navigate(`/listing/${pkg.id}`);
+    }
+  };
+
   return (
-    <Card className="overflow-hidden rounded-2xl border-0 shadow-card hover-lift">
+    <Card 
+      className="overflow-hidden rounded-2xl border-0 shadow-card hover-lift cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="relative aspect-video overflow-hidden group">
         <img
           src={pkg.images?.[0] || 'https://via.placeholder.com/400x300'}
@@ -181,7 +193,7 @@ export const PremiumPackageCard = ({
 
         {/* Show Other Packages Button */}
         {showOtherPackagesButton && onShowOtherPackages && (
-          <div className="pt-2 border-t">
+          <div className="pt-2 border-t" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               className="w-full rounded-xl"
@@ -194,7 +206,7 @@ export const PremiumPackageCard = ({
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4 border-t">
+        <div className="flex gap-3 pt-4 border-t" onClick={(e) => e.stopPropagation()}>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex-1 rounded-xl">

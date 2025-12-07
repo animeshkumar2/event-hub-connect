@@ -17,6 +17,7 @@ import {
   ChevronRight,
   LogOut,
   ClipboardList,
+  FileQuestion,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 
@@ -31,6 +32,7 @@ const menuItems = [
   { icon: Wallet, label: 'Wallet', path: '/vendor/wallet' },
   { icon: BarChart3, label: 'Analytics', path: '/vendor/analytics' },
   { icon: Star, label: 'Reviews', path: '/vendor/reviews' },
+  { icon: FileQuestion, label: 'FAQs', path: '/vendor/faqs' },
   { icon: Settings, label: 'Settings', path: '/vendor/settings' },
   { icon: HelpCircle, label: 'Help', path: '/vendor/help' },
 ];

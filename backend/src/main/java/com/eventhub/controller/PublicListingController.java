@@ -2,6 +2,7 @@ package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
 import com.eventhub.dto.ListingDTO;
+import com.eventhub.exception.NotFoundException;
 import com.eventhub.model.Listing;
 import com.eventhub.repository.ListingRepository;
 import com.eventhub.util.ListingMapper;
@@ -22,7 +23,7 @@ public class PublicListingController {
     @GetMapping("/packages/{packageId}")
     public ResponseEntity<ApiResponse<ListingDTO>> getPackage(@PathVariable UUID packageId) {
         Listing listing = listingRepository.findById(packageId)
-                .orElseThrow(() -> new RuntimeException("Package not found"));
+                .orElseThrow(() -> new NotFoundException("Package not found"));
         ListingDTO dto = listingMapper.toDTO(listing);
         return ResponseEntity.ok(ApiResponse.success(dto));
     }
@@ -30,7 +31,7 @@ public class PublicListingController {
     @GetMapping("/listings/{listingId}")
     public ResponseEntity<ApiResponse<ListingDTO>> getListing(@PathVariable UUID listingId) {
         Listing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new RuntimeException("Listing not found"));
+                .orElseThrow(() -> new NotFoundException("Listing not found"));
         ListingDTO dto = listingMapper.toDTO(listing);
         return ResponseEntity.ok(ApiResponse.success(dto));
     }

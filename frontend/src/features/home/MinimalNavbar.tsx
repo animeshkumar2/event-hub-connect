@@ -101,7 +101,7 @@ export const MinimalNavbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center gap-6">
             <Link
               to="/"
               className={cn(
@@ -243,17 +243,19 @@ export const MinimalNavbar = () => {
               Event Planner
             </Link>
 
-            <Link
-              to="/vendor/onboarding"
-              className={cn(
-                'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
-                scrolled 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-            >
-              Become a Vendor
-            </Link>
+            {user?.role !== 'VENDOR' && (
+              <Link
+                to="/vendor/onboarding"
+                className={cn(
+                  'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
+                  scrolled 
+                    ? 'text-foreground hover:text-primary hover:bg-primary/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                )}
+              >
+                Become a Vendor
+              </Link>
+            )}
 
             {/* Cart */}
             <Button
@@ -309,8 +311,8 @@ export const MinimalNavbar = () => {
                   className={cn(
                     'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
                     scrolled 
-                      ? 'border-border' 
-                      : 'border-white/20 text-white/90 hover:bg-white/10'
+                      ? 'border-border text-foreground hover:bg-muted' 
+                      : 'border-white/30 bg-white/95 text-foreground hover:bg-white shadow-sm backdrop-blur-sm'
                   )}
                   onClick={logout}
                 >
@@ -486,18 +488,20 @@ export const MinimalNavbar = () => {
               Event Planner
             </Link>
 
-            <Link
-              to="/vendor/onboarding"
-              className={cn(
-                'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
-                scrolled 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Become a Vendor
-            </Link>
+            {user?.role !== 'VENDOR' && (
+              <Link
+                to="/vendor/onboarding"
+                className={cn(
+                  'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
+                  scrolled 
+                    ? 'text-foreground hover:text-primary hover:bg-primary/5' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Become a Vendor
+              </Link>
+            )}
 
             <Link
               to="/cart"
@@ -545,12 +549,13 @@ export const MinimalNavbar = () => {
                     )}
                   </Button>
                   <Button 
+                    variant="outline"
                     size="sm" 
                     className={cn(
                       'flex-1 h-8 text-xs font-semibold',
                       scrolled 
-                        ? 'bg-primary hover:bg-primary/90 shadow-md' 
-                        : 'bg-white/95 hover:bg-white text-foreground shadow-md border border-white/20'
+                        ? 'border-border text-foreground hover:bg-muted' 
+                        : 'border-white/30 bg-white/95 text-foreground hover:bg-white shadow-sm backdrop-blur-sm'
                     )}
                     onClick={() => {
                       logout();

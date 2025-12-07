@@ -1,12 +1,13 @@
 import { Button } from '@/shared/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/shared/lib/utils';
 
 export const CinematicHero = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -20,8 +21,27 @@ export const CinematicHero = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Parallax effect on scroll (subtle)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!heroRef.current) return;
+      const scrolled = window.scrollY;
+      // Only apply parallax when scrolled past hero
+      if (scrolled < window.innerHeight) {
+        const parallax = scrolled * 0.3;
+        heroRef.current.style.transform = `translateY(${parallax}px)`;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <section className="relative min-h-[85vh] overflow-hidden pb-20">
+    <section 
+      ref={heroRef}
+      className="relative min-h-[85vh] overflow-hidden pb-20 parallax-slow"
+    >
       {/* Single Background Image */}
       <div className="absolute inset-0">
         <div 
@@ -30,6 +50,8 @@ export const CinematicHero = () => {
             backgroundImage: 'url(/_.jpeg)',
             backgroundPosition: 'center',
             filter: 'blur(3px)',
+            transform: 'scale(1.1)',
+            transition: 'transform 0.3s ease-out',
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
@@ -41,7 +63,14 @@ export const CinematicHero = () => {
       {/* Content - Left Aligned, Bold Typography */}
       <div className="relative z-10 container mx-auto px-4 md:px-8 lg:px-12">
         <div className="flex items-center min-h-[85vh] py-16">
-          <div className="max-w-3xl space-y-6">
+          <div className={cn(
+            "max-w-3xl space-y-6 animate-on-scroll",
+            isLoaded && "animate-fade-in-up"
+          )} style={{
+            opacity: isLoaded ? 1 : 0,
+            transform: isLoaded ? 'translateY(0)' : 'translateY(40px)',
+            transition: 'opacity 1s ease-out, transform 1s ease-out',
+          }}>
             {/* Main Headline - Bold, Stretched Typography */}
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
               BOOK EVENT
@@ -57,7 +86,7 @@ export const CinematicHero = () => {
               {/* Slide 1: Vendor Types */}
               <div
                 className={cn(
-                  "absolute inset-0 transition-all duration-700 ease-in-out",
+                  "absolute inset-0 transition-all duration-700 ease-in-out smooth-transition",
                   activeSlide === 0
                     ? "opacity-100 translate-x-0 z-10"
                     : "opacity-0 -translate-x-full z-0"
@@ -76,13 +105,13 @@ export const CinematicHero = () => {
                 <div className="pt-2 relative z-20">
                   <Button 
                     size="default" 
-                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group"
+                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group micro-bounce"
                     asChild
                   >
                     <Link to="/search">
                       <Search className="mr-2 h-4 w-4" />
                       Browse Categories
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform smooth-transition" />
                     </Link>
                   </Button>
                 </div>
@@ -91,7 +120,7 @@ export const CinematicHero = () => {
               {/* Slide 2: Event Planner */}
               <div
                 className={cn(
-                  "absolute inset-0 transition-all duration-700 ease-in-out",
+                  "absolute inset-0 transition-all duration-700 ease-in-out smooth-transition",
                   activeSlide === 1
                     ? "opacity-100 translate-x-0 z-10"
                     : "opacity-0 translate-x-full z-0"
@@ -110,13 +139,13 @@ export const CinematicHero = () => {
                 <div className="pt-2 relative z-20">
                   <Button 
                     size="default" 
-                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group"
+                    className="text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary border-0 shadow-xl hover:shadow-primary/50 hover-lift transition-all duration-300 group micro-bounce"
                     asChild
                   >
                     <Link to="/event-planner">
                       <Sparkles className="mr-2 h-4 w-4" />
                       Start Planning Now
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform smooth-transition" />
                     </Link>
                   </Button>
                 </div>

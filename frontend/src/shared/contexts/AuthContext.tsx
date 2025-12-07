@@ -18,6 +18,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
+  refreshVendorInfo: () => Promise<void>;
 }
 
 interface RegisterData {
@@ -99,7 +100,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           } catch (error) {
             console.error('Error fetching vendor ID:', error);
-            // Vendor might not have completed onboarding yet
+            // Vendor might not have completed onboarding yet - this is OK
+            // They will be redirected to onboarding if needed
           }
         }
       } else {
@@ -192,6 +194,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const refreshVendorInfo = async () => {
+    if (!user || !token) return;
+    
+    try {
+      // If user is a vendor, fetch vendor ID
+      if (user.role === 'VENDOR') {
+        const vendorResponse = await vendorApi.getVendorByUserId(user.id);
+        if (vendorResponse.success && vendorResponse.data) {
+          const vendorId = vendorResponse.data.id;
+          localStorage.setItem('vendor_id', vendorId);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing vendor info:', error);
+      // Vendor might not have completed onboarding yet
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -203,6 +223,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         register,
         logout,
         updateUser,
+        refreshVendorInfo,
       }}
     >
       {children}

@@ -77,7 +77,7 @@ export const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center gap-6">
             <Link 
               to="/" 
               className="text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md hover:text-primary hover:bg-primary/5"
@@ -205,12 +205,14 @@ export const Navbar = () => {
               Event Planner
             </Link>
 
-            <Link
-              to="/vendor/onboarding"
-              className="text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md hover:text-primary hover:bg-primary/5"
-            >
-              Become a Vendor
-            </Link>
+            {user?.role !== 'VENDOR' && (
+              <Link
+                to="/vendor/onboarding"
+                className="text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md hover:text-primary hover:bg-primary/5"
+              >
+                Become a Vendor
+              </Link>
+            )}
 
             {/* Cart */}
             <Button
@@ -382,13 +384,15 @@ export const Navbar = () => {
               Event Planner
             </Link>
 
-            <Link
-              to="/vendor/onboarding"
-              className="block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 hover:text-primary hover:bg-primary/5"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Become a Vendor
-            </Link>
+            {user?.role !== 'VENDOR' && (
+              <Link
+                to="/vendor/onboarding"
+                className="block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 hover:text-primary hover:bg-primary/5"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Become a Vendor
+              </Link>
+            )}
 
             <Link
               to="/cart"

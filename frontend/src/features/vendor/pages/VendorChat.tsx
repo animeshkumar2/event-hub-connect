@@ -14,107 +14,125 @@ import {
   Phone,
   ExternalLink,
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useVendorChatThreads } from '@/shared/hooks/useApi';
+import { vendorApi } from '@/shared/services/api';
+import { format } from 'date-fns';
 
 interface ChatThread {
   id: string;
-  name: string;
-  lastMessage: string;
-  time: string;
-  unread: number;
-  avatar: string;
-  event: string;
-  status: 'lead' | 'booked';
+  customer?: {
+    name?: string;
+    email?: string;
+  };
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCount?: number;
+  order?: {
+    id?: string;
+    eventType?: string;
+    eventDate?: string;
+  };
 }
 
 interface Message {
   id: string;
-  sender: 'vendor' | 'customer';
-  text: string;
-  time: string;
-  attachment?: { type: 'image' | 'pdf'; url: string; name: string };
+  content: string;
+  senderType: 'VENDOR' | 'CUSTOMER';
+  createdAt: string;
 }
 
 export default function VendorChat() {
-  const [selectedChat, setSelectedChat] = useState<ChatThread | null>(null);
-  const [inputValue, setInputValue] = useState('');
+  const { data: threadsData, loading: threadsLoading, refetch: refetchThreads } = useVendorChatThreads();
+  const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const threads: ChatThread[] = [
-    {
-      id: '1',
-      name: 'Priya Sharma',
-      lastMessage: 'Can you share some samples of your work?',
-      time: '2 min ago',
-      unread: 2,
-      avatar: 'P',
-      event: 'Wedding - Dec 15',
-      status: 'lead',
-    },
-    {
-      id: '2',
-      name: 'Rahul Mehta',
-      lastMessage: 'Thanks for the quote! Let me discuss with my team.',
-      time: '1 hour ago',
-      unread: 0,
-      avatar: 'R',
-      event: 'Corporate - Dec 20',
-      status: 'lead',
-    },
-    {
-      id: '3',
-      name: 'Sharma Family',
-      lastMessage: 'Looking forward to the event!',
-      time: '3 hours ago',
-      unread: 0,
-      avatar: 'S',
-      event: 'Wedding - Dec 15',
-      status: 'booked',
-    },
-  ];
+  const threads: ChatThread[] = threadsData || [];
 
-  const mockMessages: Message[] = [
-    {
-      id: '1',
-      sender: 'customer',
-      text: 'Hi, I saw your portfolio and loved your work!',
-      time: '10:30 AM',
-    },
-    {
-      id: '2',
-      sender: 'vendor',
-      text: 'Thank you so much! I\'d be happy to discuss your requirements. What kind of event are you planning?',
-      time: '10:32 AM',
-    },
-    {
-      id: '3',
-      sender: 'customer',
-      text: 'It\'s for my wedding on December 15th. We need photography for the entire day.',
-      time: '10:35 AM',
-    },
-    {
-      id: '4',
-      sender: 'vendor',
-      text: 'That sounds wonderful! I have that date available. Let me share some wedding samples with you.',
-      time: '10:36 AM',
-    },
-    {
-      id: '5',
-      sender: 'vendor',
-      text: '',
-      time: '10:37 AM',
-      attachment: { type: 'image', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400', name: 'wedding-sample.jpg' },
-    },
-    {
-      id: '6',
-      sender: 'customer',
-      text: 'Can you share some samples of your work?',
-      time: '10:40 AM',
-    },
-  ];
+  useEffect(() => {
+    if (selectedThread) {
+      loadMessages(selectedThread.id);
+    }
+  }, [selectedThread]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  const loadMessages = async (threadId: string) => {
+    setLoadingMessages(true);
+    try {
+      const response = await vendorApi.getMessages(threadId, 0, 50);
+      if (response.success) {
+        const messagesData = response.data?.content || response.data || [];
+        setMessages(messagesData);
+        // Mark thread as read
+        try {
+          await vendorApi.markThreadAsRead(threadId);
+          refetchThreads();
+        } catch (err) {
+          console.error('Error marking thread as read:', err);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error loading messages:', err);
+      toast.error('Failed to load messages');
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || !selectedThread) return;
+
+    setSending(true);
+    try {
+      const response = await vendorApi.sendMessage(selectedThread.id, inputValue.trim());
+      if (response.success) {
+        setInputValue('');
+        await loadMessages(selectedThread.id);
+        refetchThreads();
+      } else {
+        toast.error(response.message || 'Failed to send message');
+      }
+    } catch (err: any) {
+      console.error('Error sending message:', err);
+      toast.error(err.message || 'Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'h:mm a');
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      if (isToday) return 'Today';
+      return format(date, 'MMM dd');
+    } catch {
+      return dateString;
+    }
+  };
 
   const cannedReplies = [
     'Thank you for reaching out! I\'d be happy to help.',
@@ -122,30 +140,6 @@ export default function VendorChat() {
     'I\'ll send you a detailed quote shortly.',
     'Feel free to ask any questions!',
   ];
-
-  useEffect(() => {
-    if (selectedChat) {
-      setMessages(mockMessages);
-    }
-  }, [selectedChat]);
-
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: 'vendor',
-      text: inputValue,
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    setInputValue('');
-  };
 
   const handleCannedReply = (reply: string) => {
     setInputValue(reply);
@@ -157,7 +151,7 @@ export default function VendorChat() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
           {/* Chat List */}
           <div className="lg:col-span-1">
-            <Card className="border-border shadow-card border-border h-full">
+            <Card className="border-border shadow-card border-border h-full flex flex-col">
               <CardHeader className="pb-4">
                 <CardTitle className="text-foreground">Messages</CardTitle>
                 <div className="relative mt-2">
@@ -165,60 +159,85 @@ export default function VendorChat() {
                   <Input placeholder="Search conversations..." className="pl-10 bg-muted/50 border-border text-foreground" />
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-240px)]">
-                  {threads.map((thread) => (
-                    <div
-                      key={thread.id}
-                      onClick={() => setSelectedChat(thread)}
-                      className={`flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
-                        selectedChat?.id === thread.id ? 'bg-white/10' : ''
-                      }`}
-                    >
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="text-primary font-semibold text-lg">{thread.avatar}</span>
-                        </div>
-                        {thread.unread > 0 && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
-                            <span className="text-xs text-secondary-foreground font-bold">{thread.unread}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-foreground font-medium truncate">{thread.name}</p>
-                          <span className="text-xs text-foreground/40">{thread.time}</span>
-                        </div>
-                        <p className="text-sm text-foreground/60 truncate">{thread.lastMessage}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className={thread.status === 'booked' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'} variant="outline">
-                            {thread.status}
-                          </Badge>
-                          <span className="text-xs text-foreground/40">{thread.event}</span>
-                        </div>
-                      </div>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                {threadsLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : threads.length === 0 ? (
+                  <div className="flex items-center justify-center p-8 text-center">
+                    <div>
+                      <MessageSquare className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
+                      <p className="text-foreground/60">No conversations yet</p>
                     </div>
-                  ))}
-                </ScrollArea>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-full">
+                    {threads.map((thread) => (
+                      <div
+                        key={thread.id}
+                        onClick={() => setSelectedThread(thread)}
+                        className={`flex items-center gap-4 p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
+                          selectedThread?.id === thread.id ? 'bg-white/10' : ''
+                        }`}
+                      >
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-primary font-semibold text-lg">
+                              {thread.customer?.name?.[0]?.toUpperCase() || 'C'}
+                            </span>
+                          </div>
+                          {thread.unreadCount && thread.unreadCount > 0 && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-secondary flex items-center justify-center">
+                              <span className="text-xs text-secondary-foreground font-bold">{thread.unreadCount}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-foreground font-medium truncate">{thread.customer?.name || 'Customer'}</p>
+                            {thread.lastMessageAt && (
+                              <span className="text-xs text-foreground/40">{formatDate(thread.lastMessageAt)}</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-foreground/60 truncate">{thread.lastMessage || 'No messages yet'}</p>
+                          {thread.order && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge className="bg-blue-500/20 text-blue-400" variant="outline">
+                                {thread.order.eventType || 'Event'}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Chat Window */}
           <div className="lg:col-span-2">
-            {selectedChat ? (
+            {selectedThread ? (
               <Card className="border-border shadow-card border-border h-full flex flex-col">
                 {/* Chat Header */}
                 <CardHeader className="border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                        <span className="text-primary font-semibold text-lg">{selectedChat.avatar}</span>
+                        <span className="text-primary font-semibold text-lg">
+                          {selectedThread.customer?.name?.[0]?.toUpperCase() || 'C'}
+                        </span>
                       </div>
                       <div>
-                        <CardTitle className="text-foreground">{selectedChat.name}</CardTitle>
-                        <p className="text-sm text-foreground/60">{selectedChat.event}</p>
+                        <CardTitle className="text-foreground">{selectedThread.customer?.name || 'Customer'}</CardTitle>
+                        {selectedThread.order && (
+                          <p className="text-sm text-foreground/60">
+                            {selectedThread.order.eventType || 'Event'}
+                            {selectedThread.order.eventDate && ` • ${formatDate(selectedThread.order.eventDate)}`}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -227,64 +246,46 @@ export default function VendorChat() {
                       </Button>
                     </div>
                   </div>
-
-                  {/* Booking CTA */}
-                  {selectedChat.status === 'lead' && (
-                    <div className="mt-4 p-3 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-secondary" />
-                        <span className="text-sm text-foreground">Ready to book?</span>
-                      </div>
-                      <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                        Send Booking Link <ChevronRight className="ml-1 h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
                 </CardHeader>
 
                 {/* Messages */}
                 <CardContent className="flex-1 overflow-hidden p-0">
-                  <ScrollArea className="h-[calc(100vh-420px)] p-4">
-                    <div className="space-y-4">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${message.sender === 'vendor' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div
-                            className={`max-w-[70%] rounded-2xl p-4 ${
-                              message.sender === 'vendor'
-                                ? 'bg-secondary text-secondary-foreground rounded-br-none'
-                                : 'bg-white/10 text-foreground rounded-bl-none'
-                            }`}
-                          >
-                            {message.attachment ? (
-                              <div>
-                                {message.attachment.type === 'image' && (
-                                  <img 
-                                    src={message.attachment.url} 
-                                    alt={message.attachment.name}
-                                    className="rounded-lg max-w-full h-auto mb-2"
-                                  />
-                                )}
-                                {message.attachment.type === 'pdf' && (
-                                  <div className="flex items-center gap-2 p-2 bg-white/10 rounded-lg">
-                                    <FileText className="h-5 w-5" />
-                                    <span className="text-sm">{message.attachment.name}</span>
-                                  </div>
-                                )}
-                              </div>
-                            ) : null}
-                            {message.text && <p className="text-sm">{message.text}</p>}
-                            <p className={`text-xs mt-1 ${message.sender === 'vendor' ? 'text-secondary-foreground/60' : 'text-foreground/40'}`}>
-                              {message.time}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={scrollRef} />
+                  {loadingMessages ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
-                  </ScrollArea>
+                  ) : (
+                    <ScrollArea className="h-[calc(100vh-420px)] p-4">
+                      <div className="space-y-4">
+                        {messages.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-foreground/60">No messages yet. Start the conversation!</p>
+                          </div>
+                        ) : (
+                          messages.map((message) => (
+                            <div
+                              key={message.id}
+                              className={`flex ${message.senderType === 'VENDOR' ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[70%] rounded-2xl p-4 ${
+                                  message.senderType === 'VENDOR'
+                                    ? 'bg-secondary text-secondary-foreground rounded-br-none'
+                                    : 'bg-white/10 text-foreground rounded-bl-none'
+                                }`}
+                              >
+                                <p className="text-sm">{message.content}</p>
+                                <p className={`text-xs mt-1 ${message.senderType === 'VENDOR' ? 'text-secondary-foreground/60' : 'text-foreground/40'}`}>
+                                  {formatTime(message.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        <div ref={scrollRef} />
+                      </div>
+                    </ScrollArea>
+                  )}
                 </CardContent>
 
                 {/* Canned Replies */}
@@ -317,15 +318,20 @@ export default function VendorChat() {
                       placeholder="Type your message..."
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                       className="flex-1 bg-muted/50 border-border text-foreground"
+                      disabled={sending}
                     />
                     <Button 
                       onClick={handleSend}
-                      disabled={!inputValue.trim()}
+                      disabled={!inputValue.trim() || sending}
                       className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
                     >
-                      <Send className="h-5 w-5" />
+                      {sending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Send className="h-5 w-5" />
+                      )}
                     </Button>
                   </div>
                 </div>

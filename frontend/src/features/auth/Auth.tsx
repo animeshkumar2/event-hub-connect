@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -15,8 +15,9 @@ interface AuthProps {
 
 const Auth = ({ mode }: AuthProps) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { login, register, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated, user } = useAuth();
   const [isVendor, setIsVendor] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,11 +28,12 @@ const Auth = ({ mode }: AuthProps) => {
     phone: "",
   });
 
-  // Redirect if already authenticated
-  if (isAuthenticated && !isLoading) {
+  // Redirect if already authenticated (but allow vendor onboarding)
+  if (isAuthenticated && !isLoading && mode === "login") {
     navigate("/");
     return null;
   }
+  // For signup, allow authenticated users to proceed (they might be completing onboarding)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +86,13 @@ const Auth = ({ mode }: AuthProps) => {
           description: "Your account has been created successfully.",
         });
 
+        // For vendor signup, navigate to onboarding
+        // For customer signup, navigate to home
         if (isVendor) {
-          navigate("/vendor/onboarding");
+          // Small delay to ensure state is saved
+          setTimeout(() => {
+            navigate("/vendor/onboarding");
+          }, 100);
         } else {
           navigate("/");
         }
@@ -98,7 +105,27 @@ const Auth = ({ mode }: AuthProps) => {
           description: "You have successfully logged in.",
         });
 
-        navigate("/");
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          // Check for redirect parameter
+          const redirect = searchParams.get('redirect');
+          if (redirect) {
+            navigate(redirect);
+          } else {
+            // If vendor, check if they have completed onboarding
+            const vendorId = localStorage.getItem('vendor_id');
+            const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+            if (userData.role === 'VENDOR') {
+              if (vendorId) {
+                navigate('/vendor/dashboard');
+              } else {
+                navigate('/vendor/onboarding');
+              }
+            } else {
+              navigate("/");
+            }
+          }
+        }, 100);
       }
     } catch (error: any) {
       toast({

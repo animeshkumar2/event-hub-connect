@@ -250,73 +250,78 @@ const Search = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">
-            {showVendors 
-              ? (selectedCategory !== 'all' 
-                  ? `Browse ${categories.find((c: any) => c.id === selectedCategory)?.name || 'Category'} Vendors`
-                  : 'Browse All Vendors')
-              : (currentEventType ? `Explore ${currentEventType.name} Packages` : 'Explore All Packages')}
-          </h1>
-          <p className="text-muted-foreground">
-            {showVendors 
-              ? 'Discover the perfect vendors for your event'
-              : 'Discover the perfect vendors for your event'}
-          </p>
-        </div>
-
-        {/* Listing Type Filter - Only show when not in vendor view */}
-        {!showVendors && (
-          <div className="mb-6 flex gap-4">
-            <Button
-              variant={listingType === 'all' ? 'default' : 'outline'}
-              onClick={() => handleListingTypeChange('all')}
-            >
-              All Listings
-            </Button>
-            <Button
-              variant={listingType === 'packages' ? 'default' : 'outline'}
-              onClick={() => handleListingTypeChange('packages')}
-            >
-              Packages Only
-            </Button>
+      <div className="container mx-auto px-4 py-4">
+        {/* Compact Header */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                {showVendors 
+                  ? (selectedCategory !== 'all' 
+                      ? `${categories.find((c: any) => c.id === selectedCategory)?.name || 'Category'} Vendors`
+                      : 'All Vendors')
+                  : (currentEventType ? `${currentEventType.name} Packages` : 'All Packages')}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Discover the perfect vendors for your event
+              </p>
+            </div>
+            
+            {/* Listing Type Filter - Compact */}
+            {!showVendors && (
+              <div className="flex gap-2">
+                <Button
+                  variant={listingType === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs px-3"
+                  onClick={() => handleListingTypeChange('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={listingType === 'packages' ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs px-3"
+                  onClick={() => handleListingTypeChange('packages')}
+                >
+                  Packages
+                </Button>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Category Tabs */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Browse by Category</h2>
+          {/* Compact Category Tabs */}
           <div className="relative">
             {canScrollLeft && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm"
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-7 w-7 bg-background/80 backdrop-blur-sm"
                 onClick={() => scrollCategories('left')}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
             )}
             <div
               ref={categoryScrollRef}
-              className="flex gap-3 overflow-x-auto scrollbar-hide pb-2"
+              className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               <Button
                 variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs px-2.5 whitespace-nowrap"
                 onClick={() => handleCategoryClick('all')}
-                className="whitespace-nowrap"
               >
-                📦 All Categories
+                All
               </Button>
               {categories.map((category: any) => (
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 text-xs px-2.5 whitespace-nowrap"
                   onClick={() => handleCategoryClick(category.id)}
-                  className="whitespace-nowrap"
                 >
                   {category.icon} {category.name}
                 </Button>
@@ -326,10 +331,10 @@ const Search = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-background/80 backdrop-blur-sm"
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-7 w-7 bg-background/80 backdrop-blur-sm"
                 onClick={() => scrollCategories('right')}
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
@@ -397,13 +402,13 @@ const Search = () => {
             </div>
           ) : (
             <>
-              <div className="mb-4">
-                <p className="text-sm text-muted-foreground">
-                  Found {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'}
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} found
                 </p>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-3">
+              <div className="grid gap-3 lg:grid-cols-3">
                 {vendors.map((vendor: any) => (
                   <VendorCard
                     key={vendor.id}
@@ -438,14 +443,14 @@ const Search = () => {
             </div>
           ) : (
             <>
-              <div className="mb-4">
-                <p className="text-sm text-muted-foreground">
-                  Found {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'}
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground">
+                  {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} found
                 </p>
               </div>
 
               <div className={cn(
-                "grid gap-4",
+                "grid gap-3",
                 listingType === 'packages' ? "lg:grid-cols-3" : "lg:grid-cols-4"
               )}>
                 {filteredListings.map((listing: any) => {
@@ -477,8 +482,6 @@ const Search = () => {
                         <PackageCard
                           key={listing.id}
                           package={listing}
-                          isPackage={isPackage}
-                          onBook={() => handleBook(listing)}
                         />
                       );
                     }

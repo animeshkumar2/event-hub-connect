@@ -37,15 +37,8 @@ export const PackageCard: React.FC<PackageCardProps> = ({
 
   const handleViewDetails = () => {
     const itemId = pkg.packageId || pkg.id;
-    if (pkg.type === 'package') {
-      // Show modal for packages
-      setShowPackageModal(true);
-    } else if (onViewDetails) {
-      onViewDetails(itemId, pkg.vendorId);
-    } else {
-      // Navigate to vendor profile with listing highlighted
-      navigate(`/vendor/${pkg.vendorId}?tab=listings&listingId=${itemId}`);
-    }
+    // Navigate to listing detail page
+    navigate(`/listing/${itemId}`);
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -124,19 +117,24 @@ export const PackageCard: React.FC<PackageCardProps> = ({
   // Enhanced styling for packages vs listings
   const isPackage = pkg.type === 'package';
   
+  const handleCardClick = () => {
+    const itemId = pkg.packageId || pkg.id;
+    navigate(`/listing/${itemId}`);
+  };
+
   return (
     <>
-      <Card className={cn(
-        "group transition-all duration-300 overflow-hidden",
-        isPackage 
-          ? "hover:shadow-2xl hover:-translate-y-2 border-2 border-primary/20 hover:border-primary/40 rounded-xl" // More prominent for packages
-          : "hover:shadow-xl hover:-translate-y-1 rounded-lg" // Standard for listings
-      )}>
+      <Card 
+        className={cn(
+          "group transition-all duration-300 overflow-hidden cursor-pointer",
+          isPackage 
+            ? "hover:shadow-2xl hover:-translate-y-2 border-2 border-primary/20 hover:border-primary/40 rounded-xl" // More prominent for packages
+            : "hover:shadow-xl hover:-translate-y-1 rounded-lg" // Standard for listings
+        )}
+        onClick={handleCardClick}
+      >
         {/* Image */}
-        <div className={cn(
-          "relative overflow-hidden",
-          isPackage ? "h-36" : "h-32" // Reduced height for smaller cards
-        )}>
+        <div className="relative aspect-video overflow-hidden bg-muted">
           <img
             src={pkg.images[0] || 'https://via.placeholder.com/400x300'}
             alt={pkg.packageName || pkg.name}
@@ -144,155 +142,121 @@ export const PackageCard: React.FC<PackageCardProps> = ({
             loading="lazy"
           />
           
-          {/* Package Badge - Very prominent styling for packages */}
-          {pkg.type === 'package' && (
-            <div className="absolute top-2 left-2 z-10">
-              <Badge className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-white font-semibold text-xs px-2.5 py-1 rounded-full shadow-lg border border-white/30 flex items-center gap-1.5 backdrop-blur-sm">
-                <Package className="h-3 w-3" />
-                <span>Package</span>
-              </Badge>
+          {/* Availability badge - Subtle */}
+          {pkg.availability && (
+            <div className="absolute top-2 right-2">
+              <div
+                className={cn(
+                  'w-2 h-2 rounded-full shadow-sm',
+                  pkg.availability === 'available' && 'bg-green-500',
+                  pkg.availability === 'limited' && 'bg-yellow-500',
+                  pkg.availability === 'booked' && 'bg-red-500'
+                )}
+                title={pkg.availability === 'available' ? 'Available' : pkg.availability === 'limited' ? 'Limited' : 'Booked'}
+              />
             </div>
           )}
-          
-          {/* Badges overlay - Position below Package badge for packages */}
-          <div className={cn(
-            "absolute flex gap-1",
-            pkg.type === 'package' ? "top-12 left-2" : "top-2 left-2" // Position below Package badge
-          )}>
-            {pkg.isPopular && (
-              <Badge className="bg-orange-500 text-white border-none shadow-md text-xs px-1.5 py-0.5">
-                🔥 Popular
-              </Badge>
-            )}
-            {pkg.isTrending && (
-              <Badge className="bg-purple-500 text-white border-none shadow-md text-xs px-1.5 py-0.5">
-                ⭐ Trending
-              </Badge>
-            )}
-          </div>
-
-        {/* Availability badge */}
-        <div className="absolute top-2 right-2">
-          <Badge
-            className={cn(
-              'shadow-md text-xs px-2 py-0.5',
-              pkg.availability === 'available' && 'bg-green-500 text-white border-none',
-              pkg.availability === 'limited' && 'bg-yellow-500 text-white border-none',
-              pkg.availability === 'booked' && 'bg-red-500 text-white border-none'
-            )}
-          >
-            {pkg.availability === 'available' && '✓'}
-            {pkg.availability === 'limited' && '⚠'}
-            {pkg.availability === 'booked' && '✕'}
-          </Badge>
-        </div>
       </div>
 
-      <CardContent className={cn(
-        "p-3",
-        isPackage && "bg-gradient-to-b from-background to-muted/20" // Subtle gradient for packages
-      )}>
-        {/* Vendor Name - Clickable */}
-        <button
-          onClick={handleVendorClick}
-          className="text-xs text-primary font-semibold hover:underline mb-1 text-left"
-        >
-          {pkg.vendorName}
-        </button>
+      <CardContent className="p-3 space-y-2">
+        {/* Badges Row - Compact */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {pkg.type === 'package' && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
+              <Package className="h-2.5 w-2.5 mr-0.5" />
+              Package
+            </Badge>
+          )}
+          {pkg.isPopular && (
+            <Badge className="bg-orange-500/10 text-orange-600 border-orange-200 text-[10px] px-1.5 py-0 h-4 font-medium">
+              🔥 Popular
+            </Badge>
+          )}
+          {pkg.isTrending && (
+            <Badge className="bg-purple-500/10 text-purple-600 border-purple-200 text-[10px] px-1.5 py-0 h-4 font-medium">
+              ⭐ Trending
+            </Badge>
+          )}
+        </div>
 
-        {/* Package/Listing Name */}
+        {/* Listing Name - Prominent */}
         <h3 className={cn(
-          "font-bold text-foreground mb-1.5 line-clamp-1",
-          isPackage ? "text-base" : "text-sm" // Reduced text size
+          "font-bold text-foreground line-clamp-2 leading-tight",
+          isPackage ? "text-sm" : "text-sm"
         )}>
           {pkg.packageName || pkg.name}
         </h3>
-        {pkg.type === 'listing' && (
-          <Badge variant="outline" className="text-xs mb-2 bg-green-50 border-green-200 text-green-700">
-            Individual Listing
-          </Badge>
-        )}
 
-        {/* Rating, Location, and High Rating Badge - All in one line */}
-        <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground flex-wrap">
+        {/* Vendor Name - Subtle */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleVendorClick(e);
+          }}
+          className="text-[11px] text-muted-foreground hover:text-primary transition-colors text-left"
+        >
+          by {pkg.vendorName}
+        </button>
+
+        {/* Rating & Location - Compact */}
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           {pkg.vendorRating !== undefined && pkg.vendorRating !== null && (
             <>
-              <div className="flex items-center gap-1">
-                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold text-foreground">{pkg.vendorRating.toFixed(1)}</span>
-                {pkg.vendorReviewCount !== undefined && pkg.vendorReviewCount !== null && (
-                  <span>({pkg.vendorReviewCount})</span>
-                )}
-              </div>
-              <span>•</span>
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="font-semibold text-foreground">{pkg.vendorRating.toFixed(1)}</span>
+              {pkg.vendorReviewCount !== undefined && pkg.vendorReviewCount !== null && (
+                <span>({pkg.vendorReviewCount})</span>
+              )}
             </>
           )}
           {pkg.vendorCity && (
             <>
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                <span>{pkg.vendorCity}</span>
-              </div>
-              {pkg.vendorRating !== undefined && pkg.vendorRating !== null && pkg.vendorRating > 4.5 && (
-                <span>•</span>
-              )}
-            </>
-          )}
-          {pkg.vendorRating !== undefined && pkg.vendorRating !== null && pkg.vendorRating > 4.5 && (
-            <>
-              <span>•</span>
-              <span className="text-yellow-600 font-medium">⭐ Highly Rated</span>
+              <span className="mx-0.5">•</span>
+              <MapPin className="h-3 w-3" />
+              <span>{pkg.vendorCity}</span>
             </>
           )}
         </div>
 
-        {/* Price and Delivery Time */}
-        <div className="mb-2 flex items-baseline justify-between">
-          <div className={cn(
-            "font-bold text-primary",
-            isPackage ? "text-xl" : "text-lg" // Reduced price size
-          )}>
+        {/* Price - Prominent */}
+        <div className="flex items-baseline justify-between pt-1">
+          <div className="font-bold text-primary text-base">
             ₹{(pkg.price || 0).toLocaleString('en-IN')}
           </div>
-          <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span className="line-clamp-1 text-xs">{pkg.deliveryTime}</span>
-          </div>
+          {pkg.deliveryTime && (
+            <div className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <Clock className="h-2.5 w-2.5" />
+              <span>{pkg.deliveryTime}</span>
+            </div>
+          )}
         </div>
 
-        {/* Key Inclusions - Horizontal (only for packages) */}
+        {/* Key Inclusions - Compact (only for packages) */}
         {pkg.type === 'package' && displayedInclusions.length > 0 && (
-          <div className="mb-3">
-            <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
-              <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
-              {displayedInclusions.slice(0, 3).map((item, index) => (
-                <React.Fragment key={index}>
-                  <span className="line-clamp-1">{item}</span>
-                  {index < Math.min(2, displayedInclusions.length - 1) && <span>•</span>}
-                </React.Fragment>
-              ))}
-              {displayedInclusions.length > 3 && (
-                <span className="text-primary font-medium">
-                  +{displayedInclusions.length - 3} more
-                </span>
-              )}
+          <div className="pt-1 border-t border-border/50">
+            <div className="text-[10px] text-muted-foreground flex items-center gap-1 flex-wrap">
+              <CheckCircle2 className="h-2.5 w-2.5 text-green-500 flex-shrink-0" />
+              <span className="line-clamp-1">
+                {displayedInclusions.slice(0, 2).join(' • ')}
+                {displayedInclusions.length > 2 && ` +${displayedInclusions.length - 2} more`}
+              </span>
             </div>
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-1.5">
+        {/* Action Buttons - Compact */}
+        <div className="flex gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 h-7 text-xs px-2"
+            className="flex-1 h-7 text-[11px] px-2"
             onClick={handleViewDetails}
           >
-            Details
+            View
           </Button>
           <Button
             size="sm"
-            className="flex-1 h-7 text-xs px-2"
+            className="flex-1 h-7 text-[11px] px-2"
             onClick={handleAddToCart}
           >
             Add to Cart

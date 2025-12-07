@@ -13,6 +13,7 @@ import { mockVendors, eventTypes } from '@/shared/constants/mockData';
 import { cn } from '@/shared/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import { useStats } from '@/shared/hooks/useApi';
+import { useScrollAnimation, useStaggerAnimation } from '@/shared/hooks/useScrollAnimation';
 
 const Home = () => {
   // Fetch stats from API
@@ -104,14 +105,54 @@ const Home = () => {
       {/* Stats Bar - Floating Above Next Section */}
       <section className="relative -mt-16 z-20 mb-16">
         <div className="container mx-auto px-4">
-          <Card className="bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-xl overflow-hidden">
+          <Card className={cn(
+            "bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-xl overflow-hidden animate-on-scroll",
+            "animate-fade-in-up"
+          )} ref={(el) => {
+            const observer = new IntersectionObserver(
+              (entries) => {
+                entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                  }
+                });
+              },
+              { threshold: 0.1 }
+            );
+            if (el) observer.observe(el);
+          }}>
             <CardContent className="p-4 md:p-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
                 {stats.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <div key={index} className="text-center group">
-                      <div className="inline-flex p-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary-glow/10 mb-2 group-hover:scale-110 transition-transform duration-300">
+                    <div 
+                      key={index} 
+                      className={cn(
+                        "text-center group animate-on-scroll",
+                        `stagger-${index + 1}`
+                      )}
+                      style={{
+                        animationDelay: `${index * 0.1}s`,
+                        opacity: 0,
+                      }}
+                      ref={(el) => {
+                        const observer = new IntersectionObserver(
+                          (entries) => {
+                            entries.forEach((entry) => {
+                              if (entry.isIntersecting) {
+                                entry.target.classList.add('visible');
+                                entry.target.style.opacity = '1';
+                                entry.target.style.transform = 'translateY(0)';
+                              }
+                            });
+                          },
+                          { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+                        );
+                        if (el) observer.observe(el);
+                      }}
+                    >
+                      <div className="inline-flex p-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary-glow/10 mb-2 group-hover:scale-110 micro-bounce smooth-transition">
                         <Icon className={`h-5 w-5 ${stat.color}`} />
                       </div>
                       <div className="text-2xl md:text-3xl font-black text-foreground mb-0.5">
@@ -141,6 +182,28 @@ const Home = () => {
           className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-b from-background to-muted/30"
           onMouseEnter={() => setIsSetupPaused(true)}
           onMouseLeave={() => setIsSetupPaused(false)}
+          ref={(el) => {
+            if (!el) return;
+            const observer = new IntersectionObserver(
+              (entries) => {
+                entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Animate the main card
+                    const card = entry.target.querySelector('.trending-setup-card');
+                    if (card) {
+                      setTimeout(() => {
+                        (card as HTMLElement).style.opacity = '1';
+                        (card as HTMLElement).style.transform = 'translateY(0) scale(1)';
+                      }, 200);
+                    }
+                  }
+                });
+              },
+              { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
+            );
+            observer.observe(el);
+          }}
         >
           {/* Sliding Background Images */}
           <div className="absolute inset-0">
@@ -187,7 +250,7 @@ const Home = () => {
               {/* Navigation Arrows */}
               <button
                 onClick={goToPreviousSetup}
-                className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
+                className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
                 aria-label="Previous setup"
               >
                 <ChevronLeft className="h-5 w-5 text-primary" />
@@ -195,7 +258,7 @@ const Home = () => {
 
               <button
                 onClick={goToNextSetup}
-                className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
+                className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
                 aria-label="Next setup"
               >
                 <ChevronRight className="h-5 w-5 text-primary" />
@@ -203,7 +266,14 @@ const Home = () => {
 
               {/* Active Card */}
               {trendingSetups[activeSetupIndex] && (
-                <Card className="relative border-0 shadow-xl overflow-hidden bg-white rounded-xl">
+                <Card className={cn(
+                  "trending-setup-card relative border-0 shadow-xl overflow-hidden bg-white rounded-xl animate-on-scroll",
+                  "animate-scale-in"
+                )} style={{
+                  opacity: 0,
+                  transform: 'translateY(40px) scale(0.95)',
+                  transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+                }}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
                     {/* Image Side - Clear without blur */}
                     <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
@@ -319,7 +389,31 @@ const Home = () => {
       )}
 
       {/* Featured Vendors Section */}
-      <section className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden">
+      <section 
+        className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden"
+        ref={(el) => {
+          if (!el) return;
+          const observer = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('visible');
+                  // Animate children with stagger
+                  const cards = entry.target.querySelectorAll('.vendor-card');
+                  cards.forEach((card, index) => {
+                    setTimeout(() => {
+                      (card as HTMLElement).style.opacity = '1';
+                      (card as HTMLElement).style.transform = 'translateY(0)';
+                    }, index * 100);
+                  });
+                }
+              });
+            },
+            { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
+          );
+          observer.observe(el);
+        }}
+      >
         {/* Decorative Background Elements */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl animate-pulse" />
@@ -329,7 +423,23 @@ const Home = () => {
 
         <div className="container mx-auto px-4 relative z-10">
           {/* Section Header */}
-          <div className="mb-8 text-center animate-fade-in-up">
+          <div className={cn(
+            "mb-8 text-center animate-on-scroll",
+            "animate-fade-in-up"
+          )} ref={(el) => {
+            if (!el) return;
+            const observer = new IntersectionObserver(
+              (entries) => {
+                entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                  }
+                });
+              },
+              { threshold: 0.1 }
+            );
+            observer.observe(el);
+          }}>
             <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
               <Star className="h-3 w-3 mr-1.5 fill-primary text-primary" />
               Top Rated
@@ -337,7 +447,7 @@ const Home = () => {
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
               Featured
               <br />
-              <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent animate-gradient-text">
                 Vendors
               </span>
             </h2>
@@ -347,8 +457,18 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {mockVendors.slice(0, 6).map((vendor) => (
-              <PremiumVendorCard key={vendor.id} vendor={vendor} />
+            {mockVendors.slice(0, 6).map((vendor, index) => (
+              <div
+                key={vendor.id}
+                className="vendor-card animate-on-scroll"
+                style={{
+                  opacity: 0,
+                  transform: 'translateY(40px)',
+                  transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+                }}
+              >
+                <PremiumVendorCard vendor={vendor} />
+              </div>
             ))}
           </div>
 
@@ -364,9 +484,49 @@ const Home = () => {
       </section>
 
       {/* How It Works - Enhanced */}
-      <section className="py-12 md:py-20 bg-background relative">
+      <section 
+        className="py-12 md:py-20 bg-background relative"
+        ref={(el) => {
+          if (!el) return;
+          const observer = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('visible');
+                  // Animate step cards with stagger
+                  const cards = entry.target.querySelectorAll('.step-card');
+                  cards.forEach((card, index) => {
+                    setTimeout(() => {
+                      (card as HTMLElement).style.opacity = '1';
+                      (card as HTMLElement).style.transform = 'translateY(0) scale(1)';
+                    }, index * 150);
+                  });
+                }
+              });
+            },
+            { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
+          );
+          observer.observe(el);
+        }}
+      >
         <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
+          <div className={cn(
+            "text-center mb-10 animate-on-scroll",
+            "animate-fade-in-up"
+          )} ref={(el) => {
+            if (!el) return;
+            const observer = new IntersectionObserver(
+              (entries) => {
+                entries.forEach((entry) => {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                  }
+                });
+              },
+              { threshold: 0.1 }
+            );
+            observer.observe(el);
+          }}>
               <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
                 <span>Simple Process</span>
               </Badge>
@@ -406,12 +566,20 @@ const Home = () => {
               return (
                 <Card
                   key={index}
-                  className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 hover-lift rounded-xl group"
+                  className={cn(
+                    "step-card relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 hover-lift rounded-xl group animate-on-scroll",
+                    "animate-scale-in"
+                  )}
+                  style={{
+                    opacity: 0,
+                    transform: 'translateY(40px) scale(0.9)',
+                    transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+                  }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
                   <CardContent className="p-6 relative z-10">
                     <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-xl bg-gradient-to-br ${item.color} text-white shadow-lg`}>
+                      <div className={`p-3 rounded-xl bg-gradient-to-br ${item.color} text-white shadow-lg micro-bounce`}>
                         <Icon className="h-6 w-6" />
                       </div>
                       <div className="text-4xl font-black text-muted-foreground/20">

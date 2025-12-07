@@ -135,6 +135,28 @@ export const InteractiveEventShowcase = () => {
       className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-b from-background to-muted/30"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      ref={(el) => {
+        if (!el) return;
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                // Animate the main card
+                const card = entry.target.querySelector('.main-event-card');
+                if (card) {
+                  setTimeout(() => {
+                    (card as HTMLElement).style.opacity = '1';
+                    (card as HTMLElement).style.transform = 'translateY(0) scale(1)';
+                  }, 200);
+                }
+              }
+            });
+          },
+          { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
+        );
+        observer.observe(el);
+      }}
     >
       {/* Sliding Background Images */}
       <div className="absolute inset-0">
@@ -181,7 +203,7 @@ export const InteractiveEventShowcase = () => {
           {/* Navigation Arrows */}
           <button
             onClick={goToPrevious}
-            className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
+            className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
             aria-label="Previous event"
           >
             <ChevronLeft className="h-5 w-5 text-primary" />
@@ -189,14 +211,21 @@ export const InteractiveEventShowcase = () => {
 
           <button
             onClick={goToNext}
-            className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift"
+            className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
             aria-label="Next event"
           >
             <ChevronRight className="h-5 w-5 text-primary" />
           </button>
 
           {/* Active Card */}
-          <Card className="relative border-0 shadow-xl overflow-hidden bg-white rounded-xl">
+          <Card className={cn(
+            "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-xl animate-on-scroll",
+            "animate-scale-in"
+          )} style={{
+            opacity: 0,
+            transform: 'translateY(40px) scale(0.95)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+          }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
               {/* Image Side - Clear without blur */}
               <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
@@ -258,12 +287,12 @@ export const InteractiveEventShowcase = () => {
                 <div className="pt-4 border-t">
                   <Button 
                     size="default" 
-                    className="w-full text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group"
+                    className="w-full text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group micro-bounce"
                     asChild
                   >
                     <Link to={activeCard.link}>
                       Explore {activeCard.title} Packages
-                      <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform smooth-transition" />
                     </Link>
                   </Button>
                 </div>

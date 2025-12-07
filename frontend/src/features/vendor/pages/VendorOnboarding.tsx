@@ -13,6 +13,7 @@ import { Upload, CheckCircle, Sparkles, ArrowRight, Phone, Mail, MapPin, Camera,
 import { toast } from 'sonner';
 import { categories, cities } from '@/shared/constants/mockData';
 import { vendorApi } from '@/shared/services/api';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 type OnboardingStep = 'welcome' | 'basic-info' | 'listing' | 'preview' | 'success';
 
@@ -70,6 +71,7 @@ const getPriceRange = (city: string, category: string): { min: number; max: numb
 
 export default function VendorOnboarding() {
   const navigate = useNavigate();
+  const { user, refreshVendorInfo, updateUser } = useAuth();
   
   // Basic info
   const [businessName, setBusinessName] = useState('');
@@ -94,6 +96,24 @@ export default function VendorOnboarding() {
   const [showAISuggestions, setShowAISuggestions] = useState(false);
   const [showOpsHelp, setShowOpsHelp] = useState(false);
   
+  // Check authentication and redirect if needed
+  useEffect(() => {
+    if (!user) {
+      // Not authenticated - redirect to login with return path
+      navigate('/login?redirect=/vendor/onboarding');
+      return;
+    }
+    
+    // If user is already a vendor with a completed profile, redirect to dashboard
+    const vendorId = localStorage.getItem('vendor_id');
+    if (user.role === 'VENDOR' && vendorId) {
+      // Vendor has completed onboarding - redirect to dashboard
+      navigate('/vendor/dashboard');
+      return;
+    }
+    // If user is a customer or vendor without profile, allow them to proceed with onboarding
+  }, [user, navigate]);
+
   // Load email from signup if available
   useEffect(() => {
     const signupData = sessionStorage.getItem('vendorSignupData');
@@ -105,9 +125,14 @@ export default function VendorOnboarding() {
         setStep('basic-info');
       } catch (e) {
         // Ignore parse errors
+      } finally {
+        sessionStorage.removeItem('vendorSignupData'); // Clear after use
       }
+    } else if (user?.email) {
+      // Use email from authenticated user if available
+      setEmail(user.email);
     }
-  }, []);
+  }, [user]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,6 +226,14 @@ export default function VendorOnboarding() {
         // Store vendor ID in localStorage
         const vendorId = response.data.id;
         localStorage.setItem('vendor_id', vendorId);
+        
+        // Update user role to VENDOR if not already set
+        if (user && user.role !== 'VENDOR') {
+          updateUser({ role: 'VENDOR' });
+        }
+        
+        // Refresh vendor info to ensure everything is synced
+        await refreshVendorInfo();
         
         toast.success('Your listing is now live! You\'ll receive a preview link via WhatsApp.');
         setStep('success');
@@ -727,7 +760,11 @@ export default function VendorOnboarding() {
                 Request ops help
               </Button>
               <Button 
-                onClick={() => navigate('/vendor/dashboard')}
+                onClick={async () => {
+                  // Ensure vendor info is refreshed before navigating
+                  await refreshVendorInfo();
+                  navigate('/vendor/dashboard');
+                }}
                 className="bg-gradient-to-r from-secondary to-primary text-foreground font-semibold"
               >
                 Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" />

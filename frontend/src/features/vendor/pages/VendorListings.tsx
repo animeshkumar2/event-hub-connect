@@ -20,6 +20,7 @@ import {
   MoreVertical,
   X
 } from 'lucide-react';
+import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
@@ -202,15 +203,8 @@ export default function VendorListings() {
     }
   };
 
-  const addImageUrl = () => {
-    const url = prompt('Enter image URL:');
-    if (url) {
-      setFormData({ ...formData, images: [...formData.images, url] });
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setFormData({ ...formData, images: formData.images.filter((_, i) => i !== index) });
+  const handleImagesChange = (newImages: string[]) => {
+    setFormData({ ...formData, images: newImages });
   };
 
   const addIncludedItem = () => {
@@ -421,21 +415,20 @@ export default function VendorListings() {
                   )}
 
                   <div className="space-y-2">
-                    <Label className="text-foreground">Images</Label>
-                    <div className="space-y-2">
-                      {formData.images.map((img, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <img src={img} alt={`Image ${i + 1}`} className="w-16 h-16 object-cover rounded" />
-                          <Input value={img} disabled className="flex-1" />
-                          <Button size="sm" variant="ghost" onClick={() => removeImage(i)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button size="sm" variant="outline" onClick={addImageUrl}>
-                        <Plus className="h-4 w-4 mr-2" /> Add Image URL
-                      </Button>
-                    </div>
+                    <Label className="text-foreground">Images *</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Upload multiple photos to showcase your listing. Drag to reorder.
+                    </p>
+                    <ImageUpload
+                      images={formData.images}
+                      onChange={handleImagesChange}
+                      maxImages={20}
+                    />
+                    {formData.images.length === 0 && (
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                        ⚠️ At least one image is recommended
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex gap-3 pt-4">

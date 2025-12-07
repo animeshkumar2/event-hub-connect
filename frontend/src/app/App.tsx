@@ -16,6 +16,7 @@ import Checkout from "@/features/cart/Checkout";
 import EventPlanner from "@/features/booking/EventPlanner";
 import BookingSuccess from "@/features/booking/BookingSuccess";
 import TestImageUpload from "@/features/vendor/TestImageUpload";
+import ListingDetail from "@/features/listing/ListingDetail";
 
 // Vendor Pages
 import VendorOnboarding from "@/features/vendor/pages/VendorOnboarding";
@@ -29,6 +30,7 @@ import VendorChat from "@/features/vendor/pages/VendorChat";
 import VendorWallet from "@/features/vendor/pages/VendorWallet";
 import VendorAnalytics from "@/features/vendor/pages/VendorAnalytics";
 import VendorReviews from "@/features/vendor/pages/VendorReviews";
+import VendorFAQs from "@/features/vendor/pages/VendorFAQs";
 import VendorSettings from "@/features/vendor/pages/VendorSettings";
 import VendorHelp from "@/features/vendor/pages/VendorHelp";
 
@@ -46,6 +48,7 @@ const App = () => (
               <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/listing/:listingId" element={<ListingDetail />} />
             <Route path="/vendor/:vendorId" element={<VendorDetails />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
@@ -67,6 +70,7 @@ const App = () => (
             <Route path="/vendor/wallet" element={<VendorWallet />} />
             <Route path="/vendor/analytics" element={<VendorAnalytics />} />
             <Route path="/vendor/reviews" element={<VendorReviews />} />
+            <Route path="/vendor/faqs" element={<VendorFAQs />} />
             <Route path="/vendor/settings" element={<VendorSettings />} />
             <Route path="/vendor/help" element={<VendorHelp />} />
             

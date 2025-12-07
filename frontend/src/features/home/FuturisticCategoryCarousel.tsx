@@ -94,7 +94,31 @@ export const FuturisticCategoryCarousel = () => {
   };
 
   return (
-    <section className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden">
+    <section 
+      className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden"
+      ref={(el) => {
+        if (!el) return;
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                // Animate category cards with stagger
+                const cards = entry.target.querySelectorAll('.category-card');
+                cards.forEach((card, index) => {
+                  setTimeout(() => {
+                    (card as HTMLElement).style.opacity = '1';
+                    (card as HTMLElement).style.transform = 'translateY(0) scale(1)';
+                  }, index * 80);
+                });
+              }
+            });
+          },
+          { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
+        );
+        observer.observe(el);
+      }}
+    >
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl animate-pulse" />
@@ -126,7 +150,7 @@ export const FuturisticCategoryCarousel = () => {
           {/* Navigation Arrows - Fixed positioning */}
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110 micro-bounce smooth-transition"
             aria-label="Previous"
           >
             <ChevronLeft className="h-5 w-5 text-primary" />
@@ -134,7 +158,7 @@ export const FuturisticCategoryCarousel = () => {
 
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary hover:bg-primary/10 transition-all duration-300 hover:scale-110 micro-bounce smooth-transition"
             aria-label="Next"
           >
             <ChevronRight className="h-5 w-5 text-primary" />
@@ -154,7 +178,14 @@ export const FuturisticCategoryCarousel = () => {
                 className="flex-shrink-0 w-[280px] md:w-[300px]"
                 style={{ scrollSnapAlign: 'start' }}
               >
-                <Card className="group relative h-[380px] md:h-[400px] overflow-hidden rounded-xl border-0 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <Card className={cn(
+                  "category-card group relative h-[380px] md:h-[400px] overflow-hidden rounded-xl border-0 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 animate-on-scroll",
+                  "animate-scale-in"
+                )} style={{
+                  opacity: 0,
+                  transform: 'translateY(40px) scale(0.9)',
+                  transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+                }}>
                   {/* Full-bleed Image */}
                   <div className="absolute inset-0">
                     <img

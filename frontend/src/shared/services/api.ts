@@ -72,17 +72,33 @@ class ApiClient {
         } catch {
           errorData = { message: 'Request failed' };
         }
+        // For 404 errors, return a structured error response
+        if (response.status === 404) {
+          console.error('API 404 Error:', errorData);
+          return {
+            success: false,
+            message: errorData.message || errorData.details || 'Resource not found',
+            data: null as T,
+          };
+        }
+        console.error('API Error:', response.status, errorData);
         const errorMessage = errorData.message || errorData.details || `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      console.log('API Response:', endpoint, data);
       
       // Handle ApiResponse wrapper - backend returns { success, data, message }
       if (data && typeof data === 'object' && 'success' in data) {
-        // If success is false, throw error
+        // If success is false, return error response instead of throwing
         if (!data.success) {
-          throw new Error(data.message || 'Request failed');
+          console.error('API returned success: false:', data);
+          return {
+            success: false,
+            message: data.message || 'Request failed',
+            data: null as T,
+          };
         }
         return data;
       }
