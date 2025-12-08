@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
@@ -101,32 +101,62 @@ const eventCards: EventCard[] = [
 export const InteractiveEventShowcase = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-rotate cards every 5 seconds
+  // Auto-rotate cards every 5 seconds (disabled for scrolling)
   useEffect(() => {
     if (isPaused) return;
-
-    const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % eventCards.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
+    // Disable auto-rotation when using scroll
+    // const interval = setInterval(() => {
+    //   setActiveIndex((prev) => (prev + 1) % eventCards.length);
+    // }, 5000);
+    // return () => clearInterval(interval);
   }, [isPaused, eventCards.length]);
 
   const activeCard = eventCards[activeIndex];
 
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const cardWidth = container.offsetWidth; // Full width of container
+    const scrollAmount = direction === 'left' ? -cardWidth : cardWidth;
+    
+    container.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const scrollLeft = scrollRef.current.scrollLeft;
+    const cardWidth = scrollRef.current.offsetWidth;
+    const newIndex = Math.round(scrollLeft / cardWidth);
+    setActiveIndex(newIndex);
+  };
+
+  const goToSlide = (index: number) => {
+    if (!scrollRef.current) return;
+    const cardWidth = scrollRef.current.offsetWidth;
+    scrollRef.current.scrollTo({
+      left: index * cardWidth,
+      behavior: 'smooth',
+    });
+    setActiveIndex(index);
+  };
+
   const goToNext = () => {
-    setActiveIndex((prev) => (prev + 1) % eventCards.length);
+    scroll('right');
   };
 
   const goToPrevious = () => {
-    setActiveIndex((prev) => (prev - 1 + eventCards.length) % eventCards.length);
+    scroll('left');
   };
 
   const goToEvent = (eventType: string) => {
     const index = eventCards.findIndex(card => card.title === eventType);
     if (index !== -1) {
-      setActiveIndex(index);
+      goToSlide(index);
     }
   };
 
@@ -198,7 +228,7 @@ export const InteractiveEventShowcase = () => {
           </h2>
         </div>
 
-        {/* Main Card Container */}
+        {/* Scrollable Card Container - Same as category carousel */}
         <div className="relative max-w-5xl mx-auto">
           {/* Navigation Arrows */}
           <button
@@ -217,101 +247,103 @@ export const InteractiveEventShowcase = () => {
             <ChevronRight className="h-5 w-5 text-primary" />
           </button>
 
-          {/* Active Card */}
-          <Card className={cn(
-            "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-xl animate-on-scroll",
-            "animate-scale-in"
-          )} style={{
-            opacity: 0,
-            transform: 'translateY(40px) scale(0.95)',
-            transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
-          }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-              {/* Image Side - Clear without blur */}
-              <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
-                <img
-                  src={activeCard.cardImage || activeCard.image}
-                  alt={activeCard.title}
-                  className="w-full h-full object-cover"
-                />
+          {/* Scrollable Container */}
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+            style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 16px' }}
+          >
+            {eventCards.map((card, index) => (
+              <div
+                key={card.id}
+                className="flex-shrink-0 w-full"
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                <Card className={cn(
+                  "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-xl animate-on-scroll",
+                  "animate-scale-in"
+                )} style={{
+                  opacity: index === activeIndex ? 1 : 0.7,
+                  transform: index === activeIndex ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.95)',
+                  transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
+                }}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                    {/* Image Side - Clear without blur */}
+                    <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
+                      <img
+                        src={card.cardImage || card.image}
+                        alt={card.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Content Side */}
+                    <CardContent className="flex flex-col justify-between p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white">
+                      <div className="space-y-3">
+                        {/* Icon and Badge */}
+                        <div className="flex items-center gap-2.5">
+                          <div className="text-3xl md:text-4xl">
+                            {card.icon}
+                          </div>
+                          <Badge className="bg-primary/10 text-primary border-primary/20 px-2.5 py-0.5 text-xs font-medium">
+                            {card.subtitle}
+                          </Badge>
+                        </div>
+
+                        {/* Title - Smaller */}
+                        <h3 className="text-xl md:text-2xl font-black text-foreground leading-tight">
+                          {card.title}
+                        </h3>
+
+                        {/* Description - Smaller */}
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {card.description}
+                        </p>
+
+                        {/* Stats - Smaller */}
+                        <div className="flex items-center gap-4 pt-1">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-lg bg-primary/10">
+                              <Users className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="text-base font-bold text-foreground">{card.stats.value}</div>
+                              <div className="text-xs text-muted-foreground">{card.stats.label}</div>
+                            </div>
+                          </div>
+                          <div className="h-6 w-px bg-border" />
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-lg bg-primary/10">
+                              <MapPin className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="text-base font-bold text-foreground">8+</div>
+                              <div className="text-xs text-muted-foreground">Cities</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* CTA Button */}
+                      <div className="pt-4 border-t">
+                        <Button 
+                          size="default" 
+                          className="w-full text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group micro-bounce"
+                          asChild
+                        >
+                          <Link to={card.link}>
+                            Explore {card.title} Packages
+                            <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform smooth-transition" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </div>
+                </Card>
               </div>
-              
-              {/* Content Side */}
-              <CardContent className="flex flex-col justify-between p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white">
-                <div className="space-y-3">
-                  {/* Icon and Badge */}
-                  <div className="flex items-center gap-2.5">
-                    <div className="text-3xl md:text-4xl">
-                      {activeCard.icon}
-                    </div>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 px-2.5 py-0.5 text-xs font-medium">
-                      {activeCard.subtitle}
-                    </Badge>
-                  </div>
-
-                  {/* Title - Smaller */}
-                  <h3 className="text-xl md:text-2xl font-black text-foreground leading-tight">
-                    {activeCard.title}
-                  </h3>
-
-                  {/* Description - Smaller */}
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {activeCard.description}
-                  </p>
-
-                  {/* Stats - Smaller */}
-                  <div className="flex items-center gap-4 pt-1">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Users className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="text-base font-bold text-foreground">{activeCard.stats.value}</div>
-                        <div className="text-xs text-muted-foreground">{activeCard.stats.label}</div>
-                      </div>
-                    </div>
-                    <div className="h-6 w-px bg-border" />
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <MapPin className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="text-base font-bold text-foreground">8+</div>
-                        <div className="text-xs text-muted-foreground">Cities</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* CTA Button */}
-                <div className="pt-4 border-t">
-                  <Button 
-                    size="default" 
-                    className="w-full text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group micro-bounce"
-                    asChild
-                  >
-                    <Link to={activeCard.link}>
-                      Explore {activeCard.title} Packages
-                      <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform smooth-transition" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-
-              {/* Progress Indicator */}
-              {!isPaused && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary/20">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-5000 ease-linear"
-                    style={{
-                      width: '0%',
-                    }}
-                    key={activeIndex}
-                  />
-                </div>
-              )}
-            </div>
-          </Card>
+            ))}
+          </div>
         </div>
 
         {/* All Event Types - Bottom Navigation */}
@@ -345,7 +377,7 @@ export const InteractiveEventShowcase = () => {
           {eventCards.map((card, index) => (
             <button
               key={card.id}
-              onClick={() => setActiveIndex(index)}
+              onClick={() => goToSlide(index)}
               className={cn(
                 'relative h-2 rounded-full transition-all duration-500',
                 index === activeIndex

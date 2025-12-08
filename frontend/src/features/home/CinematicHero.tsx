@@ -145,7 +145,7 @@ export const CinematicHero = () => {
             }}
           >
             {/* Main Headline - Center Aligned, Smaller */}
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.2] tracking-tight drop-shadow-2xl">
                 <span 
                   className={cn(
@@ -191,7 +191,7 @@ export const CinematicHero = () => {
             {/* Decorative Line - Centered */}
             <div 
               className={cn(
-                "h-1 w-20 bg-gradient-to-r from-primary to-secondary rounded-full mx-auto",
+                "h-1 w-20 bg-gradient-to-r from-primary to-secondary rounded-full mx-auto mb-5",
                 isLoaded && "animate-hero-expand-width"
               )}
               style={{
@@ -200,24 +200,22 @@ export const CinematicHero = () => {
             />
             
             {/* Subheadline - Center Aligned, Smaller - Changes with Sliding Buttons */}
-            <p 
-              key={description}
-              className={cn(
-                "text-base md:text-lg lg:text-xl text-white/95 font-light tracking-wide max-w-2xl mx-auto leading-relaxed transition-opacity duration-500",
-                isLoaded && "animate-hero-fade-in-up"
-              )}
-              style={{
-                animationDelay: isLoaded ? '1s' : '0s',
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.8), 0 1px 5px rgba(0, 0, 0, 0.6)',
-              }}
-            >
-              {description}
-            </p>
+            <div className="mt-10 mb-6 min-h-[50px] flex items-center justify-center">
+              <p 
+                key={description}
+                className="text-xs md:text-sm lg:text-base text-white/60 font-light tracking-wide max-w-xl mx-auto leading-relaxed text-center px-4"
+                style={{
+                  textShadow: '0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4)',
+                }}
+              >
+                {description}
+              </p>
+            </div>
             
             {/* Sliding Buttons - Centered */}
             <div 
               className={cn(
-                "pt-4 flex justify-center",
+                "flex justify-center",
                 isLoaded && "animate-hero-bounce-in"
               )}
               style={{

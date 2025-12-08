@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -51,66 +51,89 @@ interface SlidingButtonsProps {
 export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
-
-  const goToIndex = (index: number) => {
-    if (index !== activeIndex) {
-      setActiveIndex(index);
-      if (onActiveChange) {
-        onActiveChange(buttonOptions[index].description);
-      }
-    }
-  };
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleClick = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
     navigate(path);
   };
 
-  // Notify parent on mount and when activeIndex changes
+  // Handle scroll to update active index - exactly like category carousel
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const scrollLeft = scrollRef.current.scrollLeft;
+    const buttonWidth = scrollRef.current.offsetWidth;
+    const newIndex = Math.round(scrollLeft / buttonWidth);
+    
+    // Update text FIRST, then index - for immediate sync
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < buttonOptions.length) {
+      if (onActiveChange) {
+        onActiveChange(buttonOptions[newIndex].description);
+      }
+      setActiveIndex(newIndex);
+    }
+  };
+
+  const goToSlide = (index: number) => {
+    if (!scrollRef.current) return;
+    const buttonWidth = scrollRef.current.offsetWidth;
+    
+    // Update text IMMEDIATELY before scrolling
+    if (onActiveChange) {
+      onActiveChange(buttonOptions[index].description);
+    }
+    setActiveIndex(index);
+    
+    // Then scroll smoothly
+    scrollRef.current.scrollTo({
+      left: index * buttonWidth,
+      behavior: 'smooth',
+    });
+  };
+
+  // Notify parent on mount
   useEffect(() => {
     if (onActiveChange) {
       onActiveChange(buttonOptions[activeIndex].description);
     }
-  }, [activeIndex, onActiveChange]);
+  }, [onActiveChange]);
 
   return (
     <div className="relative w-full max-w-md mx-auto">
-      {/* Button Container with Sliding Effect */}
-      <div className="relative h-16 overflow-hidden rounded-xl">
-        <div className="relative w-full h-full">
-          <div
-            className="flex absolute inset-0 transition-transform duration-500 ease-in-out"
-            style={{
-              transform: `translateX(-${activeIndex * 100}%)`,
-            }}
-          >
-            {buttonOptions.map((option, index) => {
-              const Icon = option.icon;
-              return (
-                <div
-                  key={option.id}
-                  className="flex-shrink-0 flex justify-center items-center w-full"
-                >
-                  <Button
-                    size="lg"
-                    onClick={(e) => handleClick(option.path, e)}
-                    className={cn(
-                      "text-base px-8 py-6 rounded-xl bg-gradient-to-r text-white border-0 shadow-2xl hover:shadow-primary/50 hover:scale-105 transition-all duration-300 group font-semibold backdrop-blur-sm",
-                      `bg-gradient-to-r ${option.gradientClass} ${option.hoverGradientClass}`
-                    )}
-                    style={{
-                      textShadow: '0 2px 8px rgba(0, 0, 0, 0.7)',
-                      minWidth: '200px',
-                    }}
-                  >
-                    <Icon className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform duration-300 drop-shadow-lg" />
-                    <span className="drop-shadow-lg font-bold">{option.label}</span>
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Scrollable Button Container - Same as category carousel */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+        style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 16px' }}
+      >
+        {buttonOptions.map((option, index) => {
+          const Icon = option.icon;
+          return (
+            <div
+              key={option.id}
+              className="flex-shrink-0 w-full flex justify-center items-center"
+              style={{ scrollSnapAlign: 'start' }}
+            >
+              <Button
+                size="lg"
+                onClick={(e) => handleClick(option.path, e)}
+                className={cn(
+                  "text-base px-8 py-6 rounded-xl bg-gradient-to-r text-white border-0 shadow-2xl hover:shadow-primary/50 hover:scale-105 transition-all duration-300 group font-semibold backdrop-blur-sm animate-fade-in-up",
+                  `bg-gradient-to-r ${option.gradientClass} ${option.hoverGradientClass}`
+                )}
+                style={{
+                  textShadow: '0 2px 8px rgba(0, 0, 0, 0.7)',
+                  minWidth: '200px',
+                  animationDelay: `${index * 0.1}s`,
+                }}
+              >
+                <Icon className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform duration-300 drop-shadow-lg" />
+                <span className="drop-shadow-lg font-bold">{option.label}</span>
+              </Button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Indicators */}
@@ -118,7 +141,7 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
         {buttonOptions.map((_, index) => (
           <button
             key={index}
-            onClick={() => goToIndex(index)}
+            onClick={() => goToSlide(index)}
             className={cn(
               "h-2 rounded-full transition-all duration-300 cursor-pointer",
               index === activeIndex
