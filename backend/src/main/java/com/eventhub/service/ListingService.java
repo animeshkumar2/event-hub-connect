@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -24,7 +25,7 @@ public class ListingService {
         Listing.ListingType type
     ) {
         List<Listing> listings = listingRepository.findWithFilters(
-            eventTypeId, categoryId, type
+            eventTypeId, categoryId, type != null ? type.name().toLowerCase() : null, null, null, null, null
         );
         
         return listings.stream()

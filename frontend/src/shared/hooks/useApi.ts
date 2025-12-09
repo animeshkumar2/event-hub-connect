@@ -1,102 +1,104 @@
 /**
- * React hooks for API calls
+ * React hooks for API calls - Optimized with React Query for caching and performance
  */
 
-import { useState, useEffect } from 'react';
+import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
 import { publicApi, customerApi, vendorApi, authApi } from '../services/api';
 
-// Generic hook for API calls
-export function useApi<T>(
-  apiCall: () => Promise<{ success: boolean; data: T; message: string }>,
-  dependencies: any[] = []
-) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchData() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await apiCall();
-        if (!cancelled) {
-          if (response && response.success) {
-            // Handle case where data might be wrapped
-            const responseData = response.data;
-            // If data is an object with a data property, unwrap it
-            if (responseData && typeof responseData === 'object' && 'data' in responseData) {
-              setData((responseData as any).data);
-            } else {
-              setData(responseData);
-            }
-            setError(null); // Clear any previous errors
-          } else {
-            // Handle error response (e.g., 404 with success: false)
-            setError(response?.message || 'Failed to fetch data');
-            setData(null); // Clear data on error
-          }
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          console.error('API call error:', err);
-          setError(err.message || 'An error occurred');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, dependencies);
-
-  return { data, loading, error, refetch: () => {
-    setLoading(true);
-    apiCall().then(response => {
-      if (response && response.success) {
-        const responseData = response.data;
-        if (responseData && typeof responseData === 'object' && 'data' in responseData) {
-          setData((responseData as any).data);
-        } else {
-          setData(responseData);
-        }
-      }
-      setLoading(false);
-    }).catch(err => {
-      console.error('Refetch error:', err);
-      setLoading(false);
-    });
-  }};
+// Helper to unwrap API response data
+function unwrapResponse<T>(response: { success: boolean; data: T; message: string }): T | null {
+  if (!response || !response.success) {
+    return null;
+  }
+  const responseData = response.data;
+  // If data is an object with a data property, unwrap it
+  if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+    return (responseData as any).data;
+  }
+  return responseData;
 }
 
-// Specific hooks for common API calls
+// Helper to convert React Query result to match old useApi interface
+function convertQueryResult<T>(queryResult: UseQueryResult<T | null, Error>) {
+  return {
+    data: queryResult.data ?? null,
+    loading: queryResult.isLoading,
+    isFetching: queryResult.isFetching, // Expose isFetching to detect background refetches
+    error: queryResult.error?.message || null,
+    refetch: () => queryResult.refetch(),
+  };
+}
+
+// Reference data hooks - cached for 5 minutes (rarely changes)
+// Optimized for fast initial load with parallel fetching
 export function useEventTypes() {
-  return useApi(() => publicApi.getEventTypes());
+  const query = useQuery({
+    queryKey: ['eventTypes'],
+    queryFn: async () => {
+      const startTime = performance.now();
+      const response = await publicApi.getEventTypes();
+      const duration = performance.now() - startTime;
+      if (duration > 500) {
+        console.warn(`Slow API call: getEventTypes took ${duration.toFixed(2)}ms`);
+      }
+      return unwrapResponse(response);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    // Use cached data immediately if available, don't wait for refetch
+    placeholderData: (previousData) => previousData,
+  });
+  return convertQueryResult(query);
 }
 
 export function useCategories() {
-  return useApi(() => publicApi.getCategories());
+  const query = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const startTime = performance.now();
+      const response = await publicApi.getCategories();
+      const duration = performance.now() - startTime;
+      if (duration > 500) {
+        console.warn(`Slow API call: getCategories took ${duration.toFixed(2)}ms`);
+      }
+      return unwrapResponse(response);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    // Use cached data immediately if available, don't wait for refetch
+    placeholderData: (previousData) => previousData,
+  });
+  return convertQueryResult(query);
 }
 
 export function useCities() {
-  return useApi(() => publicApi.getCities());
+  const query = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const response = await publicApi.getCities();
+      return unwrapResponse(response);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendor(vendorId: string | null) {
-  return useApi(
-    () => vendorId ? publicApi.getVendor(vendorId) : Promise.resolve({ success: false, data: null, message: 'No vendor ID' }),
-    [vendorId]
-  );
+  const query = useQuery({
+    queryKey: ['vendor', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendor(vendorId);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
+// Search hooks - cached for 30 seconds (frequently changing)
 export function useSearchListings(params: {
   eventType?: number;
   category?: string;
@@ -105,11 +107,27 @@ export function useSearchListings(params: {
   minBudget?: number;
   maxBudget?: number;
   q?: string;
-}) {
-  return useApi(
-    () => publicApi.searchListings(params),
-    [JSON.stringify(params)]
-  );
+  eventDate?: string;
+  sortBy?: string;
+}, enabled: boolean = true) {
+  // Use individual params instead of JSON.stringify for better caching
+  const query = useQuery({
+    queryKey: ['searchListings', params.eventType, params.category, params.listingType, params.city, params.minBudget, params.maxBudget, params.q, params.eventDate, params.sortBy],
+    queryFn: async () => {
+      const startTime = performance.now();
+      const response = await publicApi.searchListings(params);
+      const duration = performance.now() - startTime;
+      if (duration > 1000) {
+        console.warn(`Slow API call: searchListings took ${duration.toFixed(2)}ms`, params);
+      }
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    enabled: enabled, // Can be disabled until dependencies are ready
+    // Don't use placeholderData - we want to show loading state when switching categories
+    // placeholderData would show stale data which is confusing UX
+  });
+  return convertQueryResult(query);
 }
 
 export function useSearchVendors(params: {
@@ -118,150 +136,448 @@ export function useSearchVendors(params: {
   minBudget?: number;
   maxBudget?: number;
   q?: string;
-}) {
-  return useApi(
-    () => publicApi.searchVendors(params),
-    [JSON.stringify(params)]
-  );
+  eventType?: number;
+  eventDate?: string;
+  sortBy?: string;
+}, enabled: boolean = true) {
+  const query = useQuery({
+    queryKey: ['searchVendors', params.category, params.city, params.minBudget, params.maxBudget, params.q, params.eventType, params.eventDate, params.sortBy],
+    queryFn: async () => {
+      const startTime = performance.now();
+      const response = await publicApi.searchVendors(params);
+      const duration = performance.now() - startTime;
+      if (duration > 1000) {
+        console.warn(`Slow API call: searchVendors took ${duration.toFixed(2)}ms`, params);
+      }
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    enabled: enabled, // Can be disabled until dependencies are ready
+    // Don't use placeholderData - we want to show loading state when switching categories
+    // placeholderData would show stale data which is confusing UX
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorListings(vendorId: string | null) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorListings(vendorId) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId]
-  );
+  const query = useQuery({
+    queryKey: ['vendorListings', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorListings(vendorId);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorPackages(vendorId: string | null) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorPackages(vendorId) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId]
-  );
+  const query = useQuery({
+    queryKey: ['vendorPackages', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorPackages(vendorId);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorReviews(vendorId: string | null, page = 0, size = 10) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorReviews(vendorId, page, size) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId, page, size]
-  );
+  const query = useQuery({
+    queryKey: ['vendorReviews', vendorId, page, size],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorReviews(vendorId, page, size);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorFAQs(vendorId: string | null) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorFAQs(vendorId) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId]
-  );
+  const query = useQuery({
+    queryKey: ['vendorFAQs', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorFAQs(vendorId);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorPastEvents(vendorId: string | null) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorPastEvents(vendorId) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId]
-  );
+  const query = useQuery({
+    queryKey: ['vendorPastEvents', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorPastEvents(vendorId);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 5 * 60 * 1000, // 5 minutes (rarely changes)
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorBookableSetups(vendorId: string | null) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorBookableSetups(vendorId) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId]
-  );
+  const query = useQuery({
+    queryKey: ['vendorBookableSetups', vendorId],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorBookableSetups(vendorId);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorAvailability(vendorId: string | null, startDate?: string, endDate?: string) {
-  return useApi(
-    () => vendorId ? publicApi.getVendorAvailability(vendorId, startDate, endDate) : Promise.resolve({ success: false, data: [], message: 'No vendor ID' }),
-    [vendorId, startDate, endDate]
-  );
+  const query = useQuery({
+    queryKey: ['vendorAvailability', vendorId, startDate, endDate],
+    queryFn: async () => {
+      if (!vendorId) return null;
+      const response = await publicApi.getVendorAvailability(vendorId, startDate, endDate);
+      return unwrapResponse(response);
+    },
+    enabled: !!vendorId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useStats() {
-  return useApi(() => publicApi.getStats());
+  const query = useQuery({
+    queryKey: ['stats'],
+    queryFn: async () => {
+      const response = await publicApi.getStats();
+      return unwrapResponse(response);
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 // Vendor API hooks (for vendor's own data)
 export function useVendorProfile() {
-  return useApi(() => vendorApi.getProfile());
+  const query = useQuery({
+    queryKey: ['vendorProfile'],
+    queryFn: async () => {
+      const response = await vendorApi.getProfile();
+      return unwrapResponse(response);
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useMyVendorListings() {
-  return useApi(() => vendorApi.getListings());
+  const query = useQuery({
+    queryKey: ['myVendorListings'],
+    queryFn: async () => {
+      const response = await vendorApi.getListings();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds (changes frequently)
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorOrders(status?: string, page = 0, size = 10) {
-  return useApi(
-    () => vendorApi.getOrders(status, page, size),
-    [status, page, size]
-  );
+  const query = useQuery({
+    queryKey: ['vendorOrders', status, page, size],
+    queryFn: async () => {
+      const response = await vendorApi.getOrders(status, page, size);
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorLeads() {
-  return useApi(() => vendorApi.getLeads());
+  const query = useQuery({
+    queryKey: ['vendorLeads'],
+    queryFn: async () => {
+      const response = await vendorApi.getLeads();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds (changes frequently)
+  });
+  return convertQueryResult(query);
 }
 
 export function useMyVendorReviews(page = 0, size = 10) {
-  return useApi(
-    () => vendorApi.getReviews(page, size),
-    [page, size]
-  );
+  const query = useQuery({
+    queryKey: ['myVendorReviews', page, size],
+    queryFn: async () => {
+      const response = await vendorApi.getReviews(page, size);
+      return unwrapResponse(response);
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorReviewStatistics() {
-  return useApi(() => vendorApi.getReviewStatistics());
+  const query = useQuery({
+    queryKey: ['vendorReviewStatistics'],
+    queryFn: async () => {
+      const response = await vendorApi.getReviewStatistics();
+      return unwrapResponse(response);
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function useMyVendorFAQs() {
-  return useApi(() => vendorApi.getFAQs());
+  const query = useQuery({
+    queryKey: ['myVendorFAQs'],
+    queryFn: async () => {
+      const response = await vendorApi.getFAQs();
+      return unwrapResponse(response);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes (rarely changes)
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorChatThreads() {
-  return useApi(() => vendorApi.getChatThreads());
+  const query = useQuery({
+    queryKey: ['vendorChatThreads'],
+    queryFn: async () => {
+      const response = await vendorApi.getChatThreads();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds (real-time data)
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorWallet() {
-  return useApi(() => vendorApi.getWallet());
+  const query = useQuery({
+    queryKey: ['vendorWallet'],
+    queryFn: async () => {
+      const response = await vendorApi.getWallet();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorWalletTransactions(page = 0, size = 10) {
-  return useApi(
-    () => vendorApi.getWalletTransactions(page, size),
-    [page, size]
-  );
+  const query = useQuery({
+    queryKey: ['vendorWalletTransactions', page, size],
+    queryFn: async () => {
+      const response = await vendorApi.getWalletTransactions(page, size);
+      return unwrapResponse(response);
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorDashboardStats() {
-  return useApi(() => vendorApi.getDashboardStats());
+  const query = useQuery({
+    queryKey: ['vendorDashboardStats'],
+    queryFn: async () => {
+      const response = await vendorApi.getDashboardStats();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
 }
 
 export function useMyVendorPastEvents() {
-  return useApi(() => vendorApi.getPastEvents());
+  const query = useQuery({
+    queryKey: ['myVendorPastEvents'],
+    queryFn: async () => {
+      const response = await vendorApi.getPastEvents();
+      return unwrapResponse(response);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes (rarely changes)
+  });
+  return convertQueryResult(query);
 }
 
 export function useMyVendorAvailability(startDate?: string, endDate?: string) {
-  return useApi(
-    () => vendorApi.getAvailability(startDate, endDate),
-    [startDate, endDate]
-  );
+  const query = useQuery({
+    queryKey: ['myVendorAvailability', startDate, endDate],
+    queryFn: async () => {
+      const response = await vendorApi.getAvailability(startDate, endDate);
+      return unwrapResponse(response);
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  return convertQueryResult(query);
 }
 
 export function useMyVendorBookableSetups() {
-  return useApi(() => vendorApi.getBookableSetups());
+  const query = useQuery({
+    queryKey: ['myVendorBookableSetups'],
+    queryFn: async () => {
+      const response = await vendorApi.getBookableSetups();
+      return unwrapResponse(response);
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function useVendorUpcomingOrders() {
-  return useApi(() => vendorApi.getUpcomingOrders());
+  const query = useQuery({
+    queryKey: ['vendorUpcomingOrders'],
+    queryFn: async () => {
+      const response = await vendorApi.getUpcomingOrders();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
 }
 
 export function useListingDetails(listingId: string | null) {
-  return useApi(
-    () => listingId ? publicApi.getListing(listingId) : Promise.resolve({ success: false, data: null, message: 'No listing ID' }),
-    [listingId]
-  );
+  const query = useQuery({
+    queryKey: ['listingDetails', listingId],
+    queryFn: async () => {
+      if (!listingId) return null;
+      const response = await publicApi.getListing(listingId);
+      return unwrapResponse(response);
+    },
+    enabled: !!listingId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
 export function usePackageDetails(packageId: string | null) {
-  return useApi(
-    () => packageId ? publicApi.getPackage(packageId) : Promise.resolve({ success: false, data: null, message: 'No package ID' }),
-    [packageId]
-  );
+  const query = useQuery({
+    queryKey: ['packageDetails', packageId],
+    queryFn: async () => {
+      if (!packageId) return null;
+      const response = await publicApi.getPackage(packageId);
+      return unwrapResponse(response);
+    },
+    enabled: !!packageId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
 }
 
+// Parallel query hooks for pages that need multiple data sources
+export function useVendorListingsData() {
+  const queries = useQueries({
+    queries: [
+      {
+        queryKey: ['myVendorListings'],
+        queryFn: async () => {
+          const response = await vendorApi.getListings();
+          return unwrapResponse(response);
+        },
+        staleTime: 30 * 1000,
+      },
+      {
+        queryKey: ['vendorProfile'],
+        queryFn: async () => {
+          const response = await vendorApi.getProfile();
+          return unwrapResponse(response);
+        },
+        staleTime: 1 * 60 * 1000,
+      },
+      {
+        queryKey: ['eventTypes'],
+        queryFn: async () => {
+          const response = await publicApi.getEventTypes();
+          return unwrapResponse(response);
+        },
+        staleTime: 5 * 60 * 1000,
+      },
+      {
+        queryKey: ['categories'],
+        queryFn: async () => {
+          const response = await publicApi.getCategories();
+          return unwrapResponse(response);
+        },
+        staleTime: 5 * 60 * 1000,
+      },
+    ],
+  });
+
+  return {
+    listings: convertQueryResult(queries[0]),
+    profile: convertQueryResult(queries[1]),
+    eventTypes: convertQueryResult(queries[2]),
+    categories: convertQueryResult(queries[3]),
+    loading: queries.some(q => q.isLoading),
+  };
+}
+
+export function useVendorDashboardData() {
+  const queries = useQueries({
+    queries: [
+      {
+        queryKey: ['vendorDashboardStats'],
+        queryFn: async () => {
+          const response = await vendorApi.getDashboardStats();
+          return unwrapResponse(response);
+        },
+        staleTime: 30 * 1000,
+      },
+      {
+        queryKey: ['vendorProfile'],
+        queryFn: async () => {
+          const response = await vendorApi.getProfile();
+          return unwrapResponse(response);
+        },
+        staleTime: 1 * 60 * 1000,
+      },
+      {
+        queryKey: ['vendorUpcomingOrders'],
+        queryFn: async () => {
+          const response = await vendorApi.getUpcomingOrders();
+          return unwrapResponse(response);
+        },
+        staleTime: 30 * 1000,
+      },
+      {
+        queryKey: ['vendorLeads'],
+        queryFn: async () => {
+          const response = await vendorApi.getLeads();
+          return unwrapResponse(response);
+        },
+        staleTime: 30 * 1000,
+      },
+      {
+        queryKey: ['myVendorListings'],
+        queryFn: async () => {
+          const response = await vendorApi.getListings();
+          return unwrapResponse(response);
+        },
+        staleTime: 30 * 1000,
+      },
+    ],
+  });
+
+  return {
+    stats: convertQueryResult(queries[0]),
+    profile: convertQueryResult(queries[1]),
+    upcomingOrders: convertQueryResult(queries[2]),
+    leads: convertQueryResult(queries[3]),
+    listings: convertQueryResult(queries[4]),
+    loading: queries.some(q => q.isLoading),
+  };
+}

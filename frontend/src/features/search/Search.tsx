@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/features/home/Navbar";
 import { VendorCard } from "@/features/vendor/VendorCard";
 import { PackageCard } from "@/features/search/PackageCard";
@@ -17,8 +18,11 @@ import {
 } from "@/shared/components/ui/select";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import { Search as SearchIcon, SlidersHorizontal, ChevronLeft, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
-import { useSearchListings, useSearchVendors, useEventTypes, useCategories } from "@/shared/hooks/useApi";
+import { Search as SearchIcon, SlidersHorizontal, ChevronLeft, ChevronRight, AlertCircle, Loader2, X, Calendar } from "lucide-react";
+import { useSearchListings, useSearchVendors, useEventTypes, useCategories, useCities } from "@/shared/hooks/useApi";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/shared/components/ui/calendar";
+import { format } from "date-fns";
 import { publicApi } from "@/shared/services/api";
 import { cn } from "@/shared/lib/utils";
 import { useCart } from "@/shared/contexts/CartContext";
@@ -28,17 +32,94 @@ const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  
+  // Filter state - initialize from URL params
+  const [selectedCity, setSelectedCity] = useState<string>(searchParams.get('city') || '');
+  const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState<string>(searchParams.get('eventType') || '');
+  const [eventDate, setEventDate] = useState<Date | undefined>(
+    searchParams.get('eventDate') ? new Date(searchParams.get('eventDate')!) : undefined
+  );
+  const [minBudget, setMinBudget] = useState<string>(searchParams.get('minBudget') || '');
+  const [maxBudget, setMaxBudget] = useState<string>(searchParams.get('maxBudget') || '');
+  const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'relevance');
 
-  // Fetch reference data first
+  // Sync filter changes to URL params (debounced to avoid too many updates)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const newParams = new URLSearchParams(searchParams);
+      
+      if (selectedCity) {
+        newParams.set('city', selectedCity);
+      } else {
+        newParams.delete('city');
+      }
+      
+      // Only update eventType if it's different from the URL param (to avoid conflicts)
+      if (selectedEventTypeFilter && selectedEventTypeFilter !== eventTypeParam) {
+        newParams.set('eventType', selectedEventTypeFilter);
+      } else if (!selectedEventTypeFilter && !eventTypeParam) {
+        newParams.delete('eventType');
+      }
+      
+      if (eventDate) {
+        newParams.set('eventDate', format(eventDate, 'yyyy-MM-dd'));
+      } else {
+        newParams.delete('eventDate');
+      }
+      
+      if (minBudget) {
+        newParams.set('minBudget', minBudget);
+      } else {
+        newParams.delete('minBudget');
+      }
+      
+      if (maxBudget) {
+        newParams.set('maxBudget', maxBudget);
+      } else {
+        newParams.delete('maxBudget');
+      }
+      
+      if (sortBy && sortBy !== 'relevance') {
+        newParams.set('sortBy', sortBy);
+      } else {
+        newParams.delete('sortBy');
+      }
+      
+      // Only update if params actually changed to avoid infinite loops
+      const currentParams = searchParams.toString();
+      const newParamsStr = newParams.toString();
+      if (currentParams !== newParamsStr) {
+        setSearchParams(newParams, { replace: true });
+      }
+    }, 300); // Debounce by 300ms
+    
+    return () => clearTimeout(timeoutId);
+  }, [selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget, sortBy]);
+
+  // Fetch reference data first - these are cached, so should load instantly on subsequent visits
   const { data: eventTypesData, loading: eventTypesLoading, error: eventTypesError } = useEventTypes();
   const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useCategories();
-  const eventTypes = eventTypesData || [];
-  const categories = categoriesData || [];
+  const { data: citiesData } = useCities();
+  const cities = citiesData || [];
+  
+  // Try to get cached data immediately for faster initial render
+  const cachedEventTypes = queryClient.getQueryData(['eventTypes']) as any;
+  const cachedCategories = queryClient.getQueryData(['categories']) as any;
+  
+  // Use cached data if available, otherwise use fetched data
+  const eventTypes = (cachedEventTypes || eventTypesData) || [];
+  const categories = (cachedCategories || categoriesData) || [];
+  
+  // Reference data is ready if we have data (from cache or fetch) or loading is complete
+  // This ensures we can resolve IDs immediately if cached data exists
+  const referenceDataReady = (eventTypes.length > 0 && categories.length > 0) || 
+    (!eventTypesLoading && !categoriesLoading);
 
   // Get event type and category from URL
   const eventTypeParam = searchParams.get('eventType');
@@ -138,15 +219,70 @@ const Search = () => {
   }, [selectedCategory, categories]);
 
   // Fetch vendors or listings based on view mode
-  const { data: vendorsData, loading: vendorsLoading, error: vendorsError } = useSearchVendors({
-    category: showVendors && resolvedCategoryId ? resolvedCategoryId : undefined,
-  });
+  // Track previous params to detect category/eventType changes
+  const prevParamsRef = useRef<{ category?: string; eventType?: number }>({});
+  const [isSwitchingCategory, setIsSwitchingCategory] = useState(false);
+  
+  const currentCategory = showVendors && resolvedCategoryId ? resolvedCategoryId : undefined;
+  const currentEventType = !showVendors && eventTypeId && !isNaN(eventTypeId) ? eventTypeId : undefined;
+  
+  // Detect when category or eventType changes
+  useEffect(() => {
+    const prevCategory = prevParamsRef.current.category;
+    const prevEventType = prevParamsRef.current.eventType;
+    
+    if ((prevCategory !== currentCategory || prevEventType !== currentEventType) && 
+        (prevCategory !== undefined || prevEventType !== undefined)) {
+      // Category/eventType changed - show loading state
+      setIsSwitchingCategory(true);
+    }
+    
+    prevParamsRef.current = { category: currentCategory, eventType: currentEventType };
+  }, [currentCategory, currentEventType]);
+  
+  // Only wait for reference data on first load, not when switching categories
+  // If we have cached reference data, proceed immediately
+  const canFetchSearchData = referenceDataReady || (eventTypes.length > 0 && categories.length > 0);
+  
+  // Get filter values
+  const filterEventTypeId = useMemo(() => {
+    if (!selectedEventTypeFilter) return undefined;
+    const numericId = parseInt(selectedEventTypeFilter, 10);
+    if (!isNaN(numericId)) return numericId;
+    const eventType = eventTypes.find((et: any) => 
+      et.name?.toLowerCase() === selectedEventTypeFilter.toLowerCase() ||
+      et.id?.toString() === selectedEventTypeFilter
+    );
+    return eventType?.id;
+  }, [selectedEventTypeFilter, eventTypes]);
 
-  const { data: listingsData, loading: listingsLoading, error: listingsError } = useSearchListings({
-    eventType: !showVendors && eventTypeId && !isNaN(eventTypeId) ? eventTypeId : undefined,
+  const { data: vendorsData, loading: vendorsLoading, isFetching: vendorsFetching, error: vendorsError } = useSearchVendors({
+    category: currentCategory,
+    city: selectedCity || undefined,
+    eventType: filterEventTypeId,
+    eventDate: eventDate ? format(eventDate, 'yyyy-MM-dd') : undefined,
+    minBudget: minBudget ? parseFloat(minBudget) : undefined,
+    maxBudget: maxBudget ? parseFloat(maxBudget) : undefined,
+    sortBy: sortBy,
+  }, canFetchSearchData && showVendors); // Enable if we can fetch AND showing vendors
+
+  const { data: listingsData, loading: listingsLoading, isFetching: listingsFetching, error: listingsError } = useSearchListings({
+    eventType: currentEventType || filterEventTypeId,
     category: !showVendors && resolvedCategoryId ? resolvedCategoryId : undefined,
     listingType: listingType === 'packages' ? 'packages' : undefined,
-  });
+    city: selectedCity || undefined,
+    eventDate: eventDate ? format(eventDate, 'yyyy-MM-dd') : undefined,
+    minBudget: minBudget ? parseFloat(minBudget) : undefined,
+    maxBudget: maxBudget ? parseFloat(maxBudget) : undefined,
+    sortBy: sortBy,
+  }, canFetchSearchData && !showVendors); // Enable if we can fetch AND showing listings
+  
+  // Reset switching state when data loads
+  useEffect(() => {
+    if (!vendorsLoading && !listingsLoading && !vendorsFetching && !listingsFetching) {
+      setIsSwitchingCategory(false);
+    }
+  }, [vendorsLoading, listingsLoading, vendorsFetching, listingsFetching]);
 
   // Ensure data is always an array - handle both direct arrays and wrapped responses
   const vendors = useMemo(() => {
@@ -273,8 +409,8 @@ const Search = () => {
     });
   }, [vendors, searchQuery, categories]);
 
-  // Get current event type name
-  const currentEventType = eventTypes.find((et: any) => et.id === eventTypeId);
+  // Get current event type name for display
+  const currentEventTypeDisplay = eventTypes.find((et: any) => et.id === eventTypeId);
 
   const handleCategoryClick = (categoryId: string) => {
     flushSync(() => {
@@ -422,7 +558,7 @@ const Search = () => {
                   ? (selectedCategory !== 'all' 
                       ? `${categories.find((c: any) => c.id === selectedCategory)?.name || 'Category'} Vendors`
                       : 'All Vendors')
-                  : (currentEventType ? `${currentEventType.name} Packages` : 'All Packages')}
+                  : (currentEventTypeDisplay ? `${currentEventTypeDisplay.name} Packages` : 'All Packages')}
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Discover the perfect vendors for your event
@@ -502,6 +638,165 @@ const Search = () => {
           </div>
         </div>
 
+        {/* Filters and Sort Section */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          {/* Filter Toggle Button */}
+          <Button
+            variant={showFilters ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="h-8 text-xs"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
+            Filters
+            {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget) && (
+              <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-[10px]">
+                {[selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget].filter(Boolean).length}
+              </Badge>
+            )}
+          </Button>
+
+          {/* Sort Dropdown */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="relevance">Relevance</SelectItem>
+              <SelectItem value="price_low">Price: Low to High</SelectItem>
+              <SelectItem value="price_high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Highest Rated</SelectItem>
+              {showVendors ? (
+                <SelectItem value="reviews">Most Reviews</SelectItem>
+              ) : (
+                <SelectItem value="newest">Newest First</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+
+          {/* Clear Filters Button */}
+          {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedCity('');
+                setSelectedEventTypeFilter('');
+                setEventDate(undefined);
+                setMinBudget('');
+                setMaxBudget('');
+                setSearchParams(prev => {
+                  const newParams = new URLSearchParams(prev);
+                  newParams.delete('city');
+                  newParams.delete('eventType');
+                  newParams.delete('eventDate');
+                  newParams.delete('minBudget');
+                  newParams.delete('maxBudget');
+                  return newParams;
+                });
+              }}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear Filters
+            </Button>
+          )}
+        </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <Card className="mb-4 border-border">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* City Filter */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">City</Label>
+                  <Select value={selectedCity || "all"} onValueChange={(value) => setSelectedCity(value === "all" ? "" : value)}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Cities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Cities</SelectItem>
+                      {cities.map((city: any) => (
+                        <SelectItem key={city.id || city.name} value={city.name || city.id}>
+                          {city.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Event Type Filter */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Event Type</Label>
+                  <Select value={selectedEventTypeFilter || "all"} onValueChange={(value) => setSelectedEventTypeFilter(value === "all" ? "" : value)}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Event Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Event Types</SelectItem>
+                      {eventTypes.map((et: any) => (
+                        <SelectItem key={et.id} value={et.id.toString()}>
+                          {et.name || et.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Event Date Filter */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Event Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-9 justify-start text-left font-normal text-sm",
+                          !eventDate && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {eventDate ? format(eventDate, "PPP") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={eventDate}
+                        onSelect={setEventDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Budget Range */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Budget Range (₹)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      value={minBudget}
+                      onChange={(e) => setMinBudget(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      value={maxBudget}
+                      onChange={(e) => setMaxBudget(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Error States */}
         {(eventTypesError || categoriesError) && (
           <Card className="p-6 mb-6 border-destructive">
@@ -541,21 +836,25 @@ const Search = () => {
           </Card>
         )}
 
-        {/* Loading State */}
-        {(eventTypesLoading || categoriesLoading || (showVendors ? vendorsLoading : listingsLoading)) ? (
+        {/* Loading State - Show on initial load or when switching categories */}
+        {(!referenceDataReady || (showVendors ? vendorsLoading : listingsLoading) || isSwitchingCategory) ? (
           <div className="text-center py-12">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">
-              {eventTypesLoading || categoriesLoading 
+              {!referenceDataReady
                 ? 'Loading categories...' 
-                : showVendors 
-                  ? 'Loading vendors...' 
-                  : 'Loading listings...'}
+                : isSwitchingCategory
+                  ? 'Loading new results...'
+                  : showVendors 
+                    ? 'Loading vendors...' 
+                    : 'Loading listings...'}
             </p>
           </div>
-        ) : showVendors ? (
-          // Vendors View
-          filteredVendors.length === 0 ? (
+        ) : (
+          <>
+            {showVendors ? (
+              // Vendors View
+              filteredVendors.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-2">No vendors found.</p>
               <p className="text-sm text-muted-foreground">
@@ -593,9 +892,9 @@ const Search = () => {
               </div>
             </>
           )
-        ) : (
-          // Listings View
-          filteredListings.length === 0 ? (
+            ) : (
+              // Listings View
+              filteredListings.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-2">No listings found.</p>
               <p className="text-sm text-muted-foreground">
@@ -661,6 +960,8 @@ const Search = () => {
               </div>
             </>
           )
+            )}
+          </>
         )}
       </div>
     </div>

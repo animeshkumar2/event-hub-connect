@@ -87,7 +87,10 @@ class ApiClient {
       }
 
       const data = await response.json();
-      console.log('API Response:', endpoint, data);
+      // Only log in development to reduce console noise and improve performance
+      if (import.meta.env.DEV) {
+        console.log('API Response:', endpoint, data);
+      }
       
       // Handle ApiResponse wrapper - backend returns { success, data, message }
       if (data && typeof data === 'object' && 'success' in data) {
@@ -154,6 +157,8 @@ export const publicApi = {
     minBudget?: number;
     maxBudget?: number;
     q?: string;
+    eventDate?: string;
+    sortBy?: string;
   }) => {
     const queryParams = new URLSearchParams();
     if (params.eventType) queryParams.append('eventType', params.eventType.toString());
@@ -163,6 +168,8 @@ export const publicApi = {
     if (params.minBudget) queryParams.append('minBudget', params.minBudget.toString());
     if (params.maxBudget) queryParams.append('maxBudget', params.maxBudget.toString());
     if (params.q) queryParams.append('q', params.q);
+    if (params.eventDate) queryParams.append('eventDate', params.eventDate);
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     
     return apiClient.get<any[]>(`/public/search/listings?${queryParams.toString()}`);
   },
@@ -173,6 +180,9 @@ export const publicApi = {
     minBudget?: number;
     maxBudget?: number;
     q?: string;
+    eventType?: number;
+    eventDate?: string;
+    sortBy?: string;
   }) => {
     const queryParams = new URLSearchParams();
     if (params.category) queryParams.append('category', params.category);
@@ -180,6 +190,9 @@ export const publicApi = {
     if (params.minBudget) queryParams.append('minBudget', params.minBudget.toString());
     if (params.maxBudget) queryParams.append('maxBudget', params.maxBudget.toString());
     if (params.q) queryParams.append('q', params.q);
+    if (params.eventType) queryParams.append('eventType', params.eventType.toString());
+    if (params.eventDate) queryParams.append('eventDate', params.eventDate);
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     
     return apiClient.get<any[]>(`/public/search/vendors?${queryParams.toString()}`);
   },

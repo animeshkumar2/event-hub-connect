@@ -34,7 +34,11 @@ public class SearchService {
             String cityName,
             BigDecimal minPrice,
             BigDecimal maxPrice,
-            String searchQuery) {
+            String searchQuery,
+            String eventDate,
+            String sortBy) {
+        
+        List<Listing> listings;
         
         // Step 1: Validate event type exists
         if (eventTypeId != null) {
@@ -48,31 +52,155 @@ public class SearchService {
                     .collect(Collectors.toList());
             
             // Step 3: Apply strict filtering
-            return listingRepository.findWithStrictFilters(
+            // Convert list to comma-separated string for native query
+            String categoryIdsStr = String.join(",", allowedCategoryIds);
+            listings = listingRepository.findWithStrictFilters(
                     eventTypeId,
-                    allowedCategoryIds,
-                    listingType,
+                    categoryIdsStr,
+                    listingType != null ? listingType.name().toLowerCase() : null,
                     categoryId,
+                    cityName,
                     minPrice,
-                    maxPrice
+                    maxPrice,
+                    searchQuery
             );
+        } else {
+            // If no event type, return all active listings with basic filters
+            listings = listingRepository.findWithFilters(null, categoryId, listingType != null ? listingType.name().toLowerCase() : null, cityName, minPrice, maxPrice, searchQuery);
         }
         
-        // If no event type, return all active listings with basic filters
-        return listingRepository.findWithFilters(null, categoryId, listingType);
+        // Apply sorting
+        return applySorting(listings, sortBy);
     }
     
     /**
-     * Search vendors (no event type filter)
+     * Search vendors with filters
      */
     public List<Vendor> searchVendors(
             String categoryId,
             String cityName,
             BigDecimal minPrice,
             BigDecimal maxPrice,
-            String searchQuery) {
+            String searchQuery,
+            Integer eventType,
+            String eventDate,
+            String sortBy) {
         
-        return vendorRepository.searchVendors(categoryId, cityName, minPrice, maxPrice, searchQuery);
+        List<Vendor> vendors = vendorRepository.searchVendors(categoryId, cityName, minPrice, maxPrice, searchQuery);
+        
+        // Apply sorting
+        return applyVendorSorting(vendors, sortBy);
+    }
+    
+    /**
+     * Apply sorting to listings
+     */
+    private List<Listing> applySorting(List<Listing> listings, String sortBy) {
+        if (sortBy == null || sortBy.equals("relevance")) {
+            // Default: Popular first, then by rating
+            return listings.stream()
+                    .sorted((a, b) -> {
+                        if (a.getIsPopular() != b.getIsPopular()) {
+                            return Boolean.compare(b.getIsPopular(), a.getIsPopular());
+                        }
+                        return Integer.compare(
+                                b.getIsTrending() ? 1 : 0,
+                                a.getIsTrending() ? 1 : 0
+                        );
+                    })
+                    .collect(Collectors.toList());
+        }
+        
+        switch (sortBy.toLowerCase()) {
+            case "price_low":
+                return listings.stream()
+                        .sorted((a, b) -> a.getPrice().compareTo(b.getPrice()))
+                        .collect(Collectors.toList());
+            case "price_high":
+                return listings.stream()
+                        .sorted((a, b) -> b.getPrice().compareTo(a.getPrice()))
+                        .collect(Collectors.toList());
+            case "rating":
+                return listings.stream()
+                        .sorted((a, b) -> {
+                            // Sort by vendor rating if available
+                            BigDecimal ratingA = a.getVendor() != null && a.getVendor().getRating() != null 
+                                    ? a.getVendor().getRating() : BigDecimal.ZERO;
+                            BigDecimal ratingB = b.getVendor() != null && b.getVendor().getRating() != null 
+                                    ? b.getVendor().getRating() : BigDecimal.ZERO;
+                            return ratingB.compareTo(ratingA);
+                        })
+                        .collect(Collectors.toList());
+            case "newest":
+                return listings.stream()
+                        .sorted((a, b) -> {
+                            if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                                return b.getCreatedAt().compareTo(a.getCreatedAt());
+                            }
+                            return 0;
+                        })
+                        .collect(Collectors.toList());
+            default:
+                return listings;
+        }
+    }
+    
+    /**
+     * Apply sorting to vendors
+     */
+    private List<Vendor> applyVendorSorting(List<Vendor> vendors, String sortBy) {
+        if (sortBy == null || sortBy.equals("relevance")) {
+            // Default: Verified first, then by rating
+            return vendors.stream()
+                    .sorted((a, b) -> {
+                        if (a.getIsVerified() != b.getIsVerified()) {
+                            return Boolean.compare(b.getIsVerified(), a.getIsVerified());
+                        }
+                        if (a.getRating() != null && b.getRating() != null) {
+                            return b.getRating().compareTo(a.getRating());
+                        }
+                        return 0;
+                    })
+                    .collect(Collectors.toList());
+        }
+        
+        switch (sortBy.toLowerCase()) {
+            case "price_low":
+                return vendors.stream()
+                        .sorted((a, b) -> {
+                            BigDecimal priceA = a.getStartingPrice() != null ? a.getStartingPrice() : BigDecimal.ZERO;
+                            BigDecimal priceB = b.getStartingPrice() != null ? b.getStartingPrice() : BigDecimal.ZERO;
+                            return priceA.compareTo(priceB);
+                        })
+                        .collect(Collectors.toList());
+            case "price_high":
+                return vendors.stream()
+                        .sorted((a, b) -> {
+                            BigDecimal priceA = a.getStartingPrice() != null ? a.getStartingPrice() : BigDecimal.ZERO;
+                            BigDecimal priceB = b.getStartingPrice() != null ? b.getStartingPrice() : BigDecimal.ZERO;
+                            return priceB.compareTo(priceA);
+                        })
+                        .collect(Collectors.toList());
+            case "rating":
+                return vendors.stream()
+                        .sorted((a, b) -> {
+                            if (a.getRating() != null && b.getRating() != null) {
+                                return b.getRating().compareTo(a.getRating());
+                            }
+                            return 0;
+                        })
+                        .collect(Collectors.toList());
+            case "reviews":
+                return vendors.stream()
+                        .sorted((a, b) -> {
+                            Integer reviewsA = a.getReviewCount() != null ? a.getReviewCount() : 0;
+                            Integer reviewsB = b.getReviewCount() != null ? b.getReviewCount() : 0;
+                            return reviewsB.compareTo(reviewsA);
+                        })
+                        .collect(Collectors.toList());
+            default:
+                return vendors;
+        }
     }
     
     /**

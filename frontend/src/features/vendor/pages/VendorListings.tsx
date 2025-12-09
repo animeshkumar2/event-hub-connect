@@ -25,7 +25,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { useMyVendorListings, useVendorProfile, useEventTypes, useCategories } from '@/shared/hooks/useApi';
+import { useVendorListingsData } from '@/shared/hooks/useApi';
 import { vendorApi } from '@/shared/services/api';
 
 export default function VendorListings() {
@@ -35,11 +35,15 @@ export default function VendorListings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   
-  // Fetch data
-  const { data: listingsData, loading: listingsLoading, error: listingsError, refetch } = useMyVendorListings();
-  const { data: profileData } = useVendorProfile();
-  const { data: eventTypesData } = useEventTypes();
-  const { data: categoriesData } = useCategories();
+  // Fetch data in parallel using optimized hook
+  const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
+  const listingsData = listings.data;
+  const listingsLoading = listings.loading || dataLoading;
+  const listingsError = listings.error;
+  const refetch = listings.refetch;
+  const profileData = profile.data;
+  const eventTypesData = eventTypes.data;
+  const categoriesData = categories.data;
 
   // Form state
   const [formData, setFormData] = useState({

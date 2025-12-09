@@ -32,14 +32,16 @@ public class PublicSearchController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) BigDecimal minBudget,
             @RequestParam(required = false) BigDecimal maxBudget,
-            @RequestParam(required = false) String q) {
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String eventDate,
+            @RequestParam(required = false, defaultValue = "relevance") String sortBy) {
         
         Listing.ListingType type = listingType != null && listingType.equals("packages") 
                 ? Listing.ListingType.PACKAGE 
                 : null;
         
         List<Listing> listings = searchService.searchListings(
-                eventType, category, type, city, minBudget, maxBudget, q);
+                eventType, category, type, city, minBudget, maxBudget, q, eventDate, sortBy);
         
         List<ListingDTO> listingDTOs = listingMapper.toDTOList(listings);
         
@@ -52,9 +54,12 @@ public class PublicSearchController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) BigDecimal minBudget,
             @RequestParam(required = false) BigDecimal maxBudget,
-            @RequestParam(required = false) String q) {
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Integer eventType,
+            @RequestParam(required = false) String eventDate,
+            @RequestParam(required = false, defaultValue = "relevance") String sortBy) {
         
-        List<Vendor> vendors = searchService.searchVendors(category, city, minBudget, maxBudget, q);
+        List<Vendor> vendors = searchService.searchVendors(category, city, minBudget, maxBudget, q, eventType, eventDate, sortBy);
         List<VendorDTO> vendorDTOs = vendorMapper.toDTOList(vendors);
         return ResponseEntity.ok(ApiResponse.success(vendorDTOs));
     }

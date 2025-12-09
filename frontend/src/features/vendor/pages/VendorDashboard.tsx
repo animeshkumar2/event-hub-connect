@@ -19,7 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useVendorDashboardStats, useVendorProfile, useVendorUpcomingOrders, useVendorLeads, useMyVendorListings } from '@/shared/hooks/useApi';
+import { useVendorDashboardData } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
 import { useMemo, useEffect } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -48,12 +48,19 @@ export default function VendorDashboard() {
     }
   }, [isAuthenticated, user, authLoading, navigate]);
   
-  // Fetch real data
-  const { data: statsData, loading: statsLoading, error: statsError } = useVendorDashboardStats();
-  const { data: profileData, loading: profileLoading } = useVendorProfile();
-  const { data: upcomingOrdersData, loading: ordersLoading } = useVendorUpcomingOrders();
-  const { data: leadsData, loading: leadsLoading } = useVendorLeads();
-  const { data: listingsData, loading: listingsLoading } = useMyVendorListings();
+  // Fetch real data in parallel using optimized hook
+  const { stats, profile, upcomingOrders, leads, listings, loading: dataLoading } = useVendorDashboardData();
+  const statsData = stats.data;
+  const statsLoading = stats.loading || dataLoading;
+  const statsError = stats.error;
+  const profileData = profile.data;
+  const profileLoading = profile.loading || dataLoading;
+  const upcomingOrdersData = upcomingOrders.data;
+  const ordersLoading = upcomingOrders.loading || dataLoading;
+  const leadsData = leads.data;
+  const leadsLoading = leads.loading || dataLoading;
+  const listingsData = listings.data;
+  const listingsLoading = listings.loading || dataLoading;
 
   // Transform stats data
   const stats = useMemo(() => {
