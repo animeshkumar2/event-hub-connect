@@ -1,7 +1,7 @@
 import { MinimalNavbar } from '@/features/home/MinimalNavbar';
 import { CinematicHero } from '@/features/home/CinematicHero';
 import { InteractiveEventShowcase } from '@/features/home/InteractiveEventShowcase';
-import { FuturisticCategoryCarousel } from '@/features/home/FuturisticCategoryCarousel';
+import { CategoryServicesSection } from '@/features/home/CategoryServicesSection';
 import { PremiumVendorCard } from '@/features/vendor/PremiumVendorCard';
 import { TrendingSetupCard } from '@/features/search/TrendingSetupCard';
 import { Button } from '@/shared/components/ui/button';
@@ -173,8 +173,8 @@ const Home = () => {
       {/* Interactive Event Showcase */}
       <InteractiveEventShowcase />
 
-      {/* Futuristic Category Carousel */}
-      <FuturisticCategoryCarousel />
+      {/* Category Services Section */}
+      <CategoryServicesSection />
 
       {/* Trending Setups Section */}
       {trendingSetups.length > 0 && (
