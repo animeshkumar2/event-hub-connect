@@ -62,8 +62,8 @@ export default function VendorDashboard() {
   const listingsData = listings.data;
   const listingsLoading = listings.loading || dataLoading;
 
-  // Transform stats data
-  const stats = useMemo(() => {
+  // Transform stats data into card format
+  const statsCards = useMemo(() => {
     if (!statsData) return null;
     return [
       { 
@@ -295,9 +295,9 @@ export default function VendorDashboard() {
         )}
 
         {/* Stats Grid */}
-        {stats && (
+        {statsCards && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {stats.map((stat, i) => (
+            {statsCards.map((stat, i) => (
               <Card 
                 key={i} 
                 className="border-border hover:shadow-elegant transition-all cursor-pointer group hover-lift"
