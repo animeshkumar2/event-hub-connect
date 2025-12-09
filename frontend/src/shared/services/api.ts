@@ -5,6 +5,12 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api';
 
+// Debug: Log the API URL being used (remove in production)
+if (typeof window !== 'undefined') {
+  console.log('[API] Base URL:', API_BASE_URL);
+  console.log('[API] ENV VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+}
+
 interface ApiResponse<T> {
   success: boolean;
   message: string;
