@@ -266,6 +266,9 @@ const Search = () => {
     sortBy: sortBy,
   }, canFetchSearchData && showVendors); // Enable if we can fetch AND showing vendors
 
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 12;
+
   const { data: listingsData, loading: listingsLoading, isFetching: listingsFetching, error: listingsError } = useSearchListings({
     eventType: currentEventType || filterEventTypeId,
     category: !showVendors && resolvedCategoryId ? resolvedCategoryId : undefined,
@@ -275,6 +278,8 @@ const Search = () => {
     minBudget: minBudget ? parseFloat(minBudget) : undefined,
     maxBudget: maxBudget ? parseFloat(maxBudget) : undefined,
     sortBy: sortBy,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
   }, canFetchSearchData && !showVendors); // Enable if we can fetch AND showing listings
   
   // Reset switching state when data loads
@@ -296,10 +301,20 @@ const Search = () => {
     return [vendorsData];
   }, [vendorsData]);
 
-  const listings = useMemo(() => {
+  const [accumulatedListings, setAccumulatedListings] = useState<any[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Reset pagination when filters change (category, eventType, search query, city, budgets, sort)
+  useEffect(() => {
+    setPage(0);
+    setAccumulatedListings([]);
+    setHasMore(true);
+  }, [currentEventType, resolvedCategoryId, searchQuery, selectedCity, minBudget, maxBudget, sortBy, listingType]);
+
+  // Normalize current page data
+  const currentPageListings = useMemo(() => {
     if (!listingsData) return [];
     if (Array.isArray(listingsData)) return listingsData;
-    // If data is wrapped in an object with a data property
     if (listingsData && typeof listingsData === 'object' && 'data' in listingsData) {
       const data = (listingsData as any).data;
       return Array.isArray(data) ? data : (data ? [data] : []);
@@ -307,10 +322,35 @@ const Search = () => {
     return [listingsData];
   }, [listingsData]);
 
+  // For logs and counts, prefer accumulated pages if present
+  const listings = accumulatedListings.length > 0 ? accumulatedListings : currentPageListings;
+
+  // Accumulate pages
+  useEffect(() => {
+    if (currentPageListings && currentPageListings.length >= 0) {
+      if (page === 0) {
+        setAccumulatedListings(currentPageListings);
+      } else if (!listingsFetching && !listingsLoading) {
+        setAccumulatedListings((prev) => {
+          // Avoid duplicates by id
+          const existingIds = new Set(prev.map((p: any) => p.id));
+          const merged = [...prev];
+          currentPageListings.forEach((item: any) => {
+            if (!existingIds.has(item.id)) merged.push(item);
+          });
+          return merged;
+        });
+      }
+      // If returned less than page size, no more data
+      setHasMore(currentPageListings.length === PAGE_SIZE);
+    }
+  }, [currentPageListings, page, listingsFetching, listingsLoading]);
+
   // Transform API listings to match component expectations
   const transformedListings = useMemo(() => {
     try {
-      return listings.map((listing: any) => {
+      const source = accumulatedListings.length > 0 ? accumulatedListings : currentPageListings;
+      return source.map((listing: any) => {
         // Safely transform each listing
         const transformed = {
           ...listing,
@@ -387,6 +427,11 @@ const Search = () => {
     
     return filtered;
   }, [transformedListings, listingType, eventTypeId, searchQuery, categories]);
+
+  const loadMore = () => {
+    if (!hasMore || listingsFetching || listingsLoading) return;
+    setPage((p) => p + 1);
+  };
   
   // Filter vendors by search query
   const filteredVendors = useMemo(() => {
@@ -855,111 +900,123 @@ const Search = () => {
             {showVendors ? (
               // Vendors View
               filteredVendors.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-2">No vendors found.</p>
-              <p className="text-sm text-muted-foreground">
-                Try adjusting your filters or browse all categories.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="mb-3">
-                <p className="text-xs text-muted-foreground">
-                  {filteredVendors.length} {filteredVendors.length === 1 ? 'vendor' : 'vendors'} found
-                  {searchQuery && ` for "${searchQuery}"`}
-                </p>
-              </div>
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-2">No vendors found.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your filters or browse all categories.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <p className="text-xs text-muted-foreground">
+                      {filteredVendors.length} {filteredVendors.length === 1 ? 'vendor' : 'vendors'} found
+                      {searchQuery && ` for "${searchQuery}"`}
+                    </p>
+                  </div>
 
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {filteredVendors.map((vendor: any) => (
-                  <VendorCard
-                    key={vendor.id}
-                    vendor={{
-                      id: vendor.id,
-                      businessName: vendor.businessName || vendor.name,
-                      category: vendor.categoryId || vendor.category,
-                      categoryName: vendor.categoryName,
-                      city: vendor.city,
-                      cityName: vendor.cityName,
-                      rating: vendor.rating || vendor.averageRating,
-                      reviewCount: vendor.reviewCount || vendor.totalReviews,
-                      startingPrice: vendor.startingPrice || vendor.minPrice,
-                      coverImage: vendor.coverImage || vendor.profileImage,
-                      isVerified: vendor.isVerified,
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          )
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    {filteredVendors.map((vendor: any) => (
+                      <VendorCard
+                        key={vendor.id}
+                        vendor={{
+                          id: vendor.id,
+                          businessName: vendor.businessName || vendor.name,
+                          category: vendor.categoryId || vendor.category,
+                          categoryName: vendor.categoryName,
+                          city: vendor.city,
+                          cityName: vendor.cityName,
+                          rating: vendor.rating || vendor.averageRating,
+                          reviewCount: vendor.reviewCount || vendor.totalReviews,
+                          startingPrice: vendor.startingPrice || vendor.minPrice,
+                          coverImage: vendor.coverImage || vendor.profileImage,
+                          isVerified: vendor.isVerified,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )
             ) : (
               // Listings View
               filteredListings.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-2">No listings found.</p>
-              <p className="text-sm text-muted-foreground">
-                {eventTypeParam && !eventTypeId 
-                  ? `Event type "${eventTypeParam}" not found. Try selecting from the filters above.`
-                  : 'Try adjusting your filters or browse all categories.'}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="mb-3">
-                <p className="text-xs text-muted-foreground">
-                  {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} found
-                </p>
-              </div>
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-2">No listings found.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {eventTypeParam && !eventTypeId 
+                      ? `Event type "${eventTypeParam}" not found. Try selecting from the filters above.`
+                      : 'Try adjusting your filters or browse all categories.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <p className="text-xs text-muted-foreground">
+                      {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} loaded
+                    </p>
+                  </div>
 
-              <div className={cn(
-                "grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-              )}>
-                {filteredListings.map((listing: any) => {
-                  try {
-                    const isPackage = listing.type === 'PACKAGE' || listing.type === 'package';
-                    
-                    if (listingType === 'packages' && isPackage) {
-                      return (
-                        <PremiumPackageCard
-                          key={listing.id}
-                          pkg={listing}
-                          vendorId={listing.vendorId || ''}
-                          vendorName={listing.vendorName || 'Unknown Vendor'}
-                          vendorCategory={listing.categoryId || listing.category}
-                          onBook={(pkg, addOns, customizations) => {
-                            const totalPrice = pkg.price + 
-                              (addOns?.reduce((sum: number, a: any) => sum + (a.price || 0), 0) || 0) +
-                              (customizations?.reduce((sum: number, c: any) => sum + (c.price || 0), 0) || 0);
-                            handleBook({
-                              ...listing,
-                              price: totalPrice,
-                            });
-                          }}
-                          theme="wedding"
-                        />
-                      );
-                    } else {
-                      return (
-                        <PackageCard
-                          key={listing.id}
-                          package={listing}
-                        />
-                      );
-                    }
-                  } catch (error) {
-                    console.error('Error rendering listing:', listing.id, error);
-                    return (
-                      <Card key={listing.id} className="p-4 border-destructive">
-                        <CardContent>
-                          <p className="text-sm text-destructive">Error rendering listing: {listing.name || listing.id}</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  }
-                })}
-              </div>
-            </>
-          )
+                  <div className={cn(
+                    "grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                  )}>
+                    {filteredListings.map((listing: any) => {
+                      try {
+                        const isPackage = listing.type === 'PACKAGE' || listing.type === 'package';
+                        
+                        if (listingType === 'packages' && isPackage) {
+                          return (
+                            <PremiumPackageCard
+                              key={listing.id}
+                              pkg={listing}
+                              vendorId={listing.vendorId || ''}
+                              vendorName={listing.vendorName || 'Unknown Vendor'}
+                              vendorCategory={listing.categoryId || listing.category}
+                              onBook={(pkg, addOns, customizations) => {
+                                const totalPrice = pkg.price + 
+                                  (addOns?.reduce((sum: number, a: any) => sum + (a.price || 0), 0) || 0) +
+                                  (customizations?.reduce((sum: number, c: any) => sum + (c.price || 0), 0) || 0);
+                                handleBook({
+                                  ...listing,
+                                  price: totalPrice,
+                                });
+                              }}
+                              theme="wedding"
+                            />
+                          );
+                        } else {
+                          return (
+                            <PackageCard
+                              key={listing.id}
+                              package={listing}
+                            />
+                          );
+                        }
+                      } catch (error) {
+                        console.error('Error rendering listing:', listing.id, error);
+                        return (
+                          <Card key={listing.id} className="p-4 border-destructive">
+                            <CardContent>
+                              <p className="text-sm text-destructive">Error rendering listing: {listing.name || listing.id}</p>
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+                    })}
+                  </div>
+                  {hasMore && (
+                    <div className="flex justify-center mt-6">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadMore}
+                        disabled={listingsFetching || listingsLoading}
+                      >
+                        {listingsFetching || listingsLoading ? 'Loading…' : 'Load more'}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )
             )}
           </>
         )}

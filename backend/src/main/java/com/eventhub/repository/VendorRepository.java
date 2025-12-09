@@ -30,6 +30,24 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
            "ORDER BY v.rating DESC, v.reviewCount DESC")
     List<Vendor> findFeaturedVendors();
     
+    // Optimized JPQL query with pagination - much faster than native query
+    @Query("SELECT v FROM Vendor v " +
+           "LEFT JOIN FETCH v.vendorCategory " +
+           "WHERE v.isActive = true " +
+           "AND (:categoryId IS NULL OR v.vendorCategory.id = :categoryId) " +
+           "AND (:cityName IS NULL OR v.cityName = :cityName) " +
+           "AND (:minPrice IS NULL OR v.startingPrice >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR v.startingPrice <= :maxPrice) " +
+           "ORDER BY v.isVerified DESC, v.rating DESC NULLS LAST")
+    List<Vendor> searchVendorsOptimized(
+        @Param("categoryId") String categoryId,
+        @Param("cityName") String cityName,
+        @Param("minPrice") BigDecimal minPrice,
+        @Param("maxPrice") BigDecimal maxPrice,
+        org.springframework.data.domain.Pageable pageable
+    );
+    
+    // Legacy native query (kept for compatibility)
     @Query(value = "SELECT * FROM vendors v WHERE v.is_active = true " +
            "AND (:categoryId IS NULL OR v.vendor_category_id = :categoryId) " +
            "AND (:cityName IS NULL OR v.city_name = :cityName) " +

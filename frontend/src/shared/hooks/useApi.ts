@@ -109,10 +109,12 @@ export function useSearchListings(params: {
   q?: string;
   eventDate?: string;
   sortBy?: string;
+  limit?: number;
+  offset?: number;
 }, enabled: boolean = true) {
   // Use individual params instead of JSON.stringify for better caching
   const query = useQuery({
-    queryKey: ['searchListings', params.eventType, params.category, params.listingType, params.city, params.minBudget, params.maxBudget, params.q, params.eventDate, params.sortBy],
+    queryKey: ['searchListings', params.eventType, params.category, params.listingType, params.city, params.minBudget, params.maxBudget, params.q, params.eventDate, params.sortBy, params.limit, params.offset],
     queryFn: async () => {
       const startTime = performance.now();
       const response = await publicApi.searchListings(params);

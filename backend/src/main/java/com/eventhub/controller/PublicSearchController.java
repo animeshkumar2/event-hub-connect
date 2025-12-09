@@ -34,14 +34,16 @@ public class PublicSearchController {
             @RequestParam(required = false) BigDecimal maxBudget,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String eventDate,
-            @RequestParam(required = false, defaultValue = "relevance") String sortBy) {
+            @RequestParam(required = false, defaultValue = "relevance") String sortBy,
+            @RequestParam(required = false, defaultValue = "12") Integer limit,
+            @RequestParam(required = false, defaultValue = "0") Integer offset) {
         
         Listing.ListingType type = listingType != null && listingType.equals("packages") 
                 ? Listing.ListingType.PACKAGE 
                 : null;
         
         List<Listing> listings = searchService.searchListings(
-                eventType, category, type, city, minBudget, maxBudget, q, eventDate, sortBy);
+                eventType, category, type, city, minBudget, maxBudget, q, eventDate, sortBy, limit, offset);
         
         List<ListingDTO> listingDTOs = listingMapper.toDTOList(listings);
         
@@ -57,9 +59,11 @@ public class PublicSearchController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Integer eventType,
             @RequestParam(required = false) String eventDate,
-            @RequestParam(required = false, defaultValue = "relevance") String sortBy) {
+            @RequestParam(required = false, defaultValue = "relevance") String sortBy,
+            @RequestParam(required = false, defaultValue = "12") Integer limit,
+            @RequestParam(required = false, defaultValue = "0") Integer offset) {
         
-        List<Vendor> vendors = searchService.searchVendors(category, city, minBudget, maxBudget, q, eventType, eventDate, sortBy);
+        List<Vendor> vendors = searchService.searchVendors(category, city, minBudget, maxBudget, q, eventType, eventDate, sortBy, limit, offset);
         List<VendorDTO> vendorDTOs = vendorMapper.toDTOList(vendors);
         return ResponseEntity.ok(ApiResponse.success(vendorDTOs));
     }

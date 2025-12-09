@@ -23,59 +23,52 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
            "WHERE l.isActive = true AND et.id = :eventTypeId")
     List<Listing> findByEventTypeId(@Param("eventTypeId") Integer eventTypeId);
     
-    @Query(value = "SELECT DISTINCT l.* FROM listings l " +
-           "LEFT JOIN listing_event_types let ON l.id = let.listing_id " +
-           "LEFT JOIN event_types et ON let.event_type_id = et.id " +
-           "LEFT JOIN vendors v ON v.id = l.vendor_id " +
-           "WHERE l.is_active = true " +
-           "AND (:eventTypeId IS NULL OR et.id = :eventTypeId) " +
-           "AND (:categoryId IS NULL OR l.listing_category_id = :categoryId) " +
+    // Simple query without eventType - uses JPQL with fetch joins for performance
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "WHERE l.isActive = true " +
+           "AND (:categoryId IS NULL OR c.id = :categoryId) " +
            "AND (:type IS NULL OR l.type = :type) " +
-           "AND (:cityName IS NULL OR v.city_name = :cityName) " +
            "AND (:minPrice IS NULL OR l.price >= :minPrice) " +
            "AND (:maxPrice IS NULL OR l.price <= :maxPrice) " +
-           "AND (:searchQuery IS NULL OR LOWER(CAST(COALESCE(l.name, '') AS TEXT)) LIKE LOWER('%' || COALESCE(:searchQuery, '') || '%') " +
-           "     OR LOWER(CAST(COALESCE(l.description, '') AS TEXT)) LIKE LOWER('%' || COALESCE(:searchQuery, '') || '%'))",
-           nativeQuery = true)
-    List<Listing> findWithFilters(
-        @Param("eventTypeId") Integer eventTypeId,
+           "ORDER BY l.isPopular DESC, l.isTrending DESC, l.createdAt DESC")
+    List<Listing> findActiveListingsSimple(
         @Param("categoryId") String categoryId,
-        @Param("type") String type,
-        @Param("cityName") String cityName,
+        @Param("type") Listing.ListingType type,
         @Param("minPrice") BigDecimal minPrice,
         @Param("maxPrice") BigDecimal maxPrice,
-        @Param("searchQuery") String searchQuery
+        org.springframework.data.domain.Pageable pageable
     );
+    
+    // Query with eventType - uses JPQL with fetch joins for performance
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "JOIN l.eventTypes et " +
+           "WHERE l.isActive = true " +
+           "AND et.id = :eventTypeId " +
+           "AND (:categoryId IS NULL OR c.id = :categoryId) " +
+           "AND (:type IS NULL OR l.type = :type) " +
+           "AND (:minPrice IS NULL OR l.price >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR l.price <= :maxPrice) " +
+           "ORDER BY l.isPopular DESC, l.isTrending DESC, l.createdAt DESC")
+    List<Listing> findByEventTypeWithFilters(
+        @Param("eventTypeId") Integer eventTypeId,
+        @Param("categoryId") String categoryId,
+        @Param("type") Listing.ListingType type,
+        @Param("minPrice") BigDecimal minPrice,
+        @Param("maxPrice") BigDecimal maxPrice,
+        org.springframework.data.domain.Pageable pageable
+    );
+    
+    // Fetch eventTypes for a list of listings (batch load to avoid N+1)
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE l IN :listings")
+    List<Listing> fetchEventTypes(@Param("listings") List<Listing> listings);
     
     List<Listing> findByVendorIdAndIsActiveTrue(UUID vendorId);
-    
-    // Strict filtering: Event Type → Category → Listing Type
-    @Query(value = "SELECT DISTINCT l.* FROM listings l " +
-           "JOIN listing_event_types let ON l.id = let.listing_id " +
-           "JOIN event_types et ON let.event_type_id = et.id " +
-           "JOIN categories c ON c.id = l.listing_category_id " +
-           "LEFT JOIN vendors v ON v.id = l.vendor_id " +
-           "WHERE l.is_active = true " +
-           "AND et.id = :eventTypeId " +
-           "AND c.id = ANY(string_to_array(:categoryIds, ',')) " +
-           "AND (:listingType IS NULL OR l.type = :listingType) " +
-           "AND (:categoryId IS NULL OR l.listing_category_id = :categoryId) " +
-           "AND (:cityName IS NULL OR v.city_name = :cityName) " +
-           "AND (:minPrice IS NULL OR l.price >= :minPrice) " +
-           "AND (:maxPrice IS NULL OR l.price <= :maxPrice) " +
-           "AND (:searchQuery IS NULL OR LOWER(CAST(COALESCE(l.name, '') AS TEXT)) LIKE LOWER('%' || COALESCE(:searchQuery, '') || '%') " +
-           "     OR LOWER(CAST(COALESCE(l.description, '') AS TEXT)) LIKE LOWER('%' || COALESCE(:searchQuery, '') || '%'))",
-           nativeQuery = true)
-    List<Listing> findWithStrictFilters(
-        @Param("eventTypeId") Integer eventTypeId,
-        @Param("categoryIds") String categoryIds, // Comma-separated string
-        @Param("listingType") String listingType,
-        @Param("categoryId") String categoryId,
-        @Param("cityName") String cityName,
-        @Param("minPrice") BigDecimal minPrice,
-        @Param("maxPrice") BigDecimal maxPrice,
-        @Param("searchQuery") String searchQuery
-    );
     
     @Query("SELECT l FROM Listing l WHERE l.isActive = true AND l.isPopular = true")
     List<Listing> findPopularListings();

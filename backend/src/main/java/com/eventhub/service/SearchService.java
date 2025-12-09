@@ -4,6 +4,8 @@ import com.eventhub.model.*;
 import com.eventhub.repository.*;
 import com.eventhub.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +26,8 @@ public class SearchService {
     private final BookableSetupRepository bookableSetupRepository;
     
     /**
-     * Search listings with strict filtering: Event Type → Category → Listing
-     * This implements the critical business rule for filtering
+     * Search listings with optimized JPQL queries (JOIN FETCH to avoid N+1)
+     * Uses pagination for performance
      */
     public List<Listing> searchListings(
             Integer eventTypeId,
@@ -36,45 +38,68 @@ public class SearchService {
             BigDecimal maxPrice,
             String searchQuery,
             String eventDate,
-            String sortBy) {
+            String sortBy,
+            Integer limit,
+            Integer offset) {
+        
+        // Defensive default to cap result set and improve performance
+        int effectiveLimit = (limit != null && limit > 0) ? Math.min(limit, 50) : 12;
+        int effectiveOffset = (offset != null && offset >= 0) ? offset : 0;
+        int pageNumber = effectiveOffset / effectiveLimit;
+        
+        Pageable pageable = PageRequest.of(pageNumber, effectiveLimit);
         
         List<Listing> listings;
         
-        // Step 1: Validate event type exists
         if (eventTypeId != null) {
-            EventType eventType = eventTypeRepository.findById(eventTypeId)
-                    .orElseThrow(() -> new NotFoundException("Event type not found"));
-            
-            // Step 2: Get allowed categories for this event type
-            List<EventTypeCategory> mappings = eventTypeCategoryRepository.findByEventType(eventType);
-            List<String> allowedCategoryIds = mappings.stream()
-                    .map(etc -> etc.getCategory().getId())
-                    .collect(Collectors.toList());
-            
-            // Step 3: Apply strict filtering
-            // Convert list to comma-separated string for native query
-            String categoryIdsStr = String.join(",", allowedCategoryIds);
-            listings = listingRepository.findWithStrictFilters(
+            // Query with eventType filter - uses JOIN FETCH for vendor and category
+            listings = listingRepository.findByEventTypeWithFilters(
                     eventTypeId,
-                    categoryIdsStr,
-                    listingType != null ? listingType.name().toLowerCase() : null,
                     categoryId,
-                    cityName,
+                    listingType,
                     minPrice,
                     maxPrice,
-                    searchQuery
+                    pageable
             );
         } else {
-            // If no event type, return all active listings with basic filters
-            listings = listingRepository.findWithFilters(null, categoryId, listingType != null ? listingType.name().toLowerCase() : null, cityName, minPrice, maxPrice, searchQuery);
+            // Query without eventType - uses JOIN FETCH for vendor and category
+            listings = listingRepository.findActiveListingsSimple(
+                    categoryId,
+                    listingType,
+                    minPrice,
+                    maxPrice,
+                    pageable
+            );
         }
         
-        // Apply sorting
+        // Batch fetch eventTypes to avoid N+1 for eventTypes collection
+        if (!listings.isEmpty()) {
+            listings = listingRepository.fetchEventTypes(listings);
+        }
+        
+        // Apply text search filter in memory (for simplicity; can be moved to DB later)
+        if (searchQuery != null && !searchQuery.isBlank()) {
+            String query = searchQuery.toLowerCase();
+            listings = listings.stream()
+                    .filter(l -> (l.getName() != null && l.getName().toLowerCase().contains(query)) ||
+                                 (l.getDescription() != null && l.getDescription().toLowerCase().contains(query)))
+                    .collect(Collectors.toList());
+        }
+        
+        // Apply city filter in memory (vendor relationship already fetched)
+        if (cityName != null && !cityName.isBlank()) {
+            listings = listings.stream()
+                    .filter(l -> l.getVendor() != null && 
+                                 cityName.equalsIgnoreCase(l.getVendor().getCityName()))
+                    .collect(Collectors.toList());
+        }
+        
+        // Sorting is already done in the query (ORDER BY), but apply custom sort if needed
         return applySorting(listings, sortBy);
     }
     
     /**
-     * Search vendors with filters
+     * Search vendors with optimized JPQL query
      */
     public List<Vendor> searchVendors(
             String categoryId,
@@ -84,9 +109,28 @@ public class SearchService {
             String searchQuery,
             Integer eventType,
             String eventDate,
-            String sortBy) {
+            String sortBy,
+            Integer limit,
+            Integer offset) {
         
-        List<Vendor> vendors = vendorRepository.searchVendors(categoryId, cityName, minPrice, maxPrice, searchQuery);
+        // Defensive defaults
+        int effectiveLimit = (limit != null && limit > 0) ? Math.min(limit, 50) : 12;
+        int effectiveOffset = (offset != null && offset >= 0) ? offset : 0;
+        int pageNumber = effectiveOffset / effectiveLimit;
+        
+        Pageable pageable = PageRequest.of(pageNumber, effectiveLimit);
+        
+        List<Vendor> vendors = vendorRepository.searchVendorsOptimized(
+                categoryId, cityName, minPrice, maxPrice, pageable);
+        
+        // Apply text search filter in memory (for simplicity)
+        if (searchQuery != null && !searchQuery.isBlank()) {
+            String query = searchQuery.toLowerCase();
+            vendors = vendors.stream()
+                    .filter(v -> v.getBusinessName() != null && 
+                                 v.getBusinessName().toLowerCase().contains(query))
+                    .collect(Collectors.toList());
+        }
         
         // Apply sorting
         return applyVendorSorting(vendors, sortBy);

@@ -4,6 +4,7 @@ import com.eventhub.dto.ListingDTO;
 import com.eventhub.model.Listing;
 import com.eventhub.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +25,21 @@ public class ListingService {
         String categoryId,
         Listing.ListingType type
     ) {
-        List<Listing> listings = listingRepository.findWithFilters(
-            eventTypeId, categoryId, type != null ? type.name().toLowerCase() : null, null, null, null, null
-        );
+        List<Listing> listings;
+        if (eventTypeId != null) {
+            listings = listingRepository.findByEventTypeWithFilters(
+                eventTypeId, categoryId, type, null, null, PageRequest.of(0, 100)
+            );
+        } else {
+            listings = listingRepository.findActiveListingsSimple(
+                categoryId, type, null, null, PageRequest.of(0, 100)
+            );
+        }
+        
+        // Fetch event types to avoid N+1
+        if (!listings.isEmpty()) {
+            listings = listingRepository.fetchEventTypes(listings);
+        }
         
         return listings.stream()
             .map(this::toDTO)

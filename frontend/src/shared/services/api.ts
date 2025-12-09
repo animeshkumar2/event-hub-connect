@@ -159,6 +159,8 @@ export const publicApi = {
     q?: string;
     eventDate?: string;
     sortBy?: string;
+    limit?: number;
+    offset?: number;
   }) => {
     const queryParams = new URLSearchParams();
     if (params.eventType) queryParams.append('eventType', params.eventType.toString());
@@ -170,6 +172,8 @@ export const publicApi = {
     if (params.q) queryParams.append('q', params.q);
     if (params.eventDate) queryParams.append('eventDate', params.eventDate);
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.offset) queryParams.append('offset', params.offset.toString());
     
     return apiClient.get<any[]>(`/public/search/listings?${queryParams.toString()}`);
   },
