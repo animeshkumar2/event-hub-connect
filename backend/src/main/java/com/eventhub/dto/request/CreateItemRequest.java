@@ -27,13 +27,22 @@ public class CreateItemRequest {
     @Size(min = 1, message = "At least one event type is required")
     private List<Integer> eventTypeIds;
     
+    // Highlights - key features
+    private List<String> highlights;
+    
     private String unit;
     
     @Positive(message = "Minimum quantity must be positive")
     private Integer minimumQuantity = 1;
     
     private String deliveryTime;
+    
+    // Extra charges with pricing
+    private List<CreatePackageRequest.ExtraCharge> extraChargesDetailed;
+    
+    // Legacy text-based
     private List<String> extraCharges;
+    
     private List<String> images;
 }
 

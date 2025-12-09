@@ -70,6 +70,15 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     
     List<Listing> findByVendorIdAndIsActiveTrue(UUID vendorId);
     
+    // Optimized query for vendor listings with JOIN FETCH to avoid N+1 queries
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE l.vendor.id = :vendorId AND l.isActive = true " +
+           "ORDER BY l.createdAt DESC")
+    List<Listing> findByVendorIdOptimized(@Param("vendorId") UUID vendorId);
+    
     @Query("SELECT l FROM Listing l WHERE l.isActive = true AND l.isPopular = true")
     List<Listing> findPopularListings();
     

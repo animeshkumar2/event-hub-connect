@@ -33,5 +33,10 @@ public class ListingDTO {
     private List<Integer> eventTypeIds;
     private Boolean isPopular;
     private Boolean isTrending;
+    
+    // New fields for enhanced package features
+    private List<String> highlights;        // Key features shown at top of listing
+    private List<UUID> includedItemIds;     // UUIDs of item listings included in package
+    private String extraChargesJson;        // JSON array: [{"name": "...", "price": 10000}]
 }
 

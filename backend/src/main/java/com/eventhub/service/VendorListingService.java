@@ -7,6 +7,8 @@ import com.eventhub.repository.*;
 import com.eventhub.exception.NotFoundException;
 import com.eventhub.exception.BusinessRuleException;
 import com.eventhub.exception.ValidationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ public class VendorListingService {
     private final EventTypeRepository eventTypeRepository;
     private final EventTypeCategoryRepository eventTypeCategoryRepository;
     private final AddOnRepository addOnRepository;
+    private final ObjectMapper objectMapper;
     
     /**
      * Create package listing
@@ -57,6 +60,20 @@ public class VendorListingService {
             }
         }
         
+        // Validate linked items if provided
+        if (request.getIncludedItemIds() != null && !request.getIncludedItemIds().isEmpty()) {
+            for (UUID itemId : request.getIncludedItemIds()) {
+                Listing item = listingRepository.findById(itemId)
+                        .orElseThrow(() -> new NotFoundException("Linked item not found: " + itemId));
+                if (!item.getVendor().getId().equals(vendorId)) {
+                    throw new BusinessRuleException("Can only include your own items in a package");
+                }
+                if (item.getType() != Listing.ListingType.ITEM) {
+                    throw new BusinessRuleException("Can only include items (not packages) in a package");
+                }
+            }
+        }
+        
         // Create listing
         Listing listing = new Listing();
         listing.setVendor(vendor);
@@ -65,10 +82,23 @@ public class VendorListingService {
         listing.setDescription(request.getDescription());
         listing.setPrice(request.getPrice());
         listing.setListingCategory(category);
+        listing.setHighlights(request.getHighlights());
         listing.setIncludedItemsText(request.getIncludedItemsText());
+        listing.setIncludedItemIds(request.getIncludedItemIds());
         listing.setExcludedItemsText(request.getExcludedItemsText());
         listing.setDeliveryTime(request.getDeliveryTime());
         listing.setExtraCharges(request.getExtraCharges());
+        
+        // Convert detailed extra charges to JSON
+        if (request.getExtraChargesDetailed() != null && !request.getExtraChargesDetailed().isEmpty()) {
+            try {
+                listing.setExtraChargesJson(objectMapper.writeValueAsString(request.getExtraChargesDetailed()));
+            } catch (JsonProcessingException e) {
+                // Fall back to text-based charges
+                listing.setExtraCharges(request.getExtraCharges());
+            }
+        }
+        
         listing.setImages(request.getImages());
         listing.setIsActive(true);
         
@@ -122,10 +152,21 @@ public class VendorListingService {
         listing.setDescription(request.getDescription());
         listing.setPrice(request.getPrice());
         listing.setListingCategory(category);
+        listing.setHighlights(request.getHighlights());
         listing.setUnit(request.getUnit());
         listing.setMinimumQuantity(request.getMinimumQuantity() != null ? request.getMinimumQuantity() : 1);
         listing.setDeliveryTime(request.getDeliveryTime());
         listing.setExtraCharges(request.getExtraCharges());
+        
+        // Convert detailed extra charges to JSON
+        if (request.getExtraChargesDetailed() != null && !request.getExtraChargesDetailed().isEmpty()) {
+            try {
+                listing.setExtraChargesJson(objectMapper.writeValueAsString(request.getExtraChargesDetailed()));
+            } catch (JsonProcessingException e) {
+                listing.setExtraCharges(request.getExtraCharges());
+            }
+        }
+        
         listing.setImages(request.getImages());
         listing.setIsActive(true);
         
@@ -150,6 +191,7 @@ public class VendorListingService {
             throw new BusinessRuleException("You don't have permission to update this listing");
         }
         
+        // Basic fields
         if (updatedListing.getName() != null) {
             listing.setName(updatedListing.getName());
         }
@@ -161,6 +203,42 @@ public class VendorListingService {
         }
         if (updatedListing.getImages() != null) {
             listing.setImages(updatedListing.getImages());
+        }
+        
+        // Package-specific fields
+        if (updatedListing.getHighlights() != null) {
+            listing.setHighlights(updatedListing.getHighlights());
+        }
+        if (updatedListing.getIncludedItemIds() != null) {
+            listing.setIncludedItemIds(updatedListing.getIncludedItemIds());
+        }
+        if (updatedListing.getIncludedItemsText() != null) {
+            listing.setIncludedItemsText(updatedListing.getIncludedItemsText());
+        }
+        if (updatedListing.getExcludedItemsText() != null) {
+            listing.setExcludedItemsText(updatedListing.getExcludedItemsText());
+        }
+        if (updatedListing.getDeliveryTime() != null) {
+            listing.setDeliveryTime(updatedListing.getDeliveryTime());
+        }
+        if (updatedListing.getExtraCharges() != null) {
+            listing.setExtraCharges(updatedListing.getExtraCharges());
+        }
+        if (updatedListing.getExtraChargesJson() != null) {
+            listing.setExtraChargesJson(updatedListing.getExtraChargesJson());
+        }
+        
+        // Item-specific fields
+        if (updatedListing.getUnit() != null) {
+            listing.setUnit(updatedListing.getUnit());
+        }
+        if (updatedListing.getMinimumQuantity() != null) {
+            listing.setMinimumQuantity(updatedListing.getMinimumQuantity());
+        }
+        
+        // Status
+        if (updatedListing.getIsActive() != null) {
+            listing.setIsActive(updatedListing.getIsActive());
         }
         
         return listingRepository.save(listing);
@@ -182,7 +260,8 @@ public class VendorListingService {
     
     @Transactional(readOnly = true)
     public List<Listing> getVendorListings(UUID vendorId) {
-        return listingRepository.findByVendorIdAndIsActiveTrue(vendorId);
+        // Use optimized query with JOIN FETCH to avoid N+1 queries
+        return listingRepository.findByVendorIdOptimized(vendorId);
     }
 }
 

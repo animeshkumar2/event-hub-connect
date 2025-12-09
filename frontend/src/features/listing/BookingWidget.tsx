@@ -41,9 +41,10 @@ interface BookingWidgetProps {
     }>;
   };
   onBookNow?: () => void;
+  isVendorPreview?: boolean; // When vendor is viewing their own listing
 }
 
-export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
+export const BookingWidget = ({ listing, onBookNow, isVendorPreview = false }: BookingWidgetProps) => {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -141,6 +142,55 @@ export const BookingWidget = ({ listing, onBookNow }: BookingWidgetProps) => {
       setQuantity(newQuantity);
     }
   };
+
+  // Vendor preview mode - show disabled state
+  if (isVendorPreview) {
+    return (
+      <Card className="sticky top-24 border-2 shadow-xl opacity-75">
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-3xl font-black text-foreground">
+                  ₹{listing.price.toLocaleString('en-IN')}
+                </span>
+                {isItem && listing.unit && (
+                  <span className="text-sm text-muted-foreground">/{listing.unit}</span>
+                )}
+              </div>
+              {isPackage && (
+                <p className="text-xs text-muted-foreground">Fixed price package</p>
+              )}
+            </div>
+            {listing.type === 'PACKAGE' && (
+              <Badge className="bg-primary/10 text-primary border-primary/20">
+                Package
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted/50 border border-border rounded-lg p-4 text-center">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">
+              Preview Mode
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Booking is disabled while viewing your own listing
+            </p>
+          </div>
+          <Button disabled className="w-full" size="lg">
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Add to Cart
+          </Button>
+          <Button disabled variant="outline" className="w-full" size="lg">
+            <Zap className="mr-2 h-4 w-4" />
+            Book Now
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="sticky top-24 border-2 shadow-xl">
