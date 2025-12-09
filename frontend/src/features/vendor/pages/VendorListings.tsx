@@ -33,6 +33,7 @@ export default function VendorListings() {
   const [listingType, setListingType] = useState<'PACKAGE' | 'ITEM'>('PACKAGE');
   const [editingListing, setEditingListing] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   
   // Fetch data
   const { data: listingsData, loading: listingsLoading, error: listingsError, refetch } = useMyVendorListings();
@@ -62,16 +63,42 @@ export default function VendorListings() {
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
   const vendorCategoryName = profileData?.vendorCategory?.name || profileData?.categoryName || '';
 
-  // Filter listings
+  // Get category name helper
+  const getCategoryName = (categoryId: string) => {
+    if (!categoriesData || !Array.isArray(categoriesData)) return '';
+    const category = categoriesData.find((cat: any) => cat.id === categoryId);
+    return category?.name || '';
+  };
+
+  // Filter listings with enhanced search (name, description, category)
   const filteredListings = useMemo(() => {
     if (!listingsData || !Array.isArray(listingsData)) return [];
-    if (!searchQuery) return listingsData;
-    const query = searchQuery.toLowerCase();
-    return listingsData.filter((listing: any) =>
-      listing.name?.toLowerCase().includes(query) ||
-      listing.description?.toLowerCase().includes(query)
-    );
-  }, [listingsData, searchQuery]);
+    
+    let filtered = listingsData;
+    
+    // Filter by category
+    if (selectedCategoryFilter !== 'all') {
+      filtered = filtered.filter((listing: any) => {
+        const listingCategoryId = listing.listingCategory?.id || listing.categoryId || '';
+        return listingCategoryId === selectedCategoryFilter;
+      });
+    }
+    
+    // Filter by search query (name, description, category name)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((listing: any) => {
+        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '').toLowerCase();
+        return (
+          listing.name?.toLowerCase().includes(query) ||
+          listing.description?.toLowerCase().includes(query) ||
+          categoryName.includes(query)
+        );
+      });
+    }
+    
+    return filtered;
+  }, [listingsData, searchQuery, selectedCategoryFilter, categoriesData]);
 
   const packages = useMemo(() => filteredListings.filter((l: any) => l.type === 'PACKAGE'), [filteredListings]);
   const items = useMemo(() => filteredListings.filter((l: any) => l.type === 'ITEM'), [filteredListings]);
@@ -243,12 +270,25 @@ export default function VendorListings() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search listings..."
+                placeholder="Search by name, description, or category..."
                 className="pl-10 bg-background border-border text-foreground w-64"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
+              <SelectTrigger className="w-48 bg-background border-border text-foreground">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categoriesData && Array.isArray(categoriesData) && categoriesData.map((cat: any) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Dialog open={showCreateModal} onOpenChange={(open) => {
               setShowCreateModal(open);
               if (!open) setEditingListing(null);
@@ -518,7 +558,12 @@ export default function VendorListings() {
                   </div>
                 </div>
                 <CardContent className="p-4">
-                  <h3 className="text-foreground font-semibold text-lg mb-1">{listing.name}</h3>
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className="text-foreground font-semibold text-lg flex-1">{listing.name}</h3>
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other'}
+                    </Badge>
+                  </div>
                   <p className="text-muted-foreground text-sm line-clamp-2">{listing.description}</p>
                 </CardContent>
               </Card>
@@ -582,7 +627,12 @@ export default function VendorListings() {
                   </div>
                 </div>
                 <CardContent className="p-4">
-                  <h3 className="text-foreground font-semibold text-lg mb-1">{listing.name}</h3>
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className="text-foreground font-semibold text-lg flex-1">{listing.name}</h3>
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other'}
+                    </Badge>
+                  </div>
                   <p className="text-muted-foreground text-sm line-clamp-2">{listing.description}</p>
                   {listing.unit && (
                     <p className="text-xs text-muted-foreground mt-1">{listing.unit}</p>

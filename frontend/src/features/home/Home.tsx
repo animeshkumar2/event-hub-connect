@@ -2,98 +2,38 @@ import { MinimalNavbar } from '@/features/home/MinimalNavbar';
 import { CinematicHero } from '@/features/home/CinematicHero';
 import { InteractiveEventShowcase } from '@/features/home/InteractiveEventShowcase';
 import { CategoryServicesSection } from '@/features/home/CategoryServicesSection';
-import { PremiumVendorCard } from '@/features/vendor/PremiumVendorCard';
-import { TrendingSetupCard } from '@/features/search/TrendingSetupCard';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, CheckCircle2, Star, TrendingUp, Zap, Shield, Users, Award, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
-import { mockVendors, eventTypes } from '@/shared/constants/mockData';
+import { ArrowRight, Sparkles, CheckCircle2, Star, Zap, Shield, Award } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { useState, useEffect, useMemo } from 'react';
-import { useStats } from '@/shared/hooks/useApi';
-import { useScrollAnimation, useStaggerAnimation } from '@/shared/hooks/useScrollAnimation';
 
 const Home = () => {
-  // Fetch stats from API
-  const { data: statsData, loading: statsLoading } = useStats();
-
-  // Get trending setups
-  const trendingSetups = mockVendors
-    .filter(v => v.bookableSetups && v.bookableSetups.length > 0)
-    .flatMap(v => 
-      v.bookableSetups!.map(setup => ({
-        setup,
-        vendorName: v.businessName,
-        city: v.city,
-        eventType: 'Wedding',
-      }))
-    )
-    .slice(0, 8);
-
-  // State for trending setups carousel
-  const [activeSetupIndex, setActiveSetupIndex] = useState(0);
-  const [isSetupPaused, setIsSetupPaused] = useState(false);
-
-  // Auto-rotate setups every 5 seconds
-  useEffect(() => {
-    if (isSetupPaused || trendingSetups.length === 0) return;
-
-    const interval = setInterval(() => {
-      setActiveSetupIndex((prev) => (prev + 1) % trendingSetups.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isSetupPaused, trendingSetups.length]);
-
-  const goToNextSetup = () => {
-    setActiveSetupIndex((prev) => (prev + 1) % trendingSetups.length);
-  };
-
-  const goToPreviousSetup = () => {
-    setActiveSetupIndex((prev) => (prev - 1 + trendingSetups.length) % trendingSetups.length);
-  };
-
-  // Transform API stats to display format
-  const stats = useMemo(() => {
-    if (!statsData) {
-      // Fallback to default stats while loading
-      return [
-        { icon: Users, value: '500+', label: 'Verified Vendors', color: 'text-blue-500' },
-        { icon: Award, value: '10K+', label: 'Events Completed', color: 'text-purple-500' },
-        { icon: Star, value: '4.8', label: 'Average Rating', color: 'text-yellow-500' },
-        { icon: TrendingUp, value: '98%', label: 'Satisfaction Rate', color: 'text-green-500' },
-      ];
-    }
-
-    return [
-      { 
-        icon: Users, 
-        value: statsData.totalVendors ? `${statsData.totalVendors}+` : '500+', 
-        label: 'Verified Vendors', 
-        color: 'text-blue-500' 
-      },
-      { 
-        icon: Award, 
-        value: statsData.totalEventsCompleted ? `${statsData.totalEventsCompleted}+` : '10K+', 
-        label: 'Events Completed', 
-        color: 'text-purple-500' 
-      },
-      { 
-        icon: Star, 
-        value: statsData.averageRating ? statsData.averageRating.toFixed(1) : '4.8', 
-        label: 'Average Rating', 
-        color: 'text-yellow-500' 
-      },
-      { 
-        icon: TrendingUp, 
-        value: statsData.satisfactionRate ? `${Math.round(statsData.satisfactionRate)}%` : '98%', 
-        label: 'Satisfaction Rate', 
-        color: 'text-green-500' 
-      },
-    ];
-  }, [statsData]);
+  // How It Works steps for floating card
+  const howItWorksSteps = [
+    {
+      step: '01',
+      icon: Sparkles,
+      title: 'Browse & Discover',
+      description: 'Explore portfolios and packages',
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      step: '02',
+      icon: Zap,
+      title: 'Customize & Book',
+      description: 'Add customizations and select date',
+      color: 'from-purple-500 to-pink-500',
+    },
+    {
+      step: '03',
+      icon: CheckCircle2,
+      title: 'Pay & Confirm',
+      description: 'Secure payment and instant confirmation',
+      color: 'from-green-500 to-emerald-500',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
@@ -104,7 +44,7 @@ const Home = () => {
         <CinematicHero />
       </div>
 
-      {/* Stats Bar - Floating Above Next Section */}
+      {/* How It Works - Floating Above Next Section */}
       <section className="relative -mt-16 z-20 mb-16">
         <div className="container mx-auto px-4">
           <Card className={cn(
@@ -124,15 +64,16 @@ const Home = () => {
             if (el) observer.observe(el);
           }}>
             <CardContent className="p-4 md:p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-                {stats.map((stat, index) => {
-                  const Icon = stat.icon;
+              {/* Steps Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                {howItWorksSteps.map((item, index) => {
+                  const Icon = item.icon;
                   return (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={cn(
-                        "text-center group animate-on-scroll",
-                        `stagger-${index + 1}`
+                        "relative overflow-hidden rounded-lg border border-border/50 bg-gradient-to-br from-background to-muted/30 p-3 md:p-4 group hover:shadow-md transition-all duration-300 hover-lift",
+                        "animate-on-scroll"
                       )}
                       style={{
                         animationDelay: `${index * 0.1}s`,
@@ -154,14 +95,18 @@ const Home = () => {
                         if (el) observer.observe(el);
                       }}
                     >
-                      <div className="inline-flex p-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary-glow/10 mb-2 group-hover:scale-110 micro-bounce smooth-transition">
-                        <Icon className={`h-5 w-5 ${stat.color}`} />
-                      </div>
-                      <div className="text-2xl md:text-3xl font-black text-foreground mb-0.5">
-                        {stat.value}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-medium">
-                        {stat.label}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                      <div className="relative z-10">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className={`p-2 rounded-lg bg-gradient-to-br ${item.color} text-white shadow-md`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="text-2xl md:text-3xl font-black text-muted-foreground/20">
+                            {item.step}
+                          </div>
+                        </div>
+                        <h3 className="text-sm md:text-base font-bold mb-1 text-foreground">{item.title}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.description}</p>
                       </div>
                     </div>
                   );
@@ -173,432 +118,10 @@ const Home = () => {
       </section>
 
       {/* Interactive Event Showcase */}
-      <div className="relative z-10">
-        <InteractiveEventShowcase />
-      </div>
+      <InteractiveEventShowcase />
 
       {/* Category Services Section */}
       <CategoryServicesSection />
-
-      {/* Trending Setups Section */}
-      {trendingSetups.length > 0 && (
-        <section 
-          className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-b from-background to-muted/30"
-          onMouseEnter={() => setIsSetupPaused(true)}
-          onMouseLeave={() => setIsSetupPaused(false)}
-          ref={(el) => {
-            if (!el) return;
-            const observer = new IntersectionObserver(
-              (entries) => {
-                entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    // Animate the main card
-                    const card = entry.target.querySelector('.trending-setup-card');
-                    if (card) {
-                      setTimeout(() => {
-                        (card as HTMLElement).style.opacity = '1';
-                        (card as HTMLElement).style.transform = 'translateY(0) scale(1)';
-                      }, 200);
-                    }
-                  }
-                });
-              },
-              { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
-            );
-            observer.observe(el);
-          }}
-        >
-          {/* Sliding Background Images */}
-          <div className="absolute inset-0">
-            {trendingSetups.map((item, index) => (
-              <div
-                key={item.setup.id}
-                className={cn(
-                  'absolute inset-0 transition-opacity duration-1000 ease-in-out',
-                  index === activeSetupIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'
-                )}
-                style={{
-                  backgroundImage: `url(${item.setup.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/80 via-indigo-800/70 to-blue-900/80" />
-              </div>
-            ))}
-          </div>
-
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent z-10" />
-
-          {/* Content */}
-          <div className="relative z-20 container mx-auto px-4">
-            {/* Section Header */}
-            <div className="text-center mb-8">
-              <Badge className="mb-3 bg-white/20 backdrop-blur-md text-white border-white/30 px-3 py-1 text-xs font-medium">
-                <TrendingUp className="h-3 w-3 mr-1.5" />
-                Trending Now
-              </Badge>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-3">
-                Book This
-                <br />
-                <span className="bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
-                  Exact Setup
-                </span>
-              </h2>
-            </div>
-
-            {/* Main Card Container */}
-            <div className="relative max-w-5xl mx-auto">
-              {/* Navigation Arrows */}
-              <button
-                onClick={goToPreviousSetup}
-                className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
-                aria-label="Previous setup"
-              >
-                <ChevronLeft className="h-5 w-5 text-primary" />
-              </button>
-
-              <button
-                onClick={goToNextSetup}
-                className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
-                aria-label="Next setup"
-              >
-                <ChevronRight className="h-5 w-5 text-primary" />
-              </button>
-
-              {/* Active Card */}
-              {trendingSetups[activeSetupIndex] && (
-                <Card className={cn(
-                  "trending-setup-card relative border-0 shadow-xl overflow-hidden bg-white rounded-xl animate-on-scroll",
-                  "animate-scale-in"
-                )} style={{
-                  opacity: 0,
-                  transform: 'translateY(40px) scale(0.95)',
-                  transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
-                }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-                    {/* Image Side - Clear without blur */}
-                    <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
-                      <img
-                        src={trendingSetups[activeSetupIndex].setup.image}
-                        alt={trendingSetups[activeSetupIndex].setup.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    
-                    {/* Content Side */}
-                    <CardContent className="flex flex-col justify-between p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white">
-                      <div className="space-y-3">
-                        {/* Badge */}
-                        <Badge className="bg-primary/10 text-primary border-primary/20 px-2.5 py-0.5 text-xs font-medium w-fit">
-                          {trendingSetups[activeSetupIndex].setup.category}
-                        </Badge>
-
-                        {/* Title - Smaller */}
-                        <h3 className="text-xl md:text-2xl font-black text-foreground leading-tight">
-                          {trendingSetups[activeSetupIndex].setup.title}
-                        </h3>
-
-                        {/* Description - Smaller */}
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {trendingSetups[activeSetupIndex].setup.description}
-                        </p>
-
-                        {/* Stats - Smaller */}
-                        <div className="flex items-center gap-4 pt-1">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10">
-                              <Users className="h-3.5 w-3.5 text-primary" />
-                            </div>
-                            <div>
-                              <div className="text-base font-bold text-foreground">{trendingSetups[activeSetupIndex].vendorName}</div>
-                              <div className="text-xs text-muted-foreground">Vendor</div>
-                            </div>
-                          </div>
-                          <div className="h-6 w-px bg-border" />
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10">
-                              <MapPin className="h-3.5 w-3.5 text-primary" />
-                            </div>
-                            <div>
-                              <div className="text-base font-bold text-foreground">{trendingSetups[activeSetupIndex].city}</div>
-                              <div className="text-xs text-muted-foreground">Location</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* CTA Button */}
-                      <div className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t">
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-0.5">Price</div>
-                          <div className="text-xl md:text-2xl font-black text-primary">
-                            ₹{trendingSetups[activeSetupIndex].setup.price.toLocaleString()}
-                          </div>
-                        </div>
-                        <Button 
-                          size="default" 
-                          className="w-full sm:w-auto text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group"
-                          asChild
-                        >
-                          <Link to={`/vendor/${trendingSetups[activeSetupIndex].setup.vendorId}`}>
-                            Book This Setup
-                            <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </CardContent>
-
-                    {/* Progress Indicator */}
-                    {!isSetupPaused && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary/20">
-                        <div 
-                          className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-5000 ease-linear"
-                          style={{
-                            width: '0%',
-                          }}
-                          key={activeSetupIndex}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
-            </div>
-
-            {/* Card Indicators */}
-            <div className="mt-8 flex justify-center gap-2">
-              {trendingSetups.map((item, index) => (
-                <button
-                  key={item.setup.id}
-                  onClick={() => setActiveSetupIndex(index)}
-                  className={cn(
-                    'relative h-2 rounded-full transition-all duration-500',
-                    index === activeSetupIndex
-                      ? 'w-12 bg-white'
-                      : 'w-2 bg-white/40 hover:bg-white/60'
-                  )}
-                  aria-label={`Go to ${item.setup.title}`}
-                >
-                  {index === activeSetupIndex && (
-                    <div className="absolute inset-0 bg-white rounded-full animate-pulse" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Featured Vendors Section */}
-      <section 
-        className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden"
-        ref={(el) => {
-          if (!el) return;
-          const observer = new IntersectionObserver(
-            (entries) => {
-              entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                  entry.target.classList.add('visible');
-                  // Animate children with stagger
-                  const cards = entry.target.querySelectorAll('.vendor-card');
-                  cards.forEach((card, index) => {
-                    setTimeout(() => {
-                      (card as HTMLElement).style.opacity = '1';
-                      (card as HTMLElement).style.transform = 'translateY(0)';
-                    }, index * 100);
-                  });
-                }
-              });
-            },
-            { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
-          );
-          observer.observe(el);
-        }}
-      >
-        {/* Decorative Background Elements */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary-glow rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-secondary rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          {/* Section Header */}
-          <div className={cn(
-            "mb-8 text-center animate-on-scroll",
-            "animate-fade-in-up"
-          )} ref={(el) => {
-            if (!el) return;
-            const observer = new IntersectionObserver(
-              (entries) => {
-                entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                  }
-                });
-              },
-              { threshold: 0.1 }
-            );
-            observer.observe(el);
-          }}>
-            <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
-              <Star className="h-3 w-3 mr-1.5 fill-primary text-primary" />
-              Top Rated
-            </Badge>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
-              Featured
-              <br />
-              <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent animate-gradient-text">
-                Vendors
-              </span>
-            </h2>
-            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-              Top-rated professionals ready to make your event special
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {mockVendors.slice(0, 6).map((vendor, index) => (
-              <div
-                key={vendor.id}
-                className="vendor-card animate-on-scroll"
-                style={{
-                  opacity: 0,
-                  transform: 'translateY(40px)',
-                  transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
-                }}
-              >
-                <PremiumVendorCard vendor={vendor} />
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button variant="outline" size="default" asChild className="rounded-lg border-2 hover-lift text-sm px-6 py-5">
-              <Link to="/search">
-                View All Vendors
-                <ArrowRight className="ml-2 h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works - Enhanced */}
-      <section 
-        className="py-12 md:py-20 bg-background relative"
-        ref={(el) => {
-          if (!el) return;
-          const observer = new IntersectionObserver(
-            (entries) => {
-              entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                  entry.target.classList.add('visible');
-                  // Animate step cards with stagger
-                  const cards = entry.target.querySelectorAll('.step-card');
-                  cards.forEach((card, index) => {
-                    setTimeout(() => {
-                      (card as HTMLElement).style.opacity = '1';
-                      (card as HTMLElement).style.transform = 'translateY(0) scale(1)';
-                    }, index * 150);
-                  });
-                }
-              });
-            },
-            { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
-          );
-          observer.observe(el);
-        }}
-      >
-        <div className="container mx-auto px-4">
-          <div className={cn(
-            "text-center mb-10 animate-on-scroll",
-            "animate-fade-in-up"
-          )} ref={(el) => {
-            if (!el) return;
-            const observer = new IntersectionObserver(
-              (entries) => {
-                entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                  }
-                });
-              },
-              { threshold: 0.1 }
-            );
-            observer.observe(el);
-          }}>
-              <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
-                <span>Simple Process</span>
-              </Badge>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3">
-              How It Works
-            </h2>
-            <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-              Three simple steps to book your perfect event vendors
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                step: '01',
-                icon: Sparkles,
-                title: 'Browse & Discover',
-                description: 'Explore portfolios, packages, and real event photos from verified vendors',
-                color: 'from-blue-500 to-cyan-500',
-              },
-              {
-                step: '02',
-                icon: Zap,
-                title: 'Customize & Book',
-                description: 'Fixed pricing + add your customizations. Select date and time instantly',
-                color: 'from-purple-500 to-pink-500',
-              },
-              {
-                step: '03',
-                icon: CheckCircle2,
-                title: 'Pay & Confirm',
-                description: 'Pay securely and get instant booking confirmation. All vendors in one checkout',
-                color: 'from-green-500 to-emerald-500',
-              },
-            ].map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <Card
-                  key={index}
-                  className={cn(
-                    "step-card relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 hover-lift rounded-xl group animate-on-scroll",
-                    "animate-scale-in"
-                  )}
-                  style={{
-                    opacity: 0,
-                    transform: 'translateY(40px) scale(0.9)',
-                    transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
-                  }}
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
-                  <CardContent className="p-6 relative z-10">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-xl bg-gradient-to-br ${item.color} text-white shadow-lg micro-bounce`}>
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <div className="text-4xl font-black text-muted-foreground/20">
-                        {item.step}
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       {/* Footer - Enhanced */}
       <footer className="border-t border-border py-10 md:py-12 bg-gradient-to-b from-muted/20 to-background">

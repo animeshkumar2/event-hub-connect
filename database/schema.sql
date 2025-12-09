@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS add_ons (
 -- =====================================================
 
 -- Individual Listings
--- listing.listing_category_id = Listing's category (must match vendor.category or 'other')
+-- listing.listing_category_id = Listing's category (can be any category, not restricted to vendor.category)
 CREATE TABLE IF NOT EXISTS listings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,

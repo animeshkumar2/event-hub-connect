@@ -116,7 +116,7 @@ export const CategoryServicesSection = () => {
   return (
     <section 
       ref={sectionRef}
-      className="relative py-12 md:py-20 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden"
+      className="relative pt-12 md:pt-20 pb-0 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden"
     >
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}

@@ -29,6 +29,7 @@ const Search = () => {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -45,8 +46,8 @@ const Search = () => {
   const listingType = (searchParams.get('listingType') || 'all') as 'all' | 'packages';
   const viewParam = searchParams.get('view');
   
-  // Determine if we should show vendors (when view=vendors or category selected without eventType)
-  const showVendors = viewParam === 'vendors' || (selectedCategory !== 'all' && !eventTypeParam);
+  // Determine if we should show vendors (only when explicitly set to view=vendors)
+  const showVendors = viewParam === 'vendors';
 
 
   // Resolve eventType: handle both numeric ID and string name
@@ -68,14 +69,82 @@ const Search = () => {
     return eventType?.id;
   }, [eventTypeParam, eventTypes]);
 
+  // Map category ID: handle both hardcoded IDs (like 'mua') and API category IDs
+  const resolvedCategoryId = useMemo(() => {
+    if (selectedCategory === 'all') return undefined;
+    
+    // Direct ID mapping for hardcoded frontend category IDs to backend category IDs
+    const directIdMap: Record<string, string> = {
+      'mua': 'makeup',  // Frontend uses 'mua', backend uses 'makeup'
+      'makeup': 'makeup',
+      'photographer': 'photographer',
+      'decorator': 'decorator',
+      'dj': 'dj',
+      'caterer': 'caterer',
+      'mehendi': 'mehendi',
+      'event-coordinator': 'event-coordinator',
+    };
+    
+    // First, try direct ID mapping
+    const mappedId = directIdMap[selectedCategory.toLowerCase()];
+    if (mappedId) {
+      // Check if the mapped ID exists in the API categories
+      const apiCategory = categories.find((c: any) => 
+        c.id?.toLowerCase() === mappedId.toLowerCase() ||
+        c.id === mappedId
+      );
+      if (apiCategory) {
+        return apiCategory.id;
+      }
+      // If not found in API categories, use the mapped ID directly (backend might accept it)
+      return mappedId;
+    }
+    
+    // Second, check if selectedCategory matches an API category ID exactly
+    const apiCategory = categories.find((c: any) => c.id === selectedCategory || c.id?.toLowerCase() === selectedCategory.toLowerCase());
+    if (apiCategory) {
+      return apiCategory.id;
+    }
+    
+    // Third, try to find by name/slug (for other hardcoded IDs)
+    const categoryNameMap: Record<string, string[]> = {
+      'mua': ['makeup', 'mua', 'makeup artist', 'makeup-artist'],
+      'makeup': ['makeup', 'mua', 'makeup artist'],
+      'photographer': ['photographer', 'photography'],
+      'decorator': ['decorator', 'decoration', 'décor'],
+      'dj': ['dj', 'music', 'sound'],
+      'caterer': ['caterer', 'catering'],
+      'mehendi': ['mehendi', 'henna'],
+      'event-coordinator': ['event coordinator', 'event planner', 'planner'],
+    };
+    
+    const searchTerms = categoryNameMap[selectedCategory.toLowerCase()] || [selectedCategory.toLowerCase()];
+    
+    // Try to find the actual API category by name or slug
+    for (const term of searchTerms) {
+      const foundCategory = categories.find((c: any) => 
+        c.name?.toLowerCase().includes(term) ||
+        c.slug?.toLowerCase() === term ||
+        c.id?.toLowerCase() === term ||
+        c.displayName?.toLowerCase().includes(term)
+      );
+      if (foundCategory) {
+        return foundCategory.id;
+      }
+    }
+    
+    // Fallback: return the selected category as-is (might be a UUID or different format)
+    return selectedCategory;
+  }, [selectedCategory, categories]);
+
   // Fetch vendors or listings based on view mode
   const { data: vendorsData, loading: vendorsLoading, error: vendorsError } = useSearchVendors({
-    category: showVendors && selectedCategory !== 'all' ? selectedCategory : undefined,
+    category: showVendors && resolvedCategoryId ? resolvedCategoryId : undefined,
   });
 
   const { data: listingsData, loading: listingsLoading, error: listingsError } = useSearchListings({
     eventType: !showVendors && eventTypeId && !isNaN(eventTypeId) ? eventTypeId : undefined,
-    category: !showVendors && selectedCategory !== 'all' ? selectedCategory : undefined,
+    category: !showVendors && resolvedCategoryId ? resolvedCategoryId : undefined,
     listingType: listingType === 'packages' ? 'packages' : undefined,
   });
 
@@ -139,7 +208,7 @@ const Search = () => {
     }
   }, [listings]);
 
-  // Filter listings based on listing type and event type
+  // Filter listings based on listing type, event type, and search query
   const filteredListings = useMemo(() => {
     let filtered = transformedListings;
     
@@ -161,8 +230,48 @@ const Search = () => {
       });
     }
     
+    // Filter by search query (name, description, vendor name, category)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const getCategoryName = (categoryId: string) => {
+        const cat = categories.find((c: any) => c.id === categoryId);
+        return cat?.name || '';
+      };
+      
+      filtered = filtered.filter((item: any) => {
+        const categoryName = getCategoryName(item.category || '').toLowerCase();
+        return (
+          item.name?.toLowerCase().includes(query) ||
+          item.description?.toLowerCase().includes(query) ||
+          item.vendorName?.toLowerCase().includes(query) ||
+          categoryName.includes(query)
+        );
+      });
+    }
+    
     return filtered;
-  }, [transformedListings, listingType, eventTypeId]);
+  }, [transformedListings, listingType, eventTypeId, searchQuery, categories]);
+  
+  // Filter vendors by search query
+  const filteredVendors = useMemo(() => {
+    if (!searchQuery) return vendors;
+    
+    const query = searchQuery.toLowerCase();
+    const getCategoryName = (categoryId: string) => {
+      const cat = categories.find((c: any) => c.id === categoryId);
+      return cat?.name || '';
+    };
+    
+    return vendors.filter((vendor: any) => {
+      const categoryName = getCategoryName(vendor.categoryId || vendor.category || '').toLowerCase();
+      return (
+        vendor.businessName?.toLowerCase().includes(query) ||
+        vendor.name?.toLowerCase().includes(query) ||
+        categoryName.includes(query) ||
+        vendor.cityName?.toLowerCase().includes(query)
+      );
+    });
+  }, [vendors, searchQuery, categories]);
 
   // Get current event type name
   const currentEventType = eventTypes.find((et: any) => et.id === eventTypeId);
@@ -174,22 +283,20 @@ const Search = () => {
         setSearchParams(prev => {
           const newParams = new URLSearchParams(prev);
           newParams.delete('category');
-          // If in vendor view and removing category, keep view=vendors to show all vendors
-          if (showVendors && !eventTypeParam) {
-            newParams.set('view', 'vendors');
-          } else if (!eventTypeParam) {
+          // Only keep view=vendors if it was explicitly set
+          if (viewParam !== 'vendors') {
             newParams.delete('view');
           }
           return newParams;
         });
       } else {
-        // Selecting a different category
+        // Selecting a different category - show listings filtered by category
         setSearchParams(prev => {
           const newParams = new URLSearchParams(prev);
           newParams.set('category', categoryId);
-          // If no eventType, ensure view=vendors is set
-          if (!eventTypeParam) {
-            newParams.set('view', 'vendors');
+          // Don't automatically switch to vendor view - show listings instead
+          if (viewParam !== 'vendors') {
+            newParams.delete('view');
           }
           return newParams;
         });
@@ -254,21 +361,58 @@ const Search = () => {
     console.log('Search component state:', {
       showVendors,
       selectedCategory,
+      resolvedCategoryId,
       eventTypeParam,
-      vendorsData,
-      listingsData,
+      eventTypeId,
+      categories: categories.map((c: any) => ({ id: c.id, name: c.name })),
+      vendorsCount: vendors.length,
+      listingsCount: listings.length,
+      filteredListingsCount: filteredListings.length,
       vendorsLoading,
       listingsLoading,
       vendorsError,
       listingsError,
     });
-  }, [showVendors, selectedCategory, eventTypeParam, vendorsData, listingsData, vendorsLoading, listingsLoading, vendorsError, listingsError]);
+    
+    // Log vendor category IDs for debugging
+    if (vendors.length > 0) {
+      console.log('Sample vendor category IDs:', vendors.slice(0, 3).map((v: any) => ({
+        id: v.id,
+        businessName: v.businessName,
+        categoryId: v.categoryId,
+        categoryName: v.categoryName,
+      })));
+    }
+    
+    // Log listing category IDs for debugging
+    if (listings.length > 0) {
+      console.log('Sample listing category IDs:', listings.slice(0, 3).map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        categoryId: l.categoryId,
+        category: l.category,
+      })));
+    }
+  }, [showVendors, selectedCategory, resolvedCategoryId, eventTypeParam, eventTypeId, categories, vendors, listings, filteredListings, vendorsLoading, listingsLoading, vendorsError, listingsError]);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-4">
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={`Search ${showVendors ? 'vendors' : 'listings'} by name, description, category, or location...`}
+              className="pl-10 bg-background border-border text-foreground"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+        
         {/* Compact Header */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -411,7 +555,7 @@ const Search = () => {
           </div>
         ) : showVendors ? (
           // Vendors View
-          vendors.length === 0 ? (
+          filteredVendors.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-2">No vendors found.</p>
               <p className="text-sm text-muted-foreground">
@@ -422,12 +566,13 @@ const Search = () => {
             <>
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  {vendors.length} {vendors.length === 1 ? 'vendor' : 'vendors'} found
+                  {filteredVendors.length} {filteredVendors.length === 1 ? 'vendor' : 'vendors'} found
+                  {searchQuery && ` for "${searchQuery}"`}
                 </p>
               </div>
 
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {vendors.map((vendor: any) => (
+                {filteredVendors.map((vendor: any) => (
                   <VendorCard
                     key={vendor.id}
                     vendor={{

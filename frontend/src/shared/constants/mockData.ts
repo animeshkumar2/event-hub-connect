@@ -80,24 +80,24 @@ export interface Listing {
 
 /**
  * Validates if a listing category is allowed for a vendor category
- * Vendors can only list items in their own category or 'other' category
+ * 
+ * NOTE: Vendors can now create listings in ANY category, not just their primary category.
+ * This allows vendors to offer services across multiple categories (e.g., a decor vendor 
+ * can also offer photography services).
+ * 
+ * This function now always returns true to reflect the updated business logic.
+ * Kept for backward compatibility if any code still references it.
  */
 export const validateListingCategory = (vendorCategory: string, listingCategory: string): boolean => {
-  // Vendors can list items in their own category
-  if (vendorCategory === listingCategory) {
-    return true;
-  }
-  // Vendors can also list items in 'other' category
-  if (listingCategory === 'other') {
-    return true;
-  }
-  // Otherwise, not allowed
-  return false;
+  // Vendors can create listings in any category
+  return true;
 };
 
 /**
  * Gets suggested category for a listing based on keywords
- * Used to suggest correct category when vendor tries to list something outside their category
+ * 
+ * NOTE: This function is now optional since vendors can create listings in any category.
+ * It can still be useful for auto-suggesting categories based on listing content.
  */
 export const suggestCategoryForListing = (listingName: string, listingDescription: string): string | null => {
   const text = `${listingName} ${listingDescription}`.toLowerCase();

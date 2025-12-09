@@ -27,7 +27,7 @@ The schema has been refactored to address two key requirements:
 **After:**
 - `vendors.vendor_category_id` - vendor's PRIMARY business category
 - `packages.listing_category_id` - package's category (can differ from vendor.category)
-- `listings.listing_category_id` - listing's category (must match vendor.category or 'other')
+- `listings.listing_category_id` - listing's category (can be any category, vendors can post listings in multiple categories)
 
 ### 3. Updated Relationships
 
@@ -70,13 +70,21 @@ Vendor: "Moments Photography Studio"
 ├── vendor_category_id = "photographer"  ← Vendor's primary category
 │
 ├── Package: "Classic Wedding Package"
-│   ├── listing_category_id = "photographer"  ← Package's category
+│   ├── listing_category_id = "photographer"  ← Package's category (matches vendor category)
 │   └── package_event_types = [Wedding, Engagement]
+│
+├── Package: "Event Decoration Package"
+│   ├── listing_category_id = "decorator"  ← Package's category (different from vendor category - allowed!)
+│   └── package_event_types = [Wedding, Corporate]
 │
 └── Listing: "Professional Camera Rental"
     ├── listing_category_id = "photographer"  ← Listing's category
     └── listing_event_types = [Wedding, Corporate]
 ```
+
+**Note:** Vendors can now create listings in ANY category, not just their primary category. 
+This allows vendors to offer services across multiple categories (e.g., a photographer 
+can also offer decoration services, or a decor vendor can offer photography).
 
 ## Migration Notes
 

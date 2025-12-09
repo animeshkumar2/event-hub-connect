@@ -37,14 +37,8 @@ public class VendorListingService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
         
-        // Validate category: must match vendor category OR be 'other'
-        if (!vendor.getVendorCategory().getId().equals(request.getCategoryId()) 
-                && !request.getCategoryId().equals("other")) {
-            throw new ValidationException(
-                    "Listing category must match vendor category or be 'other'. " +
-                    "Vendor category: " + vendor.getVendorCategory().getId() + 
-                    ", Provided: " + request.getCategoryId());
-        }
+        // Note: Vendors can create listings in any category, not just their primary category
+        // This allows vendors to offer services across multiple categories (e.g., a decor vendor can also offer photography)
         
         // Validate event types
         if (request.getEventTypeIds() == null || request.getEventTypeIds().isEmpty()) {
@@ -100,12 +94,8 @@ public class VendorListingService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
         
-        // Validate category: must match vendor category OR be 'other'
-        if (!vendor.getVendorCategory().getId().equals(request.getCategoryId()) 
-                && !request.getCategoryId().equals("other")) {
-            throw new ValidationException(
-                    "Listing category must match vendor category or be 'other'");
-        }
+        // Note: Vendors can create listings in any category, not just their primary category
+        // This allows vendors to offer services across multiple categories (e.g., a decor vendor can also offer photography)
         
         // Validate event types
         if (request.getEventTypeIds() == null || request.getEventTypeIds().isEmpty()) {
