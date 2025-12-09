@@ -30,6 +30,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
+                // Allow all OPTIONS requests (CORS preflight) - MUST be first
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // Public endpoints
                 .requestMatchers("/api/public/**").permitAll()
                 // Auth endpoints - public
@@ -53,19 +55,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow localhost for development
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:8080",
-            "http://localhost:5173",
-            "http://localhost:3000"
-        ));
-        // Allow Vercel frontend URLs for production (supports wildcards)
-        configuration.setAllowedOriginPatterns(List.of(
-            "https://event-hub-connect*.vercel.app",
-            "https://*.vercel.app",
-            "https://vercel.app"
-        ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        // Allow ALL origins for now to debug - will restrict later
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
