@@ -54,15 +54,22 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow localhost for development
-        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:8080",
+            "http://localhost:5173",
+            "http://localhost:3000"
+        ));
         // Allow Vercel frontend URLs for production (supports wildcards)
         configuration.setAllowedOriginPatterns(List.of(
-            "https://event-hub-connect-*.vercel.app",
-            "https://*.vercel.app"
+            "https://event-hub-connect*.vercel.app",
+            "https://*.vercel.app",
+            "https://vercel.app"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
