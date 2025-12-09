@@ -25,12 +25,16 @@ import {
   AlertCircle,
   Loader2,
   ExternalLink,
-  IndianRupee
+  IndianRupee,
+  Edit,
+  Eye,
+  Settings
 } from 'lucide-react';
 import { useListingDetails, useVendorListings, useVendorReviews } from '@/shared/hooks/useApi';
 import { cn } from '@/shared/lib/utils';
 import { format } from 'date-fns';
 import { ScrollReveal } from '@/shared/components/ScrollReveal';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 // Type for extra charges
 interface ExtraCharge {
@@ -41,6 +45,7 @@ interface ExtraCharge {
 export default function ListingDetail() {
   const { listingId } = useParams<{ listingId: string }>();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const { data: listingData, loading, error } = useListingDetails(listingId || null);
   
   // Debug logging
@@ -63,10 +68,26 @@ export default function ListingDetail() {
   // listingData is already the unwrapped data from useApi hook
   const listing = listingData;
   const vendorId = listing?.vendorId;
+  
+  // Check if current user is the vendor owner of this listing
+  const isOwner = useMemo(() => {
+    if (!isAuthenticated || !user || !listing) return false;
+    // Check multiple conditions to determine ownership:
+    // 1. user.vendorId matches listing's vendorId
+    // 2. user has role VENDOR and their vendor profile's userId matches
+    // 3. Check via stored vendorId in localStorage (set during vendor login)
+    const storedVendorId = localStorage.getItem('vendor_id');
+    return (
+      user.vendorId === vendorId || 
+      user.id === listing.vendor?.userId ||
+      storedVendorId === vendorId
+    );
+  }, [isAuthenticated, user, listing, vendorId]);
 
   // Fetch vendor listings for similar listings
   const { data: vendorListingsData } = useVendorListings(vendorId || null);
-  const vendorListings = vendorListingsData?.data || [];
+  // vendorListingsData is already the unwrapped array from useVendorListings
+  const vendorListings = Array.isArray(vendorListingsData) ? vendorListingsData : (vendorListingsData?.data || vendorListingsData || []);
 
   // Fetch reviews
   const { data: reviewsData } = useVendorReviews(vendorId || null, 0, 5);
@@ -98,7 +119,12 @@ export default function ListingDetail() {
 
   // Get linked items from vendor listings
   const linkedItems = useMemo(() => {
-    if (!listing?.includedItemIds || !vendorListings.length) return [];
+    if (!listing?.includedItemIds || !listing.includedItemIds.length) {
+      return [];
+    }
+    if (!vendorListings || !vendorListings.length) {
+      return [];
+    }
     return vendorListings.filter((l: any) => 
       listing.includedItemIds.includes(l.id)
     );
@@ -153,17 +179,64 @@ export default function ListingDetail() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      {/* Back Button */}
+      {/* Vendor Owner Banner - Customer's View */}
+      {isOwner && (
+        <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-primary/20 mb-6">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/15">
+                  <Eye className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-primary">👁️ Customer's View</p>
+                  <p className="text-xs text-primary/70">This is how your customers see this listing</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/vendor/listings')}
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+                  Back to Listings
+                </Button>
+                <Button 
+                  size="sm"
+                  onClick={() => navigate(`/vendor/listings?edit=${listingId}`)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Edit className="h-3.5 w-3.5 mr-1.5" />
+                  Edit Listing
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Back Button - hidden for vendor preview since they have their own back button */}
+      {!isOwner && (
       <div className="container mx-auto px-4 pt-6">
         <Button
           variant="ghost"
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            // Try to go back, but if no history, go to search
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/search');
+            }
+          }}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
       </div>
+      )}
 
       {/* Main Content */}
       <div className="container mx-auto px-4 pb-20">
@@ -289,35 +362,93 @@ export default function ListingDetail() {
             {isPackage && linkedItems.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={350}>
                 <section>
-                <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Items Included in This Package</h2>
-                    <p className="text-sm text-muted-foreground mb-4">Click on any item to see its full details</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {linkedItems.map((item: any) => (
-                        <Link 
-                          key={item.id} 
-                          to={`/listing/${item.id}`}
-                          className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-muted/50 transition-all group"
-                        >
-                          {item.images?.[0] ? (
-                            <img 
-                              src={item.images[0]} 
-                              alt={item.name}
-                              className="w-12 h-12 rounded-md object-cover"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
-                              <Package className="h-5 w-5 text-muted-foreground" />
+                <Card className="overflow-hidden">
+                  <CardContent className="p-0">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border-b border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-primary/10">
+                          <Package className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold">Bundled Items ({linkedItems.length})</h2>
+                          <p className="text-sm text-muted-foreground">This package includes the following items • Click to view details</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Items Grid */}
+                    <div className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {linkedItems.map((item: any) => (
+                          <Link 
+                            key={item.id} 
+                            to={`/listing/${item.id}`}
+                            className="group block"
+                          >
+                            <div className="rounded-xl border-2 border-border hover:border-primary overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                              {/* Item Image */}
+                              <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                                {item.images?.[0] ? (
+                                  <>
+                                    <img 
+                                      src={item.images[0]} 
+                                      alt={item.name}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                                  </>
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="h-10 w-10 text-muted-foreground/40" />
+                                  </div>
+                                )}
+                                {/* Click indicator */}
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium text-primary shadow-lg">
+                                    <ExternalLink className="h-3 w-3" />
+                                    View Details
+                                  </div>
+                                </div>
+                                {/* Price Badge */}
+                                <div className="absolute bottom-2 right-2">
+                                  <Badge className="bg-white text-foreground font-bold shadow-lg">
+                                    ₹{Number(item.price).toLocaleString('en-IN')}
+                                  </Badge>
+                                </div>
+                              </div>
+                              
+                              {/* Item Info */}
+                              <div className="p-4 bg-card">
+                                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                                  {item.name}
+                                </h3>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {item.description || 'Individual item included in this package'}
+                                </p>
+                                {item.unit && (
+                                  <p className="text-xs text-primary mt-2">Per {item.unit}</p>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">₹{Number(item.price).toLocaleString('en-IN')}</p>
+                          </Link>
+                        ))}
+                      </div>
+                      
+                      {/* Summary */}
+                      <div className="mt-6 p-4 rounded-xl bg-muted/50 border border-border">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            <span className="text-sm font-medium">
+                              {linkedItems.length} item{linkedItems.length > 1 ? 's' : ''} included in this package
+                            </span>
                           </div>
-                          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </Link>
-                      ))}
+                          <span className="text-sm text-muted-foreground">
+                            Combined value: ₹{linkedItems.reduce((sum: number, item: any) => sum + Number(item.price || 0), 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -497,7 +628,8 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Vendor Profile Card */}
+            {/* Vendor Profile Card - hidden for vendor preview */}
+            {!isOwner && (
             <ScrollReveal animation="fadeInUp" delay={800}>
               <section>
               <Card>
@@ -528,9 +660,10 @@ export default function ListingDetail() {
               </Card>
               </section>
             </ScrollReveal>
+            )}
 
-            {/* Similar Listings */}
-            {similarListings.length > 0 && (
+            {/* Similar Listings - hidden for vendor preview */}
+            {similarListings.length > 0 && !isOwner && (
               <ScrollReveal animation="fadeInUp" delay={900}>
                 <section>
                 <div className="mb-4">
@@ -586,6 +719,7 @@ export default function ListingDetail() {
                   vendorName: listing.vendorName || '',
                   addOns: [], // TODO: Fetch add-ons from API
                 }}
+                isVendorPreview={isOwner}
               />
             </div>
           </div>
