@@ -23,12 +23,20 @@ import {
   Calendar,
   Package,
   AlertCircle,
-  Loader2
+  Loader2,
+  ExternalLink,
+  IndianRupee
 } from 'lucide-react';
 import { useListingDetails, useVendorListings, useVendorReviews } from '@/shared/hooks/useApi';
 import { cn } from '@/shared/lib/utils';
 import { format } from 'date-fns';
 import { ScrollReveal } from '@/shared/components/ScrollReveal';
+
+// Type for extra charges
+interface ExtraCharge {
+  name: string;
+  price: number;
+}
 
 export default function ListingDetail() {
   const { listingId } = useParams<{ listingId: string }>();
@@ -75,6 +83,31 @@ export default function ListingDetail() {
   // Backend returns lowercase 'package' or 'item', but also handle uppercase
   const isPackage = listing?.type?.toLowerCase() === 'package' || listing?.type === 'PACKAGE';
   const isItem = listing?.type?.toLowerCase() === 'item' || listing?.type === 'ITEM';
+
+  // Parse extra charges JSON if available
+  const parsedExtraCharges: ExtraCharge[] = useMemo(() => {
+    if (listing?.extraChargesJson) {
+      try {
+        return JSON.parse(listing.extraChargesJson);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [listing?.extraChargesJson]);
+
+  // Get linked items from vendor listings
+  const linkedItems = useMemo(() => {
+    if (!listing?.includedItemIds || !vendorListings.length) return [];
+    return vendorListings.filter((l: any) => 
+      listing.includedItemIds.includes(l.id)
+    );
+  }, [listing?.includedItemIds, vendorListings]);
+
+  // Use highlights if available, otherwise fall back to includedItemsText for highlights
+  const displayHighlights = listing?.highlights?.length > 0 
+    ? listing.highlights 
+    : listing?.includedItemsText?.slice(0, 4) || [];
 
   if (loading) {
     return (
@@ -215,15 +248,15 @@ export default function ListingDetail() {
               </section>
             </ScrollReveal>
 
-            {/* Listing Highlights (for packages) */}
-            {isPackage && listing.includedItemsText && listing.includedItemsText.length > 0 && (
+            {/* Listing Highlights (for packages and items with highlights) */}
+            {displayHighlights.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={200}>
                 <section>
                 <Card>
                   <CardContent className="p-6">
                     <h2 className="text-xl font-bold mb-4">Listing Highlights</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {listing.includedItemsText.slice(0, 4).map((item, index) => (
+                      {displayHighlights.map((item: string, index: number) => (
                         <div key={index} className="flex items-start gap-2">
                           <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{item}</span>
@@ -252,7 +285,47 @@ export default function ListingDetail() {
               </section>
             </ScrollReveal>
 
-            {/* What's Included (packages only) */}
+            {/* Included Items - Clickable linked items */}
+            {isPackage && linkedItems.length > 0 && (
+              <ScrollReveal animation="fadeInUp" delay={350}>
+                <section>
+                <Card>
+                  <CardContent className="p-6">
+                    <h2 className="text-xl font-bold mb-4">Items Included in This Package</h2>
+                    <p className="text-sm text-muted-foreground mb-4">Click on any item to see its full details</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {linkedItems.map((item: any) => (
+                        <Link 
+                          key={item.id} 
+                          to={`/listing/${item.id}`}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-muted/50 transition-all group"
+                        >
+                          {item.images?.[0] ? (
+                            <img 
+                              src={item.images[0]} 
+                              alt={item.name}
+                              className="w-12 h-12 rounded-md object-cover"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
+                              <Package className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">₹{Number(item.price).toLocaleString('en-IN')}</p>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </Link>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                </section>
+              </ScrollReveal>
+            )}
+
+            {/* What's Included (text-based - packages only) */}
             {isPackage && listing.includedItemsText && listing.includedItemsText.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={400}>
                 <section>
@@ -260,7 +333,7 @@ export default function ListingDetail() {
                   <CardContent className="p-6">
                     <h2 className="text-xl font-bold mb-4">What's Included</h2>
                     <div className="space-y-2">
-                      {listing.includedItemsText.map((item, index) => (
+                      {listing.includedItemsText.map((item: string, index: number) => (
                         <div key={index} className="flex items-start gap-3">
                           <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{item}</span>
@@ -294,16 +367,27 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Extra Charges */}
-            {listing.extraCharges && listing.extraCharges.length > 0 && (
+            {/* Extra Charges - with pricing if available */}
+            {(parsedExtraCharges.length > 0 || (listing.extraCharges && listing.extraCharges.length > 0)) && (
               <ScrollReveal animation="fadeInUp" delay={600}>
                 <section>
                   <Card>
                     <CardContent className="p-6">
                       <h2 className="text-xl font-bold mb-4">Extra Charges</h2>
                       <div className="space-y-2">
-                        {listing.extraCharges.map((charge, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        {/* Show structured charges with prices first */}
+                        {parsedExtraCharges.map((charge, index) => (
+                          <div key={`detailed-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <span className="text-sm font-medium">{charge.name}</span>
+                            <span className="text-sm font-semibold text-primary flex items-center">
+                              <IndianRupee className="h-3 w-3 mr-0.5" />
+                              {Number(charge.price).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        ))}
+                        {/* Show legacy text-based charges if no structured charges */}
+                        {parsedExtraCharges.length === 0 && listing.extraCharges?.map((charge: string, index: number) => (
+                          <div key={`text-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <span className="text-sm">{charge}</span>
                           </div>
                         ))}

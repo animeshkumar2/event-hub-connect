@@ -45,6 +45,9 @@ export default function VendorListings() {
   const eventTypesData = eventTypes.data;
   const categoriesData = categories.data;
 
+  // Extra charge with pricing type
+  type ExtraCharge = { name: string; price: string };
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -53,11 +56,15 @@ export default function VendorListings() {
     categoryId: '',
     eventTypeIds: [] as number[],
     images: [] as string[],
+    // Highlights - key features
+    highlights: [] as string[],
     // Package fields
     includedItemsText: [] as string[],
+    includedItemIds: [] as string[], // IDs of linked items
     excludedItemsText: [] as string[],
     deliveryTime: '',
-    extraCharges: [] as string[],
+    extraChargesDetailed: [] as ExtraCharge[], // New structured format
+    extraCharges: [] as string[], // Legacy format
     // Item fields
     unit: '',
     minimumQuantity: 1,
@@ -110,6 +117,16 @@ export default function VendorListings() {
   // Initialize form when editing
   useEffect(() => {
     if (editingListing) {
+      // Parse extra charges JSON if available
+      let extraChargesDetailed: ExtraCharge[] = [];
+      if (editingListing.extraChargesJson) {
+        try {
+          extraChargesDetailed = JSON.parse(editingListing.extraChargesJson);
+        } catch {
+          extraChargesDetailed = [];
+        }
+      }
+      
       setFormData({
         name: editingListing.name || '',
         description: editingListing.description || '',
@@ -117,9 +134,12 @@ export default function VendorListings() {
         categoryId: editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId,
         eventTypeIds: editingListing.eventTypes?.map((et: any) => et.id || et) || [],
         images: editingListing.images || [],
+        highlights: editingListing.highlights || [],
         includedItemsText: editingListing.includedItemsText || [],
+        includedItemIds: editingListing.includedItemIds || [],
         excludedItemsText: editingListing.excludedItemsText || [],
         deliveryTime: editingListing.deliveryTime || '',
+        extraChargesDetailed,
         extraCharges: editingListing.extraCharges || [],
         unit: editingListing.unit || '',
         minimumQuantity: editingListing.minimumQuantity || 1,
@@ -134,9 +154,12 @@ export default function VendorListings() {
         categoryId: vendorCategoryId,
         eventTypeIds: [],
         images: [],
+        highlights: [],
         includedItemsText: [],
+        includedItemIds: [],
         excludedItemsText: [],
         deliveryTime: '',
+        extraChargesDetailed: [],
         extraCharges: [],
         unit: '',
         minimumQuantity: 1,
@@ -159,18 +182,23 @@ export default function VendorListings() {
         categoryId: formData.categoryId,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
+        highlights: formData.highlights,
+        deliveryTime: formData.deliveryTime,
+        // Include both formats for extra charges
+        extraChargesDetailed: formData.extraChargesDetailed.map(ec => ({
+          name: ec.name,
+          price: parseFloat(ec.price) || 0
+        })),
+        extraCharges: formData.extraCharges,
       };
 
       if (listingType === 'PACKAGE') {
         payload.includedItemsText = formData.includedItemsText;
+        payload.includedItemIds = formData.includedItemIds;
         payload.excludedItemsText = formData.excludedItemsText;
-        payload.deliveryTime = formData.deliveryTime;
-        payload.extraCharges = formData.extraCharges;
       } else {
         payload.unit = formData.unit;
         payload.minimumQuantity = formData.minimumQuantity;
-        payload.deliveryTime = formData.deliveryTime;
-        payload.extraCharges = formData.extraCharges;
       }
 
       if (editingListing) {
@@ -238,6 +266,19 @@ export default function VendorListings() {
     setFormData({ ...formData, images: newImages });
   };
 
+  // Highlight helpers
+  const addHighlight = () => {
+    const highlight = prompt('Enter highlight (e.g., "Mandap decoration", "Stage decoration"):');
+    if (highlight) {
+      setFormData({ ...formData, highlights: [...formData.highlights, highlight] });
+    }
+  };
+
+  const removeHighlight = (index: number) => {
+    setFormData({ ...formData, highlights: formData.highlights.filter((_, i) => i !== index) });
+  };
+
+  // Included item text helpers
   const addIncludedItem = () => {
     const item = prompt('Enter included item:');
     if (item) {
@@ -247,6 +288,41 @@ export default function VendorListings() {
 
   const removeIncludedItem = (index: number) => {
     setFormData({ ...formData, includedItemsText: formData.includedItemsText.filter((_, i) => i !== index) });
+  };
+
+  // Linked item helpers (actual items from vendor's inventory)
+  const toggleLinkedItem = (itemId: string) => {
+    if (formData.includedItemIds.includes(itemId)) {
+      setFormData({ ...formData, includedItemIds: formData.includedItemIds.filter(id => id !== itemId) });
+    } else {
+      setFormData({ ...formData, includedItemIds: [...formData.includedItemIds, itemId] });
+    }
+  };
+
+  // Extra charge helpers
+  const addExtraCharge = () => {
+    const name = prompt('Enter extra charge name (e.g., "Additional lighting"):');
+    if (name) {
+      const priceStr = prompt('Enter price for this charge (₹):');
+      const price = priceStr || '0';
+      setFormData({ 
+        ...formData, 
+        extraChargesDetailed: [...formData.extraChargesDetailed, { name, price }] 
+      });
+    }
+  };
+
+  const removeExtraCharge = (index: number) => {
+    setFormData({ 
+      ...formData, 
+      extraChargesDetailed: formData.extraChargesDetailed.filter((_, i) => i !== index) 
+    });
+  };
+
+  const updateExtraCharge = (index: number, field: 'name' | 'price', value: string) => {
+    const updated = [...formData.extraChargesDetailed];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, extraChargesDetailed: updated });
   };
 
   if (listingsLoading) {
@@ -403,32 +479,83 @@ export default function VendorListings() {
                     )}
                   </div>
 
+                  {/* Highlights Section (for both PACKAGE and ITEM) */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Listing Highlights</Label>
+                    <p className="text-xs text-muted-foreground">Key features shown at the top of your listing</p>
+                    <div className="space-y-2">
+                      {formData.highlights.map((highlight, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <Input 
+                            value={highlight} 
+                            onChange={(e) => {
+                              const updated = [...formData.highlights];
+                              updated[i] = e.target.value;
+                              setFormData({ ...formData, highlights: updated });
+                            }}
+                            className="flex-1 bg-background border-border text-foreground" 
+                          />
+                          <Button size="sm" variant="ghost" onClick={() => removeHighlight(i)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button size="sm" variant="outline" onClick={addHighlight}>
+                        <Plus className="h-4 w-4 mr-2" /> Add Highlight
+                      </Button>
+                    </div>
+                  </div>
+
                   {listingType === 'PACKAGE' && (
                     <>
+                      {/* Link Existing Items Section */}
+                      {items.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-foreground">Link Existing Items</Label>
+                          <p className="text-xs text-muted-foreground">Select items from your inventory to include in this package (users can click them to see details)</p>
+                          <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
+                            {items.map((item: any) => (
+                              <div key={item.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.includedItemIds.includes(item.id)}
+                                  onChange={() => toggleLinkedItem(item.id)}
+                                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                                />
+                                <Label className="text-sm font-normal text-foreground cursor-pointer flex-1 truncate">
+                                  {item.name} (₹{Number(item.price).toLocaleString('en-IN')})
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Text-based Inclusions */}
                       <div className="space-y-2">
-                        <Label className="text-foreground">Included Items</Label>
+                        <Label className="text-foreground">What's Included (Text)</Label>
+                        <p className="text-xs text-muted-foreground">Add custom inclusions not linked to items</p>
                         <div className="space-y-2">
                           {formData.includedItemsText.map((item, i) => (
                             <div key={i} className="flex items-center gap-2">
-                              <Input value={item} disabled className="flex-1" />
+                              <Input 
+                                value={item} 
+                                onChange={(e) => {
+                                  const updated = [...formData.includedItemsText];
+                                  updated[i] = e.target.value;
+                                  setFormData({ ...formData, includedItemsText: updated });
+                                }}
+                                className="flex-1 bg-background border-border text-foreground" 
+                              />
                               <Button size="sm" variant="ghost" onClick={() => removeIncludedItem(i)}>
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
                           ))}
                           <Button size="sm" variant="outline" onClick={addIncludedItem}>
-                            <Plus className="h-4 w-4 mr-2" /> Add Item
+                            <Plus className="h-4 w-4 mr-2" /> Add Inclusion
                           </Button>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-foreground">Delivery Time</Label>
-                        <Input
-                          value={formData.deliveryTime}
-                          onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
-                          className="bg-background border-border text-foreground"
-                          placeholder="e.g., 2-3 weeks"
-                        />
                       </div>
                     </>
                   )}
@@ -457,6 +584,51 @@ export default function VendorListings() {
                       </div>
                     </>
                   )}
+
+                  {/* Delivery Time */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Delivery / Service Time</Label>
+                    <Input
+                      value={formData.deliveryTime}
+                      onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
+                      className="bg-background border-border text-foreground"
+                      placeholder="e.g., 1 day before event, 2-3 weeks"
+                    />
+                  </div>
+
+                  {/* Extra Charges with Pricing */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Extra Charges</Label>
+                    <p className="text-xs text-muted-foreground">Optional add-ons with pricing</p>
+                    <div className="space-y-2">
+                      {formData.extraChargesDetailed.map((charge, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <Input 
+                            value={charge.name} 
+                            onChange={(e) => updateExtraCharge(i, 'name', e.target.value)}
+                            className="flex-1 bg-background border-border text-foreground" 
+                            placeholder="Charge name"
+                          />
+                          <div className="flex items-center">
+                            <span className="text-muted-foreground mr-1">₹</span>
+                            <Input 
+                              type="number"
+                              value={charge.price} 
+                              onChange={(e) => updateExtraCharge(i, 'price', e.target.value)}
+                              className="w-28 bg-background border-border text-foreground" 
+                              placeholder="Price"
+                            />
+                          </div>
+                          <Button size="sm" variant="ghost" onClick={() => removeExtraCharge(i)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button size="sm" variant="outline" onClick={addExtraCharge}>
+                        <Plus className="h-4 w-4 mr-2" /> Add Extra Charge
+                      </Button>
+                    </div>
+                  </div>
 
                   <div className="space-y-2">
                     <Label className="text-foreground">Images *</Label>

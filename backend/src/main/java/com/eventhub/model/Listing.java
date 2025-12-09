@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,17 +46,27 @@ public class Listing {
     private List<String> images;
     
     // Package-specific fields
+    @Column(name = "highlights", columnDefinition = "TEXT[]")
+    private List<String> highlights;  // Quick highlights shown at top (e.g., "Mandap decoration", "Stage decoration")
+    
     @Column(name = "included_items_text", columnDefinition = "TEXT[]")
-    private List<String> includedItemsText;
+    private List<String> includedItemsText;  // Text-based inclusions for packages without linked items
     
     @Column(name = "excluded_items_text", columnDefinition = "TEXT[]")
     private List<String> excludedItemsText;
     
+    @Column(name = "included_item_ids", columnDefinition = "UUID[]")
+    private List<UUID> includedItemIds;  // References to actual item listings that are part of this package
+    
     @Column(name = "delivery_time", length = 255)
     private String deliveryTime;
     
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "extra_charges_json", columnDefinition = "JSONB")
+    private String extraChargesJson;  // JSON format: [{"name": "Additional lighting", "price": 10000}, ...]
+    
     @Column(name = "extra_charges", columnDefinition = "TEXT[]")
-    private List<String> extraCharges;
+    private List<String> extraCharges;  // Legacy text format
     
     // Item-specific fields
     @Column(length = 50)
