@@ -233,18 +233,20 @@ export const InteractiveEventShowcase = () => {
           {/* Navigation Arrows */}
           <button
             onClick={goToPrevious}
-            className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
+            className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
             aria-label="Previous event"
+            style={{ willChange: 'auto' }}
           >
-            <ChevronLeft className="h-5 w-5 text-primary" />
+            <ChevronLeft className="h-5 w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
           </button>
 
           <button
             onClick={goToNext}
-            className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300 hover-lift micro-bounce smooth-transition"
+            className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
             aria-label="Next event"
+            style={{ willChange: 'auto' }}
           >
-            <ChevronRight className="h-5 w-5 text-primary" />
+            <ChevronRight className="h-5 w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
           </button>
 
           {/* Scrollable Container */}

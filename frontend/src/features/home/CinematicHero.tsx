@@ -15,14 +15,20 @@ export const CinematicHero = () => {
     setIsLoaded(true);
   }, []);
 
-  // Parallax effect on scroll
+  // Parallax effect on scroll - limited to hero section height
   useEffect(() => {
     const handleScroll = () => {
       if (!heroRef.current) return;
+      const heroHeight = heroRef.current.offsetHeight;
       const scrolled = window.scrollY;
-      if (scrolled < window.innerHeight) {
+      
+      // Only apply parallax within the hero section bounds
+      if (scrolled < heroHeight) {
         const parallax = scrolled * 0.5;
         heroRef.current.style.transform = `translateY(${parallax}px)`;
+      } else {
+        // Reset transform when scrolled past hero section
+        heroRef.current.style.transform = 'translateY(0)';
       }
     };
 
@@ -57,7 +63,11 @@ export const CinematicHero = () => {
   return (
     <section 
       ref={heroRef}
-      className="relative min-h-[90vh] overflow-hidden"
+      className="relative min-h-[90vh] max-h-[90vh] overflow-hidden z-0"
+      style={{
+        isolation: 'isolate',
+        willChange: 'transform',
+      }}
     >
       {/* Background Image with Strong Blur */}
       <div className="absolute inset-0">

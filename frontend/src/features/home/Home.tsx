@@ -100,7 +100,9 @@ const Home = () => {
       <MinimalNavbar />
 
       {/* Cinematic Hero Section */}
-      <CinematicHero />
+      <div className="relative overflow-hidden">
+        <CinematicHero />
+      </div>
 
       {/* Stats Bar - Floating Above Next Section */}
       <section className="relative -mt-16 z-20 mb-16">
@@ -171,7 +173,9 @@ const Home = () => {
       </section>
 
       {/* Interactive Event Showcase */}
-      <InteractiveEventShowcase />
+      <div className="relative z-10">
+        <InteractiveEventShowcase />
+      </div>
 
       {/* Category Services Section */}
       <CategoryServicesSection />
