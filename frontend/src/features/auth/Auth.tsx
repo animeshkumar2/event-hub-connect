@@ -142,8 +142,8 @@ const Auth = ({ mode }: AuthProps) => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
       <Card className="w-full max-w-md shadow-elegant">
         <CardHeader className="text-center">
-          <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent mb-4 inline-block">
-            EventHub
+          <Link to="/" className="text-2xl font-bold text-[#5046E5] mb-4 inline-block">
+            cartevent<span className="text-[#7C6BFF]">.</span>
           </Link>
           <CardTitle className="text-2xl">
             {mode === "login" ? "Welcome Back" : "Create Account"}
