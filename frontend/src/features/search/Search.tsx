@@ -36,6 +36,7 @@ const Search = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   
@@ -432,6 +433,32 @@ const Search = () => {
     if (!hasMore || listingsFetching || listingsLoading) return;
     setPage((p) => p + 1);
   };
+
+  // Infinite scroll - load more when sentinel is visible
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasMore && !listingsFetching && !listingsLoading && !showVendors) {
+          loadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px', // Start loading 200px before reaching the sentinel
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, listingsFetching, listingsLoading, showVendors]);
   
   // Filter vendors by search query
   const filteredVendors = useMemo(() => {
@@ -881,19 +908,33 @@ const Search = () => {
           </Card>
         )}
 
-        {/* Loading State - Show on initial load or when switching categories */}
-        {(!referenceDataReady || (showVendors ? vendorsLoading : listingsLoading) || isSwitchingCategory) ? (
-          <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">
-              {!referenceDataReady
-                ? 'Loading categories...' 
-                : isSwitchingCategory
-                  ? 'Loading new results...'
-                  : showVendors 
-                    ? 'Loading vendors...' 
-                    : 'Loading listings...'}
-            </p>
+        {/* Loading State - Show skeleton loaders for better perceived performance */}
+        {(!referenceDataReady || 
+          (showVendors ? vendorsLoading : (listingsLoading && page === 0 && accumulatedListings.length === 0)) || 
+          isSwitchingCategory) ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-muted-foreground mb-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">
+                {!referenceDataReady
+                  ? 'Loading categories...' 
+                  : isSwitchingCategory
+                    ? 'Loading new results...'
+                    : showVendors 
+                      ? 'Loading vendors...' 
+                      : 'Loading listings...'}
+              </span>
+            </div>
+            {/* Skeleton grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[1,2,3,4,5,6,7,8].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[4/3] bg-muted rounded-lg mb-2" />
+                  <div className="h-4 bg-muted rounded w-3/4 mb-1" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <>
@@ -1003,18 +1044,22 @@ const Search = () => {
                       }
                     })}
                   </div>
-                  {hasMore && (
-                    <div className="flex justify-center mt-6">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadMore}
-                        disabled={listingsFetching || listingsLoading}
-                      >
-                        {listingsFetching || listingsLoading ? 'Loading…' : 'Load more'}
-                      </Button>
-                    </div>
-                  )}
+                  {/* Infinite scroll sentinel */}
+                  <div ref={loadMoreRef} className="flex justify-center mt-8 py-4 min-h-[40px]">
+                    {/* Show loading when fetching more */}
+                    {(listingsFetching || listingsLoading) && page > 0 && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading more...</span>
+                      </div>
+                    )}
+                    {/* Only show end message when truly no more listings */}
+                    {!hasMore && accumulatedListings.length > 0 && !listingsFetching && !listingsLoading && (
+                      <p className="text-xs text-muted-foreground/60">
+                        End of results
+                      </p>
+                    )}
+                  </div>
                 </>
               )
             )}

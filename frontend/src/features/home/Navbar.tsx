@@ -71,8 +71,8 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center space-x-2 group">
-            <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent transition-all duration-200 group-hover:opacity-90">
-              EventHub
+            <span className="text-lg md:text-xl font-bold text-[#5046E5] transition-all duration-200 group-hover:opacity-90">
+              cartevent<span className="text-[#7C6BFF]">.</span>
             </span>
           </Link>
 

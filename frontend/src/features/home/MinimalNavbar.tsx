@@ -92,11 +92,11 @@ export const MinimalNavbar = () => {
               className={cn(
                 'text-lg md:text-xl font-bold transition-all duration-200',
                 scrolled 
-                  ? 'bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent' 
+                  ? 'text-[#5046E5]' 
                   : 'text-white group-hover:text-white/90'
               )}
             >
-              EventHub
+              cartevent<span className={scrolled ? 'text-[#7C6BFF]' : 'text-white/80'}>.</span>
             </span>
           </Link>
 

@@ -128,8 +128,8 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-10 mb-8">
             <div>
-              <h3 className="font-black text-xl mb-3 bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-                EventHub
+              <h3 className="font-black text-xl mb-3 text-[#5046E5]">
+                cartevent<span className="text-[#7C6BFF]">.</span>
               </h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-3">
                 Your one-stop marketplace for all event services. Book trusted vendors with transparent pricing.
@@ -246,7 +246,7 @@ const Home = () => {
           <div className="pt-6 border-t border-border">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground text-center md:text-left">
-                © 2025 EventHub. All rights reserved.
+                © 2025 cartevent. All rights reserved.
               </p>
               <div className="flex gap-4 text-xs text-muted-foreground">
                 <Link to="/terms" className="hover:text-foreground transition-colors">
