@@ -18,9 +18,8 @@ public class VendorWallet {
     @Column(name = "vendor_id")
     private UUID vendorId;
     
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "vendor_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id", insertable = false, updatable = false)
     private Vendor vendor;
     
     @Column(nullable = false, precision = 10, scale = 2)

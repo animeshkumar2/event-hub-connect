@@ -50,7 +50,7 @@ public class ChatController {
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable UUID threadId,
             @RequestBody SendMessageRequest request) {
-        Message message = chatService.sendMessage(threadId, userId, Message.SenderType.CUSTOMER, request.getContent());
+        Message message = chatService.sendMessage(threadId, userId, Message.SenderType.customer, request.getContent());
         return ResponseEntity.ok(ApiResponse.success("Message sent", message));
     }
     

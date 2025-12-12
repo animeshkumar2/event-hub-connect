@@ -1,7 +1,7 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
-import com.eventhub.model.ChatThread;
+import com.eventhub.dto.ChatThreadDTO;
 import com.eventhub.model.Message;
 import com.eventhub.service.ChatService;
 import com.eventhub.util.VendorIdResolver;
@@ -24,10 +24,10 @@ public class VendorChatController {
     private final VendorIdResolver vendorIdResolver;
     
     @GetMapping("/threads")
-    public ResponseEntity<ApiResponse<List<ChatThread>>> getThreads(
+    public ResponseEntity<ApiResponse<List<ChatThreadDTO>>> getThreads(
             @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
         UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
-        List<ChatThread> threads = chatService.getVendorThreads(vendorId);
+        List<ChatThreadDTO> threads = chatService.getVendorThreadsWithDetails(vendorId);
         return ResponseEntity.ok(ApiResponse.success(threads));
     }
     
@@ -47,7 +47,7 @@ public class VendorChatController {
             @PathVariable UUID threadId,
             @RequestBody SendMessageRequest request) {
         UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
-        Message message = chatService.sendMessage(threadId, vendorId, Message.SenderType.VENDOR, request.getContent());
+        Message message = chatService.sendMessage(threadId, vendorId, Message.SenderType.vendor, request.getContent());
         return ResponseEntity.ok(ApiResponse.success("Message sent", message));
     }
     
@@ -65,4 +65,3 @@ public class VendorChatController {
         private String content;
     }
 }
-

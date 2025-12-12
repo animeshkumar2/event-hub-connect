@@ -391,11 +391,10 @@ const VendorDetails = () => {
                   Chat Now
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl p-0">
+              <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
                 <PremiumChatWindow
                   vendorId={vendor.id}
                   vendorName={vendor.businessName}
-                  onClose={() => setShowChat(false)}
                 />
               </DialogContent>
             </Dialog>
@@ -1061,11 +1060,10 @@ const VendorDetails = () => {
                       Chat with Vendor
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-3xl p-0">
+                  <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
                     <PremiumChatWindow
                       vendorId={vendor.id}
                       vendorName={vendor.businessName}
-                      onClose={() => setShowChat(false)}
                     />
                   </DialogContent>
                 </Dialog>
