@@ -133,8 +133,8 @@ const EventPlanner = () => {
             title: 'No recommendations found',
             description: 'Try adjusting your budget or event type',
             variant: 'default',
-          });
-        }
+      });
+    }
       } else {
         throw new Error(response.message || 'Failed to get recommendations');
       }
@@ -156,7 +156,7 @@ const EventPlanner = () => {
       const newMap = new Map(prev);
       newMap.set(category, { category, option });
       return newMap;
-    });
+      });
   };
 
   const handleAddSelectedToCart = async () => {
@@ -189,7 +189,7 @@ const EventPlanner = () => {
               basePrice: typeof pkg.price === 'number' ? pkg.price : parseFloat(pkg.price),
               addOns: [],
               quantity: 1,
-            });
+        });
             successCount++;
           } else {
             // Fallback: use recommendation data directly
@@ -207,16 +207,16 @@ const EventPlanner = () => {
           }
         } catch (err) {
           // Fallback: use recommendation data directly
-          addToCart({
+        addToCart({
             vendorId: selected.option.vendorId,
             vendorName: selected.option.vendorName,
             packageId: selected.option.packageId,
             packageName: selected.option.packageName,
             price: selected.option.price,
             basePrice: selected.option.price,
-            addOns: [],
-            quantity: 1,
-          });
+          addOns: [],
+          quantity: 1,
+        });
           successCount++;
         }
       } catch (err) {
@@ -226,11 +226,11 @@ const EventPlanner = () => {
     }
 
     if (successCount > 0) {
-      toast({
-        title: 'Added to Cart!',
+    toast({
+      title: 'Added to Cart!',
         description: `${successCount} package${successCount > 1 ? 's' : ''} added to your cart${errorCount > 0 ? ` (${errorCount} failed)` : ''}`,
-      });
-      navigate('/cart');
+    });
+    navigate('/cart');
     } else {
       toast({
         title: 'Error',
@@ -334,8 +334,8 @@ const EventPlanner = () => {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Get Recommendations
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Get Recommendations
                     </>
                   )}
                 </Button>
@@ -389,9 +389,9 @@ const EventPlanner = () => {
                         </div>
                         <Badge variant="secondary" className="text-sm">
                           {rec.options?.length || 0} Options
-                        </Badge>
-                      </div>
-                    </CardHeader>
+                    </Badge>
+                  </div>
+                </CardHeader>
                     <CardContent className="p-6">
                       {!rec.options || rec.options.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
@@ -452,7 +452,7 @@ const EventPlanner = () => {
                                   </div>
                                 )}
 
-                                <CardContent className="p-4">
+                        <CardContent className="p-4">
                                   <div className="space-y-3">
                                     <div>
                                       <h3 className="font-bold text-lg mb-1">{option.packageName}</h3>
@@ -486,33 +486,33 @@ const EventPlanner = () => {
                                         <span className="text-xs text-muted-foreground">
                                           {budgetUsage.toFixed(0)}% of budget
                                         </span>
-                                      </div>
+                              </div>
                                       <p className="text-xs text-muted-foreground line-clamp-2">
                                         {option.reason}
-                                      </p>
-                                    </div>
+                              </p>
+                            </div>
 
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
+                              <Button
+                                variant="outline"
+                                size="sm"
                                       className="w-full"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         navigate(`/vendor/${option.vendorId}?packageId=${option.packageId}`);
                                       }}
-                                    >
+                              >
                                       <ExternalLink className="mr-2 h-3 w-3" />
-                                      View Details
-                                    </Button>
-                                  </div>
-                                </CardContent>
-                              </Card>
+                                View Details
+                              </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
                             );
                           })}
-                        </div>
+                  </div>
                       )}
-                    </CardContent>
-                  </Card>
+                </CardContent>
+              </Card>
                 );
               })}
 

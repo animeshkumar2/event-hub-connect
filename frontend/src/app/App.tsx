@@ -40,6 +40,7 @@ const VendorReviews = lazy(() => import("@/features/vendor/pages/VendorReviews")
 const VendorFAQs = lazy(() => import("@/features/vendor/pages/VendorFAQs"));
 const VendorSettings = lazy(() => import("@/features/vendor/pages/VendorSettings"));
 const VendorHelp = lazy(() => import("@/features/vendor/pages/VendorHelp"));
+const VendorLandingPage = lazy(() => import("@/features/vendor/pages/VendorLandingPage"));
 const TestImageUpload = lazy(() => import("@/features/vendor/TestImageUpload"));
 
 // Loading fallback component
@@ -118,6 +119,12 @@ const App = () => (
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/login" element={<Auth mode="login" />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/for-vendors" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorLandingPage />
+              </Suspense>
+            } />
             <Route path="/test-upload" element={
               <Suspense fallback={<LoadingFallback />}>
                 <TestImageUpload />

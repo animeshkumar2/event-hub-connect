@@ -15,3 +15,4 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
     List<WalletTransaction> findByWallet(VendorWallet wallet);
 }
 
+

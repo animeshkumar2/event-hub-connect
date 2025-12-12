@@ -10,15 +10,21 @@ import { useAuth } from "@/shared/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 interface AuthProps {
-  mode: "login" | "signup";
+  mode?: "login" | "signup";
 }
 
-const Auth = ({ mode }: AuthProps) => {
+const Auth = ({ mode: propMode }: AuthProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { login, register, isAuthenticated, user } = useAuth();
-  const [isVendor, setIsVendor] = useState(false);
+  
+  // Support mode and type from URL search params
+  const urlMode = searchParams.get('mode') as "login" | "signup" | null;
+  const urlType = searchParams.get('type');
+  const mode = propMode || urlMode || "login";
+  
+  const [isVendor, setIsVendor] = useState(urlType === 'vendor');
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",

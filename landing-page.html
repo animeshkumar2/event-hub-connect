@@ -1,0 +1,549 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>EventHub - Book Event Vendors</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap">
+        <style>
+            :root {
+                --primary: 245 58% 51%;
+                --primary-glow: 245 70% 65%;
+                --secondary: 38 92% 50%;
+                --background: 0 0% 100%;
+                --foreground: 240 10% 3.9%;
+                --muted: 240 4.8% 95.9%;
+                --muted-foreground: 240 3.8% 46.1%;
+                --border: 240 5.9% 90%;
+            }
+            
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Inter', sans-serif;
+                background: hsl(var(--background));
+                color: hsl(var(--foreground));
+            }
+            
+            .font-display {
+                font-family: 'Playfair Display', serif;
+            }
+            
+            .hover-lift {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            
+            .hover-lift:hover {
+                transform: translateY(-4px);
+            }
+            
+            .animate-fade-in-up {
+                animation: fadeInUp 0.8s ease-out;
+            }
+            
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Navbar -->
+        <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-transparent">
+            <div class="container mx-auto px-4 md:px-8">
+                <div class="flex h-16 md:h-20 items-center justify-between">
+                    <a href="#" class="flex items-center space-x-2">
+                        <span class="text-xl md:text-2xl font-bold text-white transition-colors" id="logo-text">EventHub</span>
+                    </a>
+                    <div class="hidden md:flex items-center space-x-8">
+                        <a href="#" class="text-sm font-medium text-white/90 hover:text-white transition-colors">Home</a>
+                        <a href="#" class="text-sm font-medium text-white/90 hover:text-white transition-colors">Vendors</a>
+                        <a href="#" class="text-sm font-medium text-white/90 hover:text-white transition-colors">Event Types</a>
+                        <a href="#" class="text-sm font-medium text-white/90 hover:text-white transition-colors">About</a>
+                        <a href="#" class="text-sm font-medium text-white/90 hover:text-white transition-colors px-4 py-2 rounded-md hover:bg-white/10">Login</a>
+                    </div>
+                    <button class="md:hidden text-white" id="mobile-menu-btn">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="relative min-h-screen overflow-hidden pb-32">
+            <div class="absolute inset-0">
+                <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/_.jpeg'); background-position: center; filter: blur(3px);"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20"></div>
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+            
+            <div class="relative z-10 container mx-auto px-4 md:px-8 lg:px-12">
+                <div class="flex items-center min-h-screen py-20">
+                    <div class="max-w-4xl space-y-8">
+                        <h1 class="text-6xl md:text-8xl lg:text-9xl font-black text-white leading-[0.9] tracking-tight">
+                            BOOK EVENT<br>VENDORS
+                        </h1>
+                        <div class="h-1 w-24 bg-white/80"></div>
+                        
+                        <div class="relative min-h-[320px] md:min-h-[280px] overflow-visible">
+                            <div id="hero-slide-0" class="absolute inset-0 transition-all duration-700 ease-in-out opacity-100 translate-x-0 z-10">
+                                <h2 class="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 leading-tight">
+                                    Find All Your<br>
+                                    <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent">Event Vendors</span>
+                                </h2>
+                                <p class="text-xl md:text-2xl text-white/90 font-light tracking-wide max-w-3xl leading-relaxed mb-8">
+                                    Photographers · Decorators · DJs · Makeup Artists · Caterers · More — All in One Place.
+                                </p>
+                                <div class="pt-4 relative z-20">
+                                    <a href="#" class="inline-flex items-center text-lg px-10 py-7 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-purple-600 hover:to-indigo-600 border-0 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 group">
+                                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                        Browse Categories
+                                        <svg class="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            <div id="hero-slide-1" class="absolute inset-0 transition-all duration-700 ease-in-out opacity-0 translate-x-full z-0">
+                                <h2 class="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 leading-tight">
+                                    Plan Your Complete<br>
+                                    <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent">Event Experience</span>
+                                </h2>
+                                <p class="text-xl md:text-2xl text-white/90 font-light tracking-wide max-w-3xl leading-relaxed mb-8">
+                                    Tell us your budget and event details. We'll recommend the perfect vendors and you can book them all in one checkout!
+                                </p>
+                                <div class="pt-4 relative z-20">
+                                    <a href="#" class="inline-flex items-center text-lg px-10 py-7 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-purple-600 hover:to-indigo-600 border-0 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 group">
+                                        <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                        </svg>
+                                        Start Planning Now
+                                        <svg class="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Bar -->
+        <section class="relative -mt-20 z-20 mb-20">
+            <div class="container mx-auto px-4">
+                <div class="bg-white/95 backdrop-blur-md shadow-2xl border-0 rounded-2xl overflow-hidden">
+                    <div class="p-6 md:p-8">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            <div class="text-center group">
+                                <div class="inline-flex p-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    <svg class="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-3xl md:text-4xl font-black text-foreground mb-1">500+</div>
+                                <div class="text-sm text-muted-foreground font-medium">Verified Vendors</div>
+                            </div>
+                            <div class="text-center group">
+                                <div class="inline-flex p-3 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    <svg class="h-6 w-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-3xl md:text-4xl font-black text-foreground mb-1">10K+</div>
+                                <div class="text-sm text-muted-foreground font-medium">Events Completed</div>
+                            </div>
+                            <div class="text-center group">
+                                <div class="inline-flex p-3 rounded-xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    <svg class="h-6 w-6 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-3xl md:text-4xl font-black text-foreground mb-1">4.8</div>
+                                <div class="text-sm text-muted-foreground font-medium">Average Rating</div>
+                            </div>
+                            <div class="text-center group">
+                                <div class="inline-flex p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-green-600/10 mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-3xl md:text-4xl font-black text-foreground mb-1">98%</div>
+                                <div class="text-sm text-muted-foreground font-medium">Satisfaction Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Event Showcase Section -->
+        <section id="event-showcase" class="relative py-20 md:py-32 overflow-hidden bg-gradient-to-b from-background to-muted/30">
+            <!-- Background images will be added via JS -->
+            <div class="absolute inset-0" id="event-bg-container"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent z-10"></div>
+            
+            <div class="relative z-20 container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <span class="inline-flex items-center mb-4 bg-white/20 backdrop-blur-md text-white border border-white/30 px-4 py-2 text-sm font-medium rounded-full">
+                        <svg class="h-3 w-3 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                        Explore Event Types
+                    </span>
+                    <h2 class="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4">
+                        Plan Your Perfect<br>
+                        <span class="bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">Celebration</span>
+                    </h2>
+                </div>
+
+                <div class="relative max-w-5xl mx-auto">
+                    <button id="event-prev" class="absolute -left-4 md:-left-12 top-1/2 -translate-y-1/2 z-40 p-4 rounded-full bg-white shadow-lg border-2 border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all duration-300 hover-lift">
+                        <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <button id="event-next" class="absolute -right-4 md:-right-12 top-1/2 -translate-y-1/2 z-40 p-4 rounded-full bg-white shadow-lg border-2 border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all duration-300 hover-lift">
+                        <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+
+                    <div id="event-card" class="relative border-0 shadow-2xl overflow-hidden bg-white rounded-2xl">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
+                            <div class="relative aspect-square md:aspect-auto md:h-[500px] overflow-hidden">
+                                <img id="event-card-image" src="" alt="" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex flex-col justify-between p-6 md:p-8 bg-gradient-to-br from-slate-50 to-white">
+                                <div class="space-y-4">
+                                    <div class="flex items-center gap-3">
+                                        <div id="event-icon" class="text-4xl md:text-5xl"></div>
+                                        <span id="event-badge" class="inline-flex items-center bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 px-3 py-1 text-xs font-medium rounded-full"></span>
+                                    </div>
+                                    <h3 id="event-title" class="text-2xl md:text-3xl font-black text-foreground leading-tight"></h3>
+                                    <p id="event-description" class="text-sm md:text-base text-muted-foreground leading-relaxed"></p>
+                                    <div class="flex items-center gap-6 pt-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="p-2 rounded-lg bg-indigo-500/10">
+                                                <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div id="event-stats-value" class="text-lg font-bold text-foreground"></div>
+                                                <div id="event-stats-label" class="text-xs text-muted-foreground"></div>
+                                            </div>
+                                        </div>
+                                        <div class="h-8 w-px bg-border"></div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="p-2 rounded-lg bg-indigo-500/10">
+                                                <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <div class="text-lg font-bold text-foreground">8+</div>
+                                                <div class="text-xs text-muted-foreground">Cities</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-6 border-t">
+                                    <a id="event-cta" href="#" class="inline-flex items-center justify-center w-full text-base px-8 py-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-purple-600 hover:to-indigo-600 font-semibold shadow-lg hover-lift transition-all duration-300 group">
+                                        <span id="event-cta-text"></span>
+                                        <svg class="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="event-indicators" class="mt-8 flex justify-center gap-2"></div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section class="py-20 md:py-32 bg-background relative">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-16">
+                    <span class="inline-flex items-center mb-4 bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 px-4 py-2 rounded-full">Simple Process</span>
+                    <h2 class="text-4xl md:text-5xl lg:text-6xl font-black text-foreground mb-6">How It Works</h2>
+                    <p class="text-xl text-muted-foreground max-w-2xl mx-auto">Three simple steps to book your perfect event vendors</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover-lift rounded-2xl group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+                        <div class="p-8 relative z-10">
+                            <div class="flex items-start justify-between mb-6">
+                                <div class="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg">
+                                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-6xl font-black text-muted-foreground/20">01</div>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3">Browse & Discover</h3>
+                            <p class="text-muted-foreground leading-relaxed">Explore portfolios, packages, and real event photos from verified vendors</p>
+                        </div>
+                    </div>
+                    <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover-lift rounded-2xl group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+                        <div class="p-8 relative z-10">
+                            <div class="flex items-start justify-between mb-6">
+                                <div class="p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg">
+                                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-6xl font-black text-muted-foreground/20">02</div>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3">Customize & Book</h3>
+                            <p class="text-muted-foreground leading-relaxed">Fixed pricing + add your customizations. Select date and time instantly</p>
+                        </div>
+                    </div>
+                    <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover-lift rounded-2xl group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+                        <div class="p-8 relative z-10">
+                            <div class="flex items-start justify-between mb-6">
+                                <div class="p-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-lg">
+                                    <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-6xl font-black text-muted-foreground/20">03</div>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3">Pay & Confirm</h3>
+                            <p class="text-muted-foreground leading-relaxed">Pay securely and get instant booking confirmation. All vendors in one checkout</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-border py-16 bg-gradient-to-b from-muted/20 to-background">
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                    <div>
+                        <h3 class="font-black text-2xl mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">EventHub</h3>
+                        <p class="text-muted-foreground text-sm leading-relaxed mb-4">Your one-stop marketplace for all event services. Book trusted vendors with transparent pricing.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg mb-4">For Customers</h4>
+                        <ul class="space-y-3 text-sm">
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Find Vendors</a></li>
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Event Planner</a></li>
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">How It Works</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg mb-4">For Vendors</h4>
+                        <ul class="space-y-3 text-sm">
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Become a Vendor</a></li>
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Vendor Login</a></li>
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Vendor Benefits</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg mb-4">Support</h4>
+                        <ul class="space-y-3 text-sm">
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Help Center</a></li>
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">Contact Us</a></li>
+                            <li><a href="#" class="text-muted-foreground hover:text-foreground transition-colors">FAQ</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="pt-8 border-t border-border">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <p class="text-sm text-muted-foreground text-center md:text-left">© 2025 EventHub. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            // Event Cards Data
+            const eventCards = [
+                {
+                    id: 'wedding',
+                    title: 'Wedding',
+                    subtitle: 'Your Perfect Day',
+                    description: 'Complete wedding services from photography to catering, all in one place',
+                    image: 'https://images.unsplash.com/photo-1519167758481-83f29da8a1c6?w=1920&h=1080&fit=crop&q=80',
+                    cardImage: "/Aditi Rao Hydari's Dreamy Wedding Decor Setup at Alila Fort Bishangarh.jpeg",
+                    gradient: 'from-amber-900/80 via-yellow-800/70 to-amber-700/80',
+                    icon: '💒',
+                    stats: { label: 'Weddings Booked', value: '2,500+' },
+                    link: '/search?eventType=Wedding',
+                },
+                {
+                    id: 'birthday',
+                    title: 'Birthday',
+                    subtitle: 'Celebrate in Style',
+                    description: 'Make every birthday unforgettable with our curated vendors',
+                    image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1920&h=1080&fit=crop&q=80',
+                    cardImage: '/_.jpeg',
+                    gradient: 'from-blue-600/80 via-cyan-500/70 to-indigo-600/80',
+                    icon: '🎂',
+                    stats: { label: 'Birthdays Celebrated', value: '5,000+' },
+                    link: '/search?eventType=Birthday',
+                },
+                {
+                    id: 'corporate',
+                    title: 'Corporate',
+                    subtitle: 'Professional Events',
+                    description: 'Elevate your corporate events with premium services',
+                    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1920&h=1080&fit=crop&q=80',
+                    cardImage: '/_.jpeg',
+                    gradient: 'from-slate-800/80 via-gray-700/70 to-slate-600/80',
+                    icon: '💼',
+                    stats: { label: 'Corporate Events', value: '1,200+' },
+                    link: '/search?eventType=Corporate',
+                },
+            ];
+
+            let activeEventIndex = 0;
+            let isEventPaused = false;
+            let eventInterval;
+
+            // Hero slide animation
+            let activeHeroSlide = 0;
+            setInterval(() => {
+                activeHeroSlide = (activeHeroSlide + 1) % 2;
+                const slide0 = document.getElementById('hero-slide-0');
+                const slide1 = document.getElementById('hero-slide-1');
+                if (activeHeroSlide === 0) {
+                    slide0.classList.remove('opacity-0', 'translate-x-full', 'z-0');
+                    slide0.classList.add('opacity-100', 'translate-x-0', 'z-10');
+                    slide1.classList.remove('opacity-100', 'translate-x-0', 'z-10');
+                    slide1.classList.add('opacity-0', 'translate-x-full', 'z-0');
+                } else {
+                    slide1.classList.remove('opacity-0', 'translate-x-full', 'z-0');
+                    slide1.classList.add('opacity-100', 'translate-x-0', 'z-10');
+                    slide0.classList.remove('opacity-100', 'translate-x-0', 'z-10');
+                    slide0.classList.add('opacity-0', '-translate-x-full', 'z-0');
+                }
+            }, 5000);
+
+            // Navbar scroll effect
+            window.addEventListener('scroll', () => {
+                const navbar = document.getElementById('navbar');
+                const logoText = document.getElementById('logo-text');
+                if (window.scrollY > 50) {
+                    navbar.classList.remove('bg-transparent');
+                    navbar.classList.add('bg-white/95', 'backdrop-blur-md', 'border-b', 'border-border', 'shadow-sm');
+                    logoText.classList.remove('text-white');
+                    logoText.classList.add('text-foreground');
+                } else {
+                    navbar.classList.remove('bg-white/95', 'backdrop-blur-md', 'border-b', 'border-border', 'shadow-sm');
+                    navbar.classList.add('bg-transparent');
+                    logoText.classList.remove('text-foreground');
+                    logoText.classList.add('text-white');
+                }
+            });
+
+            // Event showcase functions
+            function updateEventCard() {
+                const card = eventCards[activeEventIndex];
+                document.getElementById('event-card-image').src = card.cardImage || card.image;
+                document.getElementById('event-card-image').alt = card.title;
+                document.getElementById('event-icon').textContent = card.icon;
+                document.getElementById('event-badge').textContent = card.subtitle;
+                document.getElementById('event-title').textContent = card.title;
+                document.getElementById('event-description').textContent = card.description;
+                document.getElementById('event-stats-value').textContent = card.stats.value;
+                document.getElementById('event-stats-label').textContent = card.stats.label;
+                document.getElementById('event-cta-text').textContent = `Explore ${card.title} Packages`;
+                document.getElementById('event-cta').href = card.link;
+
+                // Update background
+                const bgContainer = document.getElementById('event-bg-container');
+                bgContainer.innerHTML = eventCards.map((c, i) => `
+                    <div class="absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === activeEventIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'}" style="background-image: url(${c.image}); background-size: cover; background-position: center;">
+                        <div class="absolute inset-0 bg-gradient-to-br ${c.gradient}"></div>
+                    </div>
+                `).join('');
+
+                // Update indicators
+                const indicators = document.getElementById('event-indicators');
+                indicators.innerHTML = eventCards.map((_, i) => `
+                    <button onclick="goToEvent(${i})" class="relative h-2 rounded-full transition-all duration-500 ${i === activeEventIndex ? 'w-12 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'}" aria-label="Go to ${eventCards[i].title}">
+                        ${i === activeEventIndex ? '<div class="absolute inset-0 bg-white rounded-full animate-pulse"></div>' : ''}
+                    </button>
+                `).join('');
+            }
+
+            function goToEvent(index) {
+                activeEventIndex = index;
+                updateEventCard();
+            }
+
+            function nextEvent() {
+                activeEventIndex = (activeEventIndex + 1) % eventCards.length;
+                updateEventCard();
+            }
+
+            function prevEvent() {
+                activeEventIndex = (activeEventIndex - 1 + eventCards.length) % eventCards.length;
+                updateEventCard();
+            }
+
+            document.getElementById('event-next').addEventListener('click', nextEvent);
+            document.getElementById('event-prev').addEventListener('click', prevEvent);
+
+            const eventSection = document.getElementById('event-showcase');
+            eventSection.addEventListener('mouseenter', () => {
+                isEventPaused = true;
+                clearInterval(eventInterval);
+            });
+            eventSection.addEventListener('mouseleave', () => {
+                isEventPaused = false;
+                startEventInterval();
+            });
+
+            function startEventInterval() {
+                eventInterval = setInterval(() => {
+                    if (!isEventPaused) {
+                        nextEvent();
+                    }
+                }, 5000);
+            }
+
+            // Initialize
+            updateEventCard();
+            startEventInterval();
+        </script>
+    </body>
+    </html>
+
+

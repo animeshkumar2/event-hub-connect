@@ -20,3 +20,4 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
     List<Lead> findByVendorAndStatus(Vendor vendor, Lead.LeadStatus status);
 }
 
+

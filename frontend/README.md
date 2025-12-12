@@ -167,3 +167,4 @@ Key libraries:
 - Supabase Client
 - Tailwind CSS
 
+

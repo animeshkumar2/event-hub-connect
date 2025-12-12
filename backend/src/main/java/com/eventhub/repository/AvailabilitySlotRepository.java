@@ -25,3 +25,4 @@ public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySl
     List<AvailabilitySlot> findByVendorAndDateAndStatus(Vendor vendor, LocalDate date, AvailabilitySlot.SlotStatus status);
 }
 
+

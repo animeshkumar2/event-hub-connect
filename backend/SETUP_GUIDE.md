@@ -216,3 +216,4 @@ After running:
 - **JPA Docs**: https://docs.spring.io/spring-data/jpa/docs/current/reference/html/
 - **Supabase Docs**: https://supabase.com/docs
 
+

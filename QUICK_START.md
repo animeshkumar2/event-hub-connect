@@ -107,3 +107,4 @@ cd frontend && docker-compose up
 - Read `database/SEED_DATA_README.md` for seed data details
 - Check `backend/IMPLEMENTATION_COMPLETE.md` for backend features
 
+

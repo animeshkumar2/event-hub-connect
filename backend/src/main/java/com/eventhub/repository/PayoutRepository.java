@@ -15,3 +15,4 @@ public interface PayoutRepository extends JpaRepository<Payout, UUID> {
     List<Payout> findByVendorAndStatus(Vendor vendor, Payout.PayoutStatus status);
 }
 
+

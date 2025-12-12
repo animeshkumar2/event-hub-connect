@@ -13,3 +13,4 @@ public interface VendorPastEventRepository extends JpaRepository<VendorPastEvent
     List<VendorPastEvent> findByVendor(Vendor vendor);
 }
 
+

@@ -177,3 +177,4 @@ if (eventType && selectedCategory && selectedCategory !== "all") {
 
 3. **Event Types Validation**: Consider adding validation to ensure `eventTypes` array items are valid event type strings.
 
+
