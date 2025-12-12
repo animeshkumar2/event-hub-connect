@@ -21,6 +21,10 @@
 
   <body>
     <div id="root"></div>
+    <!-- Polyfill for sockjs-client which expects Node.js global object -->
+    <script>
+      window.global = window;
+    </script>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>
 </html>

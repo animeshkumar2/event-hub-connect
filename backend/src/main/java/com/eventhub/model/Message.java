@@ -28,8 +28,8 @@ public class Message {
     @Column(name = "sender_type", nullable = false, length = 20)
     private SenderType senderType; // 'customer' or 'vendor'
     
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(name = "text", nullable = false, columnDefinition = "TEXT")
+    private String content; // Maps to 'text' column in database
     
     @Column(name = "is_read")
     private Boolean isRead = false;
@@ -42,8 +42,22 @@ public class Message {
         createdAt = LocalDateTime.now();
     }
     
+    // Use lowercase to match database CHECK constraint
     public enum SenderType {
-        CUSTOMER, VENDOR
+        customer, vendor;
+        
+        // Helper methods for compatibility
+        public static SenderType fromString(String type) {
+            if (type == null) return customer;
+            return type.equalsIgnoreCase("vendor") ? vendor : customer;
+        }
+        
+        public boolean isVendor() {
+            return this == vendor;
+        }
+        
+        public boolean isCustomer() {
+            return this == customer;
+        }
     }
 }
-

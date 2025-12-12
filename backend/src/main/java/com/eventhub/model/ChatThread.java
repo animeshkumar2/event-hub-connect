@@ -1,5 +1,6 @@
 package com.eventhub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +19,13 @@ public class ChatThread {
     private UUID id;
     
     @Column(name = "user_id", nullable = false)
-    private UUID userId; // Customer
+    private UUID userId; // Customer ID
+    
+    // Relationship to get customer details
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    @JsonIgnore
+    private UserProfile user;
     
     @ManyToOne
     @JoinColumn(name = "vendor_id", nullable = false)
@@ -55,5 +62,17 @@ public class ChatThread {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+    
+    // Helper method to get customer name
+    public String getCustomerName() {
+        if (user != null && user.getFullName() != null) {
+            return user.getFullName();
+        }
+        return "Customer";
+    }
+    
+    // Helper method to get customer email
+    public String getCustomerEmail() {
+        return user != null ? user.getEmail() : null;
+    }
 }
-

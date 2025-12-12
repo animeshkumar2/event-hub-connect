@@ -32,6 +32,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Allow all OPTIONS requests (CORS preflight) - MUST be first
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                // WebSocket endpoints - public (authentication handled at WebSocket level)
+                .requestMatchers("/ws/**").permitAll()
                 // Public endpoints
                 .requestMatchers("/api/public/**").permitAll()
                 // Auth endpoints - public

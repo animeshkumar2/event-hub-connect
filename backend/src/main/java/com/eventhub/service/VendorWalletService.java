@@ -32,21 +32,22 @@ public class VendorWalletService {
     
     private static final BigDecimal MIN_WITHDRAWAL_AMOUNT = new BigDecimal("1000");
     
-    @Transactional(readOnly = true)
     public VendorWallet getWallet(UUID vendorId) {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
         
-                return vendorWalletRepository.findByVendor(vendor)
-                .orElseGet(() -> {
-                    VendorWallet wallet = new VendorWallet();
-                    wallet.setVendor(vendor);
-                    wallet.setVendorId(vendor.getId());
-                    wallet.setBalance(BigDecimal.ZERO);
-                    wallet.setPendingPayouts(BigDecimal.ZERO);
-                    wallet.setTotalEarnings(BigDecimal.ZERO);
-                    return vendorWalletRepository.save(wallet);
-                });
+        return vendorWalletRepository.findByVendorId(vendorId)
+                .orElseGet(() -> createWalletForVendor(vendor));
+    }
+    
+    private VendorWallet createWalletForVendor(Vendor vendor) {
+        VendorWallet wallet = new VendorWallet();
+        wallet.setVendorId(vendor.getId());
+        // Don't set vendor directly - it's read-only via insertable=false, updatable=false
+        wallet.setBalance(BigDecimal.ZERO);
+        wallet.setPendingPayouts(BigDecimal.ZERO);
+        wallet.setTotalEarnings(BigDecimal.ZERO);
+        return vendorWalletRepository.save(wallet);
     }
     
     @Transactional(readOnly = true)
