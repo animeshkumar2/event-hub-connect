@@ -13,3 +13,4 @@ public interface BookableSetupRepository extends JpaRepository<BookableSetup, UU
     List<BookableSetup> findByVendor(Vendor vendor);
 }
 
+

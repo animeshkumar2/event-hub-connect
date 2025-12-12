@@ -360,3 +360,4 @@ const VendorProfileForm = ({ vendorId }: { vendorId: string }) => {
 3. Integrate into `VendorListings.tsx` for package images
 4. Later: Connect to backend API to save URLs to database
 
+

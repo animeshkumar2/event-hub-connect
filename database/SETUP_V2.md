@@ -151,3 +151,4 @@ ORDER BY et.name, c.name;
 5. ✅ Get connection string from Supabase dashboard
 6. ✅ Configure Java backend
 
+

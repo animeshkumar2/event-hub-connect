@@ -52,7 +52,7 @@ export const AvailabilityCalendar = ({
       }
       return new Date(dateStr);
     } catch {
-      return null;
+        return null;
     }
   };
 
@@ -207,7 +207,7 @@ export const AvailabilityCalendar = ({
                   {selectedDayStatus === 'available' && 'Available for booking'}
                   {selectedDayStatus === 'booked' && 'Not available'}
                 </p>
-              </div>
+                  </div>
             </div>
           </div>
         )}
@@ -229,9 +229,9 @@ export const AvailabilityCalendar = ({
             <div className="flex items-center gap-1.5">
               <div className="h-2.5 w-2.5 rounded-sm bg-muted-foreground/40 relative">
                 <div className="absolute inset-0 border-t border-muted-foreground/50 rotate-45 top-1/2 left-0 right-0"></div>
-              </div>
+          </div>
               <span className="text-muted-foreground">Booked</span>
-            </div>
+          </div>
           </div>
         </div>
       </CardContent>

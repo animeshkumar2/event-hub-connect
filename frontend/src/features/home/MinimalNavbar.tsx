@@ -243,9 +243,9 @@ export const MinimalNavbar = () => {
               Event Planner
             </Link>
 
-            {user?.role !== 'VENDOR' && (
+            {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
-                to="/vendor/onboarding"
+                to="/for-vendors"
                 className={cn(
                   'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
                   scrolled 
@@ -488,9 +488,9 @@ export const MinimalNavbar = () => {
               Event Planner
             </Link>
 
-            {user?.role !== 'VENDOR' && (
+            {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
-                to="/vendor/onboarding"
+                to="/for-vendors"
                 className={cn(
                   'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
                   scrolled 

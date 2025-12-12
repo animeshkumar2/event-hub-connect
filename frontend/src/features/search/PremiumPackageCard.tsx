@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { Check, X, Clock, AlertCircle, ShoppingCart, Settings, Grid3x3 } from 'lucide-react';
+import { Check, X, Clock, AlertCircle, ShoppingCart, Grid3x3 } from 'lucide-react';
 import { Package, categories } from '@/shared/constants/mockData';
 import { cn } from '@/shared/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
@@ -207,36 +207,37 @@ export const PremiumPackageCard = ({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-3 border-t" onClick={(e) => e.stopPropagation()}>
+        {/* Add to Cart Button - Opens Customization */}
+        <div className="pt-3 border-t" onClick={(e) => e.stopPropagation()}>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Settings className="mr-1.5 h-3.5 w-3.5" />
-                Customize
+              <Button size="sm" className="w-full">
+                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                Add to Cart
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
               <PackageCustomization
                 pkg={pkg}
-                onCustomize={(addOns, customizations) => {
-                  const totalPrice =
-                    pkg.price +
-                    addOns.reduce((sum, a) => sum + a.price, 0) +
-                    customizations.reduce((sum, c) => sum + c.price, 0);
+                onCustomize={(selectedExtras, quantity, totalPrice) => {
+                  // Convert extras to the format expected by onBook
+                  const addOns = selectedExtras.map((e, i) => ({ 
+                    id: `extra-${i}`, 
+                    title: e.name, 
+                    price: e.price 
+                  }));
+                  const customizations = quantity > 1 ? [{ 
+                    id: 'quantity', 
+                    name: 'Quantity', 
+                    value: quantity.toString(), 
+                    price: (quantity - 1) * pkg.price 
+                  }] : [];
                   onBook(pkg, addOns, customizations);
                 }}
+                onAddToCart={() => onBook(pkg, [], [])}
               />
             </DialogContent>
           </Dialog>
-          <Button 
-            size="sm"
-            className="flex-1"
-            onClick={() => onBook(pkg, [], [])}
-          >
-            <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-            Book Now
-          </Button>
         </div>
       </CardContent>
     </Card>

@@ -5,7 +5,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { CheckCircle, ArrowRight, Phone, Mail, Instagram, Loader2, Package } from 'lucide-react';
+import { CheckCircle, ArrowRight, Phone, Mail, Instagram, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { categories, cities } from '@/shared/constants/mockData';
 import { vendorApi } from '@/shared/services/api';
@@ -31,7 +31,7 @@ export default function VendorOnboarding() {
   // Listing data removed - no longer required
 
   // UI state
-  const [step, setStep] = useState<OnboardingStep>('welcome');
+  const [step, setStep] = useState<OnboardingStep>('basic-info');
   
   // Check authentication and redirect if needed
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function VendorOnboarding() {
       try {
         const data = JSON.parse(signupData);
         setEmail(data.email || '');
-        // Skip welcome step if coming from signup
+        // Start directly with form
         setStep('basic-info');
       } catch (e) {
         // Ignore parse errors
@@ -130,7 +130,7 @@ export default function VendorOnboarding() {
 
       <div className="relative z-10 container mx-auto px-4 py-12 max-w-2xl">
         {/* Progress */}
-        {step !== 'welcome' && step !== 'success' && (
+        {step !== 'success' && (
           <div className="flex items-center gap-2 mb-8">
             {['basic-info'].map((s, i) => {
               const stepIndex = ['basic-info'].indexOf(step);
@@ -150,109 +150,80 @@ export default function VendorOnboarding() {
           </div>
         )}
 
-        {/* Welcome */}
-        {step === 'welcome' && (
-          <div className="text-center space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground">
-                Welcome to Event Hub Connect
-              </h1>
-              <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                Get started in just 2 simple steps. Create your listings after onboarding.
+        {/* Basic Info */}
+        {step === 'basic-info' && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Header */}
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-glow/20 mb-2">
+                <span className="text-2xl">📝</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-black text-foreground">
+                Tell us about your business
+              </h2>
+              <p className="text-muted-foreground text-base">
+                This helps customers find you
               </p>
             </div>
 
-            <Card className="border-border p-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 text-left">
-                  <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-secondary" />
-                  </div>
-                  <div>
-                    <h3 className="text-foreground font-semibold">Quick Setup</h3>
-                    <p className="text-muted-foreground text-sm">Just provide your basic business information</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 text-left">
-                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Package className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-foreground font-semibold">Create Listings Later</h3>
-                    <p className="text-muted-foreground text-sm">Add your services and packages from your dashboard</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <Button 
-              onClick={() => setStep('basic-info')}
-              className="bg-gradient-to-r from-secondary to-primary text-foreground font-semibold px-8 py-6 text-lg rounded-xl hover:shadow-lg transition-all"
-            >
-              Get Started <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        )}
-
-        {/* Basic Info */}
-        {step === 'basic-info' && (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-bold text-foreground">Tell us about your business</h2>
-              <p className="text-muted-foreground">This helps customers find you</p>
-            </div>
-
-            <Card className="border-border">
-              <CardContent className="p-6 space-y-4">
+            {/* Form Card */}
+            <Card className="border-2 border-primary/20 shadow-xl">
+              <CardContent className="p-6 md:p-8 space-y-6">
+                {/* Business Name */}
                 <div className="space-y-2">
-                  <Label className="text-foreground">
+                  <Label className="text-foreground font-semibold text-sm">
                     Business Name <span className="text-destructive">*</span>
                   </Label>
                   <Input 
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="e.g., Royal Moments Photography"
-                    className="bg-background"
+                    className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
                   />
                 </div>
 
+                {/* Contact Person */}
                 <div className="space-y-2">
-                  <Label className="text-foreground">
+                  <Label className="text-foreground font-semibold text-sm">
                     Contact Person <span className="text-destructive">*</span>
                   </Label>
                   <Input 
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
                     placeholder="Your name"
-                    className="bg-background"
+                    className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Category & City */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-foreground">
+                    <Label className="text-foreground font-semibold text-sm">
                       Category <span className="text-destructive">*</span>
                     </Label>
                     <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select" />
+                      <SelectTrigger className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20">
+                        <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
-                            {cat.icon} {cat.name}
+                            <span className="flex items-center gap-2">
+                              <span>{cat.icon}</span>
+                              <span>{cat.name}</span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-foreground">
+                    <Label className="text-foreground font-semibold text-sm">
                       City <span className="text-destructive">*</span>
                     </Label>
                     <Select value={city} onValueChange={setCity}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue placeholder="Select" />
+                      <SelectTrigger className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20">
+                        <SelectValue placeholder="Select city" />
                       </SelectTrigger>
                       <SelectContent>
                         {cities.map((c) => (
@@ -265,64 +236,79 @@ export default function VendorOnboarding() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Phone & Email */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-foreground flex items-center gap-2">
-                      <Phone className="h-4 w-4" /> Mobile (WhatsApp) <span className="text-destructive">*</span>
+                    <Label className="text-foreground font-semibold text-sm flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-primary" /> 
+                      Mobile (WhatsApp) <span className="text-destructive">*</span>
                     </Label>
                     <Input 
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="bg-background"
+                      className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-foreground flex items-center gap-2">
-                      <Mail className="h-4 w-4" /> Email
+                    <Label className="text-foreground font-semibold text-sm flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-primary" /> 
+                      Email
                     </Label>
                     <Input 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@business.com"
                       type="email"
-                      className="bg-background"
+                      className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
                     />
                   </div>
                 </div>
 
+                {/* Instagram */}
                 <div className="space-y-2">
-                  <Label className="text-foreground flex items-center gap-2">
-                    <Instagram className="h-4 w-4" /> Instagram Link <span className="text-muted-foreground text-xs">(Optional but strongly encouraged)</span>
+                  <Label className="text-foreground font-semibold text-sm flex items-center gap-2">
+                    <Instagram className="h-4 w-4 text-primary" /> 
+                    Instagram Link
+                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                      (Optional but strongly encouraged)
+                    </span>
                   </Label>
                   <Input 
                     value={instagram}
                     onChange={(e) => setInstagram(e.target.value)}
                     placeholder="https://instagram.com/yourhandle"
                     type="url"
-                    className="bg-background"
+                    className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => setStep('welcome')} className="flex-1">
-                Back
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/')} 
+                className="flex-1 h-12 border-2 hover:bg-muted"
+              >
+                Cancel
               </Button>
               <Button 
                 onClick={handleComplete}
                 disabled={!businessName || !contactPerson || !phone || !category || !city || isSubmitting}
-                className="flex-1 bg-gradient-to-r from-secondary to-primary text-foreground font-semibold"
+                size="lg"
+                className="flex-1 h-12 bg-gradient-to-r from-primary via-primary-glow to-secondary text-white font-bold hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Creating Profile...
                   </>
                 ) : (
                   <>
-                    Complete Onboarding <CheckCircle className="ml-2 h-4 w-4" />
+                    Complete Onboarding
+                    <CheckCircle className="ml-2 h-5 w-5" />
                   </>
                 )}
               </Button>
@@ -332,30 +318,41 @@ export default function VendorOnboarding() {
 
         {/* Success */}
         {step === 'success' && (
-          <div className="text-center space-y-8">
-            <div className="w-20 h-20 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-green-500" />
+          <div className="text-center space-y-10 animate-fade-in">
+            {/* Success Icon */}
+            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center animate-bounce-in">
+              <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
             
-            <div className="space-y-2">
-              <h2 className="font-display text-3xl font-bold text-foreground">Welcome Aboard! 🎉</h2>
-              <p className="text-muted-foreground">Your vendor profile has been created successfully</p>
+            {/* Success Message */}
+            <div className="space-y-3">
+              <h2 className="text-4xl md:text-5xl font-black text-foreground">
+                Welcome Aboard! 🎉
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-md mx-auto">
+                Your vendor profile has been created successfully
+              </p>
             </div>
 
-            <Card className="border-border p-6">
-              <p className="text-foreground mb-4">
-                You're all set! Now create your first listing to start getting leads.
-              </p>
-              <Button 
-                onClick={async () => {
-                  // Ensure vendor info is refreshed before navigating
-                  await refreshVendorInfo();
-                  navigate('/vendor/dashboard');
-                }}
-                className="bg-gradient-to-r from-secondary to-primary text-foreground font-semibold"
-              >
-                Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            {/* Info Card */}
+            <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-8 max-w-md mx-auto shadow-xl">
+              <div className="space-y-4">
+                <p className="text-foreground text-base leading-relaxed">
+                  You're all set! Now create your first listing to start getting leads.
+                </p>
+                <Button 
+                  onClick={async () => {
+                    // Ensure vendor info is refreshed before navigating
+                    await refreshVendorInfo();
+                    navigate('/vendor/dashboard');
+                  }}
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-primary via-primary-glow to-secondary text-white font-bold hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
             </Card>
           </div>
         )}

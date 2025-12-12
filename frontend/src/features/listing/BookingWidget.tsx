@@ -11,7 +11,6 @@ import { Checkbox } from '@/shared/components/ui/checkbox';
 import { 
   CalendarIcon, 
   ShoppingCart, 
-  Zap, 
   CheckCircle2, 
   AlertCircle,
   Plus,
@@ -40,11 +39,10 @@ interface BookingWidgetProps {
       description?: string;
     }>;
   };
-  onBookNow?: () => void;
   isVendorPreview?: boolean; // When vendor is viewing their own listing
 }
 
-export const BookingWidget = ({ listing, onBookNow, isVendorPreview = false }: BookingWidgetProps) => {
+export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidgetProps) => {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -116,25 +114,6 @@ export const BookingWidget = ({ listing, onBookNow, isVendorPreview = false }: B
     });
   };
 
-  const handleBookNow = () => {
-    // Require date selection before booking
-    if (!selectedDate) {
-      toast({
-        title: 'Date Required',
-        description: 'Please select an event date before booking',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (onBookNow) {
-      onBookNow();
-    } else {
-      handleAddToCart();
-      navigate('/checkout');
-    }
-  };
-
   const handleQuantityChange = (delta: number) => {
     const newQuantity = quantity + delta;
     const minQty = listing.minimumQuantity || 1;
@@ -182,10 +161,6 @@ export const BookingWidget = ({ listing, onBookNow, isVendorPreview = false }: B
           <Button disabled className="w-full" size="lg">
             <ShoppingCart className="mr-2 h-4 w-4" />
             Add to Cart
-          </Button>
-          <Button disabled variant="outline" className="w-full" size="lg">
-            <Zap className="mr-2 h-4 w-4" />
-            Book Now
           </Button>
         </CardContent>
       </Card>
@@ -358,19 +333,10 @@ export const BookingWidget = ({ listing, onBookNow, isVendorPreview = false }: B
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Add to Cart Button */}
         <div className="space-y-2">
           <Button
             className="w-full bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold h-12"
-            onClick={handleBookNow}
-            disabled={!selectedDate}
-          >
-            <Zap className="mr-2 h-4 w-4" />
-            Book Now
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12"
             onClick={handleAddToCart}
             disabled={!selectedDate}
           >
@@ -379,7 +345,7 @@ export const BookingWidget = ({ listing, onBookNow, isVendorPreview = false }: B
           </Button>
           {!selectedDate && (
             <p className="text-xs text-center text-muted-foreground">
-              Select a date above to enable booking
+              Select a date above to continue
             </p>
           )}
         </div>

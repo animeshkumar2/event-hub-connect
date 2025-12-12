@@ -100,3 +100,4 @@ USING (bucket_id = 'user-uploads');
 -- For production, use storage_policies.sql instead
 -- which requires authentication.
 
+

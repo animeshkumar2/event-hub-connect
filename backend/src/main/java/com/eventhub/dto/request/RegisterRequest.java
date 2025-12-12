@@ -23,3 +23,4 @@ public class RegisterRequest {
     private Boolean isVendor = false;
 }
 
+

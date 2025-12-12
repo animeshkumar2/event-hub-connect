@@ -56,11 +56,11 @@ const categories: Category[] = [
   },
 ];
 
-// Indian professional images
+// Event images from public folder
 const galleryImages = {
-  mehendi: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800&h=600&fit=crop&q=80', // Mehendi being applied
-  makeup: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800&h=600&fit=crop&q=80', // Makeup artist working
-  catering: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop&q=80', // Caterer serving food
+  decor: '/Aditi Rao Hydari\'s Dreamy Wedding Decor Setup at Alila Fort Bishangarh.jpeg', // Wedding decor
+  event: '/Background event Photos - Download Free High-Quality Pictures _ Freepik.jpeg', // Event background
+  colorful: '/Rainbow Hued Décor Ideas That Wowed Us!.jpeg', // Colorful decor
 };
 
 export const CategoryServicesSection = () => {
@@ -126,10 +126,10 @@ export const CategoryServicesSection = () => {
             Explore Categories
           </Badge>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
-            Browse by
+            Browse
             <br />
             <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
-              Category
+              Service Providers
             </span>
           </h2>
         </div>
@@ -139,7 +139,7 @@ export const CategoryServicesSection = () => {
           {/* Left Column - Services */}
           <section className="flex flex-col">
             {/* Services selection card */}
-            <div className="bg-white border border-border rounded-lg p-6 md:p-8 shadow-sm h-[436px] md:h-[576px] flex flex-col justify-center">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 md:p-8 shadow-sm h-[436px] md:h-[576px] flex flex-col justify-center">
               <h4 className="text-lg font-medium text-muted-foreground mb-6">
                 What are you looking for?
               </h4>
@@ -198,11 +198,11 @@ export const CategoryServicesSection = () => {
             <div className="col-span-2 row-span-1">
               <div className="relative w-full h-[250px] md:h-[340px] rounded-xl overflow-hidden group">
                 <img
-                  alt="Mehendi being applied to a bride's hands"
-                  src={galleryImages.mehendi}
+                  alt="Dreamy wedding decor setup"
+                  src={galleryImages.decor}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
-                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800&h=600&fit=crop&q=80')}
+                  onError={(e) => handleImageError(e)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
@@ -212,11 +212,11 @@ export const CategoryServicesSection = () => {
             <div className="col-span-1 row-span-1">
               <div className="relative w-full h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
                 <img
-                  alt="Makeup artist working on a bride"
-                  src={galleryImages.makeup}
+                  alt="Event background"
+                  src={galleryImages.event}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
-                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800&h=600&fit=crop&q=80')}
+                  onError={(e) => handleImageError(e)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
@@ -226,11 +226,11 @@ export const CategoryServicesSection = () => {
             <div className="col-span-1 row-span-1">
               <div className="relative w-full h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
                 <img
-                  alt="Caterer serving food at a buffet"
-                  src={galleryImages.catering}
+                  alt="Colorful décor ideas"
+                  src={galleryImages.colorful}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
-                  onError={(e) => handleImageError(e, 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&h=600&fit=crop&q=80')}
+                  onError={(e) => handleImageError(e)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>

@@ -205,9 +205,9 @@ export const Navbar = () => {
               Event Planner
             </Link>
 
-            {user?.role !== 'VENDOR' && (
+            {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
-                to="/vendor/onboarding"
+                to="/for-vendors"
                 className="text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md hover:text-primary hover:bg-primary/5"
               >
                 Become a Vendor
@@ -234,24 +234,43 @@ export const Navbar = () => {
             {/* User Menu or Login/Signup */}
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md hover:bg-primary/5"
-                  asChild
-                >
-                  {user.role === 'VENDOR' ? (
-                    <Link to="/vendor/dashboard">
-                      <User className="h-3.5 w-3.5 mr-1.5" />
-                      Dashboard
-                    </Link>
-                  ) : (
+                {user.role === 'VENDOR' ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md hover:bg-primary/5"
+                      asChild
+                    >
+                      <Link to="/profile">
+                        <User className="h-3.5 w-3.5 mr-1.5" />
+                        My Orders
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md"
+                      asChild
+                    >
+                      <Link to="/vendor/dashboard">
+                        Dashboard
+                      </Link>
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md hover:bg-primary/5"
+                    asChild
+                  >
                     <Link to="/profile">
                       <User className="h-3.5 w-3.5 mr-1.5" />
                       {user.fullName || user.email.split('@')[0]}
                     </Link>
-                  )}
-                </Button>
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -384,9 +403,9 @@ export const Navbar = () => {
               Event Planner
             </Link>
 
-            {user?.role !== 'VENDOR' && (
+            {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
-                to="/vendor/onboarding"
+                to="/for-vendors"
                 className="block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 hover:text-primary hover:bg-primary/5"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -408,30 +427,50 @@ export const Navbar = () => {
               )}
             </Link>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex flex-col gap-2 pt-2">
               {isAuthenticated && user ? (
                 <>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    asChild 
-                    className="flex-1 h-8 text-xs font-medium border-border"
-                  >
-                    {user.role === 'VENDOR' ? (
-                      <Link to="/vendor/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                        <User className="h-3.5 w-3.5 mr-1.5" />
-                        Dashboard
-                      </Link>
-                    ) : (
+                  {user.role === 'VENDOR' && (
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild 
+                        className="flex-1 h-8 text-xs font-medium border-border"
+                      >
+                        <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                          <User className="h-3.5 w-3.5 mr-1.5" />
+                          My Orders
+                        </Link>
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        asChild 
+                        className="flex-1 h-8 text-xs font-semibold bg-primary hover:bg-primary/90 shadow-md"
+                      >
+                        <Link to="/vendor/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                          Dashboard
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {user.role !== 'VENDOR' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      asChild 
+                      className="flex-1 h-8 text-xs font-medium border-border"
+                    >
                       <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                         <User className="h-3.5 w-3.5 mr-1.5" />
                         {user.fullName || user.email.split('@')[0]}
                       </Link>
-                    )}
-                  </Button>
+                    </Button>
+                  )}
                   <Button 
                     size="sm" 
-                    className="flex-1 h-8 text-xs font-semibold bg-primary hover:bg-primary/90 shadow-md"
+                    variant="outline"
+                    className="h-8 text-xs font-medium"
                     onClick={() => {
                       logout();
                       setMobileMenuOpen(false);

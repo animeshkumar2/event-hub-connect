@@ -22,7 +22,7 @@ const Home = () => {
     {
       step: '02',
       icon: Zap,
-      title: 'Customize & Book',
+      title: 'Customize & Add to Cart',
       description: 'Add customizations and select date',
       color: 'from-purple-500 to-pink-500',
     },
@@ -188,25 +188,25 @@ const Home = () => {
               <h4 className="font-bold text-base mb-3">For Vendors</h4>
               <ul className="space-y-2 text-xs">
                 <li>
-                  <Link to="/vendor/signup" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                  <Link to="/for-vendors" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                     <ArrowRight className="h-3 w-3" />
                     Become a Vendor
                   </Link>
                 </li>
                 <li>
-                  <Link to="/vendor/login" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                  <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                     <ArrowRight className="h-3 w-3" />
                     Vendor Login
                   </Link>
                 </li>
                 <li>
-                  <Link to="/vendor/benefits" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                  <Link to="/for-vendors" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                     <ArrowRight className="h-3 w-3" />
                     Vendor Benefits
                   </Link>
                 </li>
                 <li>
-                  <Link to="/vendor/pricing" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                  <Link to="/for-vendors" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                     <ArrowRight className="h-3 w-3" />
                     Commission Rates
                   </Link>

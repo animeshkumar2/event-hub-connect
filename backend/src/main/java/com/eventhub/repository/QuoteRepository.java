@@ -14,3 +14,4 @@ public interface QuoteRepository extends JpaRepository<Quote, UUID> {
     Quote findByLeadAndIsAcceptedTrue(Lead lead);
 }
 
+

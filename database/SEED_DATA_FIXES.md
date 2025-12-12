@@ -77,3 +77,4 @@ The seed data script should now run successfully in Supabase SQL Editor without 
 4. Test the search page - you should see vendors and listings
 5. (Optional) Create users via Supabase Auth to enable full functionality
 
+

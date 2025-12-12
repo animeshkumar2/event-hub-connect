@@ -13,3 +13,4 @@ public interface VendorFAQRepository extends JpaRepository<VendorFAQ, UUID> {
     List<VendorFAQ> findByVendor(Vendor vendor);
 }
 
+

@@ -21,3 +21,4 @@ public interface CartItemRepository extends JpaRepository<CartItem, UUID> {
     List<CartItem> findByUserIdAndVendorId(UUID userId, UUID vendorId);
 }
 
+

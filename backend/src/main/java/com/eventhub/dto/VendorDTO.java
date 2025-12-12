@@ -26,3 +26,4 @@ public class VendorDTO {
     private Boolean isVerified;
 }
 
+

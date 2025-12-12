@@ -26,3 +26,4 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
     List<Review> findByVendorId(UUID vendorId);
 }
 
+

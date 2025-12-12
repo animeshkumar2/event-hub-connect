@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Star, MapPin, Clock, CheckCircle2, Package } from 'lucide-react';
+import { Star, MapPin, Clock, CheckCircle2, Package, ShoppingCart } from 'lucide-react';
 import { FlattenedPackage } from '@/shared/utils/packageUtils';
 import { cn } from '@/shared/lib/utils';
 import { useCart } from '@/shared/contexts/CartContext';
 import { useToast } from '@/shared/hooks/use-toast';
-import { getVendorById } from '@/shared/constants/mockData';
-import { Dialog, DialogContent } from '@/shared/components/ui/dialog';
-import { PremiumPackageCard } from '@/features/search/PremiumPackageCard';
+import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
+import { PackageCustomization } from '@/features/vendor/PackageCustomization';
 
 interface PackageCardProps {
   package: FlattenedPackage;
@@ -28,45 +27,14 @@ export const PackageCard: React.FC<PackageCardProps> = ({
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { toast } = useToast();
-  const [showPackageModal, setShowPackageModal] = useState(false);
 
   const handleVendorClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigate(`/vendor/${pkg.vendorId}?tab=packages`);
   };
 
-  const handleViewDetails = () => {
-    const itemId = pkg.packageId || pkg.id;
-    // Navigate to listing detail page
-    navigate(`/listing/${itemId}`);
-  };
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const itemId = pkg.packageId || pkg.id;
-    
-    // Navigate to listing detail page where user can select date
-    navigate(`/listing/${itemId}`);
-  };
-
   // Get first 5 inclusions or all if less than 5 (only for packages)
   const displayedInclusions = (pkg.includedItems || []).slice(0, 5);
-
-  // Get the actual package object for PremiumPackageCard
-  const vendor = getVendorById(pkg.vendorId);
-  const actualPackage = pkg.type === 'package' ? vendor?.packages.find(p => p.id === (pkg.packageId || pkg.id)) : null;
-  
-  // Determine theme based on category
-  const themeMap: Record<string, 'wedding' | 'dj' | 'birthday' | 'corporate'> = {
-    photographer: 'wedding',
-    decorator: 'wedding',
-    dj: 'dj',
-    'sound-lights': 'dj',
-    caterer: 'corporate',
-    mua: 'wedding',
-    cinematographer: 'wedding',
-  };
-  const theme = themeMap[pkg.category] || 'wedding';
 
   // Enhanced styling for packages vs listings
   const isPackage = pkg.type === 'package';
@@ -198,72 +166,66 @@ export const PackageCard: React.FC<PackageCardProps> = ({
           </div>
         )}
 
-        {/* Action Buttons - Compact */}
-        <div className="flex gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 h-7 text-[11px] px-2"
-            onClick={handleViewDetails}
-          >
-            View
-          </Button>
-          <Button
-            size="sm"
-            className="flex-1 h-7 text-[11px] px-2"
-            onClick={handleAddToCart}
-          >
-            Add to Cart
-          </Button>
+        {/* Add to Cart Button - Opens Customization */}
+        <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button size="sm" className="w-full h-7 text-[11px] px-2">
+                <ShoppingCart className="h-3 w-3 mr-1" />
+                Add to Cart
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
+              <PackageCustomization
+                pkg={{
+                  id: pkg.packageId || pkg.id,
+                  name: pkg.packageName || pkg.name,
+                  price: pkg.price || 0,
+                  type: pkg.type,
+                  extraCharges: pkg.extraCharges,
+                  extraChargesJson: pkg.extraChargesJson,
+                  minimumQuantity: pkg.minimumQuantity,
+                  unit: pkg.unit,
+                }}
+                onCustomize={(selectedExtras, quantity, totalPrice) => {
+                  addToCart({
+                    vendorId: pkg.vendorId,
+                    vendorName: pkg.vendorName,
+                    packageId: pkg.packageId || pkg.id,
+                    packageName: pkg.packageName || pkg.name,
+                    price: totalPrice,
+                    basePrice: pkg.price || 0,
+                    addOns: selectedExtras.map((e, i) => ({ id: `extra-${i}`, title: e.name, price: e.price })),
+                    quantity: quantity,
+                  });
+                  toast({
+                    title: 'Added to Cart!',
+                    description: `${pkg.packageName || pkg.name} has been added to your cart`,
+                  });
+                }}
+                onAddToCart={() => {
+                  addToCart({
+                    vendorId: pkg.vendorId,
+                    vendorName: pkg.vendorName,
+                    packageId: pkg.packageId || pkg.id,
+                    packageName: pkg.packageName || pkg.name,
+                    price: pkg.price || 0,
+                    basePrice: pkg.price || 0,
+                    addOns: [],
+                    quantity: 1,
+                  });
+                  toast({
+                    title: 'Added to Cart!',
+                    description: `${pkg.packageName || pkg.name} has been added to your cart`,
+                  });
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>
 
-    {/* Package Modal - Only for packages */}
-    {pkg.type === 'package' && actualPackage && (
-      <Dialog open={showPackageModal} onOpenChange={setShowPackageModal}>
-        <DialogContent 
-          className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 bg-background border-0 shadow-2xl"
-          onInteractOutside={(e) => {
-            // Allow closing by clicking outside
-          }}
-        >
-          <div className="p-6">
-            <PremiumPackageCard
-              pkg={actualPackage}
-              vendorId={pkg.vendorId}
-              vendorName={pkg.vendorName}
-              vendorCategory={pkg.category}
-              onBook={(pkgItem, addOns, customizations) => {
-                const totalPrice =
-                  pkgItem.price +
-                  addOns.reduce((sum, a) => sum + a.price, 0) +
-                  customizations.reduce((sum, c) => sum + c.price, 0);
-                
-                addToCart({
-                  vendorId: pkg.vendorId,
-                  vendorName: pkg.vendorName,
-                  packageId: pkgItem.id,
-                  packageName: pkgItem.name,
-                  price: totalPrice,
-                  basePrice: pkgItem.price,
-                  addOns: addOns.map(a => ({ id: a.id, title: a.title, price: a.price })),
-                  quantity: 1,
-                });
-
-                toast({
-                  title: 'Added to Cart!',
-                  description: `${pkgItem.name} has been added to your cart`,
-                });
-                
-                setShowPackageModal(false);
-              }}
-              theme={theme}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    )}
     </>
   );
 };

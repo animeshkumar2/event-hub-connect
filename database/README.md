@@ -176,3 +176,4 @@ For issues or questions:
 2. Review PostgreSQL documentation: https://www.postgresql.org/docs/
 3. Check schema comments in `schema.sql`
 
+

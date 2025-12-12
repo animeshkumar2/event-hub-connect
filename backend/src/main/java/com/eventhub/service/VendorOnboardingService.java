@@ -5,9 +5,11 @@ import com.eventhub.exception.ValidationException;
 import com.eventhub.model.Category;
 import com.eventhub.model.Listing;
 import com.eventhub.model.Vendor;
+import com.eventhub.model.UserProfile;
 import com.eventhub.repository.CategoryRepository;
 import com.eventhub.repository.VendorRepository;
 import com.eventhub.repository.ListingRepository;
+import com.eventhub.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +26,7 @@ public class VendorOnboardingService {
     private final VendorRepository vendorRepository;
     private final CategoryRepository categoryRepository;
     private final ListingRepository listingRepository;
+    private final UserProfileRepository userProfileRepository;
     
     public Vendor onboardVendor(VendorOnboardingRequest request) {
         // Get authenticated user ID
@@ -63,6 +66,12 @@ public class VendorOnboardingService {
         }
         
         vendor = vendorRepository.save(vendor);
+        
+        // Update user role to VENDOR
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new ValidationException("User profile not found"));
+        userProfile.setRole(UserProfile.Role.VENDOR);
+        userProfileRepository.save(userProfile);
         
         // Create first listing only if listing details are provided
         if (request.getListingName() != null && !request.getListingName().trim().isEmpty() 
