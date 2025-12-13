@@ -108,8 +108,8 @@ export default function VendorLandingPage() {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <a href="/" className="text-xl font-bold">
-            cart<span className="text-primary">event.</span>
+          <a href="/" className="text-xl font-bold text-primary">
+            cartevent.
           </a>
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => navigate('/')}>
@@ -134,7 +134,7 @@ export default function VendorLandingPage() {
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
             <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
-              🎉 Early Access — Limited Spots Available
+              Early Access - Limited Spots Available
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
               Get More Customers for Your{' '}
@@ -146,19 +146,19 @@ export default function VendorLandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="text-lg px-8 h-14 gap-2" onClick={handleGetStarted}>
-                Get Listed Now — It's Free
+                Get Listed Now - It's Free
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </div>
             
             {/* Dynamic Spots Remaining Badge */}
             {isEarlyBirdAvailable && (
-              <div className="mt-6 inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-6 py-3 animate-pulse">
+              <div className="mt-6 inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-6 py-3">
                 <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
                   only {spotsRemaining} spots left
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  — First 100 vendors get FREE forever access
+                  - First 100 vendors get FREE forever access
                 </span>
               </div>
             )}
@@ -377,9 +377,9 @@ export default function VendorLandingPage() {
                     </h3>
                     <ul className="space-y-3">
                       {[
-                        `First 100 vendors — FREE forever (only ${spotsRemaining} spots left)`,
-                        "♾️ Unlimited listings — no restrictions",
-                        "0% commission — keep 100% of your earnings",
+                        `First 100 vendors - FREE forever (only ${spotsRemaining} spots left)`,
+                        "Unlimited listings - no restrictions",
+                        "0% commission - keep 100% of your earnings",
                         "Priority placement in search results",
                         "Featured in our launch marketing campaigns"
                       ].map((benefit, i) => (
@@ -449,7 +449,7 @@ export default function VendorLandingPage() {
               If You're in Events, <span className="text-primary">You're In.</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From wedding photographers to corporate caterers, balloon artists to event planners — 
+              From wedding photographers to corporate caterers, balloon artists to event planners - 
               if you provide any service for any event, CartEvent is for you.
             </p>
           </div>
@@ -548,7 +548,7 @@ export default function VendorLandingPage() {
                   "Even if you're just starting out with a side hustle, CartEvent is the platform to grow."
                 </p>
                 <p className="text-sm text-muted-foreground mt-4">
-                  Part-time vendors, freelancers, students, homemakers — everyone's welcome.
+                  Part-time vendors, freelancers, students, homemakers - everyone's welcome.
                 </p>
               </CardContent>
             </Card>
@@ -565,7 +565,7 @@ export default function VendorLandingPage() {
             Early vendors get priority placement and exclusive benefits.
           </p>
           <Button size="lg" variant="secondary" className="text-lg px-8 h-14 gap-2" onClick={handleGetStarted}>
-            Get Listed Now — It's Free
+            Get Listed Now - It's Free
             <ArrowRight className="h-5 w-5" />
           </Button>
         </div>
@@ -615,7 +615,7 @@ export default function VendorLandingPage() {
             Join CartEvent today and start receiving leads from customers in your city.
           </p>
           <Button size="lg" className="text-lg px-8 h-14 gap-2" onClick={handleGetStarted}>
-            Get Listed Now — It's Free
+            Get Listed Now - It's Free
             <ArrowRight className="h-5 w-5" />
           </Button>
         </div>
@@ -624,7 +624,7 @@ export default function VendorLandingPage() {
       {/* Footer */}
       <footer className="py-8 border-t">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p className="text-lg font-semibold text-primary mb-2">🚀 Launching Soon</p>
+          <p className="text-lg font-semibold text-primary mb-2">Launching Soon</p>
           <div className="flex justify-center gap-4 mt-2">
             <a href="/vendor-terms" className="hover:text-foreground">Vendor T&C</a>
             <a href="/vendor-privacy" className="hover:text-foreground">Privacy Policy</a>
