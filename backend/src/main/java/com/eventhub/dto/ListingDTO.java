@@ -23,6 +23,7 @@ public class ListingDTO {
     private BigDecimal price;
     private String categoryId;
     private String categoryName;
+    private String customCategoryName; // Custom category name when categoryId is "other"
     private List<String> images;
     private List<String> includedItemsText;
     private List<String> excludedItemsText;

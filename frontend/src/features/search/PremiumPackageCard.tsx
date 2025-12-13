@@ -55,7 +55,8 @@ export const PremiumPackageCard = ({
   const navigate = useNavigate();
   const colors = themeColors[theme];
   const packageCategory = pkg.category || vendorCategory || '';
-  const categoryName = categories.find(c => c.id === packageCategory)?.name || packageCategory;
+  // Use custom category name if available, otherwise use category name
+  const categoryName = (pkg as any).customCategoryName || categories.find(c => c.id === packageCategory)?.name || packageCategory;
 
   const handleCardClick = () => {
     // Navigate to listing detail page

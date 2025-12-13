@@ -45,8 +45,8 @@ const Home = () => {
       </div>
 
       {/* How It Works - Floating Above Next Section */}
-      <section className="relative -mt-16 z-20 mb-16">
-        <div className="container mx-auto px-4">
+      <section className="relative -mt-8 sm:-mt-12 md:-mt-16 z-20 mb-8 sm:mb-12 md:mb-16">
+        <div className="container mx-auto px-3 sm:px-4">
           <Card className={cn(
             "bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-xl overflow-hidden animate-on-scroll",
             "animate-fade-in-up"

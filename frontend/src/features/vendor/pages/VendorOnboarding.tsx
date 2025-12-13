@@ -23,6 +23,7 @@ export default function VendorOnboarding() {
   const [businessName, setBusinessName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [category, setCategory] = useState('');
+  const [customCategoryName, setCustomCategoryName] = useState('');
   const [city, setCity] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -81,12 +82,19 @@ export default function VendorOnboarding() {
       toast.error('Please complete all required fields');
       return;
     }
+    
+    // Validate custom category name if "Other" is selected
+    if (category === 'other' && (!customCategoryName || customCategoryName.trim().length === 0)) {
+      toast.error('Please enter a custom category name');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const onboardingData = {
         businessName,
         categoryId: category,
+        customCategoryName: category === 'other' ? customCategoryName : undefined,
         cityName: city,
         phone,
         email: email || user?.email || '',
@@ -128,7 +136,7 @@ export default function VendorOnboarding() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Background effects */}
 
-      <div className="relative z-10 container mx-auto px-4 py-12 max-w-2xl">
+      <div className="relative z-10 container mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12 max-w-2xl">
         {/* Progress */}
         {step !== 'success' && (
           <div className="flex items-center gap-2 mb-8">
@@ -158,17 +166,17 @@ export default function VendorOnboarding() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-glow/20 mb-2">
                 <span className="text-2xl">📝</span>
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-foreground">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground">
                 Tell us about your business
               </h2>
-              <p className="text-muted-foreground text-base">
+              <p className="text-muted-foreground text-sm sm:text-base">
                 This helps customers find you
               </p>
             </div>
 
             {/* Form Card */}
             <Card className="border-2 border-primary/20 shadow-xl">
-              <CardContent className="p-6 md:p-8 space-y-6">
+              <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
                 {/* Business Name */}
                 <div className="space-y-2">
                   <Label className="text-foreground font-semibold text-sm">
@@ -201,7 +209,12 @@ export default function VendorOnboarding() {
                     <Label className="text-foreground font-semibold text-sm">
                       Category <span className="text-destructive">*</span>
                     </Label>
-                    <Select value={category} onValueChange={setCategory}>
+                    <Select value={category} onValueChange={(value) => {
+                      setCategory(value);
+                      if (value !== 'other') {
+                        setCustomCategoryName(''); // Clear custom name when switching away from "Other"
+                      }
+                    }}>
                       <SelectTrigger className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
@@ -216,6 +229,20 @@ export default function VendorOnboarding() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {/* Custom Category Name Input - shown when "Other" is selected */}
+                    {category === 'other' && (
+                      <div className="mt-2">
+                        <Input
+                          value={customCategoryName}
+                          onChange={(e) => setCustomCategoryName(e.target.value)}
+                          placeholder="e.g., Balloon Artist, Event Planner, etc."
+                          className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Please specify your category name
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label className="text-foreground font-semibold text-sm">

@@ -40,6 +40,13 @@ public class VendorListingService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
         
+        // Validate custom category name if "other" is selected
+        if ("other".equalsIgnoreCase(request.getCategoryId())) {
+            if (request.getCustomCategoryName() == null || request.getCustomCategoryName().trim().isEmpty()) {
+                throw new ValidationException("Custom category name is required when selecting 'Other' category");
+            }
+        }
+        
         // Note: Vendors can create listings in any category, not just their primary category
         // This allows vendors to offer services across multiple categories (e.g., a decor vendor can also offer photography)
         
@@ -82,6 +89,7 @@ public class VendorListingService {
         listing.setDescription(request.getDescription());
         listing.setPrice(request.getPrice());
         listing.setListingCategory(category);
+        listing.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
         listing.setHighlights(request.getHighlights());
         listing.setIncludedItemsText(request.getIncludedItemsText());
         listing.setIncludedItemIds(request.getIncludedItemIds());
@@ -124,6 +132,13 @@ public class VendorListingService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
         
+        // Validate custom category name if "other" is selected
+        if ("other".equalsIgnoreCase(request.getCategoryId())) {
+            if (request.getCustomCategoryName() == null || request.getCustomCategoryName().trim().isEmpty()) {
+                throw new ValidationException("Custom category name is required when selecting 'Other' category");
+            }
+        }
+        
         // Note: Vendors can create listings in any category, not just their primary category
         // This allows vendors to offer services across multiple categories (e.g., a decor vendor can also offer photography)
         
@@ -152,6 +167,7 @@ public class VendorListingService {
         listing.setDescription(request.getDescription());
         listing.setPrice(request.getPrice());
         listing.setListingCategory(category);
+        listing.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
         listing.setHighlights(request.getHighlights());
         listing.setUnit(request.getUnit());
         listing.setMinimumQuantity(request.getMinimumQuantity() != null ? request.getMinimumQuantity() : 1);
@@ -203,6 +219,23 @@ public class VendorListingService {
         }
         if (updatedListing.getImages() != null) {
             listing.setImages(updatedListing.getImages());
+        }
+        
+        // Category and custom category name
+        if (updatedListing.getListingCategory() != null) {
+            listing.setListingCategory(updatedListing.getListingCategory());
+            // Update custom category name based on category
+            if ("other".equalsIgnoreCase(updatedListing.getListingCategory().getId())) {
+                listing.setCustomCategoryName(updatedListing.getCustomCategoryName());
+            } else {
+                listing.setCustomCategoryName(null);
+            }
+        }
+        // If only customCategoryName is updated (category unchanged but is "other")
+        if (updatedListing.getCustomCategoryName() != null && 
+            listing.getListingCategory() != null && 
+            "other".equalsIgnoreCase(listing.getListingCategory().getId())) {
+            listing.setCustomCategoryName(updatedListing.getCustomCategoryName());
         }
         
         // Package-specific fields

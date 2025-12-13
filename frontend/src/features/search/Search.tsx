@@ -19,7 +19,7 @@ import {
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Search as SearchIcon, SlidersHorizontal, ChevronLeft, ChevronRight, AlertCircle, Loader2, X, Calendar } from "lucide-react";
-import { useSearchListings, useSearchVendors, useEventTypes, useCategories, useCities } from "@/shared/hooks/useApi";
+import { useSearchListings, useSearchVendors, useEventTypes, useCategories, useCities, useEventTypeCategories } from "@/shared/hooks/useApi";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/shared/components/ui/calendar";
 import { format } from "date-fns";
@@ -40,9 +40,15 @@ const Search = () => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   
+  // Get event type and category from URL first (before using in effects)
+  const eventTypeParam = searchParams.get('eventType');
+  const selectedCategory = searchParams.get('category') || 'all';
+  const listingType = (searchParams.get('listingType') || 'all') as 'all' | 'packages';
+  const viewParam = searchParams.get('view');
+  
   // Filter state - initialize from URL params
   const [selectedCity, setSelectedCity] = useState<string>(searchParams.get('city') || '');
-  const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState<string>(searchParams.get('eventType') || '');
+  const [selectedEventTypeFilter, setSelectedEventTypeFilter] = useState<string>(eventTypeParam || '');
   const [eventDate, setEventDate] = useState<Date | undefined>(
     searchParams.get('eventDate') ? new Date(searchParams.get('eventDate')!) : undefined
   );
@@ -51,86 +57,103 @@ const Search = () => {
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'relevance');
 
   // Sync filter changes to URL params (debounced to avoid too many updates)
+  // Reset page when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const newParams = new URLSearchParams(searchParams);
+      let paramsChanged = false;
       
       if (selectedCity) {
         newParams.set('city', selectedCity);
+        paramsChanged = true;
       } else {
-        newParams.delete('city');
+        if (newParams.has('city')) {
+          newParams.delete('city');
+          paramsChanged = true;
+        }
       }
       
       // Only update eventType if it's different from the URL param (to avoid conflicts)
-      if (selectedEventTypeFilter && selectedEventTypeFilter !== eventTypeParam) {
+      const currentEventTypeParam = searchParams.get('eventType');
+      if (selectedEventTypeFilter && selectedEventTypeFilter !== currentEventTypeParam) {
         newParams.set('eventType', selectedEventTypeFilter);
-      } else if (!selectedEventTypeFilter && !eventTypeParam) {
+        paramsChanged = true;
+      } else if (!selectedEventTypeFilter && currentEventTypeParam) {
         newParams.delete('eventType');
+        paramsChanged = true;
       }
       
       if (eventDate) {
         newParams.set('eventDate', format(eventDate, 'yyyy-MM-dd'));
+        paramsChanged = true;
       } else {
-        newParams.delete('eventDate');
+        if (newParams.has('eventDate')) {
+          newParams.delete('eventDate');
+          paramsChanged = true;
+        }
       }
       
       if (minBudget) {
         newParams.set('minBudget', minBudget);
+        paramsChanged = true;
       } else {
-        newParams.delete('minBudget');
+        if (newParams.has('minBudget')) {
+          newParams.delete('minBudget');
+          paramsChanged = true;
+        }
       }
       
       if (maxBudget) {
         newParams.set('maxBudget', maxBudget);
+        paramsChanged = true;
       } else {
-        newParams.delete('maxBudget');
+        if (newParams.has('maxBudget')) {
+          newParams.delete('maxBudget');
+          paramsChanged = true;
+        }
       }
       
       if (sortBy && sortBy !== 'relevance') {
         newParams.set('sortBy', sortBy);
+        paramsChanged = true;
       } else {
-        newParams.delete('sortBy');
+        if (newParams.has('sortBy')) {
+          newParams.delete('sortBy');
+          paramsChanged = true;
+        }
       }
       
       // Only update if params actually changed to avoid infinite loops
-      const currentParams = searchParams.toString();
-      const newParamsStr = newParams.toString();
-      if (currentParams !== newParamsStr) {
+      if (paramsChanged) {
+        // Reset page when filters change
+        setPage(0);
+        setAccumulatedListings([]);
         setSearchParams(newParams, { replace: true });
       }
     }, 300); // Debounce by 300ms
     
     return () => clearTimeout(timeoutId);
-  }, [selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget, sortBy]);
+  }, [selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget, sortBy, searchParams, setSearchParams]);
 
   // Fetch reference data first - these are cached, so should load instantly on subsequent visits
   const { data: eventTypesData, loading: eventTypesLoading, error: eventTypesError } = useEventTypes();
   const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const { data: eventTypeCategoriesData } = useEventTypeCategories();
   const { data: citiesData } = useCities();
   const cities = citiesData || [];
   
   // Try to get cached data immediately for faster initial render
   const cachedEventTypes = queryClient.getQueryData(['eventTypes']) as any;
   const cachedCategories = queryClient.getQueryData(['categories']) as any;
+  const cachedEventTypeCategories = queryClient.getQueryData(['eventTypeCategories']) as any;
   
   // Use cached data if available, otherwise use fetched data
   const eventTypes = (cachedEventTypes || eventTypesData) || [];
-  const categories = (cachedCategories || categoriesData) || [];
-  
-  // Reference data is ready if we have data (from cache or fetch) or loading is complete
-  // This ensures we can resolve IDs immediately if cached data exists
-  const referenceDataReady = (eventTypes.length > 0 && categories.length > 0) || 
-    (!eventTypesLoading && !categoriesLoading);
-
-  // Get event type and category from URL
-  const eventTypeParam = searchParams.get('eventType');
-  const selectedCategory = searchParams.get('category') || 'all';
-  const listingType = (searchParams.get('listingType') || 'all') as 'all' | 'packages';
-  const viewParam = searchParams.get('view');
+  const allCategories = (cachedCategories || categoriesData) || [];
+  const eventTypeCategories = (cachedEventTypeCategories || eventTypeCategoriesData) || [];
   
   // Determine if we should show vendors (only when explicitly set to view=vendors)
   const showVendors = viewParam === 'vendors';
-
 
   // Resolve eventType: handle both numeric ID and string name
   const eventTypeId = useMemo(() => {
@@ -143,13 +166,76 @@ const Search = () => {
     }
     
     // If not a number, try to find by name (case-insensitive)
-    const eventType = eventTypes.find((et: any) => 
-      et.name?.toLowerCase() === eventTypeParam.toLowerCase() ||
-      et.displayName?.toLowerCase() === eventTypeParam.toLowerCase()
-    );
+    // Check multiple possible field names and variations
+    const normalizedParam = eventTypeParam.toLowerCase().trim();
+    const eventType = eventTypes.find((et: any) => {
+      const name = et.name?.toLowerCase().trim();
+      const displayName = et.displayName?.toLowerCase().trim();
+      const idStr = et.id?.toString().toLowerCase();
+      
+      return name === normalizedParam ||
+             displayName === normalizedParam ||
+             idStr === normalizedParam ||
+             // Handle variations like "Baby Shower" vs "BabyShower"
+             name?.replace(/\s+/g, '') === normalizedParam.replace(/\s+/g, '') ||
+             displayName?.replace(/\s+/g, '') === normalizedParam.replace(/\s+/g, '');
+    });
+    
+    if (!eventType && eventTypeParam) {
+      console.warn(`⚠️ Could not resolve eventType "${eventTypeParam}" to an ID. Available eventTypes:`, 
+        eventTypes.map((et: any) => ({ id: et.id, name: et.name, displayName: et.displayName })));
+    }
     
     return eventType?.id;
   }, [eventTypeParam, eventTypes]);
+
+  // Filter categories based on selected event type
+  // Algorithm: 
+  // 1. If event type is selected, show only categories valid for that event type
+  // 2. If no event type selected, show all categories (or categories that appear in at least one event type)
+  // 3. Always include "Other" category at the end
+  const categories = useMemo(() => {
+    if (!allCategories || allCategories.length === 0) return [];
+    
+    // Find "Other" category to always include at the end
+    const otherCategory = allCategories.find((cat: any) => cat.id === 'other' || cat.id === 'Other');
+    const categoriesWithoutOther = allCategories.filter((cat: any) => cat.id !== 'other' && cat.id !== 'Other');
+    
+    // If event type is selected, filter categories based on event-type-categories mapping
+    if (eventTypeId && !isNaN(eventTypeId) && eventTypeCategories.length > 0) {
+      // Get category IDs valid for this event type
+      const validCategoryIds = new Set(
+        eventTypeCategories
+          .filter((etc: any) => etc.eventTypeId === eventTypeId || etc.eventType?.id === eventTypeId)
+          .map((etc: any) => etc.categoryId || etc.category?.id)
+      );
+      
+      // Filter categories to only include valid ones for this event type
+      const filteredCategories = categoriesWithoutOther.filter((cat: any) => 
+        validCategoryIds.has(cat.id)
+      );
+      
+      // Sort alphabetically by name, then add "Other" at the end
+      const sorted = filteredCategories.sort((a: any, b: any) => 
+        (a.name || a.displayName || '').localeCompare(b.name || b.displayName || '')
+      );
+      
+      // Always add "Other" at the end if it exists
+      return otherCategory ? [...sorted, otherCategory] : sorted;
+    }
+    
+    // No event type selected - show all categories (sorted), with "Other" at the end
+    const sorted = categoriesWithoutOther.sort((a: any, b: any) => 
+      (a.name || a.displayName || '').localeCompare(b.name || b.displayName || '')
+    );
+    
+    return otherCategory ? [...sorted, otherCategory] : sorted;
+  }, [allCategories, eventTypeId, eventTypeCategories]);
+
+  // Reference data is ready if we have data (from cache or fetch) or loading is complete
+  // This ensures we can resolve IDs immediately if cached data exists
+  const referenceDataReady = (eventTypes.length > 0 && categories.length > 0) || 
+    (!eventTypesLoading && !categoriesLoading);
 
   // Map category ID: handle both hardcoded IDs (like 'mua') and API category IDs
   const resolvedCategoryId = useMemo(() => {
@@ -241,6 +327,39 @@ const Search = () => {
     prevParamsRef.current = { category: currentCategory, eventType: currentEventType };
   }, [currentCategory, currentEventType]);
   
+  // Clear invalid category selection when event type changes
+  // If selected category is not valid for the new event type, reset to "all"
+  useEffect(() => {
+    if (eventTypeId && !isNaN(eventTypeId) && selectedCategory !== 'all' && eventTypeCategories.length > 0 && categories.length > 0) {
+      // Check if selected category is valid for current event type
+      const validCategoryIds = new Set(
+        eventTypeCategories
+          .filter((etc: any) => etc.eventTypeId === eventTypeId || etc.eventType?.id === eventTypeId)
+          .map((etc: any) => etc.categoryId || etc.category?.id)
+      );
+      
+      // Also include "other" category as it's always valid
+      validCategoryIds.add('other');
+      
+      // Check if selected category is in the valid list
+      const selectedCategoryValid = categories.some((cat: any) => 
+        (cat.id === selectedCategory || cat.id === resolvedCategoryId) && 
+        validCategoryIds.has(cat.id)
+      );
+      
+      // If category is not valid, clear it
+      if (!selectedCategoryValid && resolvedCategoryId) {
+        setPage(0);
+        setAccumulatedListings([]);
+        setSearchParams(prev => {
+          const newParams = new URLSearchParams(prev);
+          newParams.delete('category');
+          return newParams;
+        }, { replace: true });
+      }
+    }
+  }, [eventTypeId, selectedCategory, eventTypeCategories, categories, resolvedCategoryId]);
+  
   // Only wait for reference data on first load, not when switching categories
   // If we have cached reference data, proceed immediately
   const canFetchSearchData = referenceDataReady || (eventTypes.length > 0 && categories.length > 0);
@@ -270,8 +389,22 @@ const Search = () => {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 12;
 
+  // Determine the eventType to pass to API - prioritize URL param over filter
+  const apiEventType = useMemo(() => {
+    // Use currentEventType (from URL) if available, otherwise use filterEventTypeId (from filter dropdown)
+    const eventType = currentEventType || filterEventTypeId;
+    if (eventType && !isNaN(eventType)) {
+      return eventType;
+    }
+    // If eventTypeParam exists but couldn't be resolved, log warning
+    if (eventTypeParam && !eventType) {
+      console.warn(`⚠️ EventType "${eventTypeParam}" from URL could not be resolved to an ID. Filtering may not work correctly.`);
+    }
+    return undefined;
+  }, [currentEventType, filterEventTypeId, eventTypeParam]);
+
   const { data: listingsData, loading: listingsLoading, isFetching: listingsFetching, error: listingsError } = useSearchListings({
-    eventType: currentEventType || filterEventTypeId,
+    eventType: apiEventType,
     category: !showVendors && resolvedCategoryId ? resolvedCategoryId : undefined,
     listingType: listingType === 'packages' ? 'packages' : undefined,
     city: selectedCity || undefined,
@@ -310,7 +443,7 @@ const Search = () => {
     setPage(0);
     setAccumulatedListings([]);
     setHasMore(true);
-  }, [currentEventType, resolvedCategoryId, searchQuery, selectedCity, minBudget, maxBudget, sortBy, listingType]);
+  }, [currentEventType, resolvedCategoryId, searchQuery, selectedCity, minBudget, maxBudget, sortBy, listingType, apiEventType]);
 
   // Normalize current page data
   const currentPageListings = useMemo(() => {
@@ -360,6 +493,7 @@ const Search = () => {
           excludedItems: listing.excludedItemsText || [],
           addOns: listing.addOns || [], // Will be empty for now, can be fetched separately if needed
           category: listing.categoryId || listing.category || '',
+          customCategoryName: listing.customCategoryName || '', // Custom category name when category is "other"
           // Ensure images is always an array
           images: Array.isArray(listing.images) ? listing.images : (listing.images ? [listing.images] : []),
           // Ensure price is a number
@@ -395,28 +529,41 @@ const Search = () => {
     }
     
     // Additional frontend filtering: Ensure event type matches if eventTypeId is set
-    if (eventTypeId && !isNaN(eventTypeId)) {
+    // This is a safety measure in case backend filtering doesn't work correctly
+    // Use apiEventType to match what was sent to backend
+    const activeEventTypeId = apiEventType || eventTypeId;
+    if (activeEventTypeId && !isNaN(activeEventTypeId)) {
       filtered = filtered.filter((item: any) => {
-        // If listing has eventTypeIds, check if it includes the selected event type
+        // If listing has eventTypeIds array, check if it includes the selected event type
         if (item.eventTypeIds && Array.isArray(item.eventTypeIds) && item.eventTypeIds.length > 0) {
-          return item.eventTypeIds.includes(eventTypeId);
+          // Convert both to numbers for comparison (handle string IDs)
+          const itemEventTypeIds = item.eventTypeIds.map((id: any) => {
+            if (typeof id === 'string') {
+              const parsed = parseInt(id, 10);
+              return isNaN(parsed) ? id : parsed;
+            }
+            return id;
+          });
+          const targetId = Number(activeEventTypeId);
+          return itemEventTypeIds.some((id: any) => Number(id) === targetId);
         }
         // If no eventTypeIds are set, exclude it (safety measure)
-        // This ensures packages without event types don't show up in filtered results
+        // This ensures listings without event types don't show up when filtering by event type
         return false;
       });
     }
     
-    // Filter by search query (name, description, vendor name, category)
+    // Filter by search query (name, description, vendor name, category, custom category)
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      const getCategoryName = (categoryId: string) => {
+      const getCategoryName = (categoryId: string, customCategoryName?: string) => {
+        if (customCategoryName) return customCategoryName;
         const cat = categories.find((c: any) => c.id === categoryId);
         return cat?.name || '';
       };
       
       filtered = filtered.filter((item: any) => {
-        const categoryName = getCategoryName(item.category || '').toLowerCase();
+        const categoryName = getCategoryName(item.category || '', item.customCategoryName).toLowerCase();
         return (
           item.name?.toLowerCase().includes(query) ||
           item.description?.toLowerCase().includes(query) ||
@@ -427,7 +574,7 @@ const Search = () => {
     }
     
     return filtered;
-  }, [transformedListings, listingType, eventTypeId, searchQuery, categories]);
+  }, [transformedListings, listingType, apiEventType, eventTypeId, searchQuery, categories]);
 
   const loadMore = () => {
     if (!hasMore || listingsFetching || listingsLoading) return;
@@ -465,13 +612,14 @@ const Search = () => {
     if (!searchQuery) return vendors;
     
     const query = searchQuery.toLowerCase();
-    const getCategoryName = (categoryId: string) => {
+    const getCategoryName = (categoryId: string, customCategoryName?: string) => {
+      if (customCategoryName) return customCategoryName;
       const cat = categories.find((c: any) => c.id === categoryId);
       return cat?.name || '';
     };
     
     return vendors.filter((vendor: any) => {
-      const categoryName = getCategoryName(vendor.categoryId || vendor.category || '').toLowerCase();
+      const categoryName = getCategoryName(vendor.categoryId || vendor.category || '', vendor.customCategoryName).toLowerCase();
       return (
         vendor.businessName?.toLowerCase().includes(query) ||
         vendor.name?.toLowerCase().includes(query) ||
@@ -486,6 +634,10 @@ const Search = () => {
 
   const handleCategoryClick = (categoryId: string) => {
     flushSync(() => {
+      // Reset page when category changes
+      setPage(0);
+      setAccumulatedListings([]);
+      
       if (categoryId === 'all' || selectedCategory === categoryId) {
         // Clicking "All Categories" or clicking the same category (toggle off)
         setSearchParams(prev => {
@@ -496,7 +648,7 @@ const Search = () => {
             newParams.delete('view');
           }
           return newParams;
-        });
+        }, { replace: true });
       } else {
         // Selecting a different category - show listings filtered by category
         setSearchParams(prev => {
@@ -507,12 +659,15 @@ const Search = () => {
             newParams.delete('view');
           }
           return newParams;
-        });
+        }, { replace: true });
       }
     });
   };
 
   const handleListingTypeChange = (type: 'all' | 'packages') => {
+    // Reset page when listing type changes
+    setPage(0);
+    setAccumulatedListings([]);
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       if (type === 'all') {
@@ -521,7 +676,7 @@ const Search = () => {
         newParams.set('listingType', type);
       }
       return newParams;
-    });
+    }, { replace: true });
   };
 
   const scrollCategories = (direction: 'left' | 'right') => {
@@ -566,13 +721,23 @@ const Search = () => {
 
   // Debug: Log data to help diagnose issues
   useEffect(() => {
-    console.log('Search component state:', {
+    console.log('🔍 Search component state:', {
       showVendors,
       selectedCategory,
       resolvedCategoryId,
       eventTypeParam,
       eventTypeId,
+      currentEventType,
+      filterEventTypeId,
+      apiEventType,
+      eventTypes: eventTypes.map((et: any) => ({ id: et.id, name: et.name, displayName: et.displayName })),
       categories: categories.map((c: any) => ({ id: c.id, name: c.name })),
+      filteredCategoriesCount: categories.length,
+      eventTypeCategoriesCount: eventTypeCategories.length,
+      validCategoryIdsForEventType: eventTypeId && !isNaN(eventTypeId) ? 
+        eventTypeCategories
+          .filter((etc: any) => etc.eventTypeId === eventTypeId || etc.eventType?.id === eventTypeId)
+          .map((etc: any) => etc.categoryId || etc.category?.id) : [],
       vendorsCount: vendors.length,
       listingsCount: listings.length,
       filteredListingsCount: filteredListings.length,
@@ -581,6 +746,16 @@ const Search = () => {
       vendorsError,
       listingsError,
     });
+    
+    // Log sample listings with their eventTypeIds
+    if (listings.length > 0) {
+      console.log('📦 Sample listings with eventTypeIds:', listings.slice(0, 3).map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        eventTypeIds: l.eventTypeIds,
+        hasEventTypeIds: !!l.eventTypeIds && Array.isArray(l.eventTypeIds) && l.eventTypeIds.length > 0,
+      })));
+    }
     
     // Log vendor category IDs for debugging
     if (vendors.length > 0) {
@@ -607,14 +782,14 @@ const Search = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
         {/* Search Bar */}
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={`Search ${showVendors ? 'vendors' : 'listings'} by name, description, category, or location...`}
-              className="pl-10 bg-background border-border text-foreground"
+              placeholder={`Search ${showVendors ? 'vendors' : 'listings'}...`}
+              className="pl-10 bg-background border-border text-foreground text-sm sm:text-base"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -622,10 +797,10 @@ const Search = () => {
         </div>
         
         {/* Compact Header */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
+        <div className="mb-3 sm:mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                 {showVendors 
                   ? (selectedCategory !== 'all' 
                       ? `${categories.find((c: any) => c.id === selectedCategory)?.name || 'Category'} Vendors`
@@ -639,11 +814,11 @@ const Search = () => {
             
             {/* Listing Type Filter - Compact */}
             {!showVendors && (
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 <Button
                   variant={listingType === 'all' ? 'default' : 'outline'}
                   size="sm"
-                  className="h-7 text-xs px-3"
+                  className="h-7 sm:h-8 text-[11px] sm:text-xs px-2.5 sm:px-3"
                   onClick={() => handleListingTypeChange('all')}
                 >
                   All
@@ -651,7 +826,7 @@ const Search = () => {
                 <Button
                   variant={listingType === 'packages' ? 'default' : 'outline'}
                   size="sm"
-                  className="h-7 text-xs px-3"
+                  className="h-7 sm:h-8 text-[11px] sm:text-xs px-2.5 sm:px-3"
                   onClick={() => handleListingTypeChange('packages')}
                 >
                   Packages
@@ -711,26 +886,26 @@ const Search = () => {
         </div>
 
         {/* Filters and Sort Section */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Filter Toggle Button */}
           <Button
             variant={showFilters ? "default" : "outline"}
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="h-8 text-xs"
+            className="h-8 sm:h-9 text-[11px] sm:text-xs flex-1 sm:flex-initial"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
             Filters
-            {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget) && (
+            {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget || selectedCategory !== 'all') && (
               <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-[10px]">
-                {[selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget].filter(Boolean).length}
+                {[selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget, selectedCategory !== 'all' ? selectedCategory : null].filter(Boolean).length}
               </Badge>
             )}
           </Button>
 
           {/* Sort Dropdown */}
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="h-8 w-40 text-xs">
+            <SelectTrigger className="h-8 sm:h-9 w-full sm:w-40 text-[11px] sm:text-xs">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -747,16 +922,25 @@ const Search = () => {
           </Select>
 
           {/* Clear Filters Button */}
-          {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget) && (
+          {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget || selectedCategory !== 'all') && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
+                // Reset all filter state immediately
                 setSelectedCity('');
                 setSelectedEventTypeFilter('');
                 setEventDate(undefined);
                 setMinBudget('');
                 setMaxBudget('');
+                // Reset page to 0 to reload from beginning
+                setPage(0);
+                setAccumulatedListings([]);
+                setHasMore(true);
+                // Invalidate queries to force refetch
+                queryClient.invalidateQueries({ queryKey: ['searchListings'] });
+                queryClient.invalidateQueries({ queryKey: ['searchVendors'] });
+                // Clear all URL params
                 setSearchParams(prev => {
                   const newParams = new URLSearchParams(prev);
                   newParams.delete('city');
@@ -764,8 +948,10 @@ const Search = () => {
                   newParams.delete('eventDate');
                   newParams.delete('minBudget');
                   newParams.delete('maxBudget');
+                  newParams.delete('category');
+                  // Keep view and listingType if they exist
                   return newParams;
-                });
+                }, { replace: true });
               }}
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
             >
@@ -777,9 +963,9 @@ const Search = () => {
 
         {/* Filters Panel */}
         {showFilters && (
-          <Card className="mb-4 border-border">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="mb-3 sm:mb-4 border-border">
+            <CardContent className="p-3 sm:p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                 {/* City Filter */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium">City</Label>
@@ -801,7 +987,32 @@ const Search = () => {
                 {/* Event Type Filter */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium">Event Type</Label>
-                  <Select value={selectedEventTypeFilter || "all"} onValueChange={(value) => setSelectedEventTypeFilter(value === "all" ? "" : value)}>
+                  <Select 
+                    value={selectedEventTypeFilter || (eventTypeParam ? eventTypeParam.toString() : "all")} 
+                    onValueChange={(value) => {
+                      const newValue = value === "all" ? "" : value;
+                      setSelectedEventTypeFilter(newValue);
+                      // Reset page when event type changes
+                      setPage(0);
+                      setAccumulatedListings([]);
+                      setHasMore(true);
+                      // Invalidate queries to force refetch
+                      queryClient.invalidateQueries({ queryKey: ['searchListings'] });
+                      queryClient.invalidateQueries({ queryKey: ['searchVendors'] });
+                      // Update URL immediately
+                      flushSync(() => {
+                        setSearchParams(prev => {
+                          const newParams = new URLSearchParams(prev);
+                          if (newValue) {
+                            newParams.set('eventType', newValue);
+                          } else {
+                            newParams.delete('eventType');
+                          }
+                          return newParams;
+                        }, { replace: true });
+                      });
+                    }}
+                  >
                     <SelectTrigger className="h-9 text-sm">
                       <SelectValue placeholder="All Event Types" />
                     </SelectTrigger>
@@ -810,6 +1021,41 @@ const Search = () => {
                       {eventTypes.map((et: any) => (
                         <SelectItem key={et.id} value={et.id.toString()}>
                           {et.name || et.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Category Filter */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Category</Label>
+                  <Select 
+                    value={selectedCategory || "all"} 
+                    onValueChange={(value) => {
+                      const categoryValue = value === "all" ? "all" : value;
+                      // Reset page when category changes
+                      setPage(0);
+                      setAccumulatedListings([]);
+                      setHasMore(true);
+                      // Invalidate queries to force refetch
+                      queryClient.invalidateQueries({ queryKey: ['searchListings'] });
+                      queryClient.invalidateQueries({ queryKey: ['searchVendors'] });
+                      // Use handleCategoryClick which already handles URL updates
+                      handleCategoryClick(categoryValue);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <span className="flex items-center gap-2">
+                            {cat.icon && <span>{cat.icon}</span>}
+                            <span>{cat.name || cat.displayName}</span>
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -956,7 +1202,7 @@ const Search = () => {
                     </p>
                   </div>
 
-                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredVendors.map((vendor: any) => (
                       <VendorCard
                         key={vendor.id}
@@ -991,9 +1237,29 @@ const Search = () => {
                 </div>
               ) : (
                 <>
+                  {/* Warning if eventType couldn't be resolved */}
+                  {eventTypeParam && !apiEventType && (
+                    <Card className="mb-4 border-yellow-500/50 bg-yellow-500/10">
+                      <CardContent className="p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
+                              Event type "{eventTypeParam}" could not be resolved. Showing all listings.
+                            </p>
+                            <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                              Please select an event type from the filters above for accurate results.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
                   <div className="mb-3">
                     <p className="text-xs text-muted-foreground">
                       {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} loaded
+                      {apiEventType && ` (filtered by event type)`}
                     </p>
                   </div>
 

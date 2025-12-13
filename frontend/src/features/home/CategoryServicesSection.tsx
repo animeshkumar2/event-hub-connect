@@ -135,16 +135,16 @@ export const CategoryServicesSection = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 items-start">
           {/* Left Column - Services */}
-          <section className="flex flex-col">
+          <section className="flex flex-col order-2 lg:order-1">
             {/* Services selection card */}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 md:p-8 shadow-sm h-[436px] md:h-[576px] flex flex-col justify-center">
-              <h4 className="text-lg font-medium text-muted-foreground mb-6">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 sm:p-6 md:p-8 shadow-sm min-h-[400px] sm:h-[436px] md:h-[576px] flex flex-col justify-center">
+              <h4 className="text-base sm:text-lg font-medium text-muted-foreground mb-4 sm:mb-6">
                 What are you looking for?
               </h4>
               {/* Grid container for service categories */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
                 {categories.map((category, index) => (
                   <Link
                     key={category.id}
@@ -193,10 +193,10 @@ export const CategoryServicesSection = () => {
           </section>
 
           {/* Right Column - Image Gallery */}
-          <aside className="grid grid-cols-2 grid-rows-2 gap-4">
+          <aside className="grid grid-cols-2 grid-rows-2 gap-3 sm:gap-4 order-1 lg:order-2">
             {/* Top image, spans full width */}
             <div className="col-span-2 row-span-1">
-              <div className="relative w-full h-[250px] md:h-[340px] rounded-xl overflow-hidden group">
+              <div className="relative w-full h-[200px] sm:h-[250px] md:h-[340px] rounded-xl overflow-hidden group">
                 <img
                   alt="Dreamy wedding decor setup"
                   src={galleryImages.decor}
@@ -210,7 +210,7 @@ export const CategoryServicesSection = () => {
 
             {/* Bottom left image */}
             <div className="col-span-1 row-span-1">
-              <div className="relative w-full h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
+              <div className="relative w-full h-[140px] sm:h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
                 <img
                   alt="Event background"
                   src={galleryImages.event}
@@ -224,7 +224,7 @@ export const CategoryServicesSection = () => {
 
             {/* Bottom right image */}
             <div className="col-span-1 row-span-1">
-              <div className="relative w-full h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
+              <div className="relative w-full h-[140px] sm:h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
                 <img
                   alt="Colorful décor ideas"
                   src={galleryImages.colorful}

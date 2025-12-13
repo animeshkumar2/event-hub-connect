@@ -33,6 +33,7 @@ public class ListingMapper {
         dto.setPrice(listing.getPrice());
         dto.setCategoryId(listing.getListingCategory() != null ? listing.getListingCategory().getId() : null);
         dto.setCategoryName(listing.getListingCategory() != null ? listing.getListingCategory().getDisplayName() : null);
+        dto.setCustomCategoryName(listing.getCustomCategoryName());
         dto.setImages(listing.getImages());
         dto.setIncludedItemsText(listing.getIncludedItemsText());
         dto.setExcludedItemsText(listing.getExcludedItemsText());

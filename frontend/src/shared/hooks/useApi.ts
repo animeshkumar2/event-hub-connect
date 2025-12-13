@@ -84,6 +84,20 @@ export function useCities() {
   return convertQueryResult(query);
 }
 
+export function useEventTypeCategories() {
+  const query = useQuery({
+    queryKey: ['eventTypeCategories'],
+    queryFn: async () => {
+      const response = await publicApi.getEventTypeCategories();
+      return unwrapResponse(response);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    placeholderData: (previousData) => previousData,
+  });
+  return convertQueryResult(query);
+}
+
 export function useVendor(vendorId: string | null) {
   const query = useQuery({
     queryKey: ['vendor', vendorId],

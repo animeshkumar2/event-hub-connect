@@ -32,6 +32,9 @@ public class Vendor {
     @JoinColumn(name = "vendor_category_id", nullable = false)
     private Category vendorCategory;
     
+    @Column(name = "custom_category_name", length = 255)
+    private String customCategoryName; // Custom category name when vendorCategory is "other"
+    
     @ManyToOne
     @JoinColumn(name = "city_id")
     private City city;

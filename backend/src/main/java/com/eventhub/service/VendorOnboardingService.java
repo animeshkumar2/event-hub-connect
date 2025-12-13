@@ -46,11 +46,19 @@ public class VendorOnboardingService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ValidationException("Category not found: " + request.getCategoryId()));
         
+        // Validate custom category name if "other" is selected
+        if ("other".equalsIgnoreCase(request.getCategoryId())) {
+            if (request.getCustomCategoryName() == null || request.getCustomCategoryName().trim().isEmpty()) {
+                throw new ValidationException("Custom category name is required when selecting 'Other' category");
+            }
+        }
+        
         // Create vendor
         Vendor vendor = new Vendor();
         vendor.setUserId(userId);
         vendor.setBusinessName(request.getBusinessName());
         vendor.setVendorCategory(category);
+        vendor.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
         vendor.setCityName(request.getCityName());
         vendor.setBio(request.getBio());
         vendor.setStartingPrice(request.getPrice());
@@ -83,6 +91,7 @@ public class VendorOnboardingService {
             listing.setPrice(request.getPrice());
             listing.setType(Listing.ListingType.PACKAGE);
             listing.setListingCategory(category);
+            listing.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
             listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
             listing.setIsPopular(false);
             listing.setIsTrending(false);

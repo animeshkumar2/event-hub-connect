@@ -24,6 +24,8 @@ public class CreatePackageRequest {
     @NotBlank(message = "Category is required")
     private String categoryId;
     
+    private String customCategoryName; // Required when categoryId is "other"
+    
     @NotNull(message = "At least one event type is required")
     @Size(min = 1, message = "At least one event type is required")
     private List<Integer> eventTypeIds;
