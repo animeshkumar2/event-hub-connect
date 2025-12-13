@@ -41,6 +41,8 @@ const VendorFAQs = lazy(() => import("@/features/vendor/pages/VendorFAQs"));
 const VendorSettings = lazy(() => import("@/features/vendor/pages/VendorSettings"));
 const VendorHelp = lazy(() => import("@/features/vendor/pages/VendorHelp"));
 const VendorLandingPage = lazy(() => import("@/features/vendor/pages/VendorLandingPage"));
+const VendorTerms = lazy(() => import("@/features/vendor/pages/VendorTerms"));
+const VendorPrivacy = lazy(() => import("@/features/vendor/pages/VendorPrivacy"));
 const TestImageUpload = lazy(() => import("@/features/vendor/TestImageUpload"));
 
 // Loading fallback component
@@ -123,6 +125,16 @@ const App = () => (
             <Route path="/for-vendors" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorLandingPage />
+              </Suspense>
+            } />
+            <Route path="/vendor-terms" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorTerms />
+              </Suspense>
+            } />
+            <Route path="/vendor-privacy" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorPrivacy />
               </Suspense>
             } />
             <Route path="/test-upload" element={

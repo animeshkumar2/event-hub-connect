@@ -3,6 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useStats } from '@/shared/hooks/useApi';
 import { 
   Star, 
   Users, 
@@ -16,36 +17,71 @@ import {
   MessageSquare,
   Package,
   Rocket,
-  Target
+  Target,
+  ChevronDown
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/components/ui/dialog';
 
 
 
 const FAQS = [
   {
-    q: "Is it really free to list?",
-    a: "Yes! For the first 3 months, listing is completely free. After that, we have affordable plans starting at ₹499/month.",
+    q: "What is CartEvent?",
+    a: "CartEvent is a marketplace that helps customers discover and connect with independent event vendors. We do not provide services ourselves.",
   },
   {
-    q: "How do I receive leads?",
-    a: "Leads appear directly in your vendor dashboard. You'll get customer details, event requirements, and budget instantly.",
+    q: "Does CartEvent verify vendors?",
+    a: "No. Vendors are responsible for their own credentials, licenses, and portfolio authenticity.",
   },
   {
-    q: "What if I'm already on other platforms?",
-    a: "No problem! Many vendors list on multiple platforms. CartEvent focuses specifically on events, giving you more relevant leads.",
+    q: "Does CartEvent guarantee bookings or leads?",
+    a: "No. Listing on CartEvent does not guarantee inquiries, bookings, or visibility.",
   },
   {
-    q: "How long does setup take?",
-    a: "Just 5 minutes! Fill the basic form, and our team will help set up your professional profile within 24 hours.",
+    q: "Who handles payments?",
+    a: "Customers pay vendors directly. CartEvent does not manage payments or refunds.",
+  },
+  {
+    q: "Who is responsible if something goes wrong at an event?",
+    a: "The vendor and customer. CartEvent is not involved in service delivery or disputes.",
+  },
+  {
+    q: "Can CartEvent remove my listing?",
+    a: "Yes. Listings or vendor accounts may be modified, suspended, or removed at any time.",
+  },
+  {
+    q: "Can my photos be used in marketing?",
+    a: "Yes. Content you upload may be used for marketing. You can request removal anytime.",
+  },
+  {
+    q: "Can I contact customers outside the platform?",
+    a: "No. Poaching or misusing customer data can result in suspension or permanent ban.",
   },
 ];
+
+const EARLY_BIRD_LIMIT = 100;
+const FOMO_ALREADY_BOOKED = 49; // For FOMO: show 49 out of 100 already booked
 
 export default function VendorLandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAllFaqs, setShowAllFaqs] = useState(false);
+  
+  // Fetch vendor count for dynamic spots remaining
+  const { data: stats } = useStats();
+  
+  // Calculate remaining spots (starting from 51 to create FOMO - 49 already "booked")
+  const spotsRemaining = useMemo(() => {
+    const vendorCount = stats?.vendorCount || stats?.vendors || 0;
+    // Start from 51 (100 - 49 fake booked), then subtract actual registrations
+    const remaining = EARLY_BIRD_LIMIT - FOMO_ALREADY_BOOKED - vendorCount;
+    return Math.max(0, remaining);
+  }, [stats]);
+  
+  // Determine if early bird offer is still available
+  const isEarlyBirdAvailable = spotsRemaining > 0;
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
@@ -113,10 +149,19 @@ export default function VendorLandingPage() {
                 Get Listed Now — It's Free
                 <ArrowRight className="h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 h-14" onClick={() => navigate('/search?view=vendors')}>
-                See Listed Vendors
-              </Button>
             </div>
+            
+            {/* Dynamic Spots Remaining Badge */}
+            {isEarlyBirdAvailable && (
+              <div className="mt-6 inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-6 py-3 animate-pulse">
+                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+                  only {spotsRemaining} spots left
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  — First 100 vendors get FREE forever access
+                </span>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground mt-4">
               ✓ No credit card required &nbsp;•&nbsp; ✓ Setup in 5 minutes &nbsp;•&nbsp; ✓ Cancel anytime
             </p>
@@ -319,7 +364,7 @@ export default function VendorLandingPage() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
                         <Target className="h-4 w-4" />
-                        <span className="text-sm font-medium">2025 Target: 1000+ Vendors</span>
+                        <span className="text-sm font-medium">2026 Target: 1000+ Vendors</span>
                       </div>
                     </div>
                   </div>
@@ -332,10 +377,11 @@ export default function VendorLandingPage() {
                     </h3>
                     <ul className="space-y-3">
                       {[
+                        `First 100 vendors — FREE forever (only ${spotsRemaining} spots left)`,
+                        "♾️ Unlimited listings — no restrictions",
+                        "0% commission — keep 100% of your earnings",
                         "Priority placement in search results",
-                        "Featured in our launch marketing campaigns",
-                        "Zero listing fees for first 6 months",
-                        "Keep 100% of your earnings — no commission"
+                        "Featured in our launch marketing campaigns"
                       ].map((benefit, i) => (
                         <li key={i} className="flex items-start gap-3">
                           <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -343,6 +389,19 @@ export default function VendorLandingPage() {
                         </li>
                       ))}
                     </ul>
+                    {isEarlyBirdAvailable ? (
+                      <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-400/30 rounded-lg">
+                        <p className="text-yellow-200 text-sm font-medium text-center">
+                          ⏰ Hurry! Only <span className="font-bold text-lg">{spotsRemaining}</span> early bird spots remaining!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-4 p-3 bg-red-500/20 border border-red-400/30 rounded-lg">
+                        <p className="text-red-200 text-sm font-medium text-center">
+                          ❌ Early bird offer has ended. Standard pricing applies.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -519,7 +578,7 @@ export default function VendorLandingPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
           </div>
           <div className="max-w-3xl mx-auto space-y-4">
-            {FAQS.map((faq, i) => (
+            {(showAllFaqs ? FAQS : FAQS.slice(0, 3)).map((faq, i) => (
               <Card key={i}>
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2 flex items-start gap-2">
@@ -530,6 +589,20 @@ export default function VendorLandingPage() {
                 </CardContent>
               </Card>
             ))}
+            
+            {/* See More / See Less Button */}
+            {FAQS.length > 3 && (
+              <div className="text-center pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAllFaqs(!showAllFaqs)}
+                  className="gap-2"
+                >
+                  {showAllFaqs ? 'Show Less' : `See More (${FAQS.length - 3} more)`}
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showAllFaqs ? 'rotate-180' : ''}`} />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -551,10 +624,10 @@ export default function VendorLandingPage() {
       {/* Footer */}
       <footer className="py-8 border-t">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2024 CartEvent. All rights reserved.</p>
+          <p className="text-lg font-semibold text-primary mb-2">🚀 Launching Soon</p>
           <div className="flex justify-center gap-4 mt-2">
-            <a href="/privacy" className="hover:text-foreground">Privacy Policy</a>
-            <a href="/terms" className="hover:text-foreground">Terms of Service</a>
+            <a href="/vendor-terms" className="hover:text-foreground">Vendor T&C</a>
+            <a href="/vendor-privacy" className="hover:text-foreground">Privacy Policy</a>
             <a href="mailto:support@cartevent.com" className="hover:text-foreground">Contact</a>
           </div>
         </div>
