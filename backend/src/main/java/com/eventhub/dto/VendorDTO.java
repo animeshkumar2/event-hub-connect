@@ -15,6 +15,7 @@ public class VendorDTO {
     private String businessName;
     private String categoryId;
     private String categoryName;
+    private String customCategoryName; // Custom category name when categoryId is "other"
     private String cityName;
     private String bio;
     private BigDecimal rating;

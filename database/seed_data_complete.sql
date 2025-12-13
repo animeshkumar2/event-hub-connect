@@ -178,13 +178,13 @@ FROM event_types et,
   ('10000002-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Wedding'),
   ('10000002-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Birthday'),
   ('00000004-cccc-cccc-cccc-cccccccccccc', 'Wedding'),
-  ('00000004-cccc-cccc-cccc-cccccccccccc', 'Birthday'),
-  ('00000004-cccc-cccc-cccc-cccccccccccc', 'Corporate'),
+  -- Removed Birthday and Corporate - "Luxury Wedding Decoration" is wedding-specific
   ('10000003-cccc-cccc-cccc-cccccccccccc', 'Wedding'),
-  ('10000003-cccc-cccc-cccc-cccccccccccc', 'Birthday'),
   ('10000003-cccc-cccc-cccc-cccccccccccc', 'Corporate'),
+  -- Removed Birthday - "Premium Chairs (Gold)" is for formal events (Wedding/Corporate)
   ('10000004-cccc-cccc-cccc-cccccccccccc', 'Wedding'),
-  ('10000004-cccc-cccc-cccc-cccccccccccc', 'Birthday'),
+  ('10000004-cccc-cccc-cccc-cccccccccccc', 'Corporate'),
+  -- Removed Birthday - "Floral Centerpiece" is for formal events (Wedding/Corporate)
   ('00000005-dddd-dddd-dddd-dddddddddddd', 'Wedding'),
   ('00000005-dddd-dddd-dddd-dddddddddddd', 'Birthday'),
   ('00000005-dddd-dddd-dddd-dddddddddddd', 'Anniversary'),

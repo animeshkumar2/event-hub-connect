@@ -15,6 +15,8 @@ public class VendorOnboardingRequest {
     @NotBlank(message = "Category ID is required")
     private String categoryId;
     
+    private String customCategoryName; // Required when categoryId is "other"
+    
     @NotBlank(message = "City name is required")
     private String cityName;
     

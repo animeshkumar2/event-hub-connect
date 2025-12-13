@@ -62,6 +62,7 @@ export default function VendorListings() {
     description: '',
     price: '',
     categoryId: '',
+    customCategoryName: '', // Custom category name when categoryId is "other"
     eventTypeIds: [] as number[],
     images: [] as string[],
     // Highlights - key features
@@ -165,6 +166,7 @@ export default function VendorListings() {
         description: editingListing.description || '',
         price: editingListing.price?.toString() || '',
         categoryId: editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId,
+        customCategoryName: editingListing.customCategoryName || '',
         eventTypeIds: editingListing.eventTypes?.map((et: any) => et.id || et) || [],
         images: editingListing.images || [],
         highlights: editingListing.highlights || [],
@@ -208,6 +210,12 @@ export default function VendorListings() {
       toast.error('Please fill in all required fields');
       return;
     }
+    
+    // Validate custom category name if "Other" is selected
+    if (formData.categoryId === 'other' && (!formData.customCategoryName || formData.customCategoryName.trim().length === 0)) {
+      toast.error('Please enter a custom category name');
+      return;
+    }
 
     try {
       const payload: any = {
@@ -215,6 +223,7 @@ export default function VendorListings() {
         description: formData.description,
         price: parseFloat(formData.price),
         categoryId: formData.categoryId,
+        customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
         highlights: formData.highlights,
@@ -404,6 +413,7 @@ export default function VendorListings() {
         description: formData.description || 'Draft - description pending',
         price: formData.price ? parseFloat(formData.price) : 0.01, // 0.01 marks draft
         categoryId: formData.categoryId,
+        customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
         highlights: formData.highlights.filter(h => h.trim()),
@@ -602,7 +612,13 @@ export default function VendorListings() {
                       <Label className="text-foreground">Category *</Label>
                       <Select
                         value={formData.categoryId}
-                        onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                        onValueChange={(value) => {
+                          setFormData({ 
+                            ...formData, 
+                            categoryId: value,
+                            customCategoryName: value !== 'other' ? '' : formData.customCategoryName // Clear if switching away from "Other"
+                          });
+                        }}
                       >
                         <SelectTrigger className="bg-background border-border text-foreground">
                           <SelectValue placeholder="Select category" />
@@ -615,6 +631,20 @@ export default function VendorListings() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {/* Custom Category Name Input - shown when "Other" is selected */}
+                      {formData.categoryId === 'other' && (
+                        <div className="mt-2">
+                          <Input
+                            value={formData.customCategoryName}
+                            onChange={(e) => setFormData({ ...formData, customCategoryName: e.target.value })}
+                            placeholder="e.g., Balloon Artist, Event Planner, etc."
+                            className="bg-background border-border text-foreground"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Please specify your category name
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -20,6 +20,7 @@ public class VendorMapper {
         dto.setBusinessName(vendor.getBusinessName());
         dto.setCategoryId(vendor.getVendorCategory() != null ? vendor.getVendorCategory().getId() : null);
         dto.setCategoryName(vendor.getVendorCategory() != null ? vendor.getVendorCategory().getDisplayName() : null);
+        dto.setCustomCategoryName(vendor.getCustomCategoryName());
         dto.setCityName(vendor.getCityName());
         dto.setBio(vendor.getBio());
         dto.setRating(vendor.getRating());

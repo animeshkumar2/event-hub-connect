@@ -239,10 +239,10 @@ export default function ListingDetail() {
       )}
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-3 sm:px-4 pb-12 sm:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
             {/* Photo Gallery */}
             <ScrollReveal animation="fadeInUp">
               <PhotoGallery 
@@ -275,10 +275,10 @@ export default function ListingDetail() {
                       <Badge className="bg-purple-500 text-white">⭐ Trending</Badge>
                     )}
                   </div>
-                  <h1 className="text-4xl md:text-5xl font-black text-foreground mb-3">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
                     {listing.name}
                   </h1>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                     <Link 
                       to={`/vendor/${listing.vendorId}`}
                       className="flex items-center gap-1.5 hover:text-primary transition-colors"
@@ -309,11 +309,11 @@ export default function ListingDetail() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="icon">
+                <div className="flex gap-2 mt-2 sm:mt-0">
+                  <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                     <Share2 className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                     <Heart className="h-4 w-4" />
                   </Button>
                 </div>
@@ -328,7 +328,7 @@ export default function ListingDetail() {
                 <Card>
                   <CardContent className="p-6">
                     <h2 className="text-xl font-bold mb-4">Listing Highlights</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                       {displayHighlights.map((item: string, index: number) => (
                         <div key={index} className="flex items-start gap-2">
                           <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -379,7 +379,7 @@ export default function ListingDetail() {
                     
                     {/* Items Grid */}
                     <div className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         {linkedItems.map((item: any) => (
                           <Link 
                             key={item.id} 
@@ -688,7 +688,8 @@ export default function ListingDetail() {
                         vendorCity: listing.vendorCity,
                         vendorRating: listing.vendorRating,
                         vendorReviewCount: listing.vendorReviewCount,
-                        category: similarListing.categoryName || listing.categoryName,
+                        category: similarListing.customCategoryName || similarListing.categoryName || listing.categoryName,
+                        customCategoryName: similarListing.customCategoryName,
                         type: similarListing.type?.toLowerCase() || 'item',
                         deliveryTime: similarListing.deliveryTime,
                         isPopular: similarListing.isPopular,
@@ -705,8 +706,8 @@ export default function ListingDetail() {
           </div>
 
           {/* Right Column - Booking Widget */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24">
+          <div className="lg:col-span-1 order-first lg:order-last">
+            <div className="sticky top-20 lg:top-24 z-10">
               <BookingWidget
                 listing={{
                   id: listing.id || listingId || '',

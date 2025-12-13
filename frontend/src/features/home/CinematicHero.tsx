@@ -63,7 +63,7 @@ export const CinematicHero = () => {
   return (
     <section 
       ref={heroRef}
-      className="relative min-h-[90vh] max-h-[90vh] overflow-hidden z-0"
+      className="relative min-h-[85vh] md:min-h-[90vh] max-h-[90vh] overflow-hidden z-0"
       style={{
         isolation: 'isolate',
         willChange: 'transform',
@@ -140,12 +140,12 @@ export const CinematicHero = () => {
       </div>
 
       {/* Content - Center Aligned */}
-      <div className="relative z-10 container mx-auto px-4 md:px-8 lg:px-12">
-        <div className="flex items-center justify-center min-h-[90vh] py-20">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+        <div className="flex items-center justify-center min-h-[85vh] md:min-h-[90vh] py-12 sm:py-16 md:py-20">
           <div 
             ref={textRef}
             className={cn(
-              "max-w-4xl space-y-6 text-center",
+              "max-w-4xl space-y-4 sm:space-y-6 text-center px-2",
               isLoaded && "animate-fade-in-up"
             )} 
             style={{
@@ -155,8 +155,8 @@ export const CinematicHero = () => {
             }}
           >
             {/* Main Headline - Center Aligned, Smaller */}
-            <div className="space-y-2 mb-4">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.2] tracking-tight drop-shadow-2xl">
+            <div className="space-y-1 sm:space-y-2 mb-3 sm:mb-4">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.1] sm:leading-[1.2] tracking-tight drop-shadow-2xl">
                 <span 
                   className={cn(
                     "inline-block",
@@ -210,10 +210,10 @@ export const CinematicHero = () => {
             />
             
             {/* Subheadline - Center Aligned, Smaller - Changes with Sliding Buttons */}
-            <div className="mt-10 mb-6 min-h-[50px] flex items-center justify-center">
+            <div className="mt-6 sm:mt-8 md:mt-10 mb-4 sm:mb-6 min-h-[40px] sm:min-h-[50px] flex items-center justify-center">
               <p 
                 key={description}
-                className="text-xs md:text-sm lg:text-base text-white/60 font-light tracking-wide max-w-xl mx-auto leading-relaxed text-center px-4"
+                className="text-[11px] sm:text-xs md:text-sm lg:text-base text-white/60 font-light tracking-wide max-w-xl mx-auto leading-relaxed text-center px-2 sm:px-4"
                 style={{
                   textShadow: '0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4)',
                 }}

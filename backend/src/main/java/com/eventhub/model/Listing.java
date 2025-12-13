@@ -42,6 +42,9 @@ public class Listing {
     @JoinColumn(name = "listing_category_id", nullable = false)
     private Category listingCategory;
     
+    @Column(name = "custom_category_name", length = 255)
+    private String customCategoryName; // Custom category name when listingCategory is "other"
+    
     @Column(columnDefinition = "TEXT[]")
     private List<String> images;
     

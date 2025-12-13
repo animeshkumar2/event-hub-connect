@@ -168,8 +168,8 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
   }
 
   return (
-    <Card className="sticky top-24 border-2 shadow-xl">
-      <CardHeader className="pb-4">
+    <Card className="border-2 shadow-xl">
+      <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -192,7 +192,7 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
         {/* Date Selection - Required */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold">
