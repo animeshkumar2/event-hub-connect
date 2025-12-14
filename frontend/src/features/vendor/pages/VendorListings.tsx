@@ -788,7 +788,7 @@ export default function VendorListings() {
                                 setTimeout(() => setShowCreateModal(true), 100);
                               }}
                             >
-                              <Plus className="h-3 w-3 mr-1" /> Create Item First
+                              <Plus className="h-3 w-3 mr-1" /> Create Service First
                             </Button>
                           </div>
                         ) : (
@@ -1316,10 +1316,10 @@ export default function VendorListings() {
             <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
               <CardContent className="p-8 text-center">
                 <Box className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-medium text-foreground mb-1">No items yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">Create individual items that can be sold separately or bundled into packages</p>
+                <h3 className="font-medium text-foreground mb-1">No services yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">Create individual services that can be sold separately or bundled into packages</p>
                 <Button onClick={() => { setListingType('ITEM'); setShowCreateModal(true); }}>
-                  <Plus className="h-4 w-4 mr-2" /> Create Item
+                  <Plus className="h-4 w-4 mr-2" /> Create Service
                 </Button>
               </CardContent>
             </Card>
@@ -1403,18 +1403,6 @@ export default function VendorListings() {
           )}
         </div>
 
-        {filteredListings.length === 0 && (
-          <Card className="border-border">
-            <CardContent className="p-12 text-center">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No listings yet</h3>
-              <p className="text-muted-foreground mb-4">Create your first package or item to get started</p>
-              <Button onClick={() => setShowCreateModal(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Create Listing
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </VendorLayout>
   );

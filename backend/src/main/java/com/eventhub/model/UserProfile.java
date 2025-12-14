@@ -29,8 +29,11 @@ public class UserProfile {
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
     
+    @Column(name = "google_id", length = 255)
+    private String googleId; // Google OAuth user ID
+    
     @Column(name = "password_hash", columnDefinition = "TEXT")
-    private String passwordHash; // BCrypt hashed password
+    private String passwordHash; // BCrypt hashed password (null for Google-only users)
     
     @Enumerated(EnumType.STRING)
     @Column(length = 20)

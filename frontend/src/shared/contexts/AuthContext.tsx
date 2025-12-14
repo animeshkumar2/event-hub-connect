@@ -1,5 +1,19 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiClient, vendorApi } from '@/shared/services/api';
+import { jwtDecode } from 'jwt-decode';
+
+interface GoogleCredentialResponse {
+  credential: string;
+  clientId: string;
+  select_by: string;
+}
+
+interface GoogleDecodedToken {
+  email: string;
+  name: string;
+  picture: string;
+  sub: string; // Google user ID
+}
 
 interface User {
   id: string;
@@ -15,6 +29,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credentialResponse: GoogleCredentialResponse, isVendor?: boolean) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
@@ -60,6 +75,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsLoading(false);
   }, []);
+
+  const loginWithGoogle = async (credentialResponse: GoogleCredentialResponse, isVendor: boolean = false) => {
+    try {
+      // Decode the Google credential to get user info
+      const decoded = jwtDecode<GoogleDecodedToken>(credentialResponse.credential);
+      
+      // Send to backend for verification and user creation/login
+      const response = await apiClient.post<{
+        token: string;
+        userId: string;
+        email: string;
+        role: string;
+        isNewUser?: boolean;
+      }>('/auth/google', {
+        credential: credentialResponse.credential,
+        isVendor: isVendor,
+      });
+
+      if (response.success && response.data) {
+        const { token: newToken, userId, email: userEmail, role, isNewUser } = response.data;
+        
+        // Store token
+        setToken(newToken);
+        apiClient.setToken(newToken);
+        localStorage.setItem('auth_token', newToken);
+        localStorage.setItem('user_id', userId);
+
+        // Create user object
+        const userData: User = {
+          id: userId,
+          email: userEmail,
+          fullName: decoded.name || '',
+          role: role as 'CUSTOMER' | 'VENDOR',
+        };
+
+        setUser(userData);
+        localStorage.setItem('user_data', JSON.stringify(userData));
+
+        // If vendor, fetch and store vendor ID
+        if (role === 'VENDOR') {
+          try {
+            const vendorResponse = await vendorApi.getVendorByUserId(userId);
+            if (vendorResponse.success && vendorResponse.data) {
+              const vendorId = vendorResponse.data.id;
+              localStorage.setItem('vendor_id', vendorId);
+            }
+          } catch (error) {
+            console.error('Error fetching vendor ID:', error);
+          }
+        }
+
+        // Store flag if this is a new user (for onboarding)
+        if (isNewUser && isVendor) {
+          sessionStorage.setItem('vendorSignupData', JSON.stringify({
+            email: userEmail,
+          }));
+        }
+      } else {
+        throw new Error(response.message || 'Google login failed');
+      }
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      throw new Error(error.message || 'Google login failed. Please try again.');
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -220,6 +300,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         isAuthenticated: !!user && !!token,
         login,
+        loginWithGoogle,
         register,
         logout,
         updateUser,

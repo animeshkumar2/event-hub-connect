@@ -8,6 +8,7 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 interface AuthProps {
   mode?: "login" | "signup";
@@ -17,7 +18,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { login, register, isAuthenticated, user } = useAuth();
+  const { login, loginWithGoogle, register, isAuthenticated, user } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   // Support mode and type from URL search params
   const urlMode = searchParams.get('mode') as "login" | "signup" | null;
@@ -144,6 +146,65 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast({
+        title: "Error",
+        description: "Google sign-in failed. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle({
+        credential: credentialResponse.credential,
+        clientId: credentialResponse.clientId || '',
+        select_by: credentialResponse.select_by || '',
+      }, isVendor);
+
+      toast({
+        title: mode === "signup" ? "Account created!" : "Welcome!",
+        description: "You have successfully signed in with Google.",
+      });
+
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        const redirect = searchParams.get('redirect');
+        if (redirect) {
+          navigate(redirect);
+        } else if (isVendor) {
+          // Check if vendor has completed onboarding
+          const vendorId = localStorage.getItem('vendor_id');
+          if (vendorId) {
+            navigate('/vendor/dashboard');
+          } else {
+            navigate('/vendor/onboarding');
+          }
+        } else {
+          navigate("/");
+        }
+      }, 100);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Google sign-in failed. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: "Error",
+      description: "Google sign-in was cancelled or failed. Please try again.",
+      variant: "destructive",
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
       <Card className="w-full max-w-md shadow-elegant">
@@ -161,6 +222,55 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Vendor Checkbox - Show BEFORE Google Sign-In for signup */}
+          {mode === "signup" && (
+            <div className="flex items-center space-x-2 p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
+              <Checkbox
+                id="vendor-google"
+                checked={isVendor}
+                onCheckedChange={(checked) => setIsVendor(checked === true)}
+                disabled={isLoading || isGoogleLoading}
+              />
+              <Label htmlFor="vendor-google" className="text-sm font-medium cursor-pointer">
+                I want to register as a vendor
+              </Label>
+            </div>
+          )}
+
+          {/* Google Sign-In Button */}
+          <div className="mb-6">
+            <div className="flex justify-center">
+              {isGoogleLoading ? (
+                <Button disabled className="w-full h-10">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in with Google...
+                </Button>
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  width="100%"
+                  text={mode === "login" ? "signin_with" : "signup_with"}
+                />
+              )}
+            </div>
+            
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-2">
@@ -228,18 +338,6 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     disabled={isLoading}
                   />
-                </div>
-
-                <div className="flex items-center space-x-2 p-4 rounded-lg bg-muted/50 border border-border">
-                  <Checkbox
-                    id="vendor"
-                    checked={isVendor}
-                    onCheckedChange={(checked) => setIsVendor(checked as boolean)}
-                    disabled={isLoading}
-                  />
-                  <Label htmlFor="vendor" className="text-sm font-normal cursor-pointer">
-                    I want to register as a vendor
-                  </Label>
                 </div>
               </>
             )}

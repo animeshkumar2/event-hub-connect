@@ -6,10 +6,15 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/shared/contexts/CartContext";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
+import { PreLaunchProvider, PreLaunchGuard } from "@/shared/contexts/PreLaunchContext";
 import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
 import { useEffect } from "react";
 import { publicApi } from "@/shared/services/api";
 import { Loader2 } from "lucide-react";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+// Google OAuth Client ID - Replace with your actual client ID from Google Cloud Console
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 // Eagerly loaded pages (critical path)
 import Home from "@/features/home/Home";
@@ -102,23 +107,30 @@ function PrefetchCriticalData() {
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <PrefetchCriticalData />
-      <AuthProvider>
-        <CartProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <PrefetchCriticalData />
+        <AuthProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <PreLaunchProvider>
               <Routes>
+            {/* Home Route - Accessible to everyone (even in pre-launch) */}
             <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/listing/:listingId" element={<ListingDetail />} />
-            <Route path="/vendor/:vendorId" element={<VendorDetails />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/event-planner" element={<EventPlanner />} />
-            <Route path="/booking-success" element={<BookingSuccess />} />
+            
+            {/* Customer Routes - Protected by PreLaunchGuard */}
+            <Route path="/search" element={<PreLaunchGuard><Search /></PreLaunchGuard>} />
+            <Route path="/listing/:listingId" element={<PreLaunchGuard><ListingDetail /></PreLaunchGuard>} />
+            <Route path="/vendor/:vendorId" element={<PreLaunchGuard><VendorDetails /></PreLaunchGuard>} />
+            <Route path="/cart" element={<PreLaunchGuard><Cart /></PreLaunchGuard>} />
+            <Route path="/checkout" element={<PreLaunchGuard><Checkout /></PreLaunchGuard>} />
+            <Route path="/event-planner" element={<PreLaunchGuard><EventPlanner /></PreLaunchGuard>} />
+            <Route path="/booking-success" element={<PreLaunchGuard><BookingSuccess /></PreLaunchGuard>} />
+            
+            {/* Auth Routes - Always accessible */}
             <Route path="/login" element={<Auth mode="login" />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
             <Route path="/auth" element={<Auth />} />
@@ -143,9 +155,9 @@ const App = () => (
               </Suspense>
             } />
             
-            {/* User Routes */}
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/orders/:orderId" element={<OrderDetails />} />
+            {/* User Routes - Protected by PreLaunchGuard */}
+            <Route path="/profile" element={<PreLaunchGuard><UserProfile /></PreLaunchGuard>} />
+            <Route path="/orders/:orderId" element={<PreLaunchGuard><OrderDetails /></PreLaunchGuard>} />
             
             {/* Vendor Routes - Lazy loaded with Suspense */}
             <Route path="/vendor/onboarding" element={
@@ -219,14 +231,16 @@ const App = () => (
               </Suspense>
             } />
             
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<PreLaunchGuard><NotFound /></PreLaunchGuard>} />
               </Routes>
+              </PreLaunchProvider>
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
+  </GoogleOAuthProvider>
   </ErrorBoundary>
 );
 

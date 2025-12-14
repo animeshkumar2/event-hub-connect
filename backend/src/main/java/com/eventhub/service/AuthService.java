@@ -1,26 +1,39 @@
 package com.eventhub.service;
 
+import com.eventhub.dto.request.GoogleAuthRequest;
 import com.eventhub.dto.request.LoginRequest;
 import com.eventhub.dto.request.RegisterRequest;
 import com.eventhub.model.UserProfile;
 import com.eventhub.repository.UserProfileRepository;
 import com.eventhub.util.JwtUtil;
 import com.eventhub.exception.ValidationException;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuthService {
     
     private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    
+    @Value("${google.client.id:}")
+    private String googleClientId;
     
     public AuthResponse register(RegisterRequest request) {
         if (userProfileRepository.existsByEmail(request.getEmail())) {
@@ -61,6 +74,81 @@ public class AuthService {
         return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
     }
     
+    public GoogleAuthResponse authenticateWithGoogle(GoogleAuthRequest request) {
+        try {
+            // Verify the Google ID token
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+            
+            GoogleIdToken idToken = verifier.verify(request.getCredential());
+            
+            if (idToken == null) {
+                throw new ValidationException("Invalid Google token");
+            }
+            
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String pictureUrl = (String) payload.get("picture");
+            String googleUserId = payload.getSubject();
+            
+            log.info("Google auth for email: {}", email);
+            
+            // Check if user exists
+            Optional<UserProfile> existingUser = userProfileRepository.findByEmail(email);
+            
+            boolean isNewUser = existingUser.isEmpty();
+            UserProfile user;
+            
+            if (isNewUser) {
+                // Create new user
+                user = new UserProfile();
+                user.setId(UUID.randomUUID());
+                user.setEmail(email);
+                user.setFullName(name != null ? name : email.split("@")[0]);
+                user.setRole(request.isVendor() ? UserProfile.Role.VENDOR : UserProfile.Role.CUSTOMER);
+                user.setGoogleId(googleUserId);
+                user.setAvatarUrl(pictureUrl);
+                // No password for Google users - they authenticate via Google
+                user.setPasswordHash(null);
+                
+                userProfileRepository.save(user);
+                log.info("Created new user via Google: {}", email);
+            } else {
+                user = existingUser.get();
+                
+                // Update Google ID if not set
+                if (user.getGoogleId() == null) {
+                    user.setGoogleId(googleUserId);
+                    userProfileRepository.save(user);
+                }
+                
+                // If existing user is trying to become a vendor
+                if (request.isVendor() && user.getRole() == UserProfile.Role.CUSTOMER) {
+                    // They'll need to go through vendor onboarding which will upgrade their role
+                    log.info("Existing customer signing in as vendor: {}", email);
+                }
+            }
+            
+            String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
+            
+            return new GoogleAuthResponse(
+                    token, 
+                    user.getId(), 
+                    user.getEmail(), 
+                    user.getRole().name(), 
+                    isNewUser
+            );
+            
+        } catch (Exception e) {
+            log.error("Google authentication failed", e);
+            throw new ValidationException("Google authentication failed: " + e.getMessage());
+        }
+    }
+    
     @lombok.Data
     @lombok.AllArgsConstructor
     public static class AuthResponse {
@@ -68,6 +156,16 @@ public class AuthService {
         private UUID userId;
         private String email;
         private String role;
+    }
+    
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    public static class GoogleAuthResponse {
+        private String token;
+        private UUID userId;
+        private String email;
+        private String role;
+        private boolean isNewUser;
     }
 }
 

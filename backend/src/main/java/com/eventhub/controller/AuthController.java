@@ -1,6 +1,7 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.dto.request.GoogleAuthRequest;
 import com.eventhub.dto.request.LoginRequest;
 import com.eventhub.dto.request.RegisterRequest;
 import com.eventhub.service.AuthService;
@@ -26,6 +27,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthService.AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthService.AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+    }
+    
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<AuthService.GoogleAuthResponse>> googleAuth(@RequestBody GoogleAuthRequest request) {
+        AuthService.GoogleAuthResponse response = authService.authenticateWithGoogle(request);
+        return ResponseEntity.ok(ApiResponse.success("Google authentication successful", response));
     }
 }
 

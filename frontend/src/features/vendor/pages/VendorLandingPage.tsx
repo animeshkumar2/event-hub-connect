@@ -603,6 +603,19 @@ export default function VendorLandingPage() {
                 </Button>
               </div>
             )}
+
+            {/* Request Ops Assistance Note */}
+            <Card className="border-primary/20 bg-primary/5 mt-6">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Request Ops Assistance</h3>
+                    <p className="text-muted-foreground">Post Launch</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

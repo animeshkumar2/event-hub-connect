@@ -137,85 +137,62 @@ export default function VendorOnboarding() {
       {/* Background effects */}
 
       <div className="relative z-10 container mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12 max-w-2xl">
-        {/* Progress */}
-        {step !== 'success' && (
-          <div className="flex items-center gap-2 mb-8">
-            {['basic-info'].map((s, i) => {
-              const stepIndex = ['basic-info'].indexOf(step);
-              const isCompleted = stepIndex > i;
-              const isCurrent = step === s;
-              return (
-                <div key={s} className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                    isCurrent ? 'bg-secondary text-foreground' : 
-                    isCompleted ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {isCompleted ? <CheckCircle className="h-4 w-4" /> : i + 1}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {/* Basic Info */}
         {step === 'basic-info' && (
-          <div className="space-y-8 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="text-center space-y-3">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary-glow/20 mb-2">
-                <span className="text-2xl">📝</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground">
+            <div className="text-center space-y-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                 Tell us about your business
               </h2>
-              <p className="text-muted-foreground text-sm sm:text-base">
+              <p className="text-muted-foreground text-sm">
                 This helps customers find you
               </p>
             </div>
 
             {/* Form Card */}
-            <Card className="border-2 border-primary/20 shadow-xl">
-              <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
-                {/* Business Name */}
-                <div className="space-y-2">
-                  <Label className="text-foreground font-semibold text-sm">
-                    Business Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input 
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="e.g., Royal Moments Photography"
-                    className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
-                  />
-                </div>
+            <Card className="border border-border/50 shadow-lg">
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                {/* Business Name & Contact Person */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-foreground font-medium text-sm">
+                      Business Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input 
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="e.g., Royal Moments Photography"
+                      className="h-10 bg-background border-border focus:border-primary"
+                    />
+                  </div>
 
-                {/* Contact Person */}
-                <div className="space-y-2">
-                  <Label className="text-foreground font-semibold text-sm">
-                    Contact Person <span className="text-destructive">*</span>
-                  </Label>
-                  <Input 
-                    value={contactPerson}
-                    onChange={(e) => setContactPerson(e.target.value)}
-                    placeholder="Your name"
-                    className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
-                  />
+                  <div className="space-y-1.5">
+                    <Label className="text-foreground font-medium text-sm">
+                      Contact Person <span className="text-destructive">*</span>
+                    </Label>
+                    <Input 
+                      value={contactPerson}
+                      onChange={(e) => setContactPerson(e.target.value)}
+                      placeholder="Your name"
+                      className="h-10 bg-background border-border focus:border-primary"
+                    />
+                  </div>
                 </div>
 
                 {/* Category & City */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-foreground font-semibold text-sm">
+                  <div className="space-y-1.5">
+                    <Label className="text-foreground font-medium text-sm">
                       Category <span className="text-destructive">*</span>
                     </Label>
                     <Select value={category} onValueChange={(value) => {
                       setCategory(value);
                       if (value !== 'other') {
-                        setCustomCategoryName(''); // Clear custom name when switching away from "Other"
+                        setCustomCategoryName('');
                       }
                     }}>
-                      <SelectTrigger className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20">
+                      <SelectTrigger className="h-10 bg-background border-border focus:border-primary">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -229,27 +206,21 @@ export default function VendorOnboarding() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {/* Custom Category Name Input - shown when "Other" is selected */}
                     {category === 'other' && (
-                      <div className="mt-2">
-                        <Input
-                          value={customCategoryName}
-                          onChange={(e) => setCustomCategoryName(e.target.value)}
-                          placeholder="e.g., Balloon Artist, Event Planner, etc."
-                          className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Please specify your category name
-                        </p>
-                      </div>
+                      <Input
+                        value={customCategoryName}
+                        onChange={(e) => setCustomCategoryName(e.target.value)}
+                        placeholder="Specify your category..."
+                        className="h-10 mt-2 bg-background border-border focus:border-primary"
+                      />
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground font-semibold text-sm">
+                  <div className="space-y-1.5">
+                    <Label className="text-foreground font-medium text-sm">
                       City <span className="text-destructive">*</span>
                     </Label>
                     <Select value={city} onValueChange={setCity}>
-                      <SelectTrigger className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20">
+                      <SelectTrigger className="h-10 bg-background border-border focus:border-primary">
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
                       <SelectContent>
@@ -265,21 +236,21 @@ export default function VendorOnboarding() {
 
                 {/* Phone & Email */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-foreground font-semibold text-sm flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-primary" /> 
-                      Mobile (WhatsApp) <span className="text-destructive">*</span>
+                  <div className="space-y-1.5">
+                    <Label className="text-foreground font-medium text-sm flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-primary" /> 
+                      WhatsApp Number <span className="text-destructive">*</span>
                     </Label>
                     <Input 
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
+                      className="h-10 bg-background border-border focus:border-primary"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground font-semibold text-sm flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-primary" /> 
+                  <div className="space-y-1.5">
+                    <Label className="text-foreground font-medium text-sm flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-primary" /> 
                       Email
                     </Label>
                     <Input 
@@ -287,18 +258,18 @@ export default function VendorOnboarding() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@business.com"
                       type="email"
-                      className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
+                      className="h-10 bg-background border-border focus:border-primary"
                     />
                   </div>
                 </div>
 
                 {/* Instagram */}
-                <div className="space-y-2">
-                  <Label className="text-foreground font-semibold text-sm flex items-center gap-2">
-                    <Instagram className="h-4 w-4 text-primary" /> 
-                    Instagram Link
-                    <span className="text-xs font-normal text-muted-foreground ml-1">
-                      (Optional but strongly encouraged)
+                <div className="space-y-1.5">
+                  <Label className="text-foreground font-medium text-sm flex items-center gap-1.5">
+                    <Instagram className="h-3.5 w-3.5 text-primary" /> 
+                    Instagram
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (Optional)
                     </span>
                   </Label>
                   <Input 
@@ -306,40 +277,39 @@ export default function VendorOnboarding() {
                     onChange={(e) => setInstagram(e.target.value)}
                     placeholder="https://instagram.com/yourhandle"
                     type="url"
-                    className="h-11 bg-background border-border focus:border-primary focus:ring-primary/20"
+                    className="h-10 bg-background border-border focus:border-primary"
                   />
+                </div>
+
+                {/* Action Buttons - Inside Card */}
+                <div className="flex gap-3 pt-2">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/')} 
+                    className="flex-1 h-10 text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleComplete}
+                    disabled={!businessName || !contactPerson || !phone || !category || !city || isSubmitting}
+                    className="flex-[2] h-10 bg-primary hover:bg-primary/90 text-white font-medium transition-all disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        Complete Onboarding
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/')} 
-                className="flex-1 h-12 border-2 hover:bg-muted"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleComplete}
-                disabled={!businessName || !contactPerson || !phone || !category || !city || isSubmitting}
-                size="lg"
-                className="flex-1 h-12 bg-gradient-to-r from-primary via-primary-glow to-secondary text-white font-bold hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Creating Profile...
-                  </>
-                ) : (
-                  <>
-                    Complete Onboarding
-                    <CheckCircle className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         )}
 
