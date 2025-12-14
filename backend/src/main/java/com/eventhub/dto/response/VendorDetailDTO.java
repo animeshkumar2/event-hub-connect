@@ -121,3 +121,4 @@ public class VendorDetailDTO {
         private String status;
     }
 }
+

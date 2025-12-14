@@ -106,3 +106,4 @@ ON orders(vendor_id, status);
 -- FROM pg_indexes 
 -- WHERE tablename IN ('user_profiles', 'vendors', 'listings', 'orders', 'reviews', 'leads', 'analytics_events')
 -- ORDER BY tablename, indexname;
+

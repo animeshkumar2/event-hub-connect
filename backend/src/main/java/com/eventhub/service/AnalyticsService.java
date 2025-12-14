@@ -123,3 +123,4 @@ public class AnalyticsService {
         return "desktop";
     }
 }
+

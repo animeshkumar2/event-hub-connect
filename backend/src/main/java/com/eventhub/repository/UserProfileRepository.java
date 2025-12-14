@@ -24,3 +24,4 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
 
 
 
+

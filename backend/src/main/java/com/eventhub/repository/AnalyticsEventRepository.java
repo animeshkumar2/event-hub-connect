@@ -25,3 +25,4 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
     @Query("SELECT COUNT(DISTINCT a.userId) FROM AnalyticsEvent a WHERE a.eventType IN ('SIGNUP', 'VENDOR_SIGNUP', 'CUSTOMER_SIGNUP') AND a.createdAt >= :startDate AND a.userId IS NOT NULL")
     long countUniqueSignupsSince(@Param("startDate") LocalDateTime startDate);
 }
+

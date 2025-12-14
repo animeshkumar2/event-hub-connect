@@ -210,13 +210,13 @@ export const CinematicHero = () => {
             />
             
             {/* Subheadline - Center Aligned, Smaller - Changes with Sliding Buttons */}
-            <div className="mt-6 sm:mt-8 md:mt-10 mb-4 sm:mb-6 min-h-[50px] sm:min-h-[50px] flex items-center justify-center px-2">
+            <div className="mt-6 sm:mt-8 md:mt-10 mb-4 sm:mb-6 min-h-[60px] sm:min-h-[50px] flex items-center justify-center px-2">
               <p 
                 key={description}
-                className="text-xs sm:text-xs md:text-sm lg:text-base text-white/60 font-light tracking-wide max-w-xl mx-auto leading-relaxed sm:leading-relaxed text-center px-2 sm:px-4 md:px-6 break-words"
+                className="text-xs sm:text-xs md:text-sm lg:text-base text-white/60 font-light tracking-wide max-w-[280px] sm:max-w-xl mx-auto leading-relaxed sm:leading-relaxed text-center px-2 sm:px-4 md:px-6 break-words"
                 style={{
                   textShadow: '0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4)',
-                  lineHeight: '1.7',
+                  lineHeight: '1.5',
                   fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
                 }}
               >

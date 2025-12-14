@@ -60,3 +60,4 @@ public class AnalyticsEvent {
         PAGE_VIEW, SIGNUP, LOGIN, VENDOR_SIGNUP, CUSTOMER_SIGNUP
     }
 }
+

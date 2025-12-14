@@ -80,3 +80,4 @@ The seed data script should now run successfully in Supabase SQL Editor without 
 
 
 
+

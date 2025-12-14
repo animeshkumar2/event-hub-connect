@@ -38,3 +38,4 @@ ON vendors(is_verified, rating, review_count);
 -- WHERE tablename IN ('vendors', 'orders', 'reviews')
 -- AND indexname LIKE 'idx_%stats%' OR indexname LIKE 'idx_%verified%' OR indexname LIKE 'idx_%completed%' OR indexname LIKE 'idx_%rating%';
 
+

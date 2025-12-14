@@ -27,3 +27,4 @@ CREATE INDEX IF NOT EXISTS idx_analytics_event_type_date ON analytics_events(eve
 
 -- Composite index for common queries
 CREATE INDEX IF NOT EXISTS idx_analytics_type_date_user ON analytics_events(event_type, created_at, user_id);
+

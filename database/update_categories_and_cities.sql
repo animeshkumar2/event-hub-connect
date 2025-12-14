@@ -82,3 +82,4 @@ COMMIT;
 -- SELECT COUNT(*) as photographer_listings FROM listings WHERE listing_category_id = 'photographer';
 -- SELECT COUNT(*) as photographer_vendors FROM vendors WHERE vendor_category_id = 'photographer';
 
+

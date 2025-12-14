@@ -17,3 +17,4 @@ COMMENT ON COLUMN listings.custom_category_name IS 'Custom category name when li
 
 
 
+
