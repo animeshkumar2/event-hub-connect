@@ -11,3 +11,5 @@ DROP CONSTRAINT IF EXISTS vendors_user_id_fkey;
 -- Note: This allows us to create vendors with any UUID for user_id
 -- The user_id will come from our own user_profiles table
 
+
+

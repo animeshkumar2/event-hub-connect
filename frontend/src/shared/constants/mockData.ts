@@ -1,13 +1,11 @@
-// SOLUTION 1: All 12 Categories + Other
+// SOLUTION 1: Categories (Photography & Cinematography merged, Return Gifts removed)
 export const categories = [
-  { id: 'photographer', name: 'Photography', icon: '📸' },
-  { id: 'cinematographer', name: 'Cinematography', icon: '🎬' },
+  { id: 'photographer', name: 'Photography & Cinematography', icon: '📸' },
   { id: 'decorator', name: 'Décor', icon: '🎨' },
   { id: 'dj', name: 'DJ', icon: '🎵' },
   { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
   { id: 'mua', name: 'Makeup / Stylist', icon: '💄' },
   { id: 'caterer', name: 'Catering', icon: '🍽️' },
-  { id: 'return-gifts', name: 'Return Gifts', icon: '🎁' },
   { id: 'invitations', name: 'Invitations', icon: '✉️' },
   { id: 'live-music', name: 'Live Music', icon: '🎤' },
   { id: 'anchors', name: 'Anchors', icon: '🎙️' },
@@ -16,14 +14,7 @@ export const categories = [
 ];
 
 export const cities = [
-  'Mumbai',
-  'Delhi',
   'Bangalore',
-  'Hyderabad',
-  'Chennai',
-  'Kolkata',
-  'Pune',
-  'Ahmedabad',
 ];
 
 export const eventTypes = [
@@ -132,9 +123,9 @@ export const suggestCategoryForListing = (listingName: string, listingDescriptio
     return 'mua';
   }
   
-  // Video equipment → cinematographer
+  // Video equipment → photographer (merged category)
   if (text.match(/\b(video|camera|cinematography|cinematographer|film|recording)\b/)) {
-    return 'cinematographer';
+    return 'photographer';
   }
   
   // If no match, return null (will use 'other')

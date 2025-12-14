@@ -15,3 +15,5 @@ CREATE INDEX IF NOT EXISTS idx_listings_custom_category ON listings(custom_categ
 COMMENT ON COLUMN vendors.custom_category_name IS 'Custom category name when vendor_category_id is "other"';
 COMMENT ON COLUMN listings.custom_category_name IS 'Custom category name when listing_category_id is "other"';
 
+
+

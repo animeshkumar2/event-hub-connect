@@ -9,14 +9,12 @@ import { cn } from "@/shared/lib/utils";
 
 // Vendor categories
 const vendorCategories = [
-  { id: 'photographer', name: 'Photography', icon: '📸' },
-  { id: 'cinematographer', name: 'Cinematography', icon: '🎬' },
+  { id: 'photographer', name: 'Photography & Cinematography', icon: '📸' },
   { id: 'decorator', name: 'Décor', icon: '🎨' },
   { id: 'dj', name: 'DJ', icon: '🎵' },
   { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
   { id: 'mua', name: 'Makeup / Stylist', icon: '💄' },
   { id: 'caterer', name: 'Catering', icon: '🍽️' },
-  { id: 'return-gifts', name: 'Return Gifts', icon: '🎁' },
   { id: 'invitations', name: 'Invitations', icon: '✉️' },
   { id: 'live-music', name: 'Live Music', icon: '🎤' },
   { id: 'anchors', name: 'Anchors', icon: '🎙️' },

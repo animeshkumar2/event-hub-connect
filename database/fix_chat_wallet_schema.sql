@@ -21,3 +21,5 @@ WHERE is_read_by_vendor IS NULL;
 -- \d chat_threads
 -- \d vendor_wallets
 
+
+

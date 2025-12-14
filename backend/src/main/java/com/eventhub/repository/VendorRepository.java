@@ -64,5 +64,50 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
     );
     
     java.util.Optional<Vendor> findByUserId(UUID userId);
+    
+    // Optimized stats queries
+    @Query("SELECT COUNT(v) FROM Vendor v WHERE v.isVerified = true")
+    long countVerifiedVendors();
+    
+    @Query("SELECT AVG(v.rating) FROM Vendor v WHERE v.rating IS NOT NULL AND v.reviewCount > 0")
+    Double getAverageRating();
+    
+    @Query("SELECT COUNT(v) FROM Vendor v WHERE v.createdAt >= :date")
+    long countByCreatedAtAfter(@Param("date") java.time.LocalDateTime date);
+    
+    // Native query for city distribution - much faster than loading all vendors
+    @Query(value = "SELECT city_name, COUNT(*) as count " +
+           "FROM vendors " +
+           "WHERE city_name IS NOT NULL " +
+           "GROUP BY city_name",
+           nativeQuery = true)
+    List<Object[]> getVendorsByCityNative();
+    
+    // Optimized query for admin vendor list - using native query to avoid type casting issues
+    // Native query properly handles null search parameter and type casting
+    @Query(value = "SELECT DISTINCT v.* FROM vendors v " +
+           "LEFT JOIN categories vc ON vc.id = v.vendor_category_id " +
+           "WHERE (:search IS NULL OR CAST(v.business_name AS TEXT) ILIKE '%' || CAST(:search AS TEXT) || '%') " +
+           "AND (:category IS NULL OR v.vendor_category_id = :category) " +
+           "AND (:city IS NULL OR v.city_name = :city) " +
+           "AND (:isVerified IS NULL OR v.is_verified = :isVerified) " +
+           "AND (:isActive IS NULL OR v.is_active = :isActive) " +
+           "ORDER BY v.created_at DESC",
+           countQuery = "SELECT COUNT(DISTINCT v.id) FROM vendors v " +
+           "LEFT JOIN categories vc ON vc.id = v.vendor_category_id " +
+           "WHERE (:search IS NULL OR CAST(v.business_name AS TEXT) ILIKE '%' || CAST(:search AS TEXT) || '%') " +
+           "AND (:category IS NULL OR v.vendor_category_id = :category) " +
+           "AND (:city IS NULL OR v.city_name = :city) " +
+           "AND (:isVerified IS NULL OR v.is_verified = :isVerified) " +
+           "AND (:isActive IS NULL OR v.is_active = :isActive)",
+           nativeQuery = true)
+    org.springframework.data.domain.Page<Vendor> findAllWithFilters(
+        @Param("search") String search,
+        @Param("category") String category,
+        @Param("city") String city,
+        @Param("isVerified") Boolean isVerified,
+        @Param("isActive") Boolean isActive,
+        org.springframework.data.domain.Pageable pageable
+    );
 }
 

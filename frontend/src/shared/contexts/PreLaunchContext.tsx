@@ -154,7 +154,7 @@ function LaunchingSoonPage() {
           </h2>
           
           <p className="text-gray-300 mb-4 text-sm">
-            Pre-register now and get <strong className="text-purple-300">FREE lifetime access</strong> as one of our first 100 vendors!
+            Pre-onboard now and get <strong className="text-purple-300">FREE lifetime access</strong> as one of our first 100 vendors!
           </p>
 
           {/* CTA Buttons */}
@@ -163,17 +163,10 @@ function LaunchingSoonPage() {
               href="/for-vendors"
               className="flex items-center justify-center w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold py-2.5 px-5 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all transform hover:scale-[1.02] text-sm shadow-lg shadow-purple-500/25"
             >
-              Pre-Register as Vendor
+              Pre-Onboard as Vendor
               <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-            </a>
-
-            <a 
-              href="/signup"
-              className="flex items-center justify-center w-full bg-white/10 text-white font-medium py-2.5 px-5 rounded-xl hover:bg-white/20 transition-all border border-white/20 text-sm"
-            >
-              Sign Up as Customer
             </a>
           </div>
         </div>

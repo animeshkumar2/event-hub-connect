@@ -17,3 +17,5 @@ COMMENT ON COLUMN listings.highlights IS 'Key features/highlights shown at top o
 COMMENT ON COLUMN listings.included_item_ids IS 'UUIDs of item listings included in this package';
 COMMENT ON COLUMN listings.extra_charges_json IS 'JSON array of extra charges: [{"name": "...", "price": 10000}]';
 
+
+

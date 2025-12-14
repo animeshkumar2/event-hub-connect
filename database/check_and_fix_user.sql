@@ -14,3 +14,5 @@ WHERE id = 'b2d99619-b2ae-4475-bd04-26bf3696f933';
 -- INSERT INTO user_profiles (id, email, full_name, role)
 -- VALUES ('b2d99619-b2ae-4475-bd04-26bf3696f933', 'user@example.com', 'User Name', 'customer');
 
+
+

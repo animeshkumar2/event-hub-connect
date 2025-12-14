@@ -16,9 +16,9 @@ interface Category {
 const categories: Category[] = [
   {
     id: 'photographer',
-    name: 'PHOTOGRAPHY',
+    name: 'PHOTOGRAPHY & CINEMATOGRAPHY',
     image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=400',
-    location: 'Wedding Photography',
+    location: 'Wedding Photography & Films',
     description: 'Capture your precious moments',
   },
   {
@@ -48,13 +48,6 @@ const categories: Category[] = [
     image: 'https://images.unsplash.com/photo-1555244162-803834f90033?w=400',
     location: 'Food & Beverages',
     description: 'Delicious food for all',
-  },
-  {
-    id: 'cinematographer',
-    name: 'CINEMATOGRAPHY',
-    image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400',
-    location: 'Wedding Films',
-    description: 'Cinematic storytelling',
   },
 ];
 

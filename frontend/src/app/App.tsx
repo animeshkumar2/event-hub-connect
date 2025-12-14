@@ -50,6 +50,12 @@ const VendorTerms = lazy(() => import("@/features/vendor/pages/VendorTerms"));
 const VendorPrivacy = lazy(() => import("@/features/vendor/pages/VendorPrivacy"));
 const TestImageUpload = lazy(() => import("@/features/vendor/TestImageUpload"));
 
+// Admin pages
+const AdminLogin = lazy(() => import("@/features/admin/pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("@/features/admin/pages/AdminDashboard"));
+const AdminVendorsList = lazy(() => import("@/features/admin/pages/AdminVendorsList"));
+const AdminVendorDetail = lazy(() => import("@/features/admin/pages/AdminVendorDetail"));
+
 // Loading fallback component
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -78,8 +84,8 @@ function PrefetchCriticalData() {
   const queryClient = useQueryClient();
   
   useEffect(() => {
-    // Prefetch eventTypes and categories in parallel immediately on app load
-    // This ensures they're available when user navigates to search page
+    // Prefetch eventTypes, categories, and stats in parallel immediately on app load
+    // This ensures they're available when user navigates to pages
     Promise.all([
       queryClient.prefetchQuery({
         queryKey: ['eventTypes'],
@@ -96,6 +102,22 @@ function PrefetchCriticalData() {
           return response.success ? response.data : null;
         },
         staleTime: 5 * 60 * 1000,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['stats'],
+        queryFn: async () => {
+          const response = await publicApi.getStats();
+          if (!response || !response.success) {
+            return null;
+          }
+          const responseData = response.data;
+          // Unwrap if data has nested data property (same logic as unwrapResponse)
+          if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+            return (responseData as any).data;
+          }
+          return responseData;
+        },
+        staleTime: 10 * 1000, // 10 seconds for stats
       }),
     ]).catch(err => {
       console.error('Error prefetching critical data:', err);
@@ -228,6 +250,28 @@ const App = () => (
             <Route path="/vendor/help" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorHelp />
+              </Suspense>
+            } />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminLogin />
+              </Suspense>
+            } />
+            <Route path="/admin/dashboard" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminDashboard />
+              </Suspense>
+            } />
+            <Route path="/admin/vendors" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminVendorsList />
+              </Suspense>
+            } />
+            <Route path="/admin/vendors/:vendorId" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminVendorDetail />
               </Suspense>
             } />
             

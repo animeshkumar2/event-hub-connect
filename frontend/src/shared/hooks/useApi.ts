@@ -277,10 +277,20 @@ export function useStats() {
   const query = useQuery({
     queryKey: ['stats'],
     queryFn: async () => {
+      const startTime = performance.now();
       const response = await publicApi.getStats();
+      const duration = performance.now() - startTime;
+      if (duration > 1000) {
+        console.warn(`Slow stats API call: took ${duration.toFixed(2)}ms`);
+      }
       return unwrapResponse(response);
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 10 * 1000, // 10 seconds - stats change frequently but cache helps
+    gcTime: 60 * 1000, // Keep in cache for 1 minute
+    refetchOnMount: 'always', // Always refetch for fresh data
+    refetchOnWindowFocus: false, // Don't refetch on focus to avoid unnecessary calls
+    // Use cached data immediately while fetching fresh data in background
+    placeholderData: (previousData) => previousData,
   });
   return convertQueryResult(query);
 }

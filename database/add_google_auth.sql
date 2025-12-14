@@ -11,3 +11,5 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_google_id ON user_profiles(google_i
 -- The password_hash is already nullable, but ensuring it here
 ALTER TABLE user_profiles ALTER COLUMN password_hash DROP NOT NULL;
 
+
+

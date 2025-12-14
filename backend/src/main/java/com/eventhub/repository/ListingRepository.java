@@ -86,5 +86,33 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     List<Listing> findTrendingListings();
     
     List<Listing> findByVendorIdAndTypeAndIsActiveTrue(UUID vendorId, Listing.ListingType type);
+    
+    @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId")
+    long countByVendorId(@Param("vendorId") UUID vendorId);
+    
+    @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId AND l.isActive = true")
+    long countByVendorIdAndIsActiveTrue(@Param("vendorId") UUID vendorId);
+    
+    @Query("SELECT COUNT(l) FROM Listing l WHERE l.isActive = true")
+    long countByIsActiveTrue();
+    
+    @Query("SELECT COUNT(l) FROM Listing l WHERE l.createdAt >= :date")
+    long countByCreatedAtAfter(@Param("date") java.time.LocalDateTime date);
+    
+    // Native query for category distribution - much faster than loading all listings
+    @Query(value = "SELECT " +
+           "COALESCE(" +
+           "  CASE WHEN l.listing_category_id = 'other' AND l.custom_category_name IS NOT NULL AND l.custom_category_name != '' " +
+           "    THEN l.custom_category_name " +
+           "    ELSE COALESCE(c.name, l.custom_category_name, 'Other') " +
+           "  END, " +
+           "  'Other'" +
+           ") as category, " +
+           "COUNT(*) as count " +
+           "FROM listings l " +
+           "LEFT JOIN categories c ON l.listing_category_id = c.id " +
+           "GROUP BY category",
+           nativeQuery = true)
+    List<Object[]> getListingsByCategoryNative();
 }
 

@@ -141,3 +141,5 @@ But for images (covers, portfolios, avatars), **public buckets are perfect**.
 **For your use case (images): Public + RLS = Perfect!** ✅
 
 
+
+

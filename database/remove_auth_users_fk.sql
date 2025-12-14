@@ -8,3 +8,5 @@ DROP CONSTRAINT IF EXISTS user_profiles_id_fkey;
 -- Note: The id column will remain as UUID PRIMARY KEY, but won't reference auth.users anymore
 -- This allows us to create user profiles independently without needing Supabase Auth
 
+
+

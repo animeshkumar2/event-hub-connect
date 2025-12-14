@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
                 // Auth endpoints - public
                 .requestMatchers("/api/auth/**").permitAll()
+                // Admin login - public
+                .requestMatchers("/api/admin/login").permitAll()
                 // Allow authenticated users to check if they have a vendor profile (must come before /api/vendors/**)
                 .requestMatchers("/api/vendors/by-user/**").authenticated()
                 // Vendor onboarding - accessible to authenticated users (they become vendors after onboarding)

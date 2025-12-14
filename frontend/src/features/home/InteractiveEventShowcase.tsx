@@ -49,18 +49,6 @@ const eventCards: EventCard[] = [
     link: '/search?eventType=Birthday',
   },
   {
-    id: 'corporate',
-    title: 'Corporate',
-    subtitle: 'Professional Events',
-    description: 'Elevate your corporate events with premium services',
-    image: '/events/corporate.jpg',
-    cardImage: '/events/corporate.jpg',
-    gradient: 'from-slate-800/80 via-gray-700/70 to-slate-600/80',
-    icon: '💼',
-    stats: { label: 'Corporate Events', value: '1,200+' },
-    link: '/search?eventType=Corporate',
-  },
-  {
     id: 'anniversary',
     title: 'Anniversary',
     subtitle: 'Mark the Milestone',
@@ -71,6 +59,18 @@ const eventCards: EventCard[] = [
     icon: '💝',
     stats: { label: 'Anniversaries', value: '800+' },
     link: '/search?eventType=Anniversary',
+  },
+  {
+    id: 'corporate',
+    title: 'Corporate',
+    subtitle: 'Professional Events',
+    description: 'Elevate your corporate events with premium services',
+    image: '/events/corporate.jpg',
+    cardImage: '/events/corporate.jpg',
+    gradient: 'from-slate-800/80 via-gray-700/70 to-slate-600/80',
+    icon: '💼',
+    stats: { label: 'Corporate Events', value: '1,200+' },
+    link: '/search?eventType=Corporate',
   },
   {
     id: 'engagement',
@@ -162,7 +162,7 @@ export const InteractiveEventShowcase = () => {
 
   return (
     <section 
-      className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-b from-background to-muted/30"
+      className="relative py-8 sm:py-12 md:py-20 overflow-x-hidden bg-gradient-to-b from-background to-muted/30"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       ref={(el) => {
@@ -212,14 +212,14 @@ export const InteractiveEventShowcase = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent z-10" />
 
       {/* Content */}
-      <div className="relative z-20 container mx-auto px-4">
+      <div className="relative z-20 container mx-auto px-3 sm:px-4 max-w-7xl">
         {/* Section Header */}
-        <div className="text-center mb-8">
-          <Badge className="mb-3 bg-white/20 backdrop-blur-md text-white border-white/30 px-3 py-1 text-xs font-medium">
+        <div className="text-center mb-6 sm:mb-8">
+          <Badge className="mb-2 sm:mb-3 bg-white/20 backdrop-blur-md text-white border-white/30 px-2.5 sm:px-3 py-0.5 sm:py-1 text-xs font-medium">
             <Sparkles className="h-3 w-3 mr-1.5" />
             Explore Event Types
           </Badge>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white mb-3">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white mb-2 sm:mb-3 px-2">
             Plan Your Perfect
             <br />
             <span className="bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
@@ -229,41 +229,48 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* Scrollable Card Container - Same as category carousel */}
-        <div className="relative max-w-5xl mx-auto">
+        <div className="relative max-w-5xl mx-auto w-full overflow-x-hidden">
           {/* Navigation Arrows */}
           <button
             onClick={goToPrevious}
-            className="absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
+            className="hidden sm:flex absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
             aria-label="Previous event"
             style={{ willChange: 'auto' }}
           >
-            <ChevronLeft className="h-5 w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
+            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
           </button>
 
           <button
             onClick={goToNext}
-            className="absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
+            className="hidden sm:flex absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
             aria-label="Next event"
             style={{ willChange: 'auto' }}
           >
-            <ChevronRight className="h-5 w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
+            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
           </button>
 
           {/* Scrollable Container */}
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
-            style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 16px' }}
+            className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory w-full"
+            style={{ 
+              scrollSnapType: 'x mandatory', 
+              scrollPadding: '0 12px',
+              WebkitOverflowScrolling: 'touch',
+              scrollBehavior: 'smooth',
+              maxWidth: '100%',
+              overflowY: 'hidden'
+            }}
           >
             {eventCards.map((card, index) => (
               <div
                 key={card.id}
-                className="flex-shrink-0 w-full"
-                style={{ scrollSnapAlign: 'start' }}
+                className="flex-shrink-0 w-full sm:w-[calc(100%-1rem)] md:w-full max-w-full"
+                style={{ scrollSnapAlign: 'start', minWidth: '100%' }}
               >
                 <Card className={cn(
-                  "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-xl animate-on-scroll",
+                  "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-lg sm:rounded-xl animate-on-scroll",
                   "animate-scale-in"
                 )} style={{
                   opacity: index === activeIndex ? 1 : 0.7,
@@ -281,62 +288,62 @@ export const InteractiveEventShowcase = () => {
                     </div>
                     
                     {/* Content Side */}
-                    <CardContent className="flex flex-col justify-between p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white">
-                      <div className="space-y-3">
+                    <CardContent className="flex flex-col justify-between p-4 sm:p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white min-h-[280px] sm:min-h-[320px]">
+                      <div className="space-y-2 sm:space-y-3">
                         {/* Icon and Badge */}
-                        <div className="flex items-center gap-2.5">
-                          <div className="text-3xl md:text-4xl">
+                        <div className="flex items-center gap-2 sm:gap-2.5">
+                          <div className="text-2xl sm:text-3xl md:text-4xl">
                             {card.icon}
                           </div>
-                          <Badge className="bg-primary/10 text-primary border-primary/20 px-2.5 py-0.5 text-xs font-medium">
+                          <Badge className="bg-primary/10 text-primary border-primary/20 px-2 sm:px-2.5 py-0.5 text-xs font-medium">
                             {card.subtitle}
                           </Badge>
                         </div>
 
                         {/* Title - Smaller */}
-                        <h3 className="text-xl md:text-2xl font-black text-foreground leading-tight">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-black text-foreground leading-tight">
                           {card.title}
                         </h3>
 
                         {/* Description - Smaller */}
-                        <p className="text-sm text-muted-foreground leading-relaxed">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                           {card.description}
                         </p>
 
                         {/* Stats - Smaller */}
-                        <div className="flex items-center gap-4 pt-1">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10">
-                              <Users className="h-3.5 w-3.5 text-primary" />
+                        <div className="flex items-center gap-3 sm:gap-4 pt-1">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10">
+                              <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
                             </div>
                             <div>
-                              <div className="text-base font-bold text-foreground">{card.stats.value}</div>
-                              <div className="text-xs text-muted-foreground">{card.stats.label}</div>
+                              <div className="text-sm sm:text-base font-bold text-foreground">{card.stats.value}</div>
+                              <div className="text-xs text-muted-foreground leading-tight">{card.stats.label}</div>
                             </div>
                           </div>
-                          <div className="h-6 w-px bg-border" />
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10">
-                              <MapPin className="h-3.5 w-3.5 text-primary" />
+                          <div className="h-5 sm:h-6 w-px bg-border" />
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10">
+                              <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
                             </div>
                             <div>
-                              <div className="text-base font-bold text-foreground">8+</div>
-                              <div className="text-xs text-muted-foreground">Cities</div>
+                              <div className="text-sm sm:text-base font-bold text-foreground">8+</div>
+                              <div className="text-xs text-muted-foreground leading-tight">Cities</div>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* CTA Button */}
-                      <div className="pt-4 border-t">
+                      <div className="pt-3 sm:pt-4 border-t mt-auto">
                         <Button 
                           size="default" 
-                          className="w-full text-sm px-6 py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group micro-bounce"
+                          className="w-full text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group micro-bounce"
                           asChild
                         >
                           <Link to={card.link}>
                             Explore {card.title} Packages
-                            <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform smooth-transition" />
+                            <ArrowRight className="ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:translate-x-1 transition-transform smooth-transition" />
                           </Link>
                         </Button>
                       </div>
@@ -349,7 +356,7 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* All Event Types - Bottom Navigation */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 md:gap-3">
+        <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 md:gap-3 px-2">
           {eventTypes.map((eventType) => {
             const card = eventCards.find(c => c.title === eventType);
             const isActive = activeCard.title === eventType;
@@ -359,15 +366,15 @@ export const InteractiveEventShowcase = () => {
                 key={eventType}
                 onClick={() => goToEvent(eventType)}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-300 hover-lift backdrop-blur-md border-2',
+                  'px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-semibold transition-all duration-300 hover-lift backdrop-blur-md border-2',
                   isActive
                     ? 'bg-white/30 border-white/50 text-white shadow-lg scale-105'
                     : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20 hover:border-white/30'
                 )}
               >
-                <span className="flex items-center gap-1.5">
-                  {card?.icon && <span className="text-base">{card.icon}</span>}
-                  <span>{eventType}</span>
+                <span className="flex items-center gap-1 sm:gap-1.5">
+                  {card?.icon && <span className="text-sm sm:text-base">{card.icon}</span>}
+                  <span className="whitespace-nowrap">{eventType}</span>
                 </span>
               </button>
             );
@@ -375,16 +382,16 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* Card Indicators */}
-        <div className="mt-8 flex justify-center gap-2">
+        <div className="mt-6 sm:mt-8 flex justify-center gap-1.5 sm:gap-2">
           {eventCards.map((card, index) => (
             <button
               key={card.id}
               onClick={() => goToSlide(index)}
               className={cn(
-                'relative h-2 rounded-full transition-all duration-500',
+                'relative h-1.5 sm:h-2 rounded-full transition-all duration-500',
                 index === activeIndex
-                  ? 'w-12 bg-white'
-                  : 'w-2 bg-white/40 hover:bg-white/60'
+                  ? 'w-8 sm:w-12 bg-white'
+                  : 'w-1.5 sm:w-2 bg-white/40 hover:bg-white/60'
               )}
               aria-label={`Go to ${card.title}`}
             >

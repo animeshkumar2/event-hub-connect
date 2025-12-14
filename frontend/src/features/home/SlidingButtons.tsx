@@ -18,7 +18,7 @@ export const buttonOptions: ButtonOption[] = [
   {
     id: 'listings',
     label: 'Browse Listings',
-    description: 'Explore curated packages and individual services. Browse through detailed listings with transparent pricing, photos, and reviews to find exactly what you need for your event.',
+    description: 'Check out packages and services. See prices, photos, and reviews to pick what works for you.',
     icon: Search,
     path: '/search',
     gradientClass: 'from-primary to-primary-glow',
@@ -27,7 +27,7 @@ export const buttonOptions: ButtonOption[] = [
   {
     id: 'professionals',
     label: 'Browse Professionals',
-    description: 'Find the perfect professionals for your event in minutes. From photographers to caterers, we bring together the best professionals to make your special day truly memorable.',
+    description: 'Find photographers, caterers, and other pros. We\'ve got the best people to make your day special.',
     icon: Users,
     path: '/search?view=vendors',
     gradientClass: 'from-secondary to-primary',
@@ -36,7 +36,7 @@ export const buttonOptions: ButtonOption[] = [
   {
     id: 'planner',
     label: 'Event Planner',
-    description: 'Tell us your budget and event details, and we\'ll recommend the perfect vendors. Get personalized recommendations tailored to your needs and preferences.',
+    description: 'Share your budget and event details. We\'ll suggest vendors that fit your needs.',
     icon: Sparkles,
     path: '/event-planner',
     gradientClass: 'from-purple-500 via-pink-500 to-orange-500',

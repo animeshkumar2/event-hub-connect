@@ -25,3 +25,5 @@ CREATE INDEX IF NOT EXISTS idx_listings_category
   ON listings (listing_category_id);
 
 
+
+

@@ -10,3 +10,5 @@ ALTER TABLE orders
 ADD CONSTRAINT orders_user_id_fkey 
 FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE;
 
+
+

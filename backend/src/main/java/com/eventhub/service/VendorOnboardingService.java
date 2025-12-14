@@ -11,6 +11,7 @@ import com.eventhub.repository.VendorRepository;
 import com.eventhub.repository.ListingRepository;
 import com.eventhub.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class VendorOnboardingService {
     private final ListingRepository listingRepository;
     private final UserProfileRepository userProfileRepository;
     
+    @CacheEvict(value = "platformStats", allEntries = true)
     public Vendor onboardVendor(VendorOnboardingRequest request) {
         // Get authenticated user ID
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

@@ -1216,7 +1216,7 @@ export default function VendorListings() {
               <Card 
                 key={listing.id} 
                 className="border-border overflow-hidden group hover:shadow-lg hover:border-primary/30 transition-all duration-300 cursor-pointer"
-                onClick={() => window.open(`/listing/${listing.id}`, '_blank')}
+                onClick={() => window.open(`/listing/${listing.id}?view=customer`, '_blank')}
               >
                 <div className="relative aspect-[16/10]">
                   {listing.images && listing.images.length > 0 ? (
@@ -1245,7 +1245,7 @@ export default function VendorListings() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}`, '_blank'); }}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}?view=customer`, '_blank'); }}>
                           <Eye className="mr-2 h-4 w-4" /> Preview as Customer
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => {
@@ -1329,7 +1329,7 @@ export default function VendorListings() {
               <Card 
                 key={listing.id} 
                 className="border-border overflow-hidden group hover:shadow-lg hover:border-secondary/30 transition-all duration-300 cursor-pointer"
-                onClick={() => window.open(`/listing/${listing.id}`, '_blank')}
+                onClick={() => window.open(`/listing/${listing.id}?view=customer`, '_blank')}
               >
                 <div className="relative aspect-square">
                   {listing.images && listing.images.length > 0 ? (
@@ -1358,7 +1358,7 @@ export default function VendorListings() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}`, '_blank'); }}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}?view=customer`, '_blank'); }}>
                           <Eye className="mr-2 h-4 w-4" /> Preview as Customer
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => {

@@ -42,3 +42,5 @@ WHERE vendor_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
 GROUP BY date, time_slot, status
 ORDER BY date, time_slot;
 
+
+

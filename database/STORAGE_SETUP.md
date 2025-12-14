@@ -277,3 +277,5 @@ const compressImage = async (file: File, maxWidth: number = 1920) => {
 5. ✅ Store URLs in database (already have `images TEXT[]` fields)
 
 
+
+

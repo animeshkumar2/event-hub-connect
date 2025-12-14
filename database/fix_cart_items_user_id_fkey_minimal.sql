@@ -10,3 +10,5 @@ ALTER TABLE cart_items
 ADD CONSTRAINT cart_items_user_id_fkey 
 FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE;
 
+
+

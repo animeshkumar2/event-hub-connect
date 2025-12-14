@@ -16,3 +16,5 @@ CHECK (role IN ('customer', 'vendor', 'admin', 'CUSTOMER', 'VENDOR', 'ADMIN'));
 -- ADD CONSTRAINT user_profiles_role_check 
 -- CHECK (role IN ('CUSTOMER', 'VENDOR', 'ADMIN'));
 
+
+

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/features/home/Navbar';
 import { PhotoGallery } from './PhotoGallery';
 import { BookingWidget } from './BookingWidget';
@@ -45,8 +45,12 @@ interface ExtraCharge {
 export default function ListingDetail() {
   const { listingId } = useParams<{ listingId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const { data: listingData, loading, error } = useListingDetails(listingId || null);
+  
+  // Check if vendor wants to see customer view
+  const forceCustomerView = searchParams.get('view') === 'customer';
   
   // Debug logging
   useEffect(() => {
@@ -70,7 +74,7 @@ export default function ListingDetail() {
   const vendorId = listing?.vendorId;
   
   // Check if current user is the vendor owner of this listing
-  const isOwner = useMemo(() => {
+  const isOwnerRaw = useMemo(() => {
     if (!isAuthenticated || !user || !listing) return false;
     // Check multiple conditions to determine ownership:
     // 1. user.vendorId matches listing's vendorId
@@ -83,6 +87,9 @@ export default function ListingDetail() {
       storedVendorId === vendorId
     );
   }, [isAuthenticated, user, listing, vendorId]);
+  
+  // If forceCustomerView is true, show customer view even if user is owner
+  const isOwner = forceCustomerView ? false : isOwnerRaw;
 
   // Fetch vendor listings for similar listings
   const { data: vendorListingsData } = useVendorListings(vendorId || null);

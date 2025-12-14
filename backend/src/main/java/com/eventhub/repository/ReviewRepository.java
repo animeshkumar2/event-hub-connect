@@ -24,6 +24,18 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
     Long countByVendor(@Param("vendor") Vendor vendor);
     
     List<Review> findByVendorId(UUID vendorId);
+    
+    // Optimized stats queries
+    @Query("SELECT COUNT(r) FROM Review r WHERE r.rating >= 4.0")
+    long countSatisfiedReviews();
+    
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.rating IS NOT NULL")
+    Double getAverageRating();
+    
+    @Query("SELECT COUNT(r) FROM Review r WHERE r.vendor.id = :vendorId")
+    long countByVendorId(@Param("vendorId") UUID vendorId);
 }
+
+
 
 

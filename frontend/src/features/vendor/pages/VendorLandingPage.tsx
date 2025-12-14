@@ -70,18 +70,22 @@ export default function VendorLandingPage() {
   const [showAllFaqs, setShowAllFaqs] = useState(false);
   
   // Fetch vendor count for dynamic spots remaining
-  const { data: stats } = useStats();
+  const { data: stats, loading: statsLoading } = useStats();
   
   // Calculate remaining spots (starting from 51 to create FOMO - 49 already "booked")
   const spotsRemaining = useMemo(() => {
+    // Use cached data if available, even if still loading fresh data
+    if (!stats) {
+      return null; // Return null only if no data at all (not even cached)
+    }
     const vendorCount = stats?.vendorCount || stats?.vendors || 0;
     // Start from 51 (100 - 49 fake booked), then subtract actual registrations
     const remaining = EARLY_BIRD_LIMIT - FOMO_ALREADY_BOOKED - vendorCount;
     return Math.max(0, remaining);
   }, [stats]);
   
-  // Determine if early bird offer is still available
-  const isEarlyBirdAvailable = spotsRemaining > 0;
+  // Determine if early bird offer is still available (only when data is loaded)
+  const isEarlyBirdAvailable = spotsRemaining !== null && spotsRemaining > 0;
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
@@ -107,21 +111,24 @@ export default function VendorLandingPage() {
     <div className="min-h-screen bg-gradient-to-b from-background via-primary/5 to-background">
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <a href="/" className="text-xl font-bold text-primary">
+        <div className="container mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          <a href="/" className="text-lg sm:text-xl font-bold text-primary">
             cartevent.
           </a>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              Browse as Customer
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" onClick={() => navigate('/')} className="text-xs sm:text-sm px-2 sm:px-4 h-8 sm:h-10">
+              <span className="hidden sm:inline">Browse as Customer</span>
+              <span className="sm:hidden">Browse</span>
             </Button>
             {isAuthenticated ? (
-              <Button onClick={handleGetStarted}>
-                {(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Go to Dashboard' : 'Start Listing'}
+              <Button onClick={handleGetStarted} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
+                <span className="hidden sm:inline">{(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Go to Dashboard' : 'Start Listing'}</span>
+                <span className="sm:hidden">{(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Dashboard' : 'Start'}</span>
               </Button>
             ) : (
-              <Button variant="outline" onClick={() => navigate('/auth?mode=login&type=vendor')}>
-                Vendor Login
+              <Button variant="outline" onClick={() => navigate('/auth?mode=login&type=vendor')} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
+                <span className="hidden sm:inline">Vendor Login</span>
+                <span className="sm:hidden">Login</span>
               </Button>
             )}
           </div>
@@ -129,40 +136,40 @@ export default function VendorLandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative py-20 md:py-32 overflow-hidden">
+      <section className="relative py-12 sm:py-16 md:py-24 lg:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-        <div className="container mx-auto px-4 relative">
+        <div className="container mx-auto px-4 sm:px-6 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
+            <Badge className="mb-4 sm:mb-6 bg-primary/10 text-primary border-primary/20 text-xs sm:text-sm">
               Early Access - Limited Spots Available
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-6 px-2">
               Get More Customers for Your{' '}
               <span className="text-primary">Event Business</span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              India's upcoming one-stop platform for booking event vendors. Join our early vendor network 
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
+              Secure your spot in India's only event marketplace. Join our early vendor network 
               and reach customers planning weddings, parties, cultural ceremonies, and more.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="text-lg px-8 h-14 gap-2" onClick={handleGetStarted}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+              <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto" onClick={handleGetStarted}>
                 Get Listed Now - It's Free
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
             
             {/* Dynamic Spots Remaining Badge */}
-            {isEarlyBirdAvailable && (
-              <div className="mt-6 inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-6 py-3">
-                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
+            {spotsRemaining !== null && isEarlyBirdAvailable ? (
+              <div className="mt-4 sm:mt-6 inline-flex flex-col sm:flex-row items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-4 sm:px-6 py-2 sm:py-3 mx-2">
+                <span className="text-base sm:text-lg font-bold text-yellow-600 dark:text-yellow-400">
                   only {spotsRemaining} spots left
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
                   - First 100 vendors get FREE forever access
                 </span>
               </div>
-            )}
-            <p className="text-sm text-muted-foreground mt-4">
+            ) : null}
+            <p className="text-xs sm:text-sm text-muted-foreground mt-3 sm:mt-4 px-4">
               ✓ No credit card required &nbsp;•&nbsp; ✓ Setup in 5 minutes &nbsp;•&nbsp; ✓ Cancel anytime
             </p>
           </div>
@@ -170,64 +177,64 @@ export default function VendorLandingPage() {
       </section>
 
       {/* How It Works - Premium Design */}
-      <section className="py-16 bg-gradient-to-br from-primary via-primary/90 to-primary/80 relative overflow-hidden">
+      <section className="py-12 sm:py-16 bg-gradient-to-br from-primary via-primary/90 to-primary/80 relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/3 translate-y-1/3" />
+          <div className="absolute top-0 left-0 w-48 sm:w-72 h-48 sm:h-72 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-white rounded-full translate-x-1/3 translate-y-1/3" />
         </div>
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-white/20 text-white/90 text-xs font-medium mb-4">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <div className="text-center mb-8 sm:mb-12">
+            <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/20 text-white/90 text-xs font-medium mb-3 sm:mb-4">
               SIMPLE 3-STEP PROCESS
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-white">How It Works</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white px-2">How It Works</h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
             {/* Step 1 */}
             <div className="group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 h-full">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                    <span className="text-xl font-bold text-primary">1</span>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 h-full">
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white flex items-center justify-center shadow-lg flex-shrink-0">
+                    <span className="text-lg sm:text-xl font-bold text-primary">1</span>
                   </div>
                   <div className="hidden md:flex items-center flex-1">
                     <div className="h-0.5 flex-1 bg-gradient-to-r from-white/50 to-transparent" />
                   </div>
                 </div>
-                <h3 className="font-bold text-xl text-white mb-2">Sign Up</h3>
-                <p className="text-white/80 text-sm leading-relaxed">Fill a quick form with your business details. Takes less than 2 minutes.</p>
+                <h3 className="font-bold text-lg sm:text-xl text-white mb-2">Sign Up</h3>
+                <p className="text-white/80 text-xs sm:text-sm leading-relaxed">Fill a quick form with your business details. Takes less than 2 minutes.</p>
               </div>
             </div>
             
             {/* Step 2 */}
             <div className="group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 h-full">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                    <span className="text-xl font-bold text-primary">2</span>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 h-full">
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white flex items-center justify-center shadow-lg flex-shrink-0">
+                    <span className="text-lg sm:text-xl font-bold text-primary">2</span>
                   </div>
                   <div className="hidden md:flex items-center flex-1">
                     <div className="h-0.5 flex-1 bg-gradient-to-r from-white/50 to-transparent" />
                   </div>
                 </div>
-                <h3 className="font-bold text-xl text-white mb-2">Post Your First Listing</h3>
-                <p className="text-white/80 text-sm leading-relaxed">Showcase your services with photos, pricing & packages.</p>
+                <h3 className="font-bold text-lg sm:text-xl text-white mb-2">Post Your First Listing</h3>
+                <p className="text-white/80 text-xs sm:text-sm leading-relaxed">Showcase your services with photos, pricing & packages.</p>
               </div>
             </div>
             
             {/* Step 3 */}
             <div className="group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 h-full">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                    <span className="text-xl font-bold text-primary">3</span>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 hover:bg-white/20 transition-all duration-300 h-full">
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white flex items-center justify-center shadow-lg flex-shrink-0">
+                    <span className="text-lg sm:text-xl font-bold text-primary">3</span>
                   </div>
                 </div>
-                <h3 className="font-bold text-xl text-white mb-2">Start Getting Free Leads</h3>
-                <p className="text-white/80 text-sm leading-relaxed">Get customer bookings & enquiries directly on the platform.</p>
+                <h3 className="font-bold text-lg sm:text-xl text-white mb-2">Start Getting Free Leads</h3>
+                <p className="text-white/80 text-xs sm:text-sm leading-relaxed">Get customer bookings & enquiries directly on the platform.</p>
               </div>
             </div>
           </div>
@@ -235,18 +242,18 @@ export default function VendorLandingPage() {
       </section>
 
       {/* Why Join CartEvent - Comprehensive Section */}
-      <section className="py-20 bg-gradient-to-b from-background to-muted/30">
-        <div className="container mx-auto px-4">
+      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-background to-muted/30">
+        <div className="container mx-auto px-4 sm:px-6">
           {/* Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Why Join CartEvent?</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to grow your event business
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 px-4">Why Join CartEvent?</h2>
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed px-4">
+              Connect with high-value customers and grow your business. We handle customer acquisition so you can focus on delivering exceptional service.
             </p>
           </div>
 
           {/* Feature Cards with Screenshots */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12 md:mb-16">
             {/* Analytics Card */}
             <div className="group">
               <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
@@ -270,14 +277,14 @@ export default function VendorLandingPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                      <BarChart3 className="h-5 w-5 text-blue-500" />
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
                     </div>
-                    <h3 className="font-bold text-xl">Analytics & Insights</h3>
+                    <h3 className="font-bold text-lg sm:text-xl">Analytics & Insights</h3>
                   </div>
-                  <p className="text-muted-foreground text-sm">Track revenue, see booking trends, and grow smarter with data-driven decisions.</p>
+                  <p className="text-muted-foreground text-xs sm:text-sm">Track revenue, see booking trends, and grow smarter with data-driven decisions.</p>
                 </CardContent>
               </Card>
             </div>
@@ -300,14 +307,14 @@ export default function VendorLandingPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-green-500" />
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
                     </div>
-                    <h3 className="font-bold text-xl">Smart Calendar</h3>
+                    <h3 className="font-bold text-lg sm:text-xl">Smart Calendar</h3>
                   </div>
-                  <p className="text-muted-foreground text-sm">Manage your schedule effortlessly. Never double-book again.</p>
+                  <p className="text-muted-foreground text-xs sm:text-sm">Manage your schedule effortlessly. Never double-book again.</p>
                 </CardContent>
               </Card>
             </div>
@@ -330,69 +337,69 @@ export default function VendorLandingPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                      <Wallet className="h-5 w-5 text-amber-500" />
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
                     </div>
-                    <h3 className="font-bold text-xl">Direct Payments</h3>
+                    <h3 className="font-bold text-lg sm:text-xl">Direct Payments</h3>
                   </div>
-                  <p className="text-muted-foreground text-sm">Get paid directly by customers. No middleman, no delays.</p>
+                  <p className="text-muted-foreground text-xs sm:text-sm">Get paid directly by customers. No middleman, no delays.</p>
                 </CardContent>
               </Card>
             </div>
           </div>
 
           {/* Lalach Section + Early Vendor Benefits */}
-          <div className="mb-16">
+          <div className="mb-8 sm:mb-12 md:mb-16">
             <Card className="overflow-hidden border-0 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-white relative">
               <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-48 sm:w-64 h-48 sm:h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
               </div>
-              <CardContent className="p-8 md:p-12 relative z-10">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
+              <CardContent className="p-4 sm:p-6 md:p-8 lg:p-12 relative z-10">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                   {/* Left - Quote */}
                   <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Rocket className="h-6 w-6" />
-                      <span className="text-sm font-medium uppercase tracking-wider opacity-80">Growth Potential</span>
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                      <Rocket className="h-5 w-5 sm:h-6 sm:w-6" />
+                      <span className="text-xs sm:text-sm font-medium uppercase tracking-wider opacity-80">Growth Potential</span>
                     </div>
-                    <blockquote className="text-2xl md:text-3xl font-bold leading-tight mb-6">
+                    <blockquote className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight mb-4 sm:mb-6">
                       "Vendors on CartEvent may get <span className="text-yellow-300">3x more bookings</span> than traditional marketing methods"
                     </blockquote>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-                        <Target className="h-4 w-4" />
-                        <span className="text-sm font-medium">2026 Target: 1000+ Vendors</span>
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="flex items-center gap-2 bg-white/10 rounded-full px-3 sm:px-4 py-1.5 sm:py-2">
+                        <Target className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="text-xs sm:text-sm font-medium">2026 Target: 1000+ Vendors</span>
                       </div>
                     </div>
                   </div>
                   
                   {/* Right - Early Vendor Benefits */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                    <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-yellow-300" />
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20">
+                    <h3 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-300" />
                       Early Vendor Benefits
                     </h3>
-                    <ul className="space-y-3">
+                    <ul className="space-y-2 sm:space-y-3">
                       {[
-                        `First 100 vendors - FREE forever (only ${spotsRemaining} spots left)`,
+                        spotsRemaining !== null ? `First 100 vendors - FREE forever (only ${spotsRemaining} spots left)` : "First 100 vendors - FREE forever",
                         "Unlimited listings - no restrictions",
                         "0% commission - keep 100% of your earnings",
                         "Priority placement in search results",
                         "Featured in our launch marketing campaigns"
                       ].map((benefit, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                          <span className="text-white/90">{benefit}</span>
+                        <li key={i} className="flex items-start gap-2 sm:gap-3">
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-white/90 text-sm sm:text-base">{benefit}</span>
                         </li>
                       ))}
                     </ul>
-                    {isEarlyBirdAvailable ? (
-                      <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-400/30 rounded-lg">
-                        <p className="text-yellow-200 text-sm font-medium text-center">
-                          ⏰ Hurry! Only <span className="font-bold text-lg">{spotsRemaining}</span> early bird spots remaining!
+                    {spotsRemaining !== null && isEarlyBirdAvailable ? (
+                      <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-yellow-500/20 border border-yellow-400/30 rounded-lg">
+                        <p className="text-yellow-200 text-xs sm:text-sm font-medium text-center">
+                          ⏰ Hurry! Only <span className="font-bold text-base sm:text-lg">{spotsRemaining}</span> early bird spots remaining!
                         </p>
                       </div>
                     ) : (
@@ -409,7 +416,7 @@ export default function VendorLandingPage() {
           </div>
 
           {/* Mini Feature Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[
               { icon: MessageSquare, title: "Real-time Chat", desc: "Instant customer messaging", color: "text-blue-500", bg: "bg-blue-500/10" },
               { icon: Star, title: "Reviews & Ratings", desc: "Build trust with feedback", color: "text-yellow-500", bg: "bg-yellow-500/10" },
@@ -417,12 +424,12 @@ export default function VendorLandingPage() {
               { icon: BadgeCheck, title: "100% Free", desc: "No listing fees ever", color: "text-green-500", bg: "bg-green-500/10" },
             ].map((feature, i) => (
               <Card key={i} className="border hover:border-primary/30 transition-all hover:shadow-lg group">
-                <CardContent className="p-5 text-center">
-                  <div className={`w-12 h-12 rounded-xl ${feature.bg} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
-                    <feature.icon className={`h-6 w-6 ${feature.color}`} />
+                <CardContent className="p-3 sm:p-4 md:p-5 text-center">
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${feature.bg} flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:scale-110 transition-transform`}>
+                    <feature.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${feature.color}`} />
                   </div>
-                  <h4 className="font-semibold text-sm mb-1">{feature.title}</h4>
-                  <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                  <h4 className="font-semibold text-xs sm:text-sm mb-1">{feature.title}</h4>
+                  <p className="text-xs text-muted-foreground leading-tight">{feature.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -432,39 +439,39 @@ export default function VendorLandingPage() {
       </section>
 
       {/* Who Can Join - Inclusive Section */}
-      <section className="py-12 bg-gradient-to-b from-muted/30 to-background relative overflow-hidden">
+      <section className="py-8 sm:py-12 bg-gradient-to-b from-muted/30 to-background relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+          <div className="absolute top-20 left-10 w-48 sm:w-72 h-48 sm:h-72 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-64 sm:w-96 h-64 sm:h-96 bg-purple-500/5 rounded-full blur-3xl" />
         </div>
         
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
           {/* Header */}
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <Badge className="mb-3 sm:mb-4 bg-primary/10 text-primary border-primary/20 text-xs sm:text-sm">
               Zero Barriers
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-2">
               If You're in Events, <span className="text-primary">You're In.</span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
               From wedding photographers to corporate caterers, balloon artists to event planners - 
               if you provide any service for any event, CartEvent is for you.
             </p>
           </div>
 
           {/* Three Pillars */}
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16">
             {/* Any Service */}
             <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group overflow-hidden">
-              <CardContent className="p-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                  <Sparkles className="h-8 w-8 text-white" />
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Any Service</h3>
-                <p className="text-muted-foreground mb-6">Whatever you do for events, list it here.</p>
-                <ul className="space-y-2 text-sm">
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Any Service</h3>
+                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">Whatever you do for events, list it here.</p>
+                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                   {["Photography & Video", "Catering & Food", "Decoration & Flowers", "DJ & Live Music", "Makeup & Styling", "Venues & Halls", "Anchoring & Entertainment", "...anything event-related"].map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-muted-foreground">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -477,31 +484,31 @@ export default function VendorLandingPage() {
 
             {/* Any Scale */}
             <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group overflow-hidden">
-              <CardContent className="p-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                  <Users className="h-8 w-8 text-white" />
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                  <Users className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Any Scale</h3>
-                <p className="text-muted-foreground mb-6">No minimum. No maximum. Everyone's welcome.</p>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-lg">🪑</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Any Scale</h3>
+                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">No minimum. No maximum. Everyone's welcome.</p>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center text-base sm:text-lg flex-shrink-0">🪑</div>
                     <div>
-                      <p className="font-medium text-sm">20 chairs?</p>
+                      <p className="font-medium text-xs sm:text-sm">20 chairs?</p>
                       <p className="text-xs text-muted-foreground">List them.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-lg">💄</div>
+                  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center text-base sm:text-lg flex-shrink-0">💄</div>
                     <div>
-                      <p className="font-medium text-sm">Weekend makeup artist?</p>
+                      <p className="font-medium text-xs sm:text-sm">Weekend makeup artist?</p>
                       <p className="text-xs text-muted-foreground">List your services.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-lg">🏨</div>
+                  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 flex items-center justify-center text-base sm:text-lg flex-shrink-0">🏨</div>
                     <div>
-                      <p className="font-medium text-sm">500-person venue?</p>
+                      <p className="font-medium text-xs sm:text-sm">500-person venue?</p>
                       <p className="text-xs text-muted-foreground">List it too.</p>
                     </div>
                   </div>
@@ -511,13 +518,13 @@ export default function VendorLandingPage() {
 
             {/* Any Event */}
             <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group overflow-hidden">
-              <CardContent className="p-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                  <Calendar className="h-8 w-8 text-white" />
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                  <Calendar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Any Event</h3>
-                <p className="text-muted-foreground mb-6">We cover every occasion, every gathering.</p>
-                <div className="flex flex-wrap gap-2">
+                <h3 className="text-xl sm:text-2xl font-bold mb-2">Any Event</h3>
+                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">We cover every occasion, every gathering.</p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {[
                     { emoji: "💒", label: "Weddings" },
                     { emoji: "💼", label: "Corporate" },
@@ -530,7 +537,7 @@ export default function VendorLandingPage() {
                     { emoji: "🕯️", label: "Memorials" },
                     { emoji: "✨", label: "...any event" },
                   ].map((event, i) => (
-                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-sm hover:bg-primary/10 transition-colors cursor-default">
+                    <span key={i} className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-muted text-xs sm:text-sm hover:bg-primary/10 transition-colors cursor-default">
                       <span>{event.emoji}</span>
                       <span>{event.label}</span>
                     </span>
@@ -543,8 +550,8 @@ export default function VendorLandingPage() {
           {/* Side Hustle Message */}
           <div className="max-w-3xl mx-auto">
             <Card className="border-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
-              <CardContent className="p-8 text-center">
-                <p className="text-xl md:text-2xl font-medium text-foreground/80 italic">
+              <CardContent className="p-4 sm:p-6 md:p-8 text-center">
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium text-foreground/80 italic px-2">
                   "Even if you're just starting out with a side hustle, CartEvent is the platform to grow."
                 </p>
                 <p className="text-sm text-muted-foreground mt-4">
@@ -557,61 +564,61 @@ export default function VendorLandingPage() {
       </section>
 
       {/* Early Vendor CTA */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Become an Early Vendor</h2>
-          <p className="text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
+      <section className="py-12 sm:py-16 md:py-20 bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-2">Become an Early Vendor</h2>
+          <p className="text-primary-foreground/80 mb-6 sm:mb-8 max-w-2xl mx-auto text-sm sm:text-base px-2">
             Be among the first 50 vendors in your city to get featured across our marketing campaigns. 
             Early vendors get priority placement and exclusive benefits.
           </p>
-          <Button size="lg" variant="secondary" className="text-lg px-8 h-14 gap-2" onClick={handleGetStarted}>
+          <Button size="lg" variant="secondary" className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto" onClick={handleGetStarted}>
             Get Listed Now - It's Free
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </section>
 
       {/* FAQ */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
+      <section className="py-12 sm:py-16 md:py-20">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-2">Frequently Asked Questions</h2>
           </div>
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
             {(showAllFaqs ? FAQS : FAQS.slice(0, 3)).map((faq, i) => (
               <Card key={i}>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2 flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="font-semibold mb-2 flex items-start gap-2 text-sm sm:text-base">
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
                     {faq.q}
                   </h3>
-                  <p className="text-muted-foreground pl-7">{faq.a}</p>
+                  <p className="text-muted-foreground pl-6 sm:pl-7 text-xs sm:text-sm">{faq.a}</p>
                 </CardContent>
               </Card>
             ))}
             
             {/* See More / See Less Button */}
             {FAQS.length > 3 && (
-              <div className="text-center pt-4">
+              <div className="text-center pt-3 sm:pt-4">
                 <Button 
                   variant="outline" 
                   onClick={() => setShowAllFaqs(!showAllFaqs)}
-                  className="gap-2"
+                  className="gap-2 text-sm sm:text-base"
                 >
                   {showAllFaqs ? 'Show Less' : `See More (${FAQS.length - 3} more)`}
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showAllFaqs ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3 w-3 sm:h-4 sm:w-4 transition-transform ${showAllFaqs ? 'rotate-180' : ''}`} />
                 </Button>
               </div>
             )}
 
             {/* Request Ops Assistance Note */}
-            <Card className="border-primary/20 bg-primary/5 mt-6">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <Card className="border-primary/20 bg-primary/5 mt-4 sm:mt-6">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold mb-1">Request Ops Assistance</h3>
-                    <p className="text-muted-foreground">Post Launch</p>
+                    <h3 className="font-semibold mb-1 text-sm sm:text-base">Request Ops Assistance</h3>
+                    <p className="text-muted-foreground text-xs sm:text-sm">Post Launch</p>
                   </div>
                 </div>
               </CardContent>
@@ -621,24 +628,24 @@ export default function VendorLandingPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Grow Your Business?</h2>
-          <p className="text-muted-foreground mb-8">
+      <section className="py-12 sm:py-16 md:py-20 bg-muted/30">
+        <div className="container mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-2">Ready to Grow Your Business?</h2>
+          <p className="text-muted-foreground mb-6 sm:mb-8 text-sm sm:text-base px-2">
             Join CartEvent today and start receiving leads from customers in your city.
           </p>
-          <Button size="lg" className="text-lg px-8 h-14 gap-2" onClick={handleGetStarted}>
+          <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto" onClick={handleGetStarted}>
             Get Listed Now - It's Free
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 border-t">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p className="text-lg font-semibold text-primary mb-2">Launching Soon</p>
-          <div className="flex justify-center gap-4 mt-2">
+      <footer className="py-6 sm:py-8 border-t">
+        <div className="container mx-auto px-4 sm:px-6 text-center text-xs sm:text-sm text-muted-foreground">
+          <p className="text-base sm:text-lg font-semibold text-primary mb-2">Launching Soon</p>
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-2">
             <a href="/vendor-terms" className="hover:text-foreground">Vendor T&C</a>
             <a href="/vendor-privacy" className="hover:text-foreground">Privacy Policy</a>
             <a href="mailto:support@cartevent.com" className="hover:text-foreground">Contact</a>

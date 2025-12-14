@@ -28,6 +28,34 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Double calculateRevenue(@Param("vendor") Vendor vendor, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
     Optional<Order> findByOrderNumber(String orderNumber);
+    
+    // Optimized stats query
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = 'COMPLETED'")
+    long countCompletedOrders();
+    
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status")
+    long countByStatus(@Param("status") Order.OrderStatus status);
+    
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'COMPLETED'")
+    java.math.BigDecimal calculateTotalRevenue();
+    
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status = 'COMPLETED' AND o.createdAt >= :date")
+    java.math.BigDecimal calculateRevenueSince(@Param("date") java.time.LocalDateTime date);
+    
+    // Optimized queries for vendor stats
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.vendor.id = :vendorId")
+    long countByVendorId(@Param("vendorId") UUID vendorId);
+    
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.vendor.id = :vendorId AND o.status = :status")
+    long countByVendorIdAndStatus(@Param("vendorId") UUID vendorId, @Param("status") Order.OrderStatus status);
+    
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.vendor.id = :vendorId AND o.status = 'COMPLETED'")
+    java.math.BigDecimal calculateTotalRevenueByVendor(@Param("vendorId") UUID vendorId);
+    
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.vendor.id = :vendorId AND o.status = 'COMPLETED' AND o.createdAt >= :date")
+    java.math.BigDecimal calculateRevenueByVendorSince(@Param("vendorId") UUID vendorId, @Param("date") java.time.LocalDateTime date);
 }
+
+
 
 

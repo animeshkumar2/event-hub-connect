@@ -78,3 +78,5 @@ The seed data script should now run successfully in Supabase SQL Editor without 
 5. (Optional) Create users via Supabase Auth to enable full functionality
 
 
+
+

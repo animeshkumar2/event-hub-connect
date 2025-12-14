@@ -10,3 +10,5 @@ DROP CONSTRAINT IF EXISTS payments_user_id_fkey;
 -- because user_profiles.id is standalone (not a foreign key to auth.users)
 -- This allows the application to manage user IDs independently
 
+
+
