@@ -65,7 +65,7 @@ const FOMO_ALREADY_BOOKED = 49; // For FOMO: show 49 out of 100 already booked
 
 export default function VendorLandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
   
@@ -121,15 +121,33 @@ export default function VendorLandingPage() {
               <span className="sm:hidden">Browse</span>
             </Button>
             {isAuthenticated ? (
-              <Button onClick={handleGetStarted} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
-                <span className="hidden sm:inline">{(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Go to Dashboard' : 'Start Listing'}</span>
-                <span className="sm:hidden">{(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Dashboard' : 'Start'}</span>
-              </Button>
+              <>
+                <Button onClick={handleGetStarted} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
+                  <span className="hidden sm:inline">{(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Go to Dashboard' : 'Start Listing'}</span>
+                  <span className="sm:hidden">{(user?.role === 'vendor' || user?.role === 'VENDOR') ? 'Dashboard' : 'Start'}</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    logout();
+                    navigate('/for-vendors');
+                  }}
+                  className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+                >
+                  Logout
+                </Button>
+              </>
             ) : (
-              <Button variant="outline" onClick={() => navigate('/auth?mode=login&type=vendor')} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
-                <span className="hidden sm:inline">Vendor Login</span>
-                <span className="sm:hidden">Login</span>
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => navigate('/auth?mode=login&type=vendor')} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
+                  <span className="hidden sm:inline">Sign In</span>
+                  <span className="sm:hidden">Sign In</span>
+                </Button>
+                <Button onClick={() => navigate('/auth?mode=signup&type=vendor')} className="text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-10">
+                  <span className="hidden sm:inline">Sign Up</span>
+                  <span className="sm:hidden">Sign Up</span>
+                </Button>
+              </>
             )}
           </div>
         </div>

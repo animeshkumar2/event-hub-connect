@@ -279,7 +279,7 @@ export const MinimalNavbar = () => {
 
             {/* User Menu or Login/Signup */}
             {isAuthenticated && user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative z-50">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -307,10 +307,10 @@ export const MinimalNavbar = () => {
                   variant="outline"
                   size="sm"
                   className={cn(
-                    'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
+                    'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md z-50',
                     scrolled 
-                      ? 'border-border text-foreground hover:bg-muted' 
-                      : 'border-white/30 bg-white/95 text-foreground hover:bg-white shadow-sm backdrop-blur-sm'
+                      ? 'border-border text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive' 
+                      : 'border-white/30 bg-white/95 text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm backdrop-blur-sm'
                   )}
                   onClick={logout}
                 >
@@ -552,8 +552,8 @@ export const MinimalNavbar = () => {
                     className={cn(
                       'flex-1 h-8 text-xs font-semibold',
                       scrolled 
-                        ? 'border-border text-foreground hover:bg-muted' 
-                        : 'border-white/30 bg-white/95 text-foreground hover:bg-white shadow-sm backdrop-blur-sm'
+                        ? 'border-border text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive' 
+                        : 'border-white/30 bg-white/95 text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm backdrop-blur-sm'
                     )}
                     onClick={() => {
                       logout();

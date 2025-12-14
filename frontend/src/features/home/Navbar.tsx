@@ -231,7 +231,7 @@ export const Navbar = () => {
 
             {/* User Menu or Login/Signup */}
             {isAuthenticated && user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 relative z-50">
                 {user.role === 'VENDOR' ? (
                   <>
                     <Button
@@ -272,7 +272,7 @@ export const Navbar = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md"
+                  className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md hover:bg-destructive hover:text-destructive-foreground hover:border-destructive z-50"
                   onClick={logout}
                 >
                   Logout
@@ -468,7 +468,7 @@ export const Navbar = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="h-8 text-xs font-medium"
+                    className="h-8 text-xs font-medium hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                     onClick={() => {
                       logout();
                       setMobileMenuOpen(false);

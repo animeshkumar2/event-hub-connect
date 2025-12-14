@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation, Link } from 'react-router-dom';
+import { NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/lib/utils';
 import {
   LayoutDashboard,
@@ -20,6 +20,7 @@ import {
   FileQuestion,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/vendor/dashboard' },
@@ -40,6 +41,13 @@ const menuItems = [
 export const VendorSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <aside
@@ -104,13 +112,13 @@ export const VendorSidebar = () => {
 
       {/* Logout */}
       <div className="p-2 border-t border-border">
-        <NavLink
-          to="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
         >
           <LogOut className="h-5 w-5" />
-          {!collapsed && <span className="text-sm font-medium">Exit to Home</span>}
-        </NavLink>
+          {!collapsed && <span className="text-sm font-medium">Logout</span>}
+        </button>
       </div>
     </aside>
   );

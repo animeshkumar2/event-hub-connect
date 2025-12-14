@@ -118,7 +118,13 @@ export const InteractiveEventShowcase = () => {
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
-    const cardWidth = container.offsetWidth; // Full width of container
+    // Get the first card element to calculate proper width
+    const firstCard = container.querySelector('.flex-shrink-0') as HTMLElement;
+    if (!firstCard) return;
+    // Get computed gap from container
+    const containerStyle = window.getComputedStyle(container);
+    const gap = parseInt(containerStyle.gap) || 16;
+    const cardWidth = firstCard.offsetWidth + gap;
     const scrollAmount = direction === 'left' ? -cardWidth : cardWidth;
     
     container.scrollBy({
@@ -130,9 +136,14 @@ export const InteractiveEventShowcase = () => {
   const handleScroll = () => {
     if (!scrollRef.current) return;
     const scrollLeft = scrollRef.current.scrollLeft;
-    const cardWidth = scrollRef.current.offsetWidth;
+    const firstCard = scrollRef.current.querySelector('.flex-shrink-0') as HTMLElement;
+    if (!firstCard) return;
+    // Get computed gap from container
+    const containerStyle = window.getComputedStyle(scrollRef.current);
+    const gap = parseInt(containerStyle.gap) || 16;
+    const cardWidth = firstCard.offsetWidth + gap;
     const newIndex = Math.round(scrollLeft / cardWidth);
-    setActiveIndex(newIndex);
+    setActiveIndex(Math.min(Math.max(0, newIndex), eventCards.length - 1));
   };
 
   const goToSlide = (index: number) => {
@@ -229,11 +240,11 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* Scrollable Card Container - Same as category carousel */}
-        <div className="relative max-w-5xl mx-auto w-full overflow-x-hidden">
+        <div className="relative max-w-5xl mx-auto w-full overflow-x-hidden px-2 sm:px-4 md:px-0">
           {/* Navigation Arrows */}
           <button
             onClick={goToPrevious}
-            className="hidden sm:flex absolute -left-3 md:-left-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
+            className="hidden sm:flex absolute -left-2 md:-left-8 lg:-left-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
             aria-label="Previous event"
             style={{ willChange: 'auto' }}
           >
@@ -242,7 +253,7 @@ export const InteractiveEventShowcase = () => {
 
           <button
             onClick={goToNext}
-            className="hidden sm:flex absolute -right-3 md:-right-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
+            className="hidden sm:flex absolute -right-2 md:-right-8 lg:-right-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
             aria-label="Next event"
             style={{ willChange: 'auto' }}
           >
@@ -253,7 +264,7 @@ export const InteractiveEventShowcase = () => {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory w-full"
+            className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory w-full"
             style={{ 
               scrollSnapType: 'x mandatory', 
               scrollPadding: '0 12px',
@@ -266,29 +277,30 @@ export const InteractiveEventShowcase = () => {
             {eventCards.map((card, index) => (
               <div
                 key={card.id}
-                className="flex-shrink-0 w-full sm:w-[calc(100%-1rem)] md:w-full max-w-full"
-                style={{ scrollSnapAlign: 'start', minWidth: '100%' }}
+                className="flex-shrink-0 w-[calc(100%-24px)] sm:w-[calc(100%-32px)] md:w-[calc(100%-48px)] lg:w-full"
+                style={{ scrollSnapAlign: 'start' }}
               >
                 <Card className={cn(
-                  "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-lg sm:rounded-xl animate-on-scroll",
+                  "main-event-card relative border-0 shadow-xl overflow-hidden bg-white rounded-lg sm:rounded-xl animate-on-scroll w-full",
                   "animate-scale-in"
                 )} style={{
                   opacity: index === activeIndex ? 1 : 0.7,
                   transform: index === activeIndex ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.95)',
                   transition: 'opacity 0.8s ease-out, transform 0.8s ease-out',
                 }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0 w-full">
                     {/* Image Side - Clear without blur */}
-                    <div className="relative aspect-square md:aspect-auto md:h-[400px] overflow-hidden">
+                    <div className="relative aspect-square sm:aspect-[4/3] md:aspect-auto md:h-[400px] overflow-hidden w-full">
                       <img
                         src={card.cardImage || card.image}
                         alt={card.title}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                     </div>
                     
                     {/* Content Side */}
-                    <CardContent className="flex flex-col justify-between p-4 sm:p-5 md:p-6 bg-gradient-to-br from-slate-50 to-white min-h-[280px] sm:min-h-[320px]">
+                    <CardContent className="flex flex-col justify-between p-4 sm:p-5 md:p-6 lg:p-8 bg-gradient-to-br from-slate-50 to-white min-h-[280px] sm:min-h-[320px] md:min-h-[400px] w-full">
                       <div className="space-y-2 sm:space-y-3">
                         {/* Icon and Badge */}
                         <div className="flex items-center gap-2 sm:gap-2.5">
