@@ -19,7 +19,7 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'CUSTOMER' | 'VENDOR';
+  role: 'CUSTOMER' | 'VENDOR' | 'ADMIN';
   phone?: string;
 }
 
@@ -57,10 +57,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem('user_data');
     const storedUserId = localStorage.getItem('user_id');
     const storedVendorId = localStorage.getItem('vendor_id');
+    const storedRole = localStorage.getItem('user_role');
 
     if (storedToken && storedUser) {
       try {
         const userData = JSON.parse(storedUser);
+        // If admin role is stored separately, use it
+        if (storedRole === 'ADMIN' && userData.role !== 'ADMIN') {
+          userData.role = 'ADMIN';
+        }
         setToken(storedToken);
         setUser(userData);
         apiClient.setToken(storedToken);
@@ -71,6 +76,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('user_data');
         localStorage.removeItem('user_id');
         localStorage.removeItem('vendor_id');
+        localStorage.removeItem('user_role');
       }
     }
     setIsLoading(false);

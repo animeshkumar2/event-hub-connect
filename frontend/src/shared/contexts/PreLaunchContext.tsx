@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
 interface PreLaunchContextType {
   isPreLaunchMode: boolean;
@@ -23,6 +23,8 @@ const ADMIN_EMAILS = [
 
 export function PreLaunchProvider({ children }: { children: ReactNode }) {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  // Initialize as false - no access by default
   const [hasFullAccess, setHasFullAccess] = useState(false);
   
   // Pre-launch mode is ENABLED by default
@@ -30,36 +32,56 @@ export function PreLaunchProvider({ children }: { children: ReactNode }) {
   const isPreLaunchMode = true;
 
   useEffect(() => {
-    // Check localStorage for existing access
-    const storedAccess = localStorage.getItem(STORAGE_KEY);
-    if (storedAccess === 'true') {
-      setHasFullAccess(true);
-    }
-
-    // Check URL for admin access key
-    const accessKey = searchParams.get('access');
-    if (accessKey === ADMIN_ACCESS_KEY) {
-      localStorage.setItem(STORAGE_KEY, 'true');
-      setHasFullAccess(true);
-      // Clean up URL (remove access param)
-      const url = new URL(window.location.href);
-      url.searchParams.delete('access');
-      window.history.replaceState({}, '', url.toString());
-    }
-
-    // Check if user email is in admin list
+    // FIRST: Clear any stored access - we'll only grant it if user is admin
+    localStorage.removeItem(STORAGE_KEY);
+    
+    // Check if user is admin (by role or email)
     const userData = localStorage.getItem('user_data');
+    const userRole = localStorage.getItem('user_role');
+    let isAdmin = false;
+    
+    // Check if user has ADMIN role
+    if (userRole === 'ADMIN') {
+      isAdmin = true;
+    }
+    
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        if (ADMIN_EMAILS.includes(user.email?.toLowerCase())) {
-          setHasFullAccess(true);
+        // Check if role is ADMIN in user data or email is in admin list
+        if (user.role === 'ADMIN' || ADMIN_EMAILS.includes(user.email?.toLowerCase())) {
+          isAdmin = true;
         }
       } catch (e) {
         // Ignore parse errors
       }
     }
-  }, [searchParams]);
+
+    // Check URL for admin access key - ONLY works if user is already logged in as admin
+    const accessKey = searchParams.get('access');
+    if (accessKey === ADMIN_ACCESS_KEY && isAdmin) {
+      // Only grant access if user is admin AND uses access key
+      setHasFullAccess(true);
+      localStorage.setItem(STORAGE_KEY, 'true');
+      // Clean up URL (remove access param)
+      const url = new URL(window.location.href);
+      url.searchParams.delete('access');
+      window.history.replaceState({}, '', url.toString());
+      return; // Exit early after granting access via key
+    }
+
+    // ONLY grant full access if user is actually logged in as admin
+    // For everyone else, explicitly deny access
+    if (isAdmin) {
+      setHasFullAccess(true);
+      localStorage.setItem(STORAGE_KEY, 'true');
+    } else {
+      // For non-admin users or users not logged in, explicitly deny access
+      setHasFullAccess(false);
+      // Make sure stored access is cleared
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [searchParams, location.pathname]);
 
   const grantFullAccess = () => {
     localStorage.setItem(STORAGE_KEY, 'true');

@@ -77,6 +77,11 @@ public class SearchService {
             listings = listingRepository.fetchEventTypes(listings);
         }
         
+        // Filter out drafts: must have images (SIZE() doesn't work on PostgreSQL arrays in JPQL)
+        listings = listings.stream()
+                .filter(l -> l.getImages() != null && !l.getImages().isEmpty())
+                .collect(Collectors.toList());
+        
         // Apply text search filter in memory (for simplicity; can be moved to DB later)
         if (searchQuery != null && !searchQuery.isBlank()) {
             String query = searchQuery.toLowerCase();

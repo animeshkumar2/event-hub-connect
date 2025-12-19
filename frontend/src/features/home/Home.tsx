@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MinimalNavbar } from '@/features/home/MinimalNavbar';
 import { CinematicHero } from '@/features/home/CinematicHero';
 import { InteractiveEventShowcase } from '@/features/home/InteractiveEventShowcase';
@@ -6,10 +7,11 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, CheckCircle2, Star, Zap, Shield, Award } from 'lucide-react';
+import { ArrowRight, Sparkles, CheckCircle2, Star, Zap, Shield, Award, ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
 const Home = () => {
+  const [openSection, setOpenSection] = useState<string | null>(null);
   // How It Works steps for floating card
   const howItWorksSteps = [
     {
@@ -32,6 +34,39 @@ const Home = () => {
       title: 'Pay & Confirm',
       description: 'Secure payment and instant confirmation',
       color: 'from-green-500 to-emerald-500',
+    },
+  ];
+
+  const footerSections = [
+    {
+      id: 'customers',
+      title: 'For Customers',
+      links: [
+        { label: 'Find Vendors', to: '/search' },
+        { label: 'Event Planner', to: '/event-planner' },
+        { label: 'How It Works', to: '/how-it-works' },
+        { label: 'Pricing', to: '/pricing' },
+      ],
+    },
+    {
+      id: 'vendors',
+      title: 'For Vendors',
+      links: [
+        { label: 'Become a Vendor', to: '/for-vendors' },
+        { label: 'Vendor Login', to: '/login' },
+        { label: 'Vendor Benefits', to: '/for-vendors' },
+        { label: 'Commission Rates', to: '/for-vendors' },
+      ],
+    },
+    {
+      id: 'support',
+      title: 'Support',
+      links: [
+        { label: 'Help Center', to: '/help' },
+        { label: 'Contact Us', to: '/contact' },
+        { label: 'FAQ', to: '/faq' },
+        { label: 'Privacy Policy', to: '/privacy' },
+      ],
     },
   ];
 
@@ -123,12 +158,12 @@ const Home = () => {
       {/* Category Services Section */}
       <CategoryServicesSection />
 
-      {/* Footer - Enhanced */}
+      {/* Footer - Enhanced for mobile */}
       <footer className="border-t border-border py-10 md:py-12 bg-gradient-to-b from-muted/20 to-background">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-10 mb-8">
-            <div>
-              <h3 className="font-black text-xl mb-3 text-[#5046E5]">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-8 mb-8">
+            <div className="bg-white/40 md:bg-transparent border border-border/60 md:border-none rounded-xl md:rounded-none p-4 md:p-0 backdrop-blur-sm md:backdrop-blur-0 shadow-sm md:shadow-none">
+              <h3 className="font-black text-xl mb-2 text-[#5046E5]">
                 cartevent<span className="text-[#7C6BFF]">.</span>
               </h3>
               <p className="text-muted-foreground text-xs leading-relaxed mb-3">
@@ -155,100 +190,53 @@ const Home = () => {
                 </Button>
               </div>
             </div>
-            <div>
-              <h4 className="font-bold text-base mb-3">For Customers</h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link to="/search" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Find Vendors
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/event-planner" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Event Planner
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    How It Works
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Pricing
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-base mb-3">For Vendors</h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link to="/for-vendors" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Become a Vendor
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Vendor Login
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/for-vendors" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Vendor Benefits
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/for-vendors" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Commission Rates
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-base mb-3">Support</h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link to="/help" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Help Center
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/faq" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    FAQ
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                    <ArrowRight className="h-3 w-3" />
-                    Privacy Policy
-                  </Link>
-                </li>
-              </ul>
-            </div>
+
+            {footerSections.map((section) => {
+              const isOpen = openSection === section.id;
+              return (
+                <div
+                  key={section.id}
+                  className="bg-white/40 md:bg-transparent border border-border/60 md:border-none rounded-xl md:rounded-none backdrop-blur-sm md:backdrop-blur-0 shadow-sm md:shadow-none"
+                >
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 md:px-0 md:py-0 md:pb-2 text-left"
+                    onClick={() => setOpenSection(isOpen ? null : section.id)}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="font-semibold text-base">{section.title}</span>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 text-muted-foreground transition-transform md:hidden',
+                        isOpen && 'rotate-180'
+                      )}
+                    />
+                  </button>
+                  <div className={cn('px-4 pb-3 md:px-0 md:pb-0 md:pt-1', isOpen ? 'block' : 'hidden md:block')}>
+                    <ul className="space-y-2 text-xs">
+                      {section.links.map((link) => (
+                        <li key={link.label}>
+                          <Link
+                            to={link.to}
+                            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 rounded-md hover:bg-primary/5 px-2 py-1"
+                          >
+                            <ArrowRight className="h-3 w-3" />
+                            {link.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
           <div className="pt-6 border-t border-border">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground text-center md:text-left">
                 © 2025 cartevent. All rights reserved.
               </p>
-              <div className="flex gap-4 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 text-xs text-muted-foreground">
                 <Link to="/terms" className="hover:text-foreground transition-colors">
                   Terms of Service
                 </Link>

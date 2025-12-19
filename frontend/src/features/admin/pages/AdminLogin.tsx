@@ -47,12 +47,12 @@ export default function AdminLogin() {
         localStorage.setItem('user_id', userId);
         localStorage.setItem('user_role', 'ADMIN');
         
-        // Store user data (using CUSTOMER role for compatibility, but store ADMIN in separate field)
+        // Store user data with ADMIN role
         const userData = {
           id: userId,
           email: email || 'admin@cartevent.com',
           fullName: 'Admin',
-          role: 'CUSTOMER' as const, // Use CUSTOMER for compatibility with AuthContext
+          role: 'ADMIN' as const,
         };
         localStorage.setItem('user_data', JSON.stringify(userData));
         

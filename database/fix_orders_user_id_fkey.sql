@@ -13,3 +13,7 @@ FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE;
 
 
 
+
+
+
+

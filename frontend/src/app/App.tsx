@@ -55,6 +55,7 @@ const AdminLogin = lazy(() => import("@/features/admin/pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("@/features/admin/pages/AdminDashboard"));
 const AdminVendorsList = lazy(() => import("@/features/admin/pages/AdminVendorsList"));
 const AdminVendorDetail = lazy(() => import("@/features/admin/pages/AdminVendorDetail"));
+const AdminListingsList = lazy(() => import("@/features/admin/pages/AdminListingsList"));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -272,6 +273,11 @@ const App = () => (
             <Route path="/admin/vendors/:vendorId" element={
               <Suspense fallback={<LoadingFallback />}>
                 <AdminVendorDetail />
+              </Suspense>
+            } />
+            <Route path="/admin/listings" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminListingsList />
               </Suspense>
             } />
             

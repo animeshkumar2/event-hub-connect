@@ -17,7 +17,8 @@ import {
   BarChart3,
   MapPin,
   Eye,
-  Globe
+  Globe,
+  Home
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -181,6 +182,15 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/')} 
+                size="sm"
+                title="Go to Home"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
               <Button variant="outline" onClick={fetchStats} size="sm">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
@@ -340,26 +350,72 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
+            <CardDescription>Common administrative tasks and navigation</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 md:grid-cols-3">
-              <Button variant="outline" className="justify-start">
-                <Users className="mr-2 h-4 w-4" />
-                Manage Users
-              </Button>
-              <Button 
-                variant="outline" 
-                className="justify-start"
-                onClick={() => navigate('/admin/vendors')}
-              >
-                <Store className="mr-2 h-4 w-4" />
-                Manage Vendors
-              </Button>
-              <Button variant="outline" className="justify-start">
-                <Package className="mr-2 h-4 w-4" />
-                Manage Listings
-              </Button>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Admin Functions</h3>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <Button variant="outline" className="justify-start">
+                    <Users className="mr-2 h-4 w-4" />
+                    Manage Users
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/admin/vendors')}
+                  >
+                    <Store className="mr-2 h-4 w-4" />
+                    Manage Vendors
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/admin/listings')}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Manage Listings
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold mb-2 text-muted-foreground">User Journey Access</h3>
+                <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-4">
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/')}
+                  >
+                    <Home className="mr-2 h-4 w-4" />
+                    Home
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/search')}
+                  >
+                    <Globe className="mr-2 h-4 w-4" />
+                    Browse Listings
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/event-planner')}
+                  >
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Event Planner
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/vendor/dashboard')}
+                  >
+                    <Store className="mr-2 h-4 w-4" />
+                    Vendor Dashboard
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

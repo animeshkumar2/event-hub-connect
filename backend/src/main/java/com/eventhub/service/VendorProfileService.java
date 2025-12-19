@@ -54,13 +54,25 @@ public class VendorProfileService {
     @Transactional(readOnly = true)
     public List<Listing> getVendorPackages(UUID vendorId) {
         Vendor vendor = getVendorProfile(vendorId);
-        return listingRepository.findByVendorIdAndTypeAndIsActiveTrue(vendorId, Listing.ListingType.PACKAGE);
+        // Get all packages and filter out drafts (customer-facing endpoint)
+        List<Listing> packages = listingRepository.findByVendorIdAndTypeAndIsActiveTrue(vendorId, Listing.ListingType.PACKAGE);
+        // Filter out drafts: price > 0.01 and has images
+        return packages.stream()
+            .filter(l -> l.getPrice().compareTo(new java.math.BigDecimal("0.01")) > 0)
+            .filter(l -> l.getImages() != null && !l.getImages().isEmpty())
+            .collect(java.util.stream.Collectors.toList());
     }
     
     @Transactional(readOnly = true)
     public List<Listing> getVendorListings(UUID vendorId) {
         Vendor vendor = getVendorProfile(vendorId);
-        return listingRepository.findByVendorIdAndTypeAndIsActiveTrue(vendorId, Listing.ListingType.ITEM);
+        // Get all listings and filter out drafts (customer-facing endpoint)
+        List<Listing> listings = listingRepository.findByVendorIdAndTypeAndIsActiveTrue(vendorId, Listing.ListingType.ITEM);
+        // Filter out drafts: price > 0.01 and has images
+        return listings.stream()
+            .filter(l -> l.getPrice().compareTo(new java.math.BigDecimal("0.01")) > 0)
+            .filter(l -> l.getImages() != null && !l.getImages().isEmpty())
+            .collect(java.util.stream.Collectors.toList());
     }
     
     @Transactional(readOnly = true)

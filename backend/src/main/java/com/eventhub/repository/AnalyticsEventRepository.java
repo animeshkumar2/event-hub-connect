@@ -26,3 +26,7 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
     long countUniqueSignupsSince(@Param("startDate") LocalDateTime startDate);
 }
 
+
+
+
+

@@ -24,3 +24,7 @@ WHERE is_read_by_vendor IS NULL;
 
 
 
+
+
+
+

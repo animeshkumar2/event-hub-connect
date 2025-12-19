@@ -12,6 +12,8 @@ import java.util.UUID;
 @Repository
 public interface ListingRepository extends JpaRepository<Listing, UUID> {
     
+    // Note: These methods are for admin/internal use - they don't filter drafts
+    // For customer-facing queries, use findActiveListingsSimple or findByEventTypeWithFilters
     List<Listing> findByIsActiveTrue();
     
     List<Listing> findByListingCategoryIdAndIsActiveTrue(String categoryId);
@@ -20,14 +22,19 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     
     @Query("SELECT DISTINCT l FROM Listing l " +
            "JOIN l.eventTypes et " +
-           "WHERE l.isActive = true AND et.id = :eventTypeId")
+           "WHERE l.isActive = true " +
+           "AND l.price > 0.01 " +
+           "AND et.id = :eventTypeId")
     List<Listing> findByEventTypeId(@Param("eventTypeId") Integer eventTypeId);
     
     // Simple query without eventType - uses JPQL with fetch joins for performance
+    // Excludes drafts: isActive must be true, price > 0.01 (draft marker)
+    // Note: Image filtering is done in Java code since SIZE() doesn't work on PostgreSQL arrays
     @Query("SELECT DISTINCT l FROM Listing l " +
            "LEFT JOIN FETCH l.vendor v " +
            "LEFT JOIN FETCH l.listingCategory c " +
            "WHERE l.isActive = true " +
+           "AND l.price > 0.01 " +
            "AND (:categoryId IS NULL OR c.id = :categoryId) " +
            "AND (:type IS NULL OR l.type = :type) " +
            "AND (:minPrice IS NULL OR l.price >= :minPrice) " +
@@ -42,11 +49,14 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     );
     
     // Query with eventType - uses JPQL with fetch joins for performance
+    // Excludes drafts: isActive must be true, price > 0.01 (draft marker)
+    // Note: Image filtering is done in Java code since SIZE() doesn't work on PostgreSQL arrays
     @Query("SELECT DISTINCT l FROM Listing l " +
            "LEFT JOIN FETCH l.vendor v " +
            "LEFT JOIN FETCH l.listingCategory c " +
            "JOIN l.eventTypes et " +
            "WHERE l.isActive = true " +
+           "AND l.price > 0.01 " +
            "AND et.id = :eventTypeId " +
            "AND (:categoryId IS NULL OR c.id = :categoryId) " +
            "AND (:type IS NULL OR l.type = :type) " +
@@ -71,18 +81,26 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     List<Listing> findByVendorIdAndIsActiveTrue(UUID vendorId);
     
     // Optimized query for vendor listings with JOIN FETCH to avoid N+1 queries
+    // Excludes drafts: isActive must be true, price > 0.01 (draft marker)
+    // Note: Image filtering is done in Java code since SIZE() doesn't work on PostgreSQL arrays
     @Query("SELECT DISTINCT l FROM Listing l " +
            "LEFT JOIN FETCH l.vendor v " +
            "LEFT JOIN FETCH l.listingCategory c " +
            "LEFT JOIN FETCH l.eventTypes " +
-           "WHERE l.vendor.id = :vendorId AND l.isActive = true " +
+           "WHERE l.vendor.id = :vendorId " +
+           "AND l.isActive = true " +
+           "AND l.price > 0.01 " +
            "ORDER BY l.createdAt DESC")
     List<Listing> findByVendorIdOptimized(@Param("vendorId") UUID vendorId);
     
-    @Query("SELECT l FROM Listing l WHERE l.isActive = true AND l.isPopular = true")
+    @Query("SELECT l FROM Listing l WHERE l.isActive = true " +
+           "AND l.price > 0.01 " +
+           "AND l.isPopular = true")
     List<Listing> findPopularListings();
     
-    @Query("SELECT l FROM Listing l WHERE l.isActive = true AND l.isTrending = true")
+    @Query("SELECT l FROM Listing l WHERE l.isActive = true " +
+           "AND l.price > 0.01 " +
+           "AND l.isTrending = true")
     List<Listing> findTrendingListings();
     
     List<Listing> findByVendorIdAndTypeAndIsActiveTrue(UUID vendorId, Listing.ListingType type);

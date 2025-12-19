@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { ShoppingCart, User, Menu, Sparkles, ChevronDown } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useCart } from "@/shared/contexts/CartContext";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { cn } from "@/shared/lib/utils";
@@ -40,19 +40,55 @@ export const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const vendorsDropdownRef = useRef<HTMLDivElement>(null);
   const eventTypesDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileVendorsRef = useRef<HTMLDivElement>(null);
+  const mobileEventTypesRef = useRef<HTMLDivElement>(null);
+
+  const closeDropdowns = useCallback(() => {
+    setVendorsDropdownOpen(false);
+    setEventTypesDropdownOpen(false);
+  }, []);
+
+  const toggleVendorsDropdown = useCallback(() => {
+    setVendorsDropdownOpen((open) => {
+      const next = !open;
+      if (next) setEventTypesDropdownOpen(false);
+      return next;
+    });
+  }, []);
+
+  const toggleEventTypesDropdown = useCallback(() => {
+    setEventTypesDropdownOpen((open) => {
+      const next = !open;
+      if (next) setVendorsDropdownOpen(false);
+      return next;
+    });
+  }, []);
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+    closeDropdowns();
+  }, [closeDropdowns]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
+    const isOutside = (refs: React.RefObject<HTMLElement>[], target: Node) =>
+      refs.every((ref) => ref.current && !ref.current.contains(target));
+
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        vendorsDropdownRef.current &&
-        !vendorsDropdownRef.current.contains(event.target as Node)
+        isOutside(
+          [vendorsDropdownRef, mobileVendorsRef],
+          target
+        )
       ) {
         setVendorsDropdownOpen(false);
       }
       if (
-        eventTypesDropdownRef.current &&
-        !eventTypesDropdownRef.current.contains(event.target as Node)
+        isOutside(
+          [eventTypesDropdownRef, mobileEventTypesRef],
+          target
+        )
       ) {
         setEventTypesDropdownOpen(false);
       }
@@ -63,6 +99,17 @@ export const Navbar = () => {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [vendorsDropdownOpen, eventTypesDropdownOpen]);
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeDropdowns();
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [closeDropdowns]);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
@@ -91,8 +138,7 @@ export const Navbar = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setVendorsDropdownOpen(!vendorsDropdownOpen);
-                  setEventTypesDropdownOpen(false);
+                  toggleVendorsDropdown();
                 }}
                 className={cn(
                   'text-xs font-medium transition-all duration-200 flex items-center gap-1.5 px-3 py-2 rounded-md',
@@ -111,22 +157,24 @@ export const Navbar = () => {
               {vendorsDropdownOpen && (
                 <div
                   className={cn(
-                    'absolute top-full left-0 mt-1.5 w-72 bg-white rounded-lg shadow-2xl border border-border/50 overflow-hidden',
-                    'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
+                    'absolute top-full left-0 mt-1.5 w-80 rounded-xl overflow-hidden backdrop-blur-md',
+                    'border border-border/70 shadow-[0_20px_60px_rgba(0,0,0,0.15)] ring-1 ring-primary/10',
+                    'bg-white/95 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
                   )}
-                  style={{
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)'
-                  }}
                 >
-                  <div className="py-1.5 max-h-[28rem] overflow-y-auto custom-scrollbar">
+                  <div className="px-4 pt-3 pb-2 border-b border-border/60 bg-gradient-to-r from-primary/5 via-white to-secondary/5">
+                    <p className="text-[11px] font-semibold text-primary uppercase tracking-[0.12em]">Popular vendor types</p>
+                    <p className="text-[12px] text-muted-foreground">Browse by category</p>
+                  </div>
+                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[26rem] overflow-y-auto custom-scrollbar bg-white/98">
                     {vendorCategories.map((category) => (
                       <Link
                         key={category.id}
                         to={`/search?category=${category.id}&view=vendors`}
                         className={cn(
-                          'flex items-center gap-2.5 px-3.5 py-2 mx-1 rounded-md',
-                          'text-xs text-foreground/80 hover:text-primary hover:bg-primary/5',
-                          'transition-all duration-150 active:scale-[0.98]'
+                          'flex items-center gap-3 px-3 py-2 rounded-lg border border-transparent',
+                          'text-xs text-foreground/80 hover:text-primary',
+                          'hover:bg-primary/5 hover:border-primary/20 transition-all duration-150 active:scale-[0.99]'
                         )}
                         onClick={() => setVendorsDropdownOpen(false)}
                       >
@@ -147,8 +195,7 @@ export const Navbar = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEventTypesDropdownOpen(!eventTypesDropdownOpen);
-                  setVendorsDropdownOpen(false);
+                  toggleEventTypesDropdown();
                 }}
                 className={cn(
                   'text-xs font-medium transition-all duration-200 flex items-center gap-1.5 px-3 py-2 rounded-md',
@@ -167,22 +214,24 @@ export const Navbar = () => {
               {eventTypesDropdownOpen && (
                 <div
                   className={cn(
-                    'absolute top-full left-0 mt-1.5 w-56 bg-white rounded-lg shadow-2xl border border-border/50 overflow-hidden',
-                    'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
+                    'absolute top-full left-0 mt-1.5 w-64 rounded-xl overflow-hidden backdrop-blur-md',
+                    'border border-border/70 shadow-[0_20px_60px_rgba(0,0,0,0.15)] ring-1 ring-primary/10',
+                    'bg-white/95 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
                   )}
-                  style={{
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)'
-                  }}
                 >
-                  <div className="py-1.5">
+                  <div className="px-4 pt-3 pb-2 border-b border-border/60 bg-gradient-to-r from-secondary/10 via-white to-primary/5">
+                    <p className="text-[11px] font-semibold text-secondary uppercase tracking-[0.12em]">Event types</p>
+                    <p className="text-[12px] text-muted-foreground">Pick your occasion</p>
+                  </div>
+                  <div className="p-3 space-y-1 max-h-[22rem] overflow-y-auto custom-scrollbar bg-white/98">
                     {eventTypes.map((eventType) => (
                       <Link
                         key={eventType.id}
                         to={`/search?eventType=${eventType.id}`}
                         className={cn(
-                          'flex items-center gap-2.5 px-3.5 py-2 mx-1 rounded-md',
-                          'text-xs text-foreground/80 hover:text-primary hover:bg-primary/5',
-                          'transition-all duration-150 active:scale-[0.98]'
+                          'flex items-center gap-3 px-3 py-2 rounded-lg border border-transparent',
+                          'text-xs text-foreground/80 hover:text-primary',
+                          'hover:bg-primary/5 hover:border-primary/20 transition-all duration-150 active:scale-[0.99]'
                         )}
                         onClick={() => setEventTypesDropdownOpen(false)}
                       >
@@ -305,9 +354,11 @@ export const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             className="md:hidden transition-colors hover:text-primary"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
-            <Menu className="h-6 w-6" />
+            {mobileMenuOpen ? <ChevronDown className="h-6 w-6 rotate-180" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
@@ -317,19 +368,16 @@ export const Navbar = () => {
             <Link
               to="/"
               className="block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 hover:text-primary hover:bg-primary/5"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobileMenu}
             >
               Home
             </Link>
             
             {/* Mobile Vendors Section */}
-            <div>
+            <div ref={mobileVendorsRef}>
               <button
                 className="w-full flex items-center justify-between py-2.5 px-2 text-xs font-medium transition-all duration-200 rounded-md hover:text-primary hover:bg-primary/5"
-                onClick={() => {
-                  setVendorsDropdownOpen(!vendorsDropdownOpen);
-                  setEventTypesDropdownOpen(false);
-                }}
+                onClick={toggleVendorsDropdown}
               >
                 Find Vendors
                 <ChevronDown className={cn(
@@ -345,8 +393,7 @@ export const Navbar = () => {
                       to={`/search?category=${category.id}&view=vendors`}
                       className="flex items-center gap-2 py-2 px-2.5 rounded-md text-xs transition-all duration-150 text-muted-foreground hover:text-primary hover:bg-primary/5"
                       onClick={() => {
-                        setMobileMenuOpen(false);
-                        setVendorsDropdownOpen(false);
+                        closeMobileMenu();
                       }}
                     >
                       <span className="text-sm">{category.icon}</span>
@@ -358,13 +405,10 @@ export const Navbar = () => {
             </div>
 
             {/* Mobile Event Types Section */}
-            <div>
+            <div ref={mobileEventTypesRef}>
               <button
                 className="w-full flex items-center justify-between py-2.5 px-2 text-xs font-medium transition-all duration-200 rounded-md hover:text-primary hover:bg-primary/5"
-                onClick={() => {
-                  setEventTypesDropdownOpen(!eventTypesDropdownOpen);
-                  setVendorsDropdownOpen(false);
-                }}
+                onClick={toggleEventTypesDropdown}
               >
                 Event Types
                 <ChevronDown className={cn(
@@ -380,8 +424,7 @@ export const Navbar = () => {
                       to={`/search?eventType=${eventType.id}`}
                       className="flex items-center gap-2 py-2 px-2.5 rounded-md text-xs transition-all duration-150 text-muted-foreground hover:text-primary hover:bg-primary/5"
                       onClick={() => {
-                        setMobileMenuOpen(false);
-                        setEventTypesDropdownOpen(false);
+                        closeMobileMenu();
                       }}
                     >
                       <span className="text-sm">{eventType.icon}</span>

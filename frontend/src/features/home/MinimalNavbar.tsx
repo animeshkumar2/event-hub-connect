@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { ShoppingCart, User, Menu, Sparkles, ChevronDown, X } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useCart } from '@/shared/contexts/CartContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { cn } from '@/shared/lib/utils';
@@ -41,28 +41,76 @@ export const MinimalNavbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const vendorsDropdownRef = useRef<HTMLDivElement>(null);
   const eventTypesDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileVendorsRef = useRef<HTMLDivElement>(null);
+  const mobileEventTypesRef = useRef<HTMLDivElement>(null);
+  const bodyOverflowRef = useRef<string | null>(null);
+  const isSolidNav = scrolled || mobileMenuOpen;
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+    setVendorsDropdownOpen(false);
+    setEventTypesDropdownOpen(false);
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen((prev) => {
+      const next = !prev;
+      if (!next) {
+        setVendorsDropdownOpen(false);
+        setEventTypesDropdownOpen(false);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      bodyOverflowRef.current = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    } else if (bodyOverflowRef.current !== null) {
+      document.body.style.overflow = bodyOverflowRef.current;
+      bodyOverflowRef.current = null;
+    }
+
+    return () => {
+      if (bodyOverflowRef.current !== null) {
+        document.body.style.overflow = bodyOverflowRef.current;
+        bodyOverflowRef.current = null;
+      }
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && mobileMenuOpen) {
+        closeMobileMenu();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [mobileMenuOpen, closeMobileMenu]);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
+    const isOutside = (refs: React.RefObject<HTMLElement>[], target: Node) =>
+      refs.every((ref) => ref.current && !ref.current.contains(target));
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        vendorsDropdownRef.current &&
-        !vendorsDropdownRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      if (isOutside([vendorsDropdownRef, mobileVendorsRef], target)) {
         setVendorsDropdownOpen(false);
       }
-      if (
-        eventTypesDropdownRef.current &&
-        !eventTypesDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (isOutside([eventTypesDropdownRef, mobileEventTypesRef], target)) {
         setEventTypesDropdownOpen(false);
       }
     };
@@ -73,11 +121,23 @@ export const MinimalNavbar = () => {
     }
   }, [vendorsDropdownOpen, eventTypesDropdownOpen]);
 
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setVendorsDropdownOpen(false);
+        setEventTypesDropdownOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
+
   return (
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        scrolled
+        isSolidNav
           ? 'bg-white/95 backdrop-blur-md border-b border-border shadow-sm'
           : 'bg-transparent'
       )}
@@ -89,12 +149,12 @@ export const MinimalNavbar = () => {
             <span
               className={cn(
                 'text-lg md:text-xl font-bold transition-all duration-200',
-                scrolled 
+                isSolidNav 
                   ? 'text-[#5046E5]' 
                   : 'text-white group-hover:text-white/90'
               )}
             >
-              cartevent<span className={scrolled ? 'text-[#7C6BFF]' : 'text-white/80'}>.</span>
+              cartevent<span className={isSolidNav ? 'text-[#7C6BFF]' : 'text-white/80'}>.</span>
             </span>
           </Link>
 
@@ -104,7 +164,7 @@ export const MinimalNavbar = () => {
               to="/"
               className={cn(
                 'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
-                scrolled 
+                isSolidNav 
                   ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                   : 'text-white/90 hover:text-white hover:bg-white/10'
               )}
@@ -120,15 +180,18 @@ export const MinimalNavbar = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setVendorsDropdownOpen(!vendorsDropdownOpen);
-                  setEventTypesDropdownOpen(false);
+                  setVendorsDropdownOpen((open) => {
+                    const next = !open;
+                    if (next) setEventTypesDropdownOpen(false);
+                    return next;
+                  });
                 }}
                 className={cn(
                   'text-xs font-medium transition-all duration-200 flex items-center gap-1.5 px-3 py-2 rounded-md',
-                  scrolled 
+                  isSolidNav 
                     ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10',
-                  vendorsDropdownOpen && (scrolled ? 'text-primary bg-primary/5' : 'text-white bg-white/10')
+                  vendorsDropdownOpen && (isSolidNav ? 'text-primary bg-primary/5' : 'text-white bg-white/10')
                 )}
               >
                 Vendors
@@ -142,22 +205,24 @@ export const MinimalNavbar = () => {
               {vendorsDropdownOpen && (
                 <div
                   className={cn(
-                    'absolute top-full left-0 mt-1.5 w-72 bg-white rounded-lg shadow-2xl border border-border/50 overflow-hidden',
-                    'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
+                    'absolute top-full left-0 mt-1.5 w-80 rounded-xl overflow-hidden backdrop-blur-md',
+                    'border border-border/70 shadow-[0_20px_60px_rgba(0,0,0,0.15)] ring-1 ring-primary/10',
+                    'bg-white/95 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
                   )}
-                  style={{
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)'
-                  }}
                 >
-                  <div className="py-1.5 max-h-[28rem] overflow-y-auto custom-scrollbar">
+                  <div className="px-4 pt-3 pb-2 border-b border-border/60 bg-gradient-to-r from-primary/5 via-white to-secondary/5">
+                    <p className="text-[11px] font-semibold text-primary uppercase tracking-[0.12em]">Popular vendor types</p>
+                    <p className="text-[12px] text-muted-foreground">Browse by category</p>
+                  </div>
+                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[26rem] overflow-y-auto custom-scrollbar bg-white/98">
                     {vendorCategories.map((category) => (
                       <Link
                         key={category.id}
                         to={`/search?category=${category.id}&view=vendors`}
                         className={cn(
-                          'flex items-center gap-2.5 px-3.5 py-2 mx-1 rounded-md',
-                          'text-xs text-foreground/80 hover:text-primary hover:bg-primary/5',
-                          'transition-all duration-150 active:scale-[0.98]'
+                          'flex items-center gap-3 px-3 py-2 rounded-lg border border-transparent',
+                          'text-xs text-foreground/80 hover:text-primary',
+                          'hover:bg-primary/5 hover:border-primary/20 transition-all duration-150 active:scale-[0.99]'
                         )}
                         onClick={() => setVendorsDropdownOpen(false)}
                       >
@@ -178,15 +243,18 @@ export const MinimalNavbar = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEventTypesDropdownOpen(!eventTypesDropdownOpen);
-                  setVendorsDropdownOpen(false);
+                  setEventTypesDropdownOpen((open) => {
+                    const next = !open;
+                    if (next) setVendorsDropdownOpen(false);
+                    return next;
+                  });
                 }}
                 className={cn(
                   'text-xs font-medium transition-all duration-200 flex items-center gap-1.5 px-3 py-2 rounded-md',
-                  scrolled 
+                  isSolidNav 
                     ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10',
-                  eventTypesDropdownOpen && (scrolled ? 'text-primary bg-primary/5' : 'text-white bg-white/10')
+                  eventTypesDropdownOpen && (isSolidNav ? 'text-primary bg-primary/5' : 'text-white bg-white/10')
                 )}
               >
                 Event Types
@@ -200,22 +268,24 @@ export const MinimalNavbar = () => {
               {eventTypesDropdownOpen && (
                 <div
                   className={cn(
-                    'absolute top-full left-0 mt-1.5 w-56 bg-white rounded-lg shadow-2xl border border-border/50 overflow-hidden',
-                    'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
+                    'absolute top-full left-0 mt-1.5 w-64 rounded-xl overflow-hidden backdrop-blur-md',
+                    'border border-border/70 shadow-[0_20px_60px_rgba(0,0,0,0.15)] ring-1 ring-primary/10',
+                    'bg-white/95 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200'
                   )}
-                  style={{
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05)'
-                  }}
                 >
-                  <div className="py-1.5">
+                  <div className="px-4 pt-3 pb-2 border-b border-border/60 bg-gradient-to-r from-secondary/10 via-white to-primary/5">
+                    <p className="text-[11px] font-semibold text-secondary uppercase tracking-[0.12em]">Event types</p>
+                    <p className="text-[12px] text-muted-foreground">Pick your occasion</p>
+                  </div>
+                  <div className="p-3 space-y-1 max-h-[22rem] overflow-y-auto custom-scrollbar bg-white/98">
                     {eventTypes.map((eventType) => (
                       <Link
                         key={eventType.id}
                         to={`/search?eventType=${eventType.id}`}
                         className={cn(
-                          'flex items-center gap-2.5 px-3.5 py-2 mx-1 rounded-md',
-                          'text-xs text-foreground/80 hover:text-primary hover:bg-primary/5',
-                          'transition-all duration-150 active:scale-[0.98]'
+                          'flex items-center gap-3 px-3 py-2 rounded-lg border border-transparent',
+                          'text-xs text-foreground/80 hover:text-primary',
+                          'hover:bg-primary/5 hover:border-primary/20 transition-all duration-150 active:scale-[0.99]'
                         )}
                         onClick={() => setEventTypesDropdownOpen(false)}
                       >
@@ -232,7 +302,7 @@ export const MinimalNavbar = () => {
               to="/event-planner"
               className={cn(
                 'text-xs font-medium transition-all duration-200 flex items-center gap-1.5 px-3 py-2 rounded-md',
-                scrolled 
+                isSolidNav 
                   ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                   : 'text-white/90 hover:text-white hover:bg-white/10'
               )}
@@ -246,7 +316,7 @@ export const MinimalNavbar = () => {
                 to="/for-vendors"
                 className={cn(
                   'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
-                  scrolled 
+                isSolidNav 
                     ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10'
                 )}
@@ -261,7 +331,7 @@ export const MinimalNavbar = () => {
               size="icon"
               className={cn(
                 'relative h-8 w-8 transition-all duration-200 rounded-md',
-                scrolled 
+                isSolidNav 
                   ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                   : 'text-white/90 hover:text-white hover:bg-white/10'
               )}
@@ -285,7 +355,7 @@ export const MinimalNavbar = () => {
                   size="sm"
                   className={cn(
                     'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
-                    scrolled 
+                    isSolidNav 
                       ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                       : 'text-white/90 hover:text-white hover:bg-white/10'
                   )}
@@ -308,7 +378,7 @@ export const MinimalNavbar = () => {
                   size="sm"
                   className={cn(
                     'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md z-50',
-                    scrolled 
+                    isSolidNav 
                       ? 'border-border text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive' 
                       : 'border-white/30 bg-white/95 text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm backdrop-blur-sm'
                   )}
@@ -324,7 +394,7 @@ export const MinimalNavbar = () => {
                   size="sm"
                   className={cn(
                     'h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md',
-                    scrolled 
+                    isSolidNav 
                       ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                       : 'text-white/90 hover:text-white hover:bg-white/10'
                   )}
@@ -339,7 +409,7 @@ export const MinimalNavbar = () => {
                   size="sm"
                   className={cn(
                     'h-8 px-4 text-xs font-semibold transition-all duration-200 rounded-md',
-                    scrolled 
+                    isSolidNav 
                       ? 'bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg' 
                       : 'bg-white/95 hover:bg-white text-foreground shadow-md hover:shadow-lg border border-white/20'
                   )}
@@ -355,11 +425,17 @@ export const MinimalNavbar = () => {
           <button
             className={cn(
               'md:hidden transition-colors',
-              scrolled ? 'text-foreground' : 'text-white'
+              isSolidNav ? 'text-foreground' : 'text-white'
             )}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={toggleMobileMenu}
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
-            <Menu className="h-6 w-6" />
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </button>
         </div>
 
@@ -367,33 +443,36 @@ export const MinimalNavbar = () => {
         {mobileMenuOpen && (
           <div className={cn(
             'md:hidden py-4 space-y-3 border-t transition-colors',
-            scrolled ? 'border-border' : 'border-white/20'
+            isSolidNav ? 'border-border bg-white' : 'border-white/20 bg-white/90'
           )}>
             <Link
               to="/"
               className={cn(
                 'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
-                scrolled 
+                isSolidNav 
                   ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                   : 'text-white/90 hover:text-white hover:bg-white/10'
               )}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobileMenu}
             >
               Home
             </Link>
             
             {/* Mobile Vendors Section */}
-            <div>
+            <div ref={mobileVendorsRef}>
               <button
                 className={cn(
                   'w-full flex items-center justify-between py-2.5 text-xs font-medium transition-all duration-200 rounded-md px-2',
-                  scrolled 
+                  isSolidNav 
                     ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10'
                 )}
                 onClick={() => {
-                  setVendorsDropdownOpen(!vendorsDropdownOpen);
-                  setEventTypesDropdownOpen(false);
+                  setVendorsDropdownOpen((open) => {
+                    const next = !open;
+                    if (next) setEventTypesDropdownOpen(false);
+                    return next;
+                  });
                 }}
               >
                 Vendors
@@ -410,13 +489,12 @@ export const MinimalNavbar = () => {
                       to={`/search?category=${category.id}&view=vendors`}
                       className={cn(
                         'flex items-center gap-2 py-2 px-2.5 rounded-md text-xs transition-all duration-150',
-                        scrolled 
+                        isSolidNav 
                           ? 'text-muted-foreground hover:text-primary hover:bg-primary/5' 
                           : 'text-white/70 hover:text-white hover:bg-white/10'
                       )}
                       onClick={() => {
-                        setMobileMenuOpen(false);
-                        setVendorsDropdownOpen(false);
+                        closeMobileMenu();
                       }}
                     >
                       <span className="text-sm">{category.icon}</span>
@@ -428,17 +506,20 @@ export const MinimalNavbar = () => {
             </div>
 
             {/* Mobile Event Types Section */}
-            <div>
+            <div ref={mobileEventTypesRef}>
               <button
                 className={cn(
                   'w-full flex items-center justify-between py-2.5 text-xs font-medium transition-all duration-200 rounded-md px-2',
-                  scrolled 
+                  isSolidNav 
                     ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10'
                 )}
                 onClick={() => {
-                  setEventTypesDropdownOpen(!eventTypesDropdownOpen);
-                  setVendorsDropdownOpen(false);
+                  setEventTypesDropdownOpen((open) => {
+                    const next = !open;
+                    if (next) setVendorsDropdownOpen(false);
+                    return next;
+                  });
                 }}
               >
                 Event Types
@@ -455,13 +536,12 @@ export const MinimalNavbar = () => {
                       to={`/search?eventType=${eventType.id}`}
                       className={cn(
                         'flex items-center gap-2 py-2 px-2.5 rounded-md text-xs transition-all duration-150',
-                        scrolled 
+                        isSolidNav 
                           ? 'text-muted-foreground hover:text-primary hover:bg-primary/5' 
                           : 'text-white/70 hover:text-white hover:bg-white/10'
                       )}
                       onClick={() => {
-                        setMobileMenuOpen(false);
-                        setEventTypesDropdownOpen(false);
+                        closeMobileMenu();
                       }}
                     >
                       <span className="text-sm">{eventType.icon}</span>
@@ -476,11 +556,11 @@ export const MinimalNavbar = () => {
               to="/event-planner"
               className={cn(
                 'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 flex items-center gap-2',
-                scrolled 
+                isSolidNav 
                   ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                   : 'text-white/90 hover:text-white hover:bg-white/10'
               )}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobileMenu}
             >
               <Sparkles className="h-3.5 w-3.5" />
               Event Planner
@@ -491,11 +571,11 @@ export const MinimalNavbar = () => {
                 to="/for-vendors"
                 className={cn(
                   'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
-                  scrolled 
+                  isSolidNav 
                     ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                     : 'text-white/90 hover:text-white hover:bg-white/10'
                 )}
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={closeMobileMenu}
               >
                 Become a Vendor
               </Link>
@@ -505,11 +585,11 @@ export const MinimalNavbar = () => {
               to="/cart"
               className={cn(
                 'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 flex items-center gap-2 relative',
-                scrolled 
+                isSolidNav 
                   ? 'text-foreground hover:text-primary hover:bg-primary/5' 
                   : 'text-white/90 hover:text-white hover:bg-white/10'
               )}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobileMenu}
             >
               <ShoppingCart className="h-3.5 w-3.5" />
               Cart
@@ -529,18 +609,18 @@ export const MinimalNavbar = () => {
                     asChild 
                     className={cn(
                       'flex-1 h-8 text-xs font-medium',
-                      scrolled 
+                      isSolidNav 
                         ? 'border-border' 
                         : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
                     )}
                   >
                     {user.role === 'VENDOR' ? (
-                      <Link to="/vendor/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                      <Link to="/vendor/dashboard" onClick={closeMobileMenu}>
                         <User className="h-3.5 w-3.5 mr-1.5" />
                         Dashboard
                       </Link>
                     ) : (
-                      <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                      <Link to="/profile" onClick={closeMobileMenu}>
                         <User className="h-3.5 w-3.5 mr-1.5" />
                         {user.fullName || user.email.split('@')[0]}
                       </Link>
@@ -551,13 +631,13 @@ export const MinimalNavbar = () => {
                     size="sm" 
                     className={cn(
                       'flex-1 h-8 text-xs font-semibold',
-                      scrolled 
+                      isSolidNav 
                         ? 'border-border text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive' 
                         : 'border-white/30 bg-white/95 text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm backdrop-blur-sm'
                     )}
                     onClick={() => {
                       logout();
-                      setMobileMenuOpen(false);
+                      closeMobileMenu();
                     }}
                   >
                     Logout
@@ -571,12 +651,12 @@ export const MinimalNavbar = () => {
                     asChild 
                     className={cn(
                       'flex-1 h-8 text-xs font-medium',
-                      scrolled 
+                      isSolidNav 
                         ? 'border-border' 
                         : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
                     )}
                   >
-                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                    <Link to="/login" onClick={closeMobileMenu}>
                       <User className="h-3.5 w-3.5 mr-1.5" />
                       Login
                     </Link>
@@ -586,12 +666,12 @@ export const MinimalNavbar = () => {
                     asChild 
                     className={cn(
                       'flex-1 h-8 text-xs font-semibold',
-                      scrolled 
+                      isSolidNav 
                         ? 'bg-primary hover:bg-primary/90 shadow-md' 
                         : 'bg-white/95 hover:bg-white text-foreground shadow-md border border-white/20'
                     )}
                   >
-                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
+                    <Link to="/signup" onClick={closeMobileMenu}>Sign Up</Link>
                   </Button>
                 </>
               )}

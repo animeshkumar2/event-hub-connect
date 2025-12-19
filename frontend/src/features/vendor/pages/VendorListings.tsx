@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -23,17 +23,19 @@ import {
   Save,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { useVendorListingsData } from '@/shared/hooks/useApi';
+import { useVendorListingsData, useEventTypeCategories } from '@/shared/hooks/useApi';
 import { vendorApi } from '@/shared/services/api';
 
 export default function VendorListings() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [listingType, setListingType] = useState<'PACKAGE' | 'ITEM'>('PACKAGE');
@@ -41,10 +43,13 @@ export default function VendorListings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track which listing is being deleted
   const [formStep, setFormStep] = useState<1 | 2>(1); // Two-step form
   
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
+  const { data: eventTypeCategoriesData } = useEventTypeCategories();
   const listingsData = listings.data;
   const listingsLoading = listings.loading || dataLoading;
   const listingsError = listings.error;
@@ -52,6 +57,7 @@ export default function VendorListings() {
   const profileData = profile.data;
   const eventTypesData = eventTypes.data;
   const categoriesData = categories.data;
+  const eventTypeCategories = eventTypeCategoriesData || [];
 
   // Extra charge with pricing type
   type ExtraCharge = { name: string; price: string };
@@ -89,6 +95,48 @@ export default function VendorListings() {
     const category = categoriesData.find((cat: any) => cat.id === categoryId);
     return category?.name || '';
   };
+
+  // Filter event types based on selected category
+  // Show only event types that are valid for the selected category
+  const availableEventTypes = useMemo(() => {
+    if (!eventTypesData || !Array.isArray(eventTypesData)) return [];
+    if (!eventTypeCategories || eventTypeCategories.length === 0) return eventTypesData;
+    
+    // If no category selected, show all event types
+    if (!formData.categoryId || formData.categoryId === 'other') {
+      return eventTypesData;
+    }
+
+    // Get valid event type IDs for selected category
+    const validEventTypeIds = new Set<number>();
+    
+    eventTypeCategories.forEach((etc: any) => {
+      // Handle different possible structures
+      const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
+      const etcCategoryId = etc.categoryId || etc.category?.id;
+      
+      if (etcCategoryId === formData.categoryId && etcEventTypeId) {
+        validEventTypeIds.add(etcEventTypeId);
+      }
+    });
+
+    // Special case: Add Corporate to DJ category (as requested)
+    if (formData.categoryId === 'dj') {
+      const corporateEventType = eventTypesData.find((et: any) => 
+        et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
+      );
+      if (corporateEventType) {
+        validEventTypeIds.add(corporateEventType.id);
+      }
+    }
+
+    // Filter event types to only include valid ones
+    const filtered = eventTypesData.filter((et: any) => 
+      validEventTypeIds.has(et.id)
+    );
+
+    return filtered;
+  }, [eventTypesData, eventTypeCategories, formData.categoryId]);
 
   // Filter listings with enhanced search (name, description, category)
   const filteredListings = useMemo(() => {
@@ -130,7 +178,17 @@ export default function VendorListings() {
   
   // Helper function to check if draft - needs to be defined before useMemo calls
   function isDraftListing(listing: any) {
-    return listing.isDraft || !listing.price || listing.price === 0 || !listing.images?.length;
+    // A listing is a draft if:
+    // 1. Explicitly marked as draft
+    // 2. Price is 0 or 0.01 (draft marker)
+    // 3. Not active (isActive = false)
+    // 4. Missing required fields (no images, no price, etc.)
+    return listing.isDraft || 
+           !listing.isActive || 
+           !listing.price || 
+           listing.price === 0 || 
+           listing.price === 0.01 ||
+           !listing.images?.length;
   }
 
   // Handle edit query parameter (from preview page)
@@ -206,6 +264,11 @@ export default function VendorListings() {
   }, [editingListing, vendorCategoryId]);
 
   const handleSubmit = async () => {
+    // Prevent multiple clicks
+    if (isPublishing) {
+      return;
+    }
+
     if (!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0) {
       toast.error('Please fill in all required fields');
       return;
@@ -217,6 +280,37 @@ export default function VendorListings() {
       return;
     }
 
+    // Validate event types are valid for selected category
+    if (formData.categoryId && formData.categoryId !== 'other' && eventTypeCategories.length > 0) {
+      const validEventTypeIds = new Set<number>();
+      
+      eventTypeCategories.forEach((etc: any) => {
+        const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
+        const etcCategoryId = etc.categoryId || etc.category?.id;
+        if (etcCategoryId === formData.categoryId && etcEventTypeId) {
+          validEventTypeIds.add(etcEventTypeId);
+        }
+      });
+      
+      // Add Corporate to DJ category
+      if (formData.categoryId === 'dj') {
+        const corporateEventType = eventTypesData?.find((et: any) => 
+          et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
+        );
+        if (corporateEventType) {
+          validEventTypeIds.add(corporateEventType.id);
+        }
+      }
+
+      // Check if all selected event types are valid
+      const invalidEventTypes = formData.eventTypeIds.filter(id => !validEventTypeIds.has(id));
+      if (invalidEventTypes.length > 0) {
+        toast.error(`Some selected event types are not valid for the chosen category. Please select valid event types.`);
+        return;
+      }
+    }
+
+    setIsPublishing(true);
     try {
       const payload: any = {
         name: formData.name,
@@ -234,6 +328,8 @@ export default function VendorListings() {
           price: parseFloat(ec.price) || 0
         })),
         extraCharges: formData.extraCharges,
+        isActive: true, // Published listings should be active/visible
+        isDraft: false, // Published listings are not drafts
       };
 
       if (listingType === 'PACKAGE') {
@@ -277,12 +373,20 @@ export default function VendorListings() {
       }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
   const handleDelete = async (listing: any) => {
     if (!confirm(`Are you sure you want to delete "${listing.name}"?`)) return;
+    
+    // Prevent multiple clicks
+    if (isDeleting === listing.id) {
+      return;
+    }
 
+    setIsDeleting(listing.id);
     try {
       const response = await vendorApi.deleteListing(listing.id);
       if (response.success) {
@@ -293,6 +397,8 @@ export default function VendorListings() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete listing');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -408,6 +514,7 @@ export default function VendorListings() {
     setIsSaving(true);
     try {
       // Use price=0.01 as a marker for draft listings (real listings will have actual prices)
+      // IMPORTANT: Set isActive to false so draft listings are NOT visible on user side
       const payload: any = {
         name: formData.name,
         description: formData.description || 'Draft - description pending',
@@ -423,6 +530,8 @@ export default function VendorListings() {
           price: parseFloat(ec.price) || 0
         })),
         extraCharges: formData.extraCharges,
+        isActive: false, // Drafts should NOT be active/visible on user side
+        isDraft: true, // Explicitly mark as draft
       };
 
       if (listingType === 'PACKAGE') {
@@ -499,6 +608,18 @@ export default function VendorListings() {
   return (
     <VendorLayout>
       <div className="p-6 space-y-6">
+        {/* Back Button */}
+        <div className="mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/vendor/dashboard')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
+        
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -613,10 +734,39 @@ export default function VendorListings() {
                       <Select
                         value={formData.categoryId}
                         onValueChange={(value) => {
+                          // When category changes, filter event types and clear invalid selections
+                          let newEventTypeIds = formData.eventTypeIds;
+                          
+                          if (value && value !== 'other' && eventTypeCategories.length > 0) {
+                            // Get valid event type IDs for this category
+                            const validEventTypeIds = new Set<number>();
+                            eventTypeCategories.forEach((etc: any) => {
+                              const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
+                              const etcCategoryId = etc.categoryId || etc.category?.id;
+                              if (etcCategoryId === value && etcEventTypeId) {
+                                validEventTypeIds.add(etcEventTypeId);
+                              }
+                            });
+                            
+                            // Add Corporate to DJ
+                            if (value === 'dj') {
+                              const corporateEventType = eventTypesData?.find((et: any) => 
+                                et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
+                              );
+                              if (corporateEventType) {
+                                validEventTypeIds.add(corporateEventType.id);
+                              }
+                            }
+                            
+                            // Remove invalid event types
+                            newEventTypeIds = formData.eventTypeIds.filter(id => validEventTypeIds.has(id));
+                          }
+                          
                           setFormData({ 
                             ...formData, 
                             categoryId: value,
-                            customCategoryName: value !== 'other' ? '' : formData.customCategoryName // Clear if switching away from "Other"
+                            eventTypeIds: newEventTypeIds,
+                            customCategoryName: value !== 'other' ? '' : formData.customCategoryName
                           });
                         }}
                       >
@@ -650,31 +800,52 @@ export default function VendorListings() {
 
                   <div className="space-y-2">
                     <Label className="text-foreground">Event Types *</Label>
-                    <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
-                      {eventTypesData && Array.isArray(eventTypesData) && eventTypesData.map((et: any) => (
-                        <div key={et.id} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.eventTypeIds.includes(et.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setFormData({ ...formData, eventTypeIds: [...formData.eventTypeIds, et.id] });
-                              } else {
-                                setFormData({ ...formData, eventTypeIds: formData.eventTypeIds.filter(id => id !== et.id) });
-                              }
-                            }}
-                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                          />
-                          <Label className="text-sm font-normal text-foreground cursor-pointer">
-                            {et.name}
-                          </Label>
+                    {!formData.categoryId || formData.categoryId === 'other' ? (
+                      <div className="p-3 border border-border rounded-lg bg-muted/30">
+                        <p className="text-sm text-muted-foreground">
+                          ⚠️ Please select a category first to see available event types
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
+                          {availableEventTypes && Array.isArray(availableEventTypes) && availableEventTypes.length > 0 ? (
+                            availableEventTypes.map((et: any) => (
+                              <div key={et.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.eventTypeIds.includes(et.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData({ ...formData, eventTypeIds: [...formData.eventTypeIds, et.id] });
+                                    } else {
+                                      setFormData({ ...formData, eventTypeIds: formData.eventTypeIds.filter(id => id !== et.id) });
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                                />
+                                <Label className="text-sm font-normal text-foreground cursor-pointer">
+                                  {et.name || et.displayName}
+                                </Label>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="col-span-2 p-2 text-sm text-muted-foreground">
+                              No event types available for this category
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                    {formData.eventTypeIds.length === 0 && (
-                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                        ⚠️ Please select at least one event type
-                      </p>
+                        {formData.eventTypeIds.length === 0 && (
+                          <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                            ⚠️ Please select at least one event type
+                          </p>
+                        )}
+                        {formData.eventTypeIds.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            💡 Event types shown are valid for the selected category
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -714,6 +885,17 @@ export default function VendorListings() {
                 {/* STEP 2: Details */}
                 {formStep === 2 && (
                 <div className="space-y-4 pt-4">
+                  {/* Back Button for Step 2 */}
+                  <div className="mb-4 pb-4 border-b border-border">
+                    <Button
+                      variant="ghost"
+                      onClick={goToPreviousStep}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Basic Info
+                    </Button>
+                  </div>
 
                   {/* Highlights Section (for both PACKAGE and ITEM) */}
                   <div className="space-y-2">
@@ -1087,9 +1269,18 @@ export default function VendorListings() {
                     <Button
                       className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow"
                       onClick={handleSubmit}
-                      disabled={!formData.price}
+                      disabled={!formData.price || isPublishing || isSaving}
                     >
-                      {editingListing ? 'Update' : 'Publish'} Listing
+                      {isPublishing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {editingListing ? 'Updating...' : 'Publishing...'}
+                        </>
+                      ) : (
+                        <>
+                          {editingListing ? 'Update' : 'Publish'} Listing
+                        </>
+                      )}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
                       {!formData.price 
@@ -1177,8 +1368,13 @@ export default function VendorListings() {
                         variant="outline"
                         className="border-red-500/30 text-red-500 hover:bg-red-500/10"
                         onClick={() => handleDelete(listing)}
+                        disabled={isDeleting === listing.id}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        {isDeleting === listing.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                   </CardContent>
@@ -1258,8 +1454,20 @@ export default function VendorListings() {
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleActive(listing); }}>
                           {listing.isActive ? '○ Deactivate' : '● Activate'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} className="text-red-600 focus:text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
+                          className="text-red-600 focus:text-red-600"
+                          disabled={isDeleting === listing.id}
+                        >
+                          {isDeleting === listing.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </>
+                          )}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1371,8 +1579,20 @@ export default function VendorListings() {
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleActive(listing); }}>
                           {listing.isActive ? '○ Deactivate' : '● Activate'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} className="text-red-600 focus:text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
+                          className="text-red-600 focus:text-red-600"
+                          disabled={isDeleting === listing.id}
+                        >
+                          {isDeleting === listing.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </>
+                          )}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

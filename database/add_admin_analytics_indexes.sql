@@ -107,3 +107,7 @@ ON orders(vendor_id, status);
 -- WHERE tablename IN ('user_profiles', 'vendors', 'listings', 'orders', 'reviews', 'leads', 'analytics_events')
 -- ORDER BY tablename, indexname;
 
+
+
+
+

@@ -19,3 +19,7 @@ CHECK (role IN ('customer', 'vendor', 'admin', 'CUSTOMER', 'VENDOR', 'ADMIN'));
 
 
 
+
+
+
+

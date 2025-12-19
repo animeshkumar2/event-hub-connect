@@ -41,6 +41,11 @@ public class ListingService {
             listings = listingRepository.fetchEventTypes(listings);
         }
         
+        // Filter out drafts: must have images (SIZE() doesn't work on PostgreSQL arrays in JPQL)
+        listings = listings.stream()
+                .filter(l -> l.getImages() != null && !l.getImages().isEmpty())
+                .collect(Collectors.toList());
+        
         return listings.stream()
             .map(this::toDTO)
             .collect(Collectors.toList());
@@ -49,11 +54,27 @@ public class ListingService {
     public ListingDTO getListingById(UUID id) {
         Listing listing = listingRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Listing not found: " + id));
+        
+        // Prevent access to drafts on customer side
+        // Drafts are: isActive=false, price<=0.01, or no images
+        if (!listing.getIsActive() || 
+            listing.getPrice().compareTo(new BigDecimal("0.01")) <= 0 ||
+            listing.getImages() == null || listing.getImages().isEmpty()) {
+            throw new RuntimeException("Listing not found: " + id);
+        }
+        
         return toDTO(listing);
     }
     
     public List<ListingDTO> getVendorListings(UUID vendorId) {
-        List<Listing> listings = listingRepository.findByVendorIdAndIsActiveTrue(vendorId);
+        // Use optimized query that excludes drafts (isActive=true, price>0.01)
+        List<Listing> listings = listingRepository.findByVendorIdOptimized(vendorId);
+        
+        // Filter out drafts: must have images (SIZE() doesn't work on PostgreSQL arrays in JPQL)
+        listings = listings.stream()
+                .filter(l -> l.getImages() != null && !l.getImages().isEmpty())
+                .collect(Collectors.toList());
+        
         return listings.stream()
             .map(this::toDTO)
             .collect(Collectors.toList());

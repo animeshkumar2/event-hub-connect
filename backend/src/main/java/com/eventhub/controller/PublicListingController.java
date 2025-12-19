@@ -24,6 +24,15 @@ public class PublicListingController {
     public ResponseEntity<ApiResponse<ListingDTO>> getPackage(@PathVariable UUID packageId) {
         Listing listing = listingRepository.findById(packageId)
                 .orElseThrow(() -> new NotFoundException("Package not found"));
+        
+        // Prevent access to drafts on customer side
+        // Drafts are: isActive=false, price<=0.01, or no images
+        if (!listing.getIsActive() || 
+            listing.getPrice().compareTo(new java.math.BigDecimal("0.01")) <= 0 ||
+            listing.getImages() == null || listing.getImages().isEmpty()) {
+            throw new NotFoundException("Package not found");
+        }
+        
         ListingDTO dto = listingMapper.toDTO(listing);
         return ResponseEntity.ok(ApiResponse.success(dto));
     }
@@ -32,6 +41,15 @@ public class PublicListingController {
     public ResponseEntity<ApiResponse<ListingDTO>> getListing(@PathVariable UUID listingId) {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new NotFoundException("Listing not found"));
+        
+        // Prevent access to drafts on customer side
+        // Drafts are: isActive=false, price<=0.01, or no images
+        if (!listing.getIsActive() || 
+            listing.getPrice().compareTo(new java.math.BigDecimal("0.01")) <= 0 ||
+            listing.getImages() == null || listing.getImages().isEmpty()) {
+            throw new NotFoundException("Listing not found");
+        }
+        
         ListingDTO dto = listingMapper.toDTO(listing);
         return ResponseEntity.ok(ApiResponse.success(dto));
     }
