@@ -33,7 +33,7 @@ export default function VendorHelp() {
         </div>
 
         {/* Phase 1: Direct Contact Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           {/* Phone Support */}
           <Card className="border-border shadow-card hover:border-primary/50 transition-colors">
             <CardContent className="p-4 sm:p-6">
@@ -46,21 +46,21 @@ export default function VendorHelp() {
                   <p className="text-xs sm:text-sm text-foreground/60 mb-2 sm:mb-3">
                     Speak directly with our support team
                   </p>
-                  <div className="space-y-1.5 sm:space-y-2">
+                  <div className="flex flex-col gap-2">
                     {contact.phones.map((phone, index) => (
                       <a 
                         key={index}
                         href={phone.href} 
-                        className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm sm:text-base break-all"
+                        className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-xs sm:text-sm font-medium bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg w-fit"
                       >
-                        <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="font-medium">{phone.display}</span>
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="whitespace-nowrap">{phone.display}</span>
                       </a>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
-                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
-                    <span className="break-words">Available: {hours.availability}</span>
+                  <div className="flex items-start gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
+                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0 mt-0.5" />
+                    <span className="leading-tight">Available: {hours.availability}</span>
                   </div>
                 </div>
               </div>
@@ -81,10 +81,10 @@ export default function VendorHelp() {
                   </p>
                   <a 
                     href={contact.email.href} 
-                    className="flex items-center gap-2 text-secondary hover:text-secondary/80 transition-colors text-sm sm:text-base break-all"
+                    className="inline-flex items-start gap-2 text-secondary hover:text-secondary/80 transition-colors text-xs sm:text-sm font-medium bg-secondary/5 hover:bg-secondary/10 px-3 py-2 rounded-lg w-fit max-w-full overflow-hidden"
                   >
-                    <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="font-medium">{contact.email.display}</span>
+                    <Mail className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                    <span className="break-all overflow-hidden">{contact.email.display}</span>
                   </a>
                   <div className="flex items-center gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
                     <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />

@@ -200,23 +200,23 @@ export const VendorSidebar = () => {
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent className="bg-card border-border">
+        <AlertDialogContent className="bg-card border-border max-w-md w-[calc(100%-2rem)] mx-auto rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
+            <AlertDialogTitle className="text-foreground flex items-center gap-2 text-base sm:text-lg">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0" />
               Confirm Logout
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-foreground/70">
+            <AlertDialogDescription className="text-foreground/70 text-sm sm:text-base">
               Are you sure you want to logout? Any unsaved changes will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="border-border text-foreground hover:bg-muted w-full sm:w-auto rounded-xl">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLogoutConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto rounded-xl"
             >
               Logout
             </AlertDialogAction>
