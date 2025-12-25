@@ -8,10 +8,8 @@ import {
   MessageSquare,
   Package,
   Inbox,
-  Wallet,
   BarChart3,
   Star,
-  Settings,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
@@ -19,8 +17,19 @@ import {
   ClipboardList,
   FileQuestion,
   Lock,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/components/ui/alert-dialog';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
 
@@ -32,22 +41,28 @@ const menuItems = [
   { icon: Inbox, label: 'Leads', path: '/vendor/leads', locked: false },
   { icon: ClipboardList, label: 'Orders', path: '/vendor/orders', locked: false },
   { icon: MessageSquare, label: 'Chat', path: '/vendor/chat', locked: false },
-  // PHASE 1: Wallet - Commented out for initial release
+  // PHASE 1: Wallet - Completely hidden for initial release
   // { icon: Wallet, label: 'Wallet', path: '/vendor/wallet', locked: !FEATURE_FLAGS.WALLET_ENABLED },
   { icon: BarChart3, label: 'Analytics', path: '/vendor/analytics', locked: !FEATURE_FLAGS.ANALYTICS_ENABLED },
   { icon: Star, label: 'Reviews', path: '/vendor/reviews', locked: !FEATURE_FLAGS.REVIEW_REQUESTS_ENABLED },
   { icon: FileQuestion, label: 'FAQs', path: '/vendor/faqs', locked: false },
-  { icon: Settings, label: 'Settings', path: '/vendor/settings', locked: false },
+  // PHASE 1: Settings - Removed (not needed for initial release)
+  // { icon: Settings, label: 'Settings', path: '/vendor/settings', locked: false },
   { icon: HelpCircle, label: 'Help', path: '/vendor/help', locked: false },
 ];
 
 export const VendorSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutDialog(true);
+  };
+
+  const handleLogoutConfirm = () => {
     logout();
     navigate('/');
   };
@@ -119,13 +134,39 @@ export const VendorSidebar = () => {
       {/* Logout */}
       <div className="p-2 border-t border-border">
         <button
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
         >
           <LogOut className="h-5 w-5" />
           {!collapsed && <span className="text-sm font-medium">Logout</span>}
         </button>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirm Logout
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-foreground/70">
+              Are you sure you want to logout? Any unsaved changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogoutConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 };
