@@ -18,25 +18,27 @@ import {
   LogOut,
   ClipboardList,
   FileQuestion,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/vendor/dashboard' },
-  { icon: User, label: 'Profile', path: '/vendor/profile' },
-  { icon: Package, label: 'Listings', path: '/vendor/listings' },
-  { icon: Calendar, label: 'Calendar', path: '/vendor/calendar' },
-  { icon: Inbox, label: 'Leads', path: '/vendor/leads' },
-  { icon: ClipboardList, label: 'Orders', path: '/vendor/orders' },
-  { icon: MessageSquare, label: 'Chat', path: '/vendor/chat' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/vendor/dashboard', locked: false },
+  { icon: User, label: 'Profile', path: '/vendor/profile', locked: false },
+  { icon: Package, label: 'Listings', path: '/vendor/listings', locked: false },
+  { icon: Calendar, label: 'Calendar', path: '/vendor/calendar', locked: false },
+  { icon: Inbox, label: 'Leads', path: '/vendor/leads', locked: false },
+  { icon: ClipboardList, label: 'Orders', path: '/vendor/orders', locked: false },
+  { icon: MessageSquare, label: 'Chat', path: '/vendor/chat', locked: false },
   // PHASE 1: Wallet - Commented out for initial release
-  // { icon: Wallet, label: 'Wallet', path: '/vendor/wallet' },
-  { icon: BarChart3, label: 'Analytics', path: '/vendor/analytics' },
-  { icon: Star, label: 'Reviews', path: '/vendor/reviews' },
-  { icon: FileQuestion, label: 'FAQs', path: '/vendor/faqs' },
-  { icon: Settings, label: 'Settings', path: '/vendor/settings' },
-  { icon: HelpCircle, label: 'Help', path: '/vendor/help' },
+  // { icon: Wallet, label: 'Wallet', path: '/vendor/wallet', locked: !FEATURE_FLAGS.WALLET_ENABLED },
+  { icon: BarChart3, label: 'Analytics', path: '/vendor/analytics', locked: !FEATURE_FLAGS.ANALYTICS_ENABLED },
+  { icon: Star, label: 'Reviews', path: '/vendor/reviews', locked: false },
+  { icon: FileQuestion, label: 'FAQs', path: '/vendor/faqs', locked: false },
+  { icon: Settings, label: 'Settings', path: '/vendor/settings', locked: false },
+  { icon: HelpCircle, label: 'Help', path: '/vendor/help', locked: false },
 ];
 
 export const VendorSidebar = () => {
@@ -100,11 +102,14 @@ export const VendorSidebar = () => {
               )} />
               {!collapsed && (
                 <span className={cn(
-                  'text-sm font-medium',
+                  'text-sm font-medium flex-1',
                   isActive && 'font-semibold'
                 )}>
                   {item.label}
                 </span>
+              )}
+              {!collapsed && item.locked && (
+                <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
               )}
             </NavLink>
           );

@@ -13,11 +13,15 @@ import {
   Download,
   BarChart3,
   PieChart,
-  Loader2
+  Loader2,
+  Lock,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { useVendorDashboardStats, useVendorOrders } from '@/shared/hooks/useApi';
 import { useMemo } from 'react';
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
+import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
 
 export default function VendorAnalytics() {
   const { data: statsData, loading, error } = useVendorDashboardStats();
@@ -179,6 +183,166 @@ export default function VendorAnalytics() {
   const maxRevenue = monthlyData.length > 0 ? Math.max(...monthlyData.map(d => d.revenue)) : 1;
   const maxBookings = monthlyData.length > 0 ? Math.max(...monthlyData.map(d => d.bookings)) : 1;
 
+  // PHASE 1: Show locked state if analytics is disabled
+  if (!FEATURE_FLAGS.ANALYTICS_ENABLED) {
+    return (
+      <VendorLayout>
+        <div className="p-4 space-y-4">
+          {/* Locked Content Container */}
+          <div className="relative min-h-[600px]">
+            {/* Blurred Background Content */}
+            <div className="pointer-events-none select-none" style={{ filter: 'blur(8px)' }}>
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">Analytics & Insights</h1>
+                  <p className="text-foreground/60 text-xs">Track your business performance</p>
+                </div>
+                <div className="flex gap-2">
+                  <Select defaultValue="last30">
+                    <SelectTrigger className="w-32 h-8 text-xs bg-muted/50 border-border text-foreground">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="last7">Last 7 days</SelectItem>
+                      <SelectItem value="last30">Last 30 days</SelectItem>
+                      <SelectItem value="last90">Last 90 days</SelectItem>
+                      <SelectItem value="thisyear">This Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-muted h-8">
+                    <Download className="mr-1.5 h-3.5 w-3.5" /> Export
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                {displayStats.map((stat, i) => (
+                  <Card key={i} className="border-border">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`p-2 rounded-lg ${stat.bg}`}>
+                          <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                      <p className="text-foreground/60 text-xs mt-1">{stat.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Revenue Chart */}
+                <Card className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-foreground text-base flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-secondary" />
+                      Revenue Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <span className="text-foreground/60 w-10 text-xs">Jan</span>
+                          <div className="flex-1 h-6 bg-muted/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-secondary to-amber-500 rounded-full w-3/4" />
+                          </div>
+                          <span className="text-foreground font-medium w-16 text-right text-xs">₹50K</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Bookings Chart */}
+                <Card className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-foreground text-base flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      Bookings Trend
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-end justify-between h-32 gap-2">
+                      {[60, 80, 70, 90, 85, 95].map((height, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div className="w-full flex flex-col items-center">
+                            <span className="text-foreground text-xs mb-1">12</span>
+                            <div 
+                              className="w-full bg-gradient-to-t from-primary to-primary/50 rounded-t"
+                              style={{ height: `${height}px` }}
+                            />
+                          </div>
+                          <span className="text-foreground/60 text-xs">Jan</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Overlay with Lock Message */}
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6 min-h-screen">
+              <Card className="max-w-md w-full border-2 border-primary/20 shadow-2xl bg-gradient-to-br from-background via-background to-primary/5">
+                <CardContent className="p-8 text-center">
+                  {/* Animated Lock Icon */}
+                  <div className="relative inline-block mb-6">
+                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                    <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/20">
+                      <Lock className="h-12 w-12 text-primary" />
+                    </div>
+                    <div className="absolute -top-2 -right-2">
+                      <Sparkles className="h-6 w-6 text-secondary animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h2 className="text-2xl font-bold text-foreground mb-3 flex items-center justify-center gap-2">
+                    <Zap className="h-6 w-6 text-secondary" />
+                    Analytics Coming Soon
+                  </h2>
+
+                  {/* Description */}
+                  <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                    Powerful analytics to track revenue trends, booking patterns, and customer insights.
+                  </p>
+
+                  {/* Features Preview */}
+                  <div className="space-y-3 mb-6 text-left">
+                    {[
+                      { icon: BarChart3, text: 'Revenue & earnings breakdown' },
+                      { icon: Calendar, text: 'Booking trends & forecasts' },
+                      { icon: Users, text: 'Customer behavior insights' },
+                      { icon: TrendingUp, text: 'Performance comparisons' }
+                    ].map((feature, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <feature.icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm text-foreground/80">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Badge */}
+                  <Badge className="bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30 px-4 py-2">
+                    <Sparkles className="h-3 w-3 mr-1.5" />
+                    Available in Phase 2
+                  </Badge>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  // Original analytics content (when ANALYTICS_ENABLED = true)
   return (
     <VendorLayout>
       <div className="p-4 space-y-4">
