@@ -10,12 +10,21 @@ import {
   MessageSquare, 
   ThumbsUp,
   Mail,
-  TrendingUp,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Clock,
+  Lock,
+  Sparkles,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMyVendorReviews, useVendorReviewStatistics } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
+import { vendorApi } from '@/shared/services/api';
+import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
 
 interface Review {
   id: string;
@@ -32,11 +41,30 @@ interface Review {
   };
 }
 
+interface EligibleOrder {
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  eventType: string;
+  eventDate: string;
+  orderDate: string;
+  eligible: boolean;
+  reason: string;
+  recommendation: string | null;
+}
+
 export default function VendorReviews() {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [responseText, setResponseText] = useState('');
   const [page, setPage] = useState(0);
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  
+  // Review request states
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [eligibleOrders, setEligibleOrders] = useState<EligibleOrder[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState(false);
   
   const { data: reviewsData, loading: reviewsLoading, error: reviewsError } = useMyVendorReviews(page, 10);
   const { data: statsData, loading: statsLoading } = useVendorReviewStatistics();
@@ -83,8 +111,76 @@ export default function VendorReviews() {
     }
   };
 
-  const handleRequestReview = () => {
-    toast.success('Review request email sent!');
+  const handleOpenRequestDialog = async () => {
+    setShowRequestDialog(true);
+    setLoadingOrders(true);
+    
+    try {
+      const response = await vendorApi.getEligibleOrdersForReview();
+      
+      if (response.success) {
+        setEligibleOrders(response.data || []);
+      } else {
+        toast.error(response.message || 'Failed to load eligible orders');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to load eligible orders');
+      console.error(err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const handleSendReviewRequest = async () => {
+    if (!selectedOrderId) {
+      toast.error('Please select an order');
+      return;
+    }
+    
+    setSendingRequest(true);
+    try {
+      const response = await vendorApi.sendReviewRequest(selectedOrderId);
+      
+      if (response.success) {
+        const result = response.data;
+        toast.success(`Review request sent to ${result.customerName}!`);
+        setShowRequestDialog(false);
+        setSelectedOrderId(null);
+        
+        // Refresh eligible orders
+        handleOpenRequestDialog();
+      } else {
+        toast.error(response.message || 'Failed to send review request');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send review request');
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
+  const getEligibilityIcon = (order: EligibleOrder) => {
+    if (order.eligible && order.recommendation === 'Best time to ask') {
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    } else if (order.eligible) {
+      return <Clock className="h-4 w-4 text-blue-500" />;
+    } else if (order.reason.includes('wait')) {
+      return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+    } else {
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    }
+  };
+
+  const getEligibilityColor = (order: EligibleOrder) => {
+    if (order.eligible && order.recommendation === 'Best time to ask') {
+      return 'text-green-600 dark:text-green-400';
+    } else if (order.eligible) {
+      return 'text-blue-600 dark:text-blue-400';
+    } else if (order.reason.includes('wait')) {
+      return 'text-yellow-600 dark:text-yellow-400';
+    } else {
+      return 'text-red-600 dark:text-red-400';
+    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -106,6 +202,173 @@ export default function VendorReviews() {
     );
   }
 
+  if (reviewsError) {
+    return (
+      <VendorLayout>
+        <div className="p-6">
+          <Card className="border-border">
+            <CardContent className="p-12 text-center">
+              <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Failed to Load Reviews</h3>
+              <p className="text-foreground/60 mb-4">{reviewsError}</p>
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  // PHASE 1: Show locked state if review requests is disabled
+  if (!FEATURE_FLAGS.REVIEW_REQUESTS_ENABLED) {
+    return (
+      <VendorLayout>
+        <div className="p-4 space-y-4">
+          {/* Locked Content Container */}
+          <div className="relative min-h-[600px]">
+            {/* Blurred Background Content */}
+            <div className="pointer-events-none select-none" style={{ filter: 'blur(8px)' }}>
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">Reviews & Reputation</h1>
+                  <p className="text-foreground/60 text-xs">Manage your customer reviews</p>
+                </div>
+                <Button className="bg-secondary text-secondary-foreground h-8">
+                  <Mail className="mr-1.5 h-3.5 w-3.5" /> Request Review
+                </Button>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Rating Overview */}
+                <Card className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-foreground text-base">Rating Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <span className="text-4xl font-bold text-foreground">4.8</span>
+                        <Star className="h-8 w-8 text-secondary fill-vendor-gold" />
+                      </div>
+                      <p className="text-foreground/60 text-sm">24 reviews</p>
+                    </div>
+                    <div className="space-y-2">
+                      {[5, 4, 3, 2, 1].map((stars) => (
+                        <div key={stars} className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 w-10">
+                            <span className="text-foreground text-xs">{stars}</span>
+                            <Star className="h-2.5 w-2.5 text-secondary fill-vendor-gold" />
+                          </div>
+                          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-secondary rounded-full w-3/4" />
+                          </div>
+                          <span className="text-foreground/60 text-xs w-8 text-right">18</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Reviews List */}
+                <div className="lg:col-span-2 space-y-3">
+                  {[1, 2].map((i) => (
+                    <Card key={i} className="border-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <span className="text-primary font-semibold text-sm">J</span>
+                            </div>
+                            <div>
+                              <p className="text-foreground font-medium text-sm">John Doe</p>
+                              <p className="text-xs text-foreground/60">Wedding • Dec 20, 2024</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className="h-3 w-3 text-secondary fill-vendor-gold" />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-foreground/80 text-sm mb-3">
+                          Amazing service! Everything was perfect for our special day.
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <Button variant="ghost" size="sm" className="text-foreground/60 hover:text-foreground h-7 text-xs">
+                            <ThumbsUp className="mr-1.5 h-3 w-3" /> Helpful
+                          </Button>
+                          <Button variant="outline" size="sm" className="border-white/20 text-foreground h-7 text-xs">
+                            <MessageSquare className="mr-1.5 h-3 w-3" /> Respond
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Overlay with Lock Message */}
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6 min-h-screen">
+              <Card className="max-w-md w-full border-2 border-primary/20 shadow-2xl bg-gradient-to-br from-background via-background to-primary/5">
+                <CardContent className="p-8 text-center">
+                  {/* Animated Lock Icon */}
+                  <div className="relative inline-block mb-6">
+                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                    <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/20">
+                      <Lock className="h-12 w-12 text-primary" />
+                    </div>
+                    <div className="absolute -top-2 -right-2">
+                      <Sparkles className="h-6 w-6 text-secondary animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h2 className="text-2xl font-bold text-foreground mb-3 flex items-center justify-center gap-2">
+                    <Zap className="h-6 w-6 text-secondary" />
+                    Reviews Coming Soon
+                  </h2>
+
+                  {/* Description */}
+                  <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                    Build your reputation with smart review requests and customer feedback management.
+                  </p>
+
+                  {/* Features Preview */}
+                  <div className="space-y-3 mb-6 text-left">
+                    {[
+                      { icon: Mail, text: 'Request reviews from customers' },
+                      { icon: Star, text: 'Track ratings & feedback' },
+                      { icon: MessageSquare, text: 'Respond to reviews' },
+                      { icon: TrendingUp, text: 'Build your reputation' }
+                    ].map((feature, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <feature.icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm text-foreground/80">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Badge */}
+                  <Badge className="bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30 px-4 py-2">
+                    <Sparkles className="h-3 w-3 mr-1.5" />
+                    Available in Phase 2
+                  </Badge>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </VendorLayout>
+    );
+  }
+
   return (
     <VendorLayout>
       <div className="p-6 space-y-6">
@@ -115,21 +378,94 @@ export default function VendorReviews() {
             <h1 className="text-2xl font-bold text-foreground">Reviews & Reputation</h1>
             <p className="text-foreground/60">Manage your customer reviews</p>
           </div>
-          <Dialog>
+          <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-secondary text-secondary-foreground">
+              <Button 
+                className="bg-secondary text-secondary-foreground"
+                onClick={handleOpenRequestDialog}
+              >
                 <Mail className="mr-2 h-4 w-4" /> Request Review
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-foreground">Request a Review</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
-                <p className="text-foreground/60">Send a review request email to a recent customer.</p>
-                <Button onClick={handleRequestReview} className="w-full bg-secondary text-secondary-foreground">
-                  Send Review Request
-                </Button>
+                {loadingOrders ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : eligibleOrders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-foreground/60">No completed orders available for review requests.</p>
+                    <p className="text-sm text-foreground/40 mt-2">Complete some orders first to request reviews.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-foreground/60 text-sm">
+                      Select a completed order to send a review request:
+                    </p>
+                    
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {eligibleOrders.map((order) => (
+                        <div
+                          key={order.orderId}
+                          onClick={() => order.eligible && setSelectedOrderId(order.orderId)}
+                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                            selectedOrderId === order.orderId
+                              ? 'border-primary bg-primary/5'
+                              : order.eligible
+                              ? 'border-border hover:border-primary/50 hover:bg-muted/50'
+                              : 'border-border bg-muted/20 cursor-not-allowed opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-foreground">{order.customerName}</p>
+                                <span className="text-foreground/40">•</span>
+                                <p className="text-sm text-foreground/60">{order.eventType}</p>
+                              </div>
+                              <p className="text-xs text-foreground/40">
+                                Event: {format(new Date(order.eventDate), 'MMM dd, yyyy')}
+                              </p>
+                              <div className={`flex items-center gap-2 mt-2 text-sm ${getEligibilityColor(order)}`}>
+                                {getEligibilityIcon(order)}
+                                <span className="font-medium">
+                                  {order.eligible 
+                                    ? (order.recommendation || 'Eligible') 
+                                    : order.reason}
+                                </span>
+                              </div>
+                            </div>
+                            {selectedOrderId === order.orderId && (
+                              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="pt-4 border-t border-border">
+                      <Button 
+                        onClick={handleSendReviewRequest}
+                        disabled={!selectedOrderId || sendingRequest}
+                        className="w-full bg-secondary text-secondary-foreground"
+                      >
+                        {sendingRequest ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" /> Send Review Request
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -172,13 +508,7 @@ export default function VendorReviews() {
 
           {/* Reviews List */}
           <div className="lg:col-span-2 space-y-4">
-            {reviewsError ? (
-              <Card className="border-border">
-                <CardContent className="p-6 text-center">
-                  <p className="text-destructive">{reviewsError}</p>
-                </CardContent>
-              </Card>
-            ) : reviews.length === 0 ? (
+            {reviews.length === 0 ? (
               <Card className="border-border">
                 <CardContent className="p-12 text-center">
                   <Star className="h-12 w-12 text-foreground/20 mx-auto mb-4" />

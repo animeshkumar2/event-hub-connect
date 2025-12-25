@@ -9,7 +9,7 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <VendorSidebar />
-      <main className="ml-64 min-h-screen bg-background transition-all duration-300">
+      <main className="md:ml-64 min-h-screen bg-background transition-all duration-300 pt-16 md:pt-0">
         {children}
       </main>
     </div>

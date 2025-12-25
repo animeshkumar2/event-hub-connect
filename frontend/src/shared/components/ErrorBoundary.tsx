@@ -38,10 +38,10 @@ export class ErrorBoundary extends Component<Props, State> {
           <Card className="w-full max-w-md border-destructive">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="h-5 w-5 text-destructive" />
+                <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
                 <h2 className="text-lg font-semibold text-destructive">Something went wrong</h2>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4 break-words overflow-wrap-anywhere">
                 {this.state.error?.message || 'An unexpected error occurred'}
               </p>
               <Button

@@ -308,9 +308,9 @@ export default function VendorProfile() {
         onChange={(e) => handleMultipleFileSelect(e)}
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         {/* Cover Image */}
-        <div className="relative h-48 md:h-64 rounded-2xl overflow-hidden shadow-elegant bg-muted">
+        <div className="relative h-32 sm:h-48 md:h-64 rounded-xl sm:rounded-2xl overflow-hidden shadow-elegant bg-muted">
           {formData.coverImage ? (
             <>
               <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
@@ -318,13 +318,13 @@ export default function VendorProfile() {
             </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-              <ImagePlus className="h-12 w-12 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground text-sm">No cover image</p>
+              <ImagePlus className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mb-2" />
+              <p className="text-muted-foreground text-xs sm:text-sm">No cover image</p>
             </div>
           )}
           
           {/* Always visible buttons */}
-          <div className="absolute top-3 right-3 flex gap-2">
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex gap-1.5 sm:gap-2">
             {formData.coverImage && (
               <Button 
                 size="sm"
@@ -352,21 +352,23 @@ export default function VendorProfile() {
         </div>
 
         {/* Profile Header */}
-        <div className="flex items-start justify-between pt-6 pb-6 border-b border-border">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-foreground">{formData.businessName || 'Your Business'}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pt-4 sm:pt-6 pb-4 sm:pb-6 border-b border-border">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground break-words">
+                {formData.businessName || 'Your Business'}
+              </h1>
               {isVerified && (
-                <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 w-fit flex-shrink-0">
                   Verified
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground text-lg">{categoryName}</p>
+            <p className="text-muted-foreground text-sm sm:text-base lg:text-lg">{categoryName}</p>
             {cityName && (
-              <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" /> {cityName}
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> {cityName}
                 </span>
               </div>
             )}
@@ -374,14 +376,15 @@ export default function VendorProfile() {
           <Button 
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+            className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all w-full sm:w-auto flex-shrink-0"
+            size="sm"
           >
             {isSaving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             )}
-            Save Changes
+            <span className="text-xs sm:text-sm">Save Changes</span>
           </Button>
         </div>
 

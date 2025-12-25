@@ -43,7 +43,8 @@ const VendorWallet = lazy(() => import("@/features/vendor/pages/VendorWallet"));
 const VendorAnalytics = lazy(() => import("@/features/vendor/pages/VendorAnalytics"));
 const VendorReviews = lazy(() => import("@/features/vendor/pages/VendorReviews"));
 const VendorFAQs = lazy(() => import("@/features/vendor/pages/VendorFAQs"));
-const VendorSettings = lazy(() => import("@/features/vendor/pages/VendorSettings"));
+// PHASE 1: Settings removed - not needed for initial release
+// const VendorSettings = lazy(() => import("@/features/vendor/pages/VendorSettings"));
 const VendorHelp = lazy(() => import("@/features/vendor/pages/VendorHelp"));
 const VendorLandingPage = lazy(() => import("@/features/vendor/pages/VendorLandingPage"));
 const VendorTerms = lazy(() => import("@/features/vendor/pages/VendorTerms"));
@@ -243,11 +244,12 @@ const App = () => (
                 <VendorFAQs />
               </Suspense>
             } />
-            <Route path="/vendor/settings" element={
+            {/* PHASE 1: Settings route removed - not needed for initial release */}
+            {/* <Route path="/vendor/settings" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorSettings />
               </Suspense>
-            } />
+            } /> */}
             <Route path="/vendor/help" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorHelp />
