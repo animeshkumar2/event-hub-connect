@@ -25,42 +25,42 @@ export default function VendorHelp() {
 
   return (
     <VendorLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Help Center</h1>
-          <p className="text-foreground/60">Get support and learn how to grow your business</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Help Center</h1>
+          <p className="text-sm sm:text-base text-foreground/60">Get support and learn how to grow your business</p>
         </div>
 
         {/* Phase 1: Direct Contact Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {/* Phone Support */}
           <Card className="border-border shadow-card hover:border-primary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-primary/20 flex-shrink-0">
-                  <Phone className="h-6 w-6 text-primary" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-xl bg-primary/20 flex-shrink-0">
+                  <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-foreground font-semibold mb-2">Call Us</h3>
-                  <p className="text-sm text-foreground/60 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-foreground font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Call Us</h3>
+                  <p className="text-xs sm:text-sm text-foreground/60 mb-2 sm:mb-3">
                     Speak directly with our support team
                   </p>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     {contact.phones.map((phone, index) => (
                       <a 
                         key={index}
                         href={phone.href} 
-                        className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+                        className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-sm sm:text-base break-all"
                       >
-                        <Phone className="h-4 w-4" />
+                        <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                         <span className="font-medium">{phone.display}</span>
                       </a>
                     ))}
                   </div>
-                  <div className="flex items-center gap-2 mt-4 text-xs text-foreground/60">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>Available: {hours.availability}</span>
+                  <div className="flex items-center gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
+                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                    <span className="break-words">Available: {hours.availability}</span>
                   </div>
                 </div>
               </div>
@@ -69,25 +69,25 @@ export default function VendorHelp() {
 
           {/* Email Support */}
           <Card className="border-border shadow-card hover:border-secondary/50 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-secondary/20 flex-shrink-0">
-                  <Mail className="h-6 w-6 text-secondary" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-xl bg-secondary/20 flex-shrink-0">
+                  <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-secondary" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-foreground font-semibold mb-2">Email Support</h3>
-                  <p className="text-sm text-foreground/60 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-foreground font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Email Support</h3>
+                  <p className="text-xs sm:text-sm text-foreground/60 mb-2 sm:mb-3">
                     Send us your questions anytime
                   </p>
                   <a 
                     href={contact.email.href} 
-                    className="flex items-center gap-2 text-secondary hover:text-secondary/80 transition-colors"
+                    className="flex items-center gap-2 text-secondary hover:text-secondary/80 transition-colors text-sm sm:text-base break-all"
                   >
-                    <Mail className="h-4 w-4" />
+                    <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="font-medium">{contact.email.display}</span>
                   </a>
-                  <div className="flex items-center gap-2 mt-4 text-xs text-foreground/60">
-                    <Clock className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
+                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
                     <span>Response {hours.responseTime}</span>
                   </div>
                 </div>
@@ -99,12 +99,12 @@ export default function VendorHelp() {
         {/* FAQs Section */}
         <Card className="border-border shadow-card">
           <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-primary" />
+            <CardTitle className="text-foreground flex items-center gap-2 text-base sm:text-lg">
+              <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Frequently Asked Questions
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 sm:space-y-3">
             {faqs.map((faq, index) => (
               <div 
                 key={index}
@@ -112,18 +112,18 @@ export default function VendorHelp() {
               >
                 <button
                   onClick={() => toggleFaq(index)}
-                  className="w-full p-4 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors text-left"
+                  className="w-full p-3 sm:p-4 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors text-left"
                 >
-                  <span className="font-medium text-foreground">{faq.question}</span>
+                  <span className="font-medium text-foreground text-sm sm:text-base">{faq.question}</span>
                   {expandedFaq === index ? (
-                    <ChevronUp className="h-5 w-5 text-foreground/60 flex-shrink-0" />
+                    <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-foreground/60 flex-shrink-0" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-foreground/60 flex-shrink-0" />
+                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-foreground/60 flex-shrink-0" />
                   )}
                 </button>
                 {expandedFaq === index && (
-                  <div className="px-4 pb-4 pt-0">
-                    <p className="text-foreground/70 leading-relaxed">{faq.answer}</p>
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+                    <p className="text-foreground/70 leading-relaxed text-sm sm:text-base">{faq.answer}</p>
                   </div>
                 )}
               </div>
@@ -197,17 +197,17 @@ export default function VendorHelp() {
 
         {/* Support Hours Notice */}
         <Card className="border-border shadow-card bg-muted/30">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-xl bg-primary/10 flex-shrink-0">
-                <Clock className="h-6 w-6 text-primary" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 rounded-xl bg-primary/10 flex-shrink-0">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-foreground font-semibold mb-2">Support Hours</h3>
-                <p className="text-foreground/70 mb-3">
+                <h3 className="text-foreground font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Support Hours</h3>
+                <p className="text-foreground/70 mb-2 sm:mb-3 text-sm sm:text-base">
                   {hours.fullDescription}
                 </p>
-                <p className="text-sm text-foreground/60">
+                <p className="text-xs sm:text-sm text-foreground/60">
                   {hours.urgentNote} We typically respond to all queries {hours.responseTime}.
                 </p>
               </div>

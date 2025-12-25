@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -18,6 +18,8 @@ import {
   FileQuestion,
   Lock,
   AlertTriangle,
+  Menu,
+  X,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -53,10 +55,27 @@ const menuItems = [
 
 export const VendorSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu on desktop resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogoutClick = () => {
     setShowLogoutDialog(true);
@@ -68,29 +87,65 @@ export const VendorSidebar = () => {
   };
 
   return (
-    <aside
-      className={cn(
-        'fixed left-0 top-0 z-40 h-screen transition-all duration-200',
-        'bg-card border-r border-border shadow-elegant',
-        collapsed ? 'w-16' : 'w-64'
-      )}
-    >
-      {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card">
-        {!collapsed && (
-          <Link to="/" className="text-xl font-bold text-[#5046E5]">
-            cartevent<span className="text-[#7C6BFF]">.</span>
-          </Link>
-        )}
+    <>
+      {/* Mobile Menu Button - Only show when sidebar is closed */}
+      {!mobileOpen && (
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-4 left-4 z-50 md:hidden bg-card border border-border shadow-lg"
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          <Menu className="h-5 w-5" />
         </Button>
-      </div>
+      )}
+
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-50 h-screen transition-all duration-200',
+          'bg-card border-r border-border shadow-elegant',
+          // Tablet and Desktop - always visible
+          'hidden md:block',
+          collapsed ? 'md:w-16' : 'md:w-64',
+          // Mobile - show only when mobileOpen is true
+          mobileOpen && 'block w-64'
+        )}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card">
+          {!collapsed && (
+            <Link to="/" className="text-xl font-bold text-[#5046E5]">
+              cartevent<span className="text-[#7C6BFF]">.</span>
+            </Link>
+          )}
+          {/* Desktop collapse button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden md:flex text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+          {/* Mobile close button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
@@ -141,6 +196,7 @@ export const VendorSidebar = () => {
           {!collapsed && <span className="text-sm font-medium">Logout</span>}
         </button>
       </div>
+      </aside>
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
@@ -167,6 +223,6 @@ export const VendorSidebar = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </aside>
+    </>
   );
 };

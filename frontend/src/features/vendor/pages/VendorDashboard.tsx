@@ -217,53 +217,65 @@ export default function VendorDashboard() {
 
   return (
     <VendorLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
         {/* Hero Banner */}
-        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-primary/10 via-background to-secondary/10 p-8 border border-border shadow-elegant">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-foreground">
-                  Welcome back, {vendorName}!
-                </h1>
-                {isActive && (
-                  <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
-                    Profile Live
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-4 text-muted-foreground">
-                {vendorRating > 0 && (
-                  <>
-                    <span className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-secondary fill-secondary" /> {vendorRating.toFixed(1)} rating
-                    </span>
-                    <span>•</span>
-                  </>
-                )}
-                <span>{reviewCount} review{reviewCount !== 1 ? 's' : ''}</span>
+        <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-r from-primary/10 via-background to-secondary/10 p-4 sm:p-6 lg:p-8 border border-border shadow-elegant">
+          <div className="relative z-10 space-y-4">
+            {/* Header Section */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-start gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-foreground break-words flex-1 min-w-0">
+                    Welcome back, {vendorName}!
+                  </h1>
+                  {isActive && (
+                    <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 flex-shrink-0 text-xs">
+                      Profile Live
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                  {vendorRating > 0 && (
+                    <>
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-secondary fill-secondary" /> 
+                        {vendorRating.toFixed(1)} rating
+                      </span>
+                      <span className="hidden sm:inline">•</span>
+                    </>
+                  )}
+                  <span className="whitespace-nowrap">{reviewCount} review{reviewCount !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               <Button 
                 onClick={() => navigate('/vendor/listings')} 
-                className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+                className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all w-full justify-center"
+                size="sm"
               >
-                <Plus className="mr-2 h-4 w-4" /> Add Listing
+                <Plus className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                <span className="text-xs sm:text-sm">Add Listing</span>
               </Button>
               <Button 
                 onClick={() => navigate('/vendor/calendar')} 
                 variant="outline" 
-                className="border-border hover:bg-muted transition-all"
+                className="border-border hover:bg-muted transition-all w-full justify-center"
+                size="sm"
               >
-                <Calendar className="mr-2 h-4 w-4" /> Set Availability
+                <Calendar className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                <span className="text-xs sm:text-sm">Set Availability</span>
               </Button>
               <Button 
                 onClick={() => navigate('/vendor/leads')} 
                 variant="outline" 
-                className="border-border hover:bg-muted transition-all"
+                className="border-border hover:bg-muted transition-all w-full justify-center sm:col-span-2 lg:col-span-1"
+                size="sm"
               >
-                <MessageSquare className="mr-2 h-4 w-4" /> View Leads
+                <MessageSquare className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
+                <span className="text-xs sm:text-sm">View Leads</span>
               </Button>
             </div>
           </div>
