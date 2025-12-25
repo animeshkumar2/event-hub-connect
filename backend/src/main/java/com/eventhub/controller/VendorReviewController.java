@@ -2,6 +2,7 @@ package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
 import com.eventhub.model.Review;
+import com.eventhub.service.ReviewRequestService;
 import com.eventhub.service.VendorReviewService;
 import com.eventhub.util.VendorIdResolver;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class VendorReviewController {
     
     private final VendorReviewService reviewService;
+    private final ReviewRequestService reviewRequestService;
     private final VendorIdResolver vendorIdResolver;
     
     @GetMapping
@@ -39,5 +42,29 @@ public class VendorReviewController {
         VendorReviewService.ReviewStatistics stats = reviewService.getReviewStatistics(vendorId);
         return ResponseEntity.ok(ApiResponse.success(stats));
     }
+    
+    @GetMapping("/eligible-orders")
+    public ResponseEntity<ApiResponse<List<ReviewRequestService.EligibleOrder>>> getEligibleOrders(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        List<ReviewRequestService.EligibleOrder> eligibleOrders = reviewRequestService.getEligibleOrders(vendorId);
+        return ResponseEntity.ok(ApiResponse.success(eligibleOrders));
+    }
+    
+    @PostMapping("/request")
+    public ResponseEntity<ApiResponse<ReviewRequestService.ReviewRequestResult>> requestReview(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
+            @RequestBody RequestReviewRequest request) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        ReviewRequestService.ReviewRequestResult result = reviewRequestService.sendReviewRequest(vendorId, request.getOrderId());
+        return ResponseEntity.ok(ApiResponse.success("Review request sent to " + result.getCustomerName(), result));
+    }
+    
+    // Request DTO
+    @lombok.Data
+    public static class RequestReviewRequest {
+        private UUID orderId;
+    }
 }
+
 

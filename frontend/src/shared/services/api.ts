@@ -50,8 +50,10 @@ class ApiClient {
       ...options.headers,
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    // Read token fresh from localStorage on each request
+    const currentToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : this.token;
+    if (currentToken) {
+      headers['Authorization'] = `Bearer ${currentToken}`;
     }
 
     // Get user ID from localStorage for header
@@ -348,6 +350,8 @@ export const vendorApi = {
   // Reviews
   getReviews: (page = 0, size = 10) => apiClient.get<any>(`/vendors/reviews?page=${page}&size=${size}`),
   getReviewStatistics: () => apiClient.get<any>('/vendors/reviews/statistics'),
+  getEligibleOrdersForReview: () => apiClient.get<any>('/vendors/reviews/eligible-orders'),
+  sendReviewRequest: (orderId: string) => apiClient.post<any>('/vendors/reviews/request', { orderId }),
   
   // FAQs
   getFAQs: () => apiClient.get<any[]>('/vendors/faqs'),

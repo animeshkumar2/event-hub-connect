@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
 import { 
@@ -10,12 +9,16 @@ import {
   MessageSquare, 
   ThumbsUp,
   Mail,
-  TrendingUp,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMyVendorReviews, useVendorReviewStatistics } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
+import { vendorApi } from '@/shared/services/api';
 
 interface Review {
   id: string;
@@ -32,11 +35,30 @@ interface Review {
   };
 }
 
+interface EligibleOrder {
+  orderId: string;
+  customerName: string;
+  customerEmail: string;
+  eventType: string;
+  eventDate: string;
+  orderDate: string;
+  eligible: boolean;
+  reason: string;
+  recommendation: string | null;
+}
+
 export default function VendorReviews() {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [responseText, setResponseText] = useState('');
   const [page, setPage] = useState(0);
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  
+  // Review request states
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [eligibleOrders, setEligibleOrders] = useState<EligibleOrder[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState(false);
   
   const { data: reviewsData, loading: reviewsLoading, error: reviewsError } = useMyVendorReviews(page, 10);
   const { data: statsData, loading: statsLoading } = useVendorReviewStatistics();
@@ -83,8 +105,76 @@ export default function VendorReviews() {
     }
   };
 
-  const handleRequestReview = () => {
-    toast.success('Review request email sent!');
+  const handleOpenRequestDialog = async () => {
+    setShowRequestDialog(true);
+    setLoadingOrders(true);
+    
+    try {
+      const response = await vendorApi.getEligibleOrdersForReview();
+      
+      if (response.success) {
+        setEligibleOrders(response.data || []);
+      } else {
+        toast.error(response.message || 'Failed to load eligible orders');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to load eligible orders');
+      console.error(err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const handleSendReviewRequest = async () => {
+    if (!selectedOrderId) {
+      toast.error('Please select an order');
+      return;
+    }
+    
+    setSendingRequest(true);
+    try {
+      const response = await vendorApi.sendReviewRequest(selectedOrderId);
+      
+      if (response.success) {
+        const result = response.data;
+        toast.success(`Review request sent to ${result.customerName}!`);
+        setShowRequestDialog(false);
+        setSelectedOrderId(null);
+        
+        // Refresh eligible orders
+        handleOpenRequestDialog();
+      } else {
+        toast.error(response.message || 'Failed to send review request');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send review request');
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
+  const getEligibilityIcon = (order: EligibleOrder) => {
+    if (order.eligible && order.recommendation === 'Best time to ask') {
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    } else if (order.eligible) {
+      return <Clock className="h-4 w-4 text-blue-500" />;
+    } else if (order.reason.includes('wait')) {
+      return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+    } else {
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    }
+  };
+
+  const getEligibilityColor = (order: EligibleOrder) => {
+    if (order.eligible && order.recommendation === 'Best time to ask') {
+      return 'text-green-600 dark:text-green-400';
+    } else if (order.eligible) {
+      return 'text-blue-600 dark:text-blue-400';
+    } else if (order.reason.includes('wait')) {
+      return 'text-yellow-600 dark:text-yellow-400';
+    } else {
+      return 'text-red-600 dark:text-red-400';
+    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -106,6 +196,25 @@ export default function VendorReviews() {
     );
   }
 
+  if (reviewsError) {
+    return (
+      <VendorLayout>
+        <div className="p-6">
+          <Card className="border-border">
+            <CardContent className="p-12 text-center">
+              <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Failed to Load Reviews</h3>
+              <p className="text-foreground/60 mb-4">{reviewsError}</p>
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
+
   return (
     <VendorLayout>
       <div className="p-6 space-y-6">
@@ -115,21 +224,94 @@ export default function VendorReviews() {
             <h1 className="text-2xl font-bold text-foreground">Reviews & Reputation</h1>
             <p className="text-foreground/60">Manage your customer reviews</p>
           </div>
-          <Dialog>
+          <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-secondary text-secondary-foreground">
+              <Button 
+                className="bg-secondary text-secondary-foreground"
+                onClick={handleOpenRequestDialog}
+              >
                 <Mail className="mr-2 h-4 w-4" /> Request Review
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-foreground">Request a Review</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
-                <p className="text-foreground/60">Send a review request email to a recent customer.</p>
-                <Button onClick={handleRequestReview} className="w-full bg-secondary text-secondary-foreground">
-                  Send Review Request
-                </Button>
+                {loadingOrders ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : eligibleOrders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-foreground/60">No completed orders available for review requests.</p>
+                    <p className="text-sm text-foreground/40 mt-2">Complete some orders first to request reviews.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-foreground/60 text-sm">
+                      Select a completed order to send a review request:
+                    </p>
+                    
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {eligibleOrders.map((order) => (
+                        <div
+                          key={order.orderId}
+                          onClick={() => order.eligible && setSelectedOrderId(order.orderId)}
+                          className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                            selectedOrderId === order.orderId
+                              ? 'border-primary bg-primary/5'
+                              : order.eligible
+                              ? 'border-border hover:border-primary/50 hover:bg-muted/50'
+                              : 'border-border bg-muted/20 cursor-not-allowed opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-foreground">{order.customerName}</p>
+                                <span className="text-foreground/40">•</span>
+                                <p className="text-sm text-foreground/60">{order.eventType}</p>
+                              </div>
+                              <p className="text-xs text-foreground/40">
+                                Event: {format(new Date(order.eventDate), 'MMM dd, yyyy')}
+                              </p>
+                              <div className={`flex items-center gap-2 mt-2 text-sm ${getEligibilityColor(order)}`}>
+                                {getEligibilityIcon(order)}
+                                <span className="font-medium">
+                                  {order.eligible 
+                                    ? (order.recommendation || 'Eligible') 
+                                    : order.reason}
+                                </span>
+                              </div>
+                            </div>
+                            {selectedOrderId === order.orderId && (
+                              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="pt-4 border-t border-border">
+                      <Button 
+                        onClick={handleSendReviewRequest}
+                        disabled={!selectedOrderId || sendingRequest}
+                        className="w-full bg-secondary text-secondary-foreground"
+                      >
+                        {sendingRequest ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" /> Send Review Request
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -172,13 +354,7 @@ export default function VendorReviews() {
 
           {/* Reviews List */}
           <div className="lg:col-span-2 space-y-4">
-            {reviewsError ? (
-              <Card className="border-border">
-                <CardContent className="p-6 text-center">
-                  <p className="text-destructive">{reviewsError}</p>
-                </CardContent>
-              </Card>
-            ) : reviews.length === 0 ? (
+            {reviews.length === 0 ? (
               <Card className="border-border">
                 <CardContent className="p-12 text-center">
                   <Star className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
