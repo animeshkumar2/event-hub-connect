@@ -272,6 +272,7 @@ export default function VendorCalendar() {
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${availabilityLoading ? 'animate-spin' : ''}`} /> Refresh
             </Button>
+            {/* Create Slot feature - commented out for single date availability
             <Dialog open={showCreateSlot} onOpenChange={setShowCreateSlot}>
               <DialogTrigger asChild>
                 <Button size="sm" className="bg-secondary text-secondary-foreground">
@@ -325,6 +326,7 @@ export default function VendorCalendar() {
                 </div>
               </DialogContent>
             </Dialog>
+            */}
           </div>
         </div>
 
@@ -477,7 +479,7 @@ export default function VendorCalendar() {
           </Card>
         )}
 
-        {/* Google Calendar Sync Modal */}
+        {/* Google Calendar Sync Modal - commented out as not needed
         <Dialog open={showSyncModal} onOpenChange={setShowSyncModal}>
           <DialogContent className="bg-card border-border">
             <DialogHeader>
@@ -505,6 +507,7 @@ export default function VendorCalendar() {
             </div>
           </DialogContent>
         </Dialog>
+        */}
       </div>
     </VendorLayout>
   );
