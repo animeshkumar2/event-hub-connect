@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
 import { 
@@ -13,12 +14,17 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Clock
+  Clock,
+  Lock,
+  Sparkles,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMyVendorReviews, useVendorReviewStatistics } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
 import { vendorApi } from '@/shared/services/api';
+import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
 
 interface Review {
   id: string;
@@ -210,6 +216,154 @@ export default function VendorReviews() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  // PHASE 1: Show locked state if review requests is disabled
+  if (!FEATURE_FLAGS.REVIEW_REQUESTS_ENABLED) {
+    return (
+      <VendorLayout>
+        <div className="p-4 space-y-4">
+          {/* Locked Content Container */}
+          <div className="relative min-h-[600px]">
+            {/* Blurred Background Content */}
+            <div className="pointer-events-none select-none" style={{ filter: 'blur(8px)' }}>
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">Reviews & Reputation</h1>
+                  <p className="text-foreground/60 text-xs">Manage your customer reviews</p>
+                </div>
+                <Button className="bg-secondary text-secondary-foreground h-8">
+                  <Mail className="mr-1.5 h-3.5 w-3.5" /> Request Review
+                </Button>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Rating Overview */}
+                <Card className="border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-foreground text-base">Rating Overview</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <span className="text-4xl font-bold text-foreground">4.8</span>
+                        <Star className="h-8 w-8 text-secondary fill-vendor-gold" />
+                      </div>
+                      <p className="text-foreground/60 text-sm">24 reviews</p>
+                    </div>
+                    <div className="space-y-2">
+                      {[5, 4, 3, 2, 1].map((stars) => (
+                        <div key={stars} className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 w-10">
+                            <span className="text-foreground text-xs">{stars}</span>
+                            <Star className="h-2.5 w-2.5 text-secondary fill-vendor-gold" />
+                          </div>
+                          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-secondary rounded-full w-3/4" />
+                          </div>
+                          <span className="text-foreground/60 text-xs w-8 text-right">18</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Reviews List */}
+                <div className="lg:col-span-2 space-y-3">
+                  {[1, 2].map((i) => (
+                    <Card key={i} className="border-border">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <span className="text-primary font-semibold text-sm">J</span>
+                            </div>
+                            <div>
+                              <p className="text-foreground font-medium text-sm">John Doe</p>
+                              <p className="text-xs text-foreground/60">Wedding • Dec 20, 2024</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className="h-3 w-3 text-secondary fill-vendor-gold" />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-foreground/80 text-sm mb-3">
+                          Amazing service! Everything was perfect for our special day.
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <Button variant="ghost" size="sm" className="text-foreground/60 hover:text-foreground h-7 text-xs">
+                            <ThumbsUp className="mr-1.5 h-3 w-3" /> Helpful
+                          </Button>
+                          <Button variant="outline" size="sm" className="border-white/20 text-foreground h-7 text-xs">
+                            <MessageSquare className="mr-1.5 h-3 w-3" /> Respond
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Overlay with Lock Message */}
+            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6 min-h-screen">
+              <Card className="max-w-md w-full border-2 border-primary/20 shadow-2xl bg-gradient-to-br from-background via-background to-primary/5">
+                <CardContent className="p-8 text-center">
+                  {/* Animated Lock Icon */}
+                  <div className="relative inline-block mb-6">
+                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                    <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 border-2 border-primary/20">
+                      <Lock className="h-12 w-12 text-primary" />
+                    </div>
+                    <div className="absolute -top-2 -right-2">
+                      <Sparkles className="h-6 w-6 text-secondary animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h2 className="text-2xl font-bold text-foreground mb-3 flex items-center justify-center gap-2">
+                    <Zap className="h-6 w-6 text-secondary" />
+                    Reviews Coming Soon
+                  </h2>
+
+                  {/* Description */}
+                  <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                    Build your reputation with smart review requests and customer feedback management.
+                  </p>
+
+                  {/* Features Preview */}
+                  <div className="space-y-3 mb-6 text-left">
+                    {[
+                      { icon: Mail, text: 'Request reviews from customers' },
+                      { icon: Star, text: 'Track ratings & feedback' },
+                      { icon: MessageSquare, text: 'Respond to reviews' },
+                      { icon: TrendingUp, text: 'Build your reputation' }
+                    ].map((feature, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <feature.icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm text-foreground/80">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Badge */}
+                  <Badge className="bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30 px-4 py-2">
+                    <Sparkles className="h-3 w-3 mr-1.5" />
+                    Available in Phase 2
+                  </Badge>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </VendorLayout>
     );

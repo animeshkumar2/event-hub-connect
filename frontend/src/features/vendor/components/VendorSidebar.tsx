@@ -35,7 +35,7 @@ const menuItems = [
   // PHASE 1: Wallet - Commented out for initial release
   // { icon: Wallet, label: 'Wallet', path: '/vendor/wallet', locked: !FEATURE_FLAGS.WALLET_ENABLED },
   { icon: BarChart3, label: 'Analytics', path: '/vendor/analytics', locked: !FEATURE_FLAGS.ANALYTICS_ENABLED },
-  { icon: Star, label: 'Reviews', path: '/vendor/reviews', locked: false },
+  { icon: Star, label: 'Reviews', path: '/vendor/reviews', locked: !FEATURE_FLAGS.REVIEW_REQUESTS_ENABLED },
   { icon: FileQuestion, label: 'FAQs', path: '/vendor/faqs', locked: false },
   { icon: Settings, label: 'Settings', path: '/vendor/settings', locked: false },
   { icon: HelpCircle, label: 'Help', path: '/vendor/help', locked: false },

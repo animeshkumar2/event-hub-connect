@@ -12,5 +12,8 @@ export const FEATURE_FLAGS = {
   // Wallet feature - Payment management and payouts
   WALLET_ENABLED: false,
   
+  // Review Requests feature - Proactive review collection
+  REVIEW_REQUESTS_ENABLED: false,
+  
   // Add more feature flags as needed
 } as const;
