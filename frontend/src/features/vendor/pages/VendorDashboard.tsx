@@ -82,22 +82,24 @@ export default function VendorDashboard() {
         bg: 'bg-primary/10', 
         trend: 'Respond to leads' 
       },
-      { 
-        label: 'Wallet Balance', 
-        value: `₹${statsData.walletBalance ? Number(statsData.walletBalance).toLocaleString('en-IN') : '0'}`, 
-        icon: Wallet, 
-        color: 'text-green-600 dark:text-green-400', 
-        bg: 'bg-green-500/10', 
-        trend: statsData.walletBalance && Number(statsData.walletBalance) > 0 ? 'Ready to withdraw' : 'No balance' 
-      },
-      { 
-        label: 'This Month Revenue', 
-        value: `₹${statsData.monthlyRevenue ? Number(statsData.monthlyRevenue).toLocaleString('en-IN') : '0'}`, 
-        icon: TrendingUp, 
-        color: 'text-blue-600 dark:text-blue-400', 
-        bg: 'bg-blue-500/10', 
-        trend: 'View analytics' 
-      },
+      // PHASE 1: Wallet Balance - Commented out for initial release
+      // { 
+      //   label: 'Wallet Balance', 
+      //   value: `₹${statsData.walletBalance ? Number(statsData.walletBalance).toLocaleString('en-IN') : '0'}`, 
+      //   icon: Wallet, 
+      //   color: 'text-green-600 dark:text-green-400', 
+      //   bg: 'bg-green-500/10', 
+      //   trend: statsData.walletBalance && Number(statsData.walletBalance) > 0 ? 'Ready to withdraw' : 'No balance' 
+      // },
+      // PHASE 1: This Month Revenue - Commented out for initial release
+      // { 
+      //   label: 'This Month Revenue', 
+      //   value: `₹${statsData.monthlyRevenue ? Number(statsData.monthlyRevenue).toLocaleString('en-IN') : '0'}`, 
+      //   icon: TrendingUp, 
+      //   color: 'text-blue-600 dark:text-blue-400', 
+      //   bg: 'bg-blue-500/10', 
+      //   trend: 'View analytics' 
+      // },
     ];
   }, [statsData]);
 
@@ -296,7 +298,7 @@ export default function VendorDashboard() {
 
         {/* Stats Grid */}
         {statsCards && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {statsCards.map((stat, i) => (
               <Card 
                 key={i} 
@@ -432,12 +434,14 @@ export default function VendorDashboard() {
             <CardTitle className="text-foreground">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
               {[
                 { icon: Package, label: 'Create Package', path: '/vendor/listings', color: 'text-secondary' },
                 { icon: Calendar, label: 'Block Dates', path: '/vendor/calendar', color: 'text-blue-600 dark:text-blue-400' },
-                { icon: Wallet, label: 'Request Payout', path: '/vendor/wallet', color: 'text-green-600 dark:text-green-400' },
-                { icon: Bell, label: 'Notifications', path: '/vendor/settings', color: 'text-primary' },
+                // PHASE 1: Request Payout - Commented out for initial release
+                // { icon: Wallet, label: 'Request Payout', path: '/vendor/wallet', color: 'text-green-600 dark:text-green-400' },
+                // PHASE 1: Notifications - Commented out for initial release
+                // { icon: Bell, label: 'Notifications', path: '/vendor/settings', color: 'text-primary' },
               ].map((action, i) => (
                 <Button
                   key={i}

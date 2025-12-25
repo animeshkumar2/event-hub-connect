@@ -30,7 +30,8 @@ const menuItems = [
   { icon: Inbox, label: 'Leads', path: '/vendor/leads' },
   { icon: ClipboardList, label: 'Orders', path: '/vendor/orders' },
   { icon: MessageSquare, label: 'Chat', path: '/vendor/chat' },
-  { icon: Wallet, label: 'Wallet', path: '/vendor/wallet' },
+  // PHASE 1: Wallet - Commented out for initial release
+  // { icon: Wallet, label: 'Wallet', path: '/vendor/wallet' },
   { icon: BarChart3, label: 'Analytics', path: '/vendor/analytics' },
   { icon: Star, label: 'Reviews', path: '/vendor/reviews' },
   { icon: FileQuestion, label: 'FAQs', path: '/vendor/faqs' },
