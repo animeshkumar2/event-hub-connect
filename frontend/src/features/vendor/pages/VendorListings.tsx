@@ -254,16 +254,8 @@ export default function VendorListings() {
   
   // Helper function to check if draft - needs to be defined before useMemo calls
   function isDraftListing(listing: any) {
-    // A listing is a draft if:
-    // 1. Explicitly marked as draft
-    // 2. Price is 0 or 0.01 (draft marker)
-    // 3. Missing required fields (no images, no price, etc.)
-    // Note: We don't check isActive here because vendors might intentionally deactivate complete listings
-    return listing.isDraft || 
-           !listing.price || 
-           listing.price === 0 || 
-           listing.price === 0.01 ||
-           !listing.images?.length;
+    // A listing is a draft if it has the isDraft flag set to true
+    return listing.isDraft === true;
   }
 
   // Handle edit query parameter (from preview page)
@@ -609,8 +601,7 @@ export default function VendorListings() {
       // Convert core category ID to DB category ID for API
       const dbCategoryId = getDbCategoryId(formData.categoryId);
       
-      // Use price=0.01 as a marker for draft listings (real listings will have actual prices)
-      // IMPORTANT: Set isActive to false so draft listings are NOT visible on user side
+      // Save as draft - keep isActive true so vendor can still see it, but mark as draft
       const payload: any = {
         name: formData.name,
         description: formData.description || 'Draft - description pending',
@@ -626,8 +617,8 @@ export default function VendorListings() {
           price: parseFloat(ec.price) || 0
         })),
         extraCharges: formData.extraCharges,
-        isActive: false, // Drafts should NOT be active/visible on user side
-        isDraft: true, // Explicitly mark as draft
+        isActive: false, // Drafts should NOT be visible to customers
+        isDraft: true, // Mark as draft
       };
 
       if (listingType === 'PACKAGE') {
@@ -644,7 +635,9 @@ export default function VendorListings() {
         if (response.success) {
           toast.success('Draft saved successfully!');
           closeModal();
-          refetch();
+          await refetch();
+        } else {
+          throw new Error(response.message || 'Failed to save draft');
         }
       } else {
         const response = listingType === 'PACKAGE'
@@ -654,10 +647,13 @@ export default function VendorListings() {
         if (response.success) {
           toast.success('Draft saved! You can complete it later.');
           closeModal();
-          refetch();
+          await refetch();
+        } else {
+          throw new Error(response.message || 'Failed to save draft');
         }
       }
     } catch (error: any) {
+      console.error('Error saving draft:', error);
       toast.error(error.message || 'Failed to save draft');
     } finally {
       setIsSaving(false);
@@ -677,11 +673,14 @@ export default function VendorListings() {
     });
   };
 
-  // Separate drafts from active listings
-  const draftListings = useMemo(() => 
-    filteredListings.filter((l: any) => isDraftListing(l)), 
-    [filteredListings]
-  );
+  // Separate drafts from active listings - use listingsData directly, not filtered
+  const draftListings = useMemo(() => {
+    if (!listingsData || !Array.isArray(listingsData)) {
+      return [];
+    }
+    const drafts = listingsData.filter((l: any) => isDraftListing(l));
+    return drafts;
+  }, [listingsData]);
 
   if (listingsLoading) {
     return (

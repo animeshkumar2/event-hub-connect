@@ -49,6 +49,8 @@ public class ListingMapper {
                     .collect(Collectors.toList()));
         }
         
+        dto.setIsActive(listing.getIsActive());
+        dto.setIsDraft(listing.getIsDraft());
         dto.setIsPopular(listing.getIsPopular());
         dto.setIsTrending(listing.getIsTrending());
         

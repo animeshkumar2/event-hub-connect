@@ -46,5 +46,11 @@ public class CreateItemRequest {
     private List<String> extraCharges;
     
     private List<String> images;
+    
+    // Control whether listing is active/visible to customers
+    private Boolean isActive;
+    
+    // Mark as draft (incomplete listing)
+    private Boolean isDraft;
 }
 

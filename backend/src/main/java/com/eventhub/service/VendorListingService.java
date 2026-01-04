@@ -108,7 +108,10 @@ public class VendorListingService {
         }
         
         listing.setImages(request.getImages());
-        listing.setIsActive(true);
+        // Use isActive from request, default to true if not specified
+        listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        // Use isDraft from request, default to false if not specified
+        listing.setIsDraft(request.getIsDraft() != null ? request.getIsDraft() : false);
         
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
@@ -184,7 +187,10 @@ public class VendorListingService {
         }
         
         listing.setImages(request.getImages());
-        listing.setIsActive(true);
+        // Use isActive from request, default to true if not specified
+        listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        // Use isDraft from request, default to false if not specified
+        listing.setIsDraft(request.getIsDraft() != null ? request.getIsDraft() : false);
         
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
@@ -272,6 +278,9 @@ public class VendorListingService {
         // Status
         if (updatedListing.getIsActive() != null) {
             listing.setIsActive(updatedListing.getIsActive());
+        }
+        if (updatedListing.getIsDraft() != null) {
+            listing.setIsDraft(updatedListing.getIsDraft());
         }
         
         return listingRepository.save(listing);
