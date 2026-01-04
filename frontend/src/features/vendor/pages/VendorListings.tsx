@@ -45,7 +45,19 @@ export default function VendorListings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track which listing is being deleted
-  const [formStep, setFormStep] = useState<1 | 2>(1); // Two-step form
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    basic: true,
+    pricing: true,
+    included: true,
+    highlights: false,
+    photos: true,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
   
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
@@ -238,15 +250,29 @@ export default function VendorListings() {
         minimumQuantity: editingListing.minimumQuantity || 1,
       });
       setListingType(editingListing.type || 'PACKAGE');
-      setFormStep(1); // Reset to first step when editing
+      // Expand all sections when editing
+      setExpandedSections({
+        basic: true,
+        pricing: true,
+        included: true,
+        highlights: true,
+        photos: true,
+      });
     } else {
       // Reset form
-      setFormStep(1);
+      setExpandedSections({
+        basic: true,
+        pricing: true,
+        included: true,
+        highlights: false,
+        photos: true,
+      });
       setFormData({
         name: '',
         description: '',
         price: '',
         categoryId: vendorCategoryId,
+        customCategoryName: '',
         eventTypeIds: [],
         images: [],
         highlights: [],
@@ -572,21 +598,13 @@ export default function VendorListings() {
   const closeModal = () => {
     setShowCreateModal(false);
     setEditingListing(null);
-    setFormStep(1);
-  };
-
-  // Navigate to next step
-  const goToNextStep = () => {
-    if (!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0) {
-      toast.error('Please fill in all required fields before proceeding');
-      return;
-    }
-    setFormStep(2);
-  };
-
-  // Navigate to previous step
-  const goToPreviousStep = () => {
-    setFormStep(1);
+    setExpandedSections({
+      basic: true,
+      pricing: true,
+      included: true,
+      highlights: false,
+      photos: true,
+    });
   };
 
   // Separate drafts from active listings
@@ -660,31 +678,18 @@ export default function VendorListings() {
                   <Plus className="mr-2 h-4 w-4" /> Add Listing
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-card border-border max-w-2xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto rounded-2xl">
                 <DialogHeader>
-                  <DialogTitle className="text-foreground">
+                  <DialogTitle className="text-foreground text-lg sm:text-xl">
                     {editingListing ? 'Edit Listing' : 'Create New Listing'}
                   </DialogTitle>
                   <DialogDescription className="sr-only">
-                    {formStep === 1 ? 'Enter basic information for your listing' : 'Add details, images and pricing for your listing'}
+                    Create or edit your listing with all details in one place
                   </DialogDescription>
-                  {/* Step indicator */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${formStep === 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-xs font-bold">1</span>
-                      Basic Info
-                    </div>
-                    <div className="w-8 h-0.5 bg-border" />
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${formStep === 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-xs font-bold">2</span>
-                      Details
-                    </div>
-                  </div>
                 </DialogHeader>
 
-                {/* STEP 1: Basic Information */}
-                {formStep === 1 && (
-                <div className="space-y-4 pt-4">
+                {/* Single Scrollable Form with Collapsible Sections */}
+                <div className="space-y-3 pt-4">
                   <div className="space-y-2">
                     <Label className="text-foreground">Listing Type</Label>
                     <Select value={listingType} onValueChange={(value: 'PACKAGE' | 'ITEM') => setListingType(value)}>
@@ -718,7 +723,8 @@ export default function VendorListings() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Pricing & Category */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-foreground">Price (₹) *</Label>
                       <Input
@@ -808,7 +814,7 @@ export default function VendorListings() {
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
                           {availableEventTypes && Array.isArray(availableEventTypes) && availableEventTypes.length > 0 ? (
                             availableEventTypes.map((et: any) => (
                               <div key={et.id} className="flex items-center space-x-2">
@@ -849,53 +855,7 @@ export default function VendorListings() {
                     )}
                   </div>
 
-                  {/* Step 1 Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-border">
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-border hover:bg-muted"
-                      onClick={closeModal}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
-                      onClick={handleSaveAsDraft}
-                      disabled={isSaving || !formData.name || !formData.categoryId || formData.eventTypeIds.length === 0}
-                    >
-                      {isSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      Save & Exit
-                    </Button>
-                    <Button
-                      className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow"
-                      onClick={goToNextStep}
-                      disabled={!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0}
-                    >
-                      Next →
-                    </Button>
-                  </div>
-                </div>
-                )}
 
-                {/* STEP 2: Details */}
-                {formStep === 2 && (
-                <div className="space-y-4 pt-4">
-                  {/* Back Button for Step 2 */}
-                  <div className="mb-4 pb-4 border-b border-border">
-                    <Button
-                      variant="ghost"
-                      onClick={goToPreviousStep}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Basic Info
-                    </Button>
-                  </div>
 
                   {/* Highlights Section (for both PACKAGE and ITEM) */}
                   <div className="space-y-2">
@@ -1143,7 +1103,7 @@ export default function VendorListings() {
 
                   {listingType === 'ITEM' && (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-foreground">Unit</Label>
                           <Input
@@ -1242,15 +1202,15 @@ export default function VendorListings() {
                     )}
                   </div>
 
-                  {/* Step 2 Buttons */}
+                  {/* Action Buttons */}
                   <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         variant="outline"
                         className="flex-1 border-border hover:bg-muted"
-                        onClick={goToPreviousStep}
+                        onClick={closeModal}
                       >
-                        ← Back
+                        Cancel
                       </Button>
                       <Button
                         variant="outline"
@@ -1286,12 +1246,11 @@ export default function VendorListings() {
                       {!formData.price 
                         ? '⚠️ Set a price to publish' 
                         : formData.images.length === 0 
-                          ? '⚠️ Consider adding images before publishing'
+                          ? '⚠️ Consider adding images for better visibility'
                           : '✓ Ready to publish'}
                     </p>
                   </div>
                 </div>
-                )}
               </DialogContent>
             </Dialog>
           </div>
