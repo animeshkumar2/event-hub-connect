@@ -71,6 +71,24 @@ export default function VendorListings() {
   const categoriesData = categories.data;
   const eventTypeCategories = eventTypeCategoriesData || [];
 
+  // Filter to show only 8 core categories for Phase 1
+  const CORE_CATEGORY_IDS = [
+    'photographer',      // Photography & Videography
+    'cinematographer',   // Photography & Videography  
+    'decorator',         // Décor
+    'caterer',           // Catering
+    'venue',             // Venue
+    'mua',               // Makeup & Styling
+    'dj',                // DJ & Entertainment
+    'live-music',        // DJ & Entertainment
+    'sound-lights',      // Sound & Lights
+    'other'              // Other
+  ];
+  
+  const coreCategories = categoriesData && Array.isArray(categoriesData) 
+    ? categoriesData.filter((cat: any) => CORE_CATEGORY_IDS.includes(cat.id))
+    : [];
+
   // Extra charge with pricing type
   type ExtraCharge = { name: string; price: string };
 
@@ -631,7 +649,8 @@ export default function VendorListings() {
           <Button
             variant="ghost"
             onClick={() => navigate('/vendor/dashboard')}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground -ml-2"
+            size="sm"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
@@ -639,56 +658,78 @@ export default function VendorListings() {
         </div>
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Packages & Listings</h1>
-            <p className="text-muted-foreground">
-              {filteredListings.length} listings • {filteredListings.filter((l: any) => l.isActive).length} active
-            </p>
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Title Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Packages & Listings</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                {filteredListings.length} listing{filteredListings.length !== 1 ? 's' : ''} • {filteredListings.filter((l: any) => l.isActive).length} active
+              </p>
+            </div>
+            {/* Add Listing Button - Desktop */}
+            <Button 
+              className="hidden sm:flex bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Listing
+            </Button>
           </div>
-          <div className="flex gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search by name, description, or category..."
-                className="pl-10 bg-background border-border text-foreground w-64"
+                placeholder="Search listings..."
+                className="pl-10 bg-background border-border text-foreground w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            
+            {/* Category Filter */}
             <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
-              <SelectTrigger className="w-48 bg-background border-border text-foreground">
-                <SelectValue placeholder="Filter by category" />
+              <SelectTrigger className="w-full sm:w-48 bg-background border-border text-foreground">
+                <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categoriesData && Array.isArray(categoriesData) && categoriesData.map((cat: any) => (
+                {coreCategories.map((cat: any) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Dialog open={showCreateModal} onOpenChange={(open) => {
-              if (!open) closeModal();
-              else setShowCreateModal(open);
-            }}>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all">
-                  <Plus className="mr-2 h-4 w-4" /> Add Listing
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border max-w-2xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto rounded-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-foreground text-lg sm:text-xl">
-                    {editingListing ? 'Edit Listing' : 'Create New Listing'}
-                  </DialogTitle>
-                  <DialogDescription className="sr-only">
-                    Create or edit your listing with all details in one place
-                  </DialogDescription>
-                </DialogHeader>
+            
+            {/* Add Listing Button - Mobile */}
+            <Button 
+              className="sm:hidden w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Listing
+            </Button>
+          </div>
+        </div>
 
-                {/* Single Scrollable Form with Collapsible Sections */}
+        {/* Create/Edit Listing Dialog */}
+        <Dialog open={showCreateModal} onOpenChange={(open) => {
+          if (!open) closeModal();
+          else setShowCreateModal(open);
+        }}>
+          <DialogContent className="bg-card border-border max-w-2xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-foreground text-lg sm:text-xl">
+                {editingListing ? 'Edit Listing' : 'Create New Listing'}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Create or edit your listing with all details in one place
+              </DialogDescription>
+            </DialogHeader>
+
+                {/* Single Scrollable Form */}
                 <div className="space-y-3 pt-4">
                   <div className="space-y-2">
                     <Label className="text-foreground">Listing Type</Label>
@@ -780,7 +821,7 @@ export default function VendorListings() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categoriesData && Array.isArray(categoriesData) && categoriesData.map((cat: any) => (
+                          {coreCategories.map((cat: any) => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.name}
                             </SelectItem>
@@ -1253,8 +1294,6 @@ export default function VendorListings() {
                 </div>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
 
         {listingsError && (
           <Alert className="border-destructive">
