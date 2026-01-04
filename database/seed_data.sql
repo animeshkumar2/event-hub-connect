@@ -29,6 +29,7 @@ INSERT INTO categories (id, name, display_name, icon) VALUES
 ('sound-lights', 'Sound & Lights', 'Sound & Lights', '💡'),
 ('mua', 'Makeup / Stylist', 'Makeup / Stylist', '💄'),
 ('caterer', 'Catering', 'Catering', '🍽️'),
+('venue', 'Venue', 'Venue', '�️'),
 ('return-gifts', 'Return Gifts', 'Return Gifts', '🎁'),
 ('invitations', 'Invitations', 'Invitations', '✉️'),
 ('live-music', 'Live Music', 'Live Music', '🎤'),
@@ -93,6 +94,12 @@ INSERT INTO event_type_categories (event_type_id, category_id)
 SELECT et.id, c.id
 FROM event_types et, categories c
 WHERE et.name = 'Other'
+ON CONFLICT DO NOTHING;
+
+-- Venue: All event types (venues can host any event)
+INSERT INTO event_type_categories (event_type_id, category_id)
+SELECT et.id, 'venue'
+FROM event_types et
 ON CONFLICT DO NOTHING;
 
 -- =====================================================

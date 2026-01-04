@@ -71,23 +71,51 @@ export default function VendorListings() {
   const categoriesData = categories.data;
   const eventTypeCategories = eventTypeCategoriesData || [];
 
-  // Filter to show only 8 core categories for Phase 1
-  const CORE_CATEGORY_IDS = [
-    'photographer',      // Photography & Videography
-    'cinematographer',   // Photography & Videography  
-    'decorator',         // Décor
-    'caterer',           // Catering
-    'venue',             // Venue
-    'mua',               // Makeup & Styling
-    'dj',                // DJ & Entertainment
-    'live-music',        // DJ & Entertainment
-    'sound-lights',      // Sound & Lights
-    'other'              // Other
+  // Core category mapping for Phase 1
+  // Maps display categories to their underlying DB category IDs
+  const CORE_CATEGORY_MAP = {
+    'photography-videography': ['photographer', 'cinematographer', 'videographer'],
+    'decorator': ['decorator'],
+    'caterer': ['caterer'],
+    'venue': ['venue'],
+    'mua': ['mua'],
+    'dj-entertainment': ['dj', 'live-music'],
+    'sound-lights': ['sound-lights'],
+    'other': ['other', 'return-gifts', 'invitations', 'anchors', 'event-coordinator'],
+  };
+
+  // Helper: Get core category ID from DB category ID
+  const getCoreCategoryId = (dbCategoryId: string): string => {
+    for (const [coreId, dbIds] of Object.entries(CORE_CATEGORY_MAP)) {
+      if (dbIds.includes(dbCategoryId)) {
+        return coreId;
+      }
+    }
+    return 'other'; // Default to other if not found
+  };
+
+  // Helper: Get primary DB category ID from core category ID
+  const getDbCategoryId = (coreCategoryId: string): string => {
+    const dbIds = CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP];
+    return dbIds ? dbIds[0] : 'other';
+  };
+
+  // Helper: Get all DB category IDs for a core category
+  const getAllDbCategoryIds = (coreCategoryId: string): string[] => {
+    return CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP] || ['other'];
+  };
+
+  // Build core categories list for dropdowns
+  const coreCategories = [
+    { id: 'photography-videography', name: 'Photography & Videography', icon: '📸' },
+    { id: 'decorator', name: 'Décor', icon: '🎨' },
+    { id: 'caterer', name: 'Catering', icon: '🍽️' },
+    { id: 'venue', name: 'Venue', icon: '🏛️' },
+    { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
+    { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
+    { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
+    { id: 'other', name: 'Other', icon: '📦' },
   ];
-  
-  const coreCategories = categoriesData && Array.isArray(categoriesData) 
-    ? categoriesData.filter((cat: any) => CORE_CATEGORY_IDS.includes(cat.id))
-    : [];
 
   // Extra charge with pricing type
   type ExtraCharge = { name: string; price: string };
@@ -118,12 +146,18 @@ export default function VendorListings() {
   // Get vendor category
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
   const vendorCategoryName = profileData?.vendorCategory?.name || profileData?.categoryName || '';
+  const vendorCoreCategoryId = getCoreCategoryId(vendorCategoryId);
 
-  // Get category name helper
+  // Get category name helper - converts DB category to core category name
   const getCategoryName = (categoryId: string) => {
-    if (!categoriesData || !Array.isArray(categoriesData)) return '';
-    const category = categoriesData.find((cat: any) => cat.id === categoryId);
-    return category?.name || '';
+    // Check if it's already a core category ID
+    const coreCategory = coreCategories.find(cat => cat.id === categoryId);
+    if (coreCategory) return coreCategory.name;
+    
+    // Otherwise, convert DB category to core category
+    const coreCategoryId = getCoreCategoryId(categoryId);
+    const coreCat = coreCategories.find(cat => cat.id === coreCategoryId);
+    return coreCat?.name || 'Other';
   };
 
   // Filter event types based on selected category
@@ -132,26 +166,35 @@ export default function VendorListings() {
     if (!eventTypesData || !Array.isArray(eventTypesData)) return [];
     if (!eventTypeCategories || eventTypeCategories.length === 0) return eventTypesData;
     
-    // If no category selected, show all event types
-    if (!formData.categoryId || formData.categoryId === 'other') {
+    // If no category selected, show warning message
+    if (!formData.categoryId) {
+      return [];
+    }
+
+    // Special case: "Other" category can be used for any event type
+    if (formData.categoryId === 'other') {
       return eventTypesData;
     }
 
-    // Get valid event type IDs for selected category
+    // Get all DB category IDs for the selected core category
+    const dbCategoryIds = getAllDbCategoryIds(formData.categoryId);
+
+    // Get valid event type IDs for ALL mapped DB categories
     const validEventTypeIds = new Set<number>();
     
-    eventTypeCategories.forEach((etc: any) => {
-      // Handle different possible structures
-      const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
-      const etcCategoryId = etc.categoryId || etc.category?.id;
-      
-      if (etcCategoryId === formData.categoryId && etcEventTypeId) {
-        validEventTypeIds.add(etcEventTypeId);
-      }
+    dbCategoryIds.forEach(dbCategoryId => {
+      eventTypeCategories.forEach((etc: any) => {
+        const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
+        const etcCategoryId = etc.categoryId || etc.category?.id;
+        
+        if (etcCategoryId === dbCategoryId && etcEventTypeId) {
+          validEventTypeIds.add(etcEventTypeId);
+        }
+      });
     });
 
-    // Special case: Add Corporate to DJ category (as requested)
-    if (formData.categoryId === 'dj') {
+    // Special case: Add Corporate to DJ & Entertainment category
+    if (formData.categoryId === 'dj-entertainment') {
       const corporateEventType = eventTypesData.find((et: any) => 
         et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
       );
@@ -165,7 +208,8 @@ export default function VendorListings() {
       validEventTypeIds.has(et.id)
     );
 
-    return filtered;
+    // If no event types found, show all (fallback for categories without mappings)
+    return filtered.length > 0 ? filtered : eventTypesData;
   }, [eventTypesData, eventTypeCategories, formData.categoryId]);
 
   // Filter listings with enhanced search (name, description, category)
@@ -177,8 +221,9 @@ export default function VendorListings() {
     // Filter by category
     if (selectedCategoryFilter !== 'all') {
       filtered = filtered.filter((listing: any) => {
-        const listingCategoryId = listing.listingCategory?.id || listing.categoryId || '';
-        return listingCategoryId === selectedCategoryFilter;
+        const listingDbCategoryId = listing.listingCategory?.id || listing.categoryId || '';
+        const listingCoreCategoryId = getCoreCategoryId(listingDbCategoryId);
+        return listingCoreCategoryId === selectedCategoryFilter;
       });
     }
     
@@ -186,7 +231,8 @@ export default function VendorListings() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((listing: any) => {
-        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '').toLowerCase();
+        const dbCategoryId = listing.listingCategory?.id || listing.categoryId || '';
+        const categoryName = getCategoryName(dbCategoryId).toLowerCase();
         return (
           listing.name?.toLowerCase().includes(query) ||
           listing.description?.toLowerCase().includes(query) ||
@@ -196,7 +242,7 @@ export default function VendorListings() {
     }
     
     return filtered;
-  }, [listingsData, searchQuery, selectedCategoryFilter, categoriesData]);
+  }, [listingsData, searchQuery, selectedCategoryFilter]);
 
   // Exclude drafts from main listings
   const completedListings = useMemo(() => 
@@ -211,10 +257,9 @@ export default function VendorListings() {
     // A listing is a draft if:
     // 1. Explicitly marked as draft
     // 2. Price is 0 or 0.01 (draft marker)
-    // 3. Not active (isActive = false)
-    // 4. Missing required fields (no images, no price, etc.)
+    // 3. Missing required fields (no images, no price, etc.)
+    // Note: We don't check isActive here because vendors might intentionally deactivate complete listings
     return listing.isDraft || 
-           !listing.isActive || 
            !listing.price || 
            listing.price === 0 || 
            listing.price === 0.01 ||
@@ -249,11 +294,15 @@ export default function VendorListings() {
         }
       }
       
+      // Convert DB category ID to core category ID
+      const dbCategoryId = editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId;
+      const coreCategoryId = getCoreCategoryId(dbCategoryId);
+      
       setFormData({
         name: editingListing.name || '',
         description: editingListing.description || '',
         price: editingListing.price?.toString() || '',
-        categoryId: editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId,
+        categoryId: coreCategoryId, // Use core category ID
         customCategoryName: editingListing.customCategoryName || '',
         eventTypeIds: editingListing.eventTypes?.map((et: any) => et.id || et) || [],
         images: editingListing.images || [],
@@ -277,7 +326,7 @@ export default function VendorListings() {
         photos: true,
       });
     } else {
-      // Reset form
+      // Reset form - use core category ID
       setExpandedSections({
         basic: true,
         pricing: true,
@@ -289,7 +338,7 @@ export default function VendorListings() {
         name: '',
         description: '',
         price: '',
-        categoryId: vendorCategoryId,
+        categoryId: vendorCoreCategoryId, // Use core category ID
         customCategoryName: '',
         eventTypeIds: [],
         images: [],
@@ -305,7 +354,7 @@ export default function VendorListings() {
       });
       setListingType('PACKAGE');
     }
-  }, [editingListing, vendorCategoryId]);
+  }, [editingListing, vendorCategoryId, vendorCoreCategoryId]);
 
   const handleSubmit = async () => {
     // Prevent multiple clicks
@@ -356,35 +405,35 @@ export default function VendorListings() {
 
     setIsPublishing(true);
     try {
+      // Convert core category ID to DB category ID for API
+      const dbCategoryId = getDbCategoryId(formData.categoryId);
+      
       const payload: any = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
-        categoryId: formData.categoryId,
+        categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
-        highlights: formData.highlights,
+        highlights: formData.highlights.filter(h => h.trim()), // Remove empty highlights
         deliveryTime: formData.deliveryTime,
-        // Include both formats for extra charges
-        extraChargesDetailed: formData.extraChargesDetailed.map(ec => ({
-          name: ec.name,
-          price: parseFloat(ec.price) || 0
-        })),
+        // Include both formats for extra charges, filter empty ones
+        extraChargesDetailed: formData.extraChargesDetailed
+          .filter(ec => ec.name.trim() && ec.price)
+          .map(ec => ({
+            name: ec.name,
+            price: parseFloat(ec.price) || 0
+          })),
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
       };
 
       if (listingType === 'PACKAGE') {
-        payload.includedItemsText = formData.includedItemsText;
+        payload.includedItemsText = formData.includedItemsText.filter(i => i.trim());
         payload.includedItemIds = formData.includedItemIds;
-        payload.excludedItemsText = formData.excludedItemsText;
-        console.log('📦 Package payload being sent:', {
-          includedItemIds: payload.includedItemIds,
-          includedItemsText: payload.includedItemsText,
-          formDataIncludedItemIds: formData.includedItemIds,
-        });
+        payload.excludedItemsText = formData.excludedItemsText.filter(i => i.trim());
       } else {
         payload.unit = formData.unit;
         payload.minimumQuantity = formData.minimumQuantity;
@@ -557,13 +606,16 @@ export default function VendorListings() {
 
     setIsSaving(true);
     try {
+      // Convert core category ID to DB category ID for API
+      const dbCategoryId = getDbCategoryId(formData.categoryId);
+      
       // Use price=0.01 as a marker for draft listings (real listings will have actual prices)
       // IMPORTANT: Set isActive to false so draft listings are NOT visible on user side
       const payload: any = {
         name: formData.name,
         description: formData.description || 'Draft - description pending',
         price: formData.price ? parseFloat(formData.price) : 0.01, // 0.01 marks draft
-        categoryId: formData.categoryId,
+        categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
@@ -847,7 +899,7 @@ export default function VendorListings() {
 
                   <div className="space-y-2">
                     <Label className="text-foreground">Event Types *</Label>
-                    {!formData.categoryId || formData.categoryId === 'other' ? (
+                    {!formData.categoryId ? (
                       <div className="p-3 border border-border rounded-lg bg-muted/30">
                         <p className="text-sm text-muted-foreground">
                           ⚠️ Please select a category first to see available event types
@@ -889,7 +941,9 @@ export default function VendorListings() {
                         )}
                         {formData.eventTypeIds.length > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            💡 Event types shown are valid for the selected category
+                            💡 {formData.categoryId === 'other' 
+                              ? 'All event types available for custom categories' 
+                              : 'Event types shown are valid for the selected category'}
                           </p>
                         )}
                       </>
