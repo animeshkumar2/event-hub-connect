@@ -9,6 +9,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/shared/components/ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
 import { 
   Plus, 
   Search, 
@@ -24,7 +25,17 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
-  ArrowLeft
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Camera,
+  Palette,
+  UtensilsCrossed,
+  MapPin,
+  Sparkles,
+  Music,
+  Lightbulb,
+  Tag
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -33,6 +44,22 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useVendorListingsData, useEventTypeCategories } from '@/shared/hooks/useApi';
 import { vendorApi } from '@/shared/services/api';
+import { useResponsiveCardLimit } from '@/shared/hooks/useResponsiveCardLimit';
+import { ListingCard } from '@/features/vendor/components/ListingCard';
+import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
+
+// Category icon mapping
+const getCategoryIcon = (categoryName: string) => {
+  const name = categoryName.toLowerCase();
+  if (name.includes('photo') || name.includes('video')) return Camera;
+  if (name.includes('décor') || name.includes('decor')) return Palette;
+  if (name.includes('catering') || name.includes('food')) return UtensilsCrossed;
+  if (name.includes('venue')) return MapPin;
+  if (name.includes('makeup') || name.includes('styling')) return Sparkles;
+  if (name.includes('dj') || name.includes('entertainment')) return Music;
+  if (name.includes('sound') || name.includes('light')) return Lightbulb;
+  return Tag;
+};
 
 export default function VendorListings() {
   const navigate = useNavigate();
@@ -45,6 +72,12 @@ export default function VendorListings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track which listing is being deleted
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; listing: any | null }>({
+    open: false,
+    listing: null,
+  });
+  const [draftSectionOpen, setDraftSectionOpen] = useState<string | undefined>('drafts'); // Default open
+  const cardLimit = useResponsiveCardLimit(); // Get responsive card limit
   
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -120,28 +153,28 @@ export default function VendorListings() {
   // Extra charge with pricing type
   type ExtraCharge = { name: string; price: string };
 
-  // Form state
-  const [formData, setFormData] = useState({
+  // Initial form state
+  const initialFormData = {
     name: '',
     description: '',
     price: '',
     categoryId: '',
-    customCategoryName: '', // Custom category name when categoryId is "other"
+    customCategoryName: '',
     eventTypeIds: [] as number[],
     images: [] as string[],
-    // Highlights - key features
     highlights: [] as string[],
-    // Package fields
     includedItemsText: [] as string[],
-    includedItemIds: [] as string[], // IDs of linked items
+    includedItemIds: [] as string[],
     excludedItemsText: [] as string[],
     deliveryTime: '',
-    extraChargesDetailed: [] as ExtraCharge[], // New structured format
-    extraCharges: [] as string[], // Legacy format
-    // Item fields
+    extraChargesDetailed: [] as ExtraCharge[],
+    extraCharges: [] as string[],
     unit: '',
     minimumQuantity: 1,
-  });
+  };
+
+  // Form state
+  const [formData, setFormData] = useState(initialFormData);
 
   // Get vendor category
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
@@ -359,6 +392,12 @@ export default function VendorListings() {
       return;
     }
     
+    // Validate images are required for publishing
+    if (!formData.images || formData.images.length === 0) {
+      // This shouldn't happen as button is disabled, but keep as safety check
+      return;
+    }
+    
     // Validate custom category name if "Other" is selected
     if (formData.categoryId === 'other' && (!formData.customCategoryName || formData.customCategoryName.trim().length === 0)) {
       toast.error('Please enter a custom category name');
@@ -369,16 +408,20 @@ export default function VendorListings() {
     if (formData.categoryId && formData.categoryId !== 'other' && eventTypeCategories.length > 0) {
       const validEventTypeIds = new Set<number>();
       
+      // Get all DB category IDs for the selected core category
+      const dbCategoryIds = getAllDbCategoryIds(formData.categoryId);
+      
       eventTypeCategories.forEach((etc: any) => {
         const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
         const etcCategoryId = etc.categoryId || etc.category?.id;
-        if (etcCategoryId === formData.categoryId && etcEventTypeId) {
+        // Check if the event type is valid for ANY of the mapped DB categories
+        if (dbCategoryIds.includes(etcCategoryId) && etcEventTypeId) {
           validEventTypeIds.add(etcEventTypeId);
         }
       });
       
       // Add Corporate to DJ category
-      if (formData.categoryId === 'dj') {
+      if (formData.categoryId === 'dj-entertainment') {
         const corporateEventType = eventTypesData?.find((et: any) => 
           et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
         );
@@ -390,6 +433,13 @@ export default function VendorListings() {
       // Check if all selected event types are valid
       const invalidEventTypes = formData.eventTypeIds.filter(id => !validEventTypeIds.has(id));
       if (invalidEventTypes.length > 0) {
+        console.log('❌ Event type validation failed:', {
+          categoryId: formData.categoryId,
+          dbCategoryIds,
+          selectedEventTypeIds: formData.eventTypeIds,
+          validEventTypeIds: Array.from(validEventTypeIds),
+          invalidEventTypes
+        });
         toast.error(`Some selected event types are not valid for the chosen category. Please select valid event types.`);
         return;
       }
@@ -464,18 +514,23 @@ export default function VendorListings() {
   };
 
   const handleDelete = async (listing: any) => {
-    if (!confirm(`Are you sure you want to delete "${listing.name}"?`)) return;
+    setDeleteDialog({ open: true, listing });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.listing) return;
     
     // Prevent multiple clicks
-    if (isDeleting === listing.id) {
+    if (isDeleting === deleteDialog.listing.id) {
       return;
     }
 
-    setIsDeleting(listing.id);
+    setIsDeleting(deleteDialog.listing.id);
     try {
-      const response = await vendorApi.deleteListing(listing.id);
+      const response = await vendorApi.deleteListing(deleteDialog.listing.id);
       if (response.success) {
         toast.success('Listing deleted successfully!');
+        setDeleteDialog({ open: false, listing: null });
         refetch();
       } else {
         throw new Error(response.message || 'Failed to delete listing');
@@ -664,6 +719,7 @@ export default function VendorListings() {
   const closeModal = () => {
     setShowCreateModal(false);
     setEditingListing(null);
+    setFormData(initialFormData); // Reset form to initial state
     setExpandedSections({
       basic: true,
       pricing: true,
@@ -698,9 +754,9 @@ export default function VendorListings() {
         {/* Back Button */}
         <div className="mb-4">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => navigate('/vendor/dashboard')}
-            className="text-muted-foreground hover:text-foreground -ml-2"
+            className="border-primary/20 text-primary hover:bg-primary/10 hover:text-primary"
             size="sm"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -715,7 +771,7 @@ export default function VendorListings() {
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Packages & Listings</h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                {filteredListings.length} listing{filteredListings.length !== 1 ? 's' : ''} • {filteredListings.filter((l: any) => l.isActive).length} active
+                {completedListings.length} listing{completedListings.length !== 1 ? 's' : ''} • {completedListings.filter((l: any) => l.isActive).length} active
               </p>
             </div>
             {/* Add Listing Button - Desktop */}
@@ -775,8 +831,10 @@ export default function VendorListings() {
               <DialogTitle className="text-foreground text-lg sm:text-xl">
                 {editingListing ? 'Edit Listing' : 'Create New Listing'}
               </DialogTitle>
-              <DialogDescription className="sr-only">
-                Create or edit your listing with all details in one place
+              <DialogDescription className="text-muted-foreground text-sm mt-2">
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-red-500">*</span> Required fields must be completed to publish
+                </span>
               </DialogDescription>
             </DialogHeader>
 
@@ -1321,9 +1379,9 @@ export default function VendorListings() {
                       </Button>
                     </div>
                     <Button
-                      className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow"
+                      className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleSubmit}
-                      disabled={!formData.price || isPublishing || isSaving}
+                      disabled={!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0 || formData.images.length === 0 || isPublishing || isSaving}
                     >
                       {isPublishing ? (
                         <>
@@ -1337,11 +1395,13 @@ export default function VendorListings() {
                       )}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
-                      {!formData.price 
-                        ? '⚠️ Set a price to publish' 
-                        : formData.images.length === 0 
-                          ? '⚠️ Consider adding images for better visibility'
-                          : '✓ Ready to publish'}
+                      {!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0
+                        ? '⚠️ Complete all required fields to publish' 
+                        : !formData.price 
+                          ? '⚠️ Set a price to publish' 
+                          : formData.images.length === 0 
+                            ? '⚠️ Add at least one image to publish'
+                            : '✓ Ready to publish'}
                     </p>
                   </div>
                 </div>
@@ -1355,96 +1415,80 @@ export default function VendorListings() {
           </Alert>
         )}
 
-        {/* Draft Listings Section */}
+        {/* Draft Listings Section - Collapsible */}
         {draftListings.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-yellow-500" />
-              <h2 className="text-lg font-semibold text-foreground">Incomplete Listings ({draftListings.length})</h2>
-              <span className="text-xs text-muted-foreground ml-2">Complete these to make them visible to customers</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {draftListings.map((listing: any) => (
-                <Card key={listing.id} className="border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 overflow-hidden hover:border-yellow-500/50 transition-all">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-full bg-yellow-500/20">
-                          <AlertTriangle className="h-3 w-3 text-yellow-600" />
-                        </div>
-                        <Badge className="bg-yellow-500/20 text-yellow-700 text-xs font-medium">Draft</Badge>
-                      </div>
-                      <Badge variant="outline" className="text-xs bg-background">
-                        {listing.type === 'PACKAGE' ? <Package className="h-3 w-3 mr-1" /> : <Box className="h-3 w-3 mr-1" />}
-                        {listing.type === 'PACKAGE' ? 'Package' : 'Item'}
-                      </Badge>
-                    </div>
-                    <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-1">{listing.name || 'Untitled'}</h3>
-                    <div className="space-y-1 mb-3">
-                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                        {listing.price && listing.price > 0.01 ? (
-                          <><CheckCircle2 className="h-3 w-3 text-green-500" /> Price set</>
-                        ) : (
-                          <><X className="h-3 w-3 text-red-400" /> No price</>
-                        )}
-                      </p>
-                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                        {listing.images?.length > 0 ? (
-                          <><CheckCircle2 className="h-3 w-3 text-green-500" /> {listing.images.length} image(s)</>
-                        ) : (
-                          <><X className="h-3 w-3 text-red-400" /> No images</>
-                        )}
-                      </p>
-                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                        {listing.description ? (
-                          <><CheckCircle2 className="h-3 w-3 text-green-500" /> Has description</>
-                        ) : (
-                          <><X className="h-3 w-3 text-red-400" /> No description</>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground"
-                        onClick={() => {
-                          setEditingListing(listing);
-                          setShowCreateModal(true);
-                        }}
-                      >
-                        <Edit className="h-3 w-3 mr-1" /> Complete
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="border-red-500/30 text-red-500 hover:bg-red-500/10"
-                        onClick={() => handleDelete(listing)}
-                        disabled={isDeleting === listing.id}
-                      >
-                        {isDeleting === listing.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <Accordion 
+            type="single" 
+            collapsible 
+            value={draftSectionOpen}
+            onValueChange={setDraftSectionOpen}
+            className="mb-10"
+          >
+            <AccordionItem value="drafts" className="border rounded-lg bg-yellow-50/50 dark:bg-yellow-900/10">
+              <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                <div className="flex items-center gap-3 flex-1">
+                  <Clock className="h-6 w-6 text-yellow-500" />
+                  <div className="text-left">
+                    <h2 className="text-xl font-semibold text-foreground">Incomplete Listings</h2>
+                    <p className="text-sm text-muted-foreground">Complete these to make them visible to customers</p>
+                  </div>
+                  <Badge variant="secondary" className="ml-2">{draftListings.length}</Badge>
+                  {draftListings.length > cardLimit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/vendor/listings/drafts');
+                      }}
+                      className="ml-auto mr-4"
+                    >
+                      View All <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {draftListings.slice(0, cardLimit).map((listing: any) => (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      isDraft={true}
+                      onEdit={(listing) => {
+                        setEditingListing(listing);
+                        setShowCreateModal(true);
+                      }}
+                      onDelete={handleDelete}
+                      isDeleting={isDeleting === listing.id}
+                    />
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
 
         {/* Packages Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <Package className="h-5 w-5 text-primary" />
+                <Package className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Packages</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Packages</h2>
               <Badge variant="secondary" className="ml-2">{packages.length}</Badge>
             </div>
+            {packages.length > cardLimit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/vendor/listings/packages')}
+                className="self-start sm:self-auto"
+              >
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
           </div>
           {packages.length === 0 ? (
             <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
@@ -1458,12 +1502,11 @@ export default function VendorListings() {
               </CardContent>
             </Card>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {packages.map((listing: any) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packages.slice(0, cardLimit).map((listing: any) => (
               <Card 
                 key={listing.id} 
-                className="border-border overflow-hidden group hover:shadow-lg hover:border-primary/30 transition-all duration-300 cursor-pointer"
-                onClick={() => window.open(`/listing/${listing.id}?view=customer`, '_blank')}
+                className="border-border overflow-hidden group hover:shadow-lg hover:border-primary/30 transition-all duration-300"
               >
                 <div className="relative aspect-[16/10]">
                   {listing.images && listing.images.length > 0 ? (
@@ -1543,15 +1586,51 @@ export default function VendorListings() {
                     <h3 className="text-foreground font-semibold text-base line-clamp-1 flex-1">{listing.name}</h3>
                   </div>
                   <p className="text-muted-foreground text-sm line-clamp-2 mb-3 min-h-[2.5rem]">{listing.description || 'No description'}</p>
-                  <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other'}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      {listing.eventTypes?.length > 0 && (
-                        <span>{listing.eventTypes.length} event type{listing.eventTypes.length > 1 ? 's' : ''}</span>
-                      )}
+                  
+                  {/* Category & Event Types Section */}
+                  <div className="space-y-2 pt-3 border-t border-border/50">
+                    {/* Category with icon */}
+                    <div className="flex items-center gap-1.5">
+                      {(() => {
+                        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                        const CategoryIcon = getCategoryIcon(categoryName);
+                        return (
+                          <>
+                            <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                            <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                          </>
+                        );
+                      })()}
                     </div>
+                    
+                    {/* Event Types as chips */}
+                    {listing.eventTypes && listing.eventTypes.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {listing.eventTypes.slice(0, 3).map((eventType: any, index: number) => {
+                          const displayText = typeof eventType === 'string' 
+                            ? eventType 
+                            : (eventType?.displayName || eventType?.name || 'Event');
+                          
+                          return (
+                            <Badge 
+                              key={index} 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/20"
+                            >
+                              {displayText}
+                            </Badge>
+                          );
+                        })}
+                        {listing.eventTypes.length > 3 && (
+                          <Badge 
+                            variant="secondary" 
+                            className="text-[10px] px-1.5 py-0 h-5 bg-muted text-muted-foreground"
+                          >
+                            +{listing.eventTypes.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1561,15 +1640,25 @@ export default function VendorListings() {
         </div>
 
         {/* Items Section */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-secondary/10">
-                <Box className="h-5 w-5 text-secondary" />
+                <Box className="h-6 w-6 text-secondary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Individual Items</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Individual Items</h2>
               <Badge variant="secondary" className="ml-2">{items.length}</Badge>
             </div>
+            {items.length > cardLimit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/vendor/listings/items')}
+                className="self-start sm:self-auto"
+              >
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
           </div>
           {items.length === 0 ? (
             <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
@@ -1583,12 +1672,11 @@ export default function VendorListings() {
               </CardContent>
             </Card>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {items.map((listing: any) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {items.slice(0, cardLimit).map((listing: any) => (
               <Card 
                 key={listing.id} 
-                className="border-border overflow-hidden group hover:shadow-lg hover:border-secondary/30 transition-all duration-300 cursor-pointer"
-                onClick={() => window.open(`/listing/${listing.id}?view=customer`, '_blank')}
+                className="border-border overflow-hidden group hover:shadow-lg hover:border-secondary/30 transition-all duration-300"
               >
                 <div className="relative aspect-square">
                   {listing.images && listing.images.length > 0 ? (
@@ -1675,6 +1763,21 @@ export default function VendorListings() {
         </div>
 
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, listing: null })}
+        onConfirm={confirmDelete}
+        title="Delete Listing"
+        description={
+          deleteDialog.listing?.isDraft
+            ? "Are you sure you want to delete this draft? This action cannot be undone."
+            : "Are you sure you want to delete this listing? This will remove it from customer view and cannot be undone."
+        }
+        itemName={deleteDialog.listing?.name}
+        isDeleting={isDeleting !== null}
+      />
     </VendorLayout>
   );
 }

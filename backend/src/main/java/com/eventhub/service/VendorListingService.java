@@ -295,9 +295,15 @@ public class VendorListingService {
             throw new BusinessRuleException("You don't have permission to delete this listing");
         }
         
-        // Soft delete
-        listing.setIsActive(false);
-        listingRepository.save(listing);
+        // Hard delete for drafts, soft delete for active listings
+        if (listing.getIsDraft() != null && listing.getIsDraft()) {
+            // Draft listings can be permanently deleted
+            listingRepository.delete(listing);
+        } else {
+            // Active listings are soft deleted (in case there are orders/bookings)
+            listing.setIsActive(false);
+            listingRepository.save(listing);
+        }
     }
     
     @Transactional(readOnly = true)
