@@ -284,3 +284,5 @@ const compressImage = async (file: File, maxWidth: number = 1920) => {
 
 
 
+
+

@@ -18,3 +18,5 @@ ALTER TABLE user_profiles ALTER COLUMN password_hash DROP NOT NULL;
 
 
 
+
+

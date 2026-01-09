@@ -34,6 +34,7 @@ public class ListingDTO {
     private List<Integer> eventTypeIds;
     private Boolean isPopular;
     private Boolean isTrending;
+    private Boolean openForNegotiation;    // If true, customers can make offers on this listing
     
     // New fields for enhanced package features
     private List<String> highlights;        // Key features shown at top of listing

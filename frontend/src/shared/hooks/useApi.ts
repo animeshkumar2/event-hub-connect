@@ -476,6 +476,42 @@ export function useVendorUpcomingOrders() {
   return convertQueryResult(query);
 }
 
+export function useVendorBookings(page = 0, size = 10) {
+  const query = useQuery({
+    queryKey: ['vendorBookings', page, size],
+    queryFn: async () => {
+      const response = await vendorApi.getBookings(page, size);
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
+}
+
+export function useVendorUpcomingBookings() {
+  const query = useQuery({
+    queryKey: ['vendorUpcomingBookings'],
+    queryFn: async () => {
+      const response = await vendorApi.getUpcomingBookings();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
+}
+
+export function useVendorPastBookings() {
+  const query = useQuery({
+    queryKey: ['vendorPastBookings'],
+    queryFn: async () => {
+      const response = await vendorApi.getPastBookings();
+      return unwrapResponse(response);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
+}
+
 export function useListingDetails(listingId: string | null) {
   const query = useQuery({
     queryKey: ['listingDetails', listingId],

@@ -74,9 +74,11 @@ public class Lead {
     }
     
     public enum LeadStatus {
-        NEW, OPEN, QUOTED, ACCEPTED, DECLINED, CONVERTED
+        NEW, OPEN, DECLINED, WITHDRAWN, CONVERTED
     }
 }
+
+
 
 
 

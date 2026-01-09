@@ -293,6 +293,15 @@ export const customerApi = {
   // Reviews
   submitReview: (orderId: string, data: { rating: number; comment: string; eventType?: string; images?: string[] }) =>
     apiClient.post<any>(`/customers/orders/${orderId}/review`, data),
+  
+  // Offers
+  createOffer: (data: { threadId: string; listingId: string; offeredPrice: number; customizedPrice?: number; customization?: string; message?: string; eventType?: string; eventDate?: string; eventTime?: string; venueAddress?: string; guestCount?: number }) =>
+    apiClient.post<any>('/customers/offers', data),
+  getOffersByThread: (threadId: string) => apiClient.get<any[]>(`/customers/offers/thread/${threadId}`),
+  getMyOffers: () => apiClient.get<any[]>('/customers/offers/my-offers'),
+  getOffer: (offerId: string) => apiClient.get<any>(`/customers/offers/${offerId}`),
+  acceptCounterOffer: (offerId: string) => apiClient.post<any>(`/customers/offers/${offerId}/accept-counter`, {}),
+  withdrawOffer: (offerId: string) => apiClient.post<any>(`/customers/offers/${offerId}/withdraw`, {}),
 };
 
 // Vendor API
@@ -320,7 +329,7 @@ export const vendorApi = {
   deleteAddOn: (packageId: string, addOnId: string) =>
     apiClient.delete<any>(`/vendors/listings/${packageId}/add-ons/${addOnId}`),
   
-  // Orders
+  // Orders (Legacy - kept for backward compatibility)
   getOrders: (status?: string, page = 0, size = 10) => {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
@@ -334,8 +343,22 @@ export const vendorApi = {
   confirmOrder: (orderId: string) => apiClient.post<any>(`/vendors/orders/${orderId}/confirm`, {}),
   getUpcomingOrders: () => apiClient.get<any[]>('/vendors/orders/upcoming'),
   
+  // Bookings (New)
+  getBookings: (page = 0, size = 10) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    return apiClient.get<any>(`/vendors/bookings?${params.toString()}`);
+  },
+  getUpcomingBookings: () => apiClient.get<any[]>('/vendors/bookings/upcoming'),
+  getPastBookings: () => apiClient.get<any[]>('/vendors/bookings/past'),
+  getBooking: (bookingId: string) => apiClient.get<any>(`/vendors/bookings/${bookingId}`),
+  completeEvent: (bookingId: string, data: { images: string[]; description?: string }) =>
+    apiClient.post<any>(`/vendors/bookings/${bookingId}/complete`, data),
+  
   // Leads
   getLeads: () => apiClient.get<any[]>('/vendors/leads'),
+  getLeadOffers: (leadId: string) => apiClient.get<any[]>(`/vendors/leads/${leadId}/offers`),
   updateLeadStatus: (leadId: string, status: string) =>
     apiClient.put<any>(`/vendors/leads/${leadId}/status`, { status }),
   
@@ -367,6 +390,15 @@ export const vendorApi = {
     apiClient.post<any>(`/vendors/chat/threads/${threadId}/messages`, { content }),
   markThreadAsRead: (threadId: string) =>
     apiClient.put<any>(`/vendors/chat/threads/${threadId}/read`, {}),
+  
+  // Offers
+  getOffers: () => apiClient.get<any[]>('/vendors/offers'),
+  getOffersByThread: (threadId: string) => apiClient.get<any[]>(`/vendors/offers/thread/${threadId}`),
+  getOffer: (offerId: string) => apiClient.get<any>(`/vendors/offers/${offerId}`),
+  acceptOffer: (offerId: string) => apiClient.post<any>(`/vendors/offers/${offerId}/accept`, {}),
+  rejectOffer: (offerId: string) => apiClient.post<any>(`/vendors/offers/${offerId}/reject`, {}),
+  counterOffer: (offerId: string, data: { counterPrice: number; counterMessage?: string }) =>
+    apiClient.post<any>(`/vendors/offers/${offerId}/counter`, data),
   
   // Wallet
   getWallet: () => apiClient.get<any>('/vendors/wallet'),

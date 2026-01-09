@@ -230,7 +230,11 @@ public class AdminVendorService {
     private VendorDetailDTO.PastEventSummaryDTO mapToPastEventSummary(VendorPastEvent event) {
         VendorDetailDTO.PastEventSummaryDTO dto = new VendorDetailDTO.PastEventSummaryDTO();
         dto.setId(event.getId());
-        dto.setImage(event.getImage());
+        // Get the first image from the list, or empty string if no images
+        String firstImage = event.getImages() != null && !event.getImages().isEmpty() 
+            ? event.getImages().get(0) 
+            : null;
+        dto.setImage(firstImage);
         dto.setEventType(event.getEventType());
         dto.setEventDate(event.getEventDate() != null ? 
             event.getEventDate().atStartOfDay() : null);
@@ -246,6 +250,8 @@ public class AdminVendorService {
         return dto;
     }
 }
+
+
 
 
 

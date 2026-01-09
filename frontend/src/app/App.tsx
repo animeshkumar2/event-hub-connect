@@ -38,6 +38,7 @@ const VendorCalendar = lazy(() => import("@/features/vendor/pages/VendorCalendar
 const VendorLeads = lazy(() => import("@/features/vendor/pages/VendorLeads"));
 const VendorListings = lazy(() => import("@/features/vendor/pages/VendorListings"));
 const VendorOrders = lazy(() => import("@/features/vendor/pages/VendorOrders"));
+const VendorBookings = lazy(() => import("@/features/vendor/pages/VendorBookings"));
 const VendorChat = lazy(() => import("@/features/vendor/pages/VendorChat"));
 const VendorWallet = lazy(() => import("@/features/vendor/pages/VendorWallet"));
 const VendorAnalytics = lazy(() => import("@/features/vendor/pages/VendorAnalytics"));
@@ -212,6 +213,11 @@ const App = () => (
             <Route path="/vendor/listings" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorListings />
+              </Suspense>
+            } />
+            <Route path="/vendor/bookings" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorBookings />
               </Suspense>
             } />
             <Route path="/vendor/orders" element={

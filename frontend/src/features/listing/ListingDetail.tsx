@@ -28,13 +28,17 @@ import {
   IndianRupee,
   Edit,
   Eye,
-  Settings
+  Settings,
+  MessageSquare,
+  HandCoins
 } from 'lucide-react';
 import { useListingDetails, useVendorListings, useVendorReviews } from '@/shared/hooks/useApi';
 import { cn } from '@/shared/lib/utils';
 import { format } from 'date-fns';
 import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
+import { PremiumChatWindow } from '@/features/vendor/PremiumChatWindow';
 
 // Type for extra charges
 interface ExtraCharge {
@@ -714,7 +718,94 @@ export default function ListingDetail() {
 
           {/* Right Column - Booking Widget */}
           <div className="lg:col-span-1 order-first lg:order-last">
-            <div className="sticky top-20 lg:top-24 z-10">
+            <div className="sticky top-20 lg:top-24 z-10 space-y-4">
+              {/* Chat/Offer Button - Only show if not owner and negotiation enabled (defaults to true) */}
+              {!isOwner && listing && (listing.openForNegotiation !== false) && (() => {
+                // Ensure we always have a valid listingId - try listing.id first, then fallback to listingId from params
+                const finalListingId = listing?.id 
+                  ? String(listing.id).trim() 
+                  : (listingId ? String(listingId).trim() : undefined);
+                
+                console.log('🔍 ListingDetail: About to render PremiumChatWindow (Chat & Make Offer)', {
+                  listingIdFromParams: listingId,
+                  listingIdFromParamsType: typeof listingId,
+                  listingIdFromListing: listing?.id,
+                  listingIdFromListingType: typeof listing?.id,
+                  listingIdFromListingValue: listing?.id,
+                  finalListingId,
+                  finalListingIdType: typeof finalListingId,
+                  finalListingIdLength: finalListingId?.length,
+                  listingExists: !!listing,
+                  listingKeys: listing ? Object.keys(listing) : [],
+                });
+                
+                // Only render if we have a valid listingId
+                if (!finalListingId || finalListingId === '') {
+                  console.error('❌ ListingDetail: Cannot render PremiumChatWindow - no valid listingId', {
+                    listingIdFromParams: listingId,
+                    listingIdFromListing: listing?.id,
+                  });
+                  return null;
+                }
+                
+                return (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full rounded-xl shadow-md hover:shadow-lg transition-shadow" size="lg">
+                        <HandCoins className="mr-2 h-5 w-5" />
+                        Chat & Make Offer
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
+                      <PremiumChatWindow
+                        key={`chat-${finalListingId}`}
+                        vendorId={listing?.vendorId || ''}
+                        vendorName={listing?.vendorName || ''}
+                        listingId={finalListingId}
+                        listingPrice={typeof listing?.price === 'number' ? listing.price : parseFloat(String(listing?.price || '0'))}
+                        openForNegotiation={listing?.openForNegotiation !== false}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                );
+              })()}
+              
+              {/* Regular Chat Button - If negotiation not enabled, but still pass listingId for context */}
+              {!isOwner && listing && !listing.openForNegotiation && (() => {
+                // Even when negotiation is disabled, pass listingId for context
+                const finalListingId = listing?.id 
+                  ? String(listing.id).trim() 
+                  : (listingId ? String(listingId).trim() : undefined);
+                
+                console.log('🔍 ListingDetail: About to render PremiumChatWindow (Chat with Vendor)', {
+                  listingIdFromParams: listingId,
+                  listingIdFromListing: listing?.id,
+                  finalListingId,
+                  openForNegotiation: listing?.openForNegotiation,
+                });
+                
+                return (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full rounded-xl" size="lg">
+                        <MessageSquare className="mr-2 h-5 w-5" />
+                        Chat with Vendor
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
+                      <PremiumChatWindow
+                        key={`chat-${finalListingId || 'no-listing'}`}
+                        vendorId={listing.vendorId || ''}
+                        vendorName={listing.vendorName || ''}
+                        listingId={finalListingId}
+                        listingPrice={typeof listing.price === 'number' ? listing.price : parseFloat(String(listing.price || '0'))}
+                        openForNegotiation={false}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                );
+              })()}
+              
               <BookingWidget
                 listing={{
                   id: listing.id || listingId || '',

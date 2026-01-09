@@ -6,25 +6,30 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Separator } from '@/shared/components/ui/separator';
 import { 
   Search, 
   Filter, 
   MessageSquare, 
-  FileText, 
   X, 
-  Check,
+  CheckCircle2,
+  HandCoins,
   Calendar,
   MapPin,
   Users,
   IndianRupee,
-  Download,
-  Send,
-  Plus,
   Loader2,
-  Trash2,
-  Edit
+  XCircle,
+  Package,
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Clock,
+  Mail,
+  Phone,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -48,132 +53,202 @@ interface Lead {
   vendor?: any;
 }
 
-interface Quote {
+interface Offer {
   id: string;
-  amount: number;
-  description?: string;
-  isAccepted: boolean;
+  listingId: string;
+  listingName: string;
+  listingImage?: string;
+  offeredPrice: number;
+  originalPrice: number;
+  counterPrice?: number;
+  counterMessage?: string;
+  status: string;
   createdAt: string;
-}
-
-interface QuoteItem {
-  description: string;
-  amount: string;
+  eventType?: string;
+  eventDate?: string;
+  guestCount?: number;
+  message?: string;
 }
 
 export default function VendorLeads() {
   const navigate = useNavigate();
   const { data: leadsData, loading, error, refetch } = useVendorLeads();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [showQuoteModal, setShowQuoteModal] = useState(false);
-  const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([{ description: '', amount: '' }]);
-  const [quoteDescription, setQuoteDescription] = useState('');
-  const [quoteAmount, setQuoteAmount] = useState('');
-  const [existingQuotes, setExistingQuotes] = useState<Quote[]>([]);
-  const [loadingQuotes, setLoadingQuotes] = useState(false);
-  const [creatingQuote, setCreatingQuote] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('pending');
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [processingOffer, setProcessingOffer] = useState<string | null>(null);
+  const [showCounterModal, setShowCounterModal] = useState(false);
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+  const [counterPrice, setCounterPrice] = useState('');
+  const [counterMessage, setCounterMessage] = useState('');
 
   const leads: Lead[] = leadsData || [];
 
   useEffect(() => {
     if (selectedLead) {
-      loadQuotes(selectedLead.id);
+      loadOffers(selectedLead.id);
     }
   }, [selectedLead]);
 
-  const loadQuotes = async (leadId: string) => {
-    setLoadingQuotes(true);
+  const loadOffers = async (leadId: string) => {
+    setLoadingOffers(true);
     try {
-      const response = await vendorApi.getLeadQuotes(leadId);
+      const response = await vendorApi.getLeadOffers(leadId);
       if (response.success) {
-        setExistingQuotes(response.data || []);
+        setOffers(response.data || []);
       }
     } catch (err: any) {
-      console.error('Error loading quotes:', err);
+      console.error('Error loading offers:', err);
+      toast.error('Failed to load offers');
     } finally {
-      setLoadingQuotes(false);
+      setLoadingOffers(false);
     }
   };
 
   const filteredLeads = leads.filter(lead => {
-    if (activeFilter === 'all') return true;
-    return lead.status?.toLowerCase() === activeFilter.toLowerCase();
+    const status = lead.status?.toUpperCase() || '';
+    if (activeFilter === 'pending') {
+      return status === 'NEW' || status === 'OPEN';
+    } else if (activeFilter === 'closed') {
+      return status === 'WITHDRAWN' || status === 'DECLINED' || status === 'CONVERTED';
+    }
+    return true;
   });
 
-  const getStatusColor = (status: string) => {
-    const statusLower = status?.toLowerCase() || '';
-    switch (statusLower) {
-      case 'new': return 'bg-green-500/20 text-green-400';
-      case 'open': return 'bg-blue-500/20 text-blue-400';
-      case 'quoted': return 'bg-yellow-500/20 text-yellow-400';
-      case 'accepted': return 'bg-purple-500/20 text-purple-400';
-      case 'declined': return 'bg-red-500/20 text-red-400';
-      case 'converted': return 'bg-green-500/20 text-green-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+  const pendingCount = leads.filter(l => {
+    const status = l.status?.toUpperCase() || '';
+    return status === 'NEW' || status === 'OPEN';
+  }).length;
+
+  const closedCount = leads.filter(l => {
+    const status = l.status?.toUpperCase() || '';
+    return status === 'WITHDRAWN' || status === 'DECLINED' || status === 'CONVERTED';
+  }).length;
+
+  const getFinalStatusDisplay = (lead: Lead): string => {
+    const statusUpper = lead.status?.toUpperCase() || '';
+    switch (statusUpper) {
+      case 'NEW': return 'User made offer';
+      case 'OPEN': return 'Counter offer by vendor';
+      case 'DECLINED': return 'Booking rejected';
+      case 'WITHDRAWN': return 'Offer withdrawn';
+      case 'CONVERTED': return 'Booking confirmed';
+      default: return lead.status || 'Unknown';
     }
   };
 
-  const handleCreateQuote = async () => {
-    if (!selectedLead) return;
+  const getStatusColor = (status: string) => {
+    const statusUpper = status?.toUpperCase() || '';
+    switch (statusUpper) {
+      case 'NEW': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'OPEN': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'WITHDRAWN': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'DECLINED': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'CONVERTED': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
 
-    if (!quoteAmount || Number(quoteAmount) <= 0) {
-      toast.error('Please enter a valid quote amount');
+  const getOfferStatusColor = (status: string) => {
+    const statusUpper = status?.toUpperCase() || '';
+    switch (statusUpper) {
+      case 'PENDING': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'COUNTERED': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'ACCEPTED': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'REJECTED': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'WITHDRAWN': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const handleAcceptOffer = async (offerId: string) => {
+    setProcessingOffer(offerId);
+    try {
+      const response = await vendorApi.acceptOffer(offerId);
+      if (response.success) {
+        toast.success('Offer accepted! Order created successfully.');
+        await loadOffers(selectedLead!.id);
+        refetch();
+      } else {
+        toast.error(response.message || 'Failed to accept offer');
+      }
+    } catch (err: any) {
+      console.error('Error accepting offer:', err);
+      toast.error(err.message || 'Failed to accept offer');
+    } finally {
+      setProcessingOffer(null);
+    }
+  };
+
+  const handleRejectOffer = async (offerId: string) => {
+    setProcessingOffer(offerId);
+    try {
+      const response = await vendorApi.rejectOffer(offerId);
+      if (response.success) {
+        toast.success('Offer rejected');
+        await loadOffers(selectedLead!.id);
+        refetch();
+      } else {
+        toast.error(response.message || 'Failed to reject offer');
+      }
+    } catch (err: any) {
+      console.error('Error rejecting offer:', err);
+      toast.error(err.message || 'Failed to reject offer');
+    } finally {
+      setProcessingOffer(null);
+    }
+  };
+
+  const handleCounterOffer = async () => {
+    if (!selectedOfferId || !counterPrice) {
+      toast.error('Please enter a counter price');
       return;
     }
 
-    setCreatingQuote(true);
-    try {
-      const quoteData = {
-        amount: Number(quoteAmount),
-        description: quoteDescription || `Quote for ${selectedLead.eventType || 'event'}`,
-        itemType: 'PACKAGE', // Default to package
-      };
+    const offer = offers.find(o => o.id === selectedOfferId);
+    if (!offer) return;
 
-      const response = await vendorApi.createQuote(selectedLead.id, quoteData);
-      
-      if (response.success) {
-        toast.success('Quote created and sent to customer!');
-        setShowQuoteModal(false);
-        setQuoteAmount('');
-        setQuoteDescription('');
-        await loadQuotes(selectedLead.id);
-        // Update lead status to QUOTED
-        await handleUpdateStatus('QUOTED');
-      } else {
-        toast.error(response.message || 'Failed to create quote');
-      }
-    } catch (err: any) {
-      console.error('Error creating quote:', err);
-      toast.error(err.message || 'Failed to create quote');
-    } finally {
-      setCreatingQuote(false);
+    const counterPriceNum = parseFloat(counterPrice);
+    if (counterPriceNum <= offer.offeredPrice) {
+      toast.error('Counter price must be greater than the offered price');
+      return;
     }
-  };
+    if (counterPriceNum >= offer.originalPrice) {
+      toast.error('Counter price must be less than the original price');
+      return;
+    }
 
-  const handleUpdateStatus = async (status: string) => {
-    if (!selectedLead) return;
-
+    setProcessingOffer(selectedOfferId);
     try {
-      const response = await vendorApi.updateLeadStatus(selectedLead.id, status);
+      const response = await vendorApi.counterOffer(selectedOfferId, {
+        counterPrice: counterPriceNum,
+        counterMessage: counterMessage || undefined
+      });
       if (response.success) {
-        toast.success('Lead status updated');
+        toast.success('Counter offer sent successfully');
+        setShowCounterModal(false);
+        setCounterPrice('');
+        setCounterMessage('');
+        setSelectedOfferId(null);
+        await loadOffers(selectedLead!.id);
         refetch();
-        if (selectedLead) {
-          setSelectedLead({ ...selectedLead, status });
-        }
       } else {
-        toast.error(response.message || 'Failed to update status');
+        toast.error(response.message || 'Failed to send counter offer');
       }
     } catch (err: any) {
-      console.error('Error updating status:', err);
-      toast.error(err.message || 'Failed to update status');
+      console.error('Error sending counter offer:', err);
+      toast.error(err.message || 'Failed to send counter offer');
+    } finally {
+      setProcessingOffer(null);
     }
   };
 
-  const handleDecline = async (lead: Lead) => {
-    await handleUpdateStatus('DECLINED');
-    setSelectedLead(null);
+  const openCounterModal = (offerId: string, offer: Offer) => {
+    setSelectedOfferId(offerId);
+    setCounterPrice('');
+    setCounterMessage('');
+    setShowCounterModal(true);
   };
 
   const formatDate = (dateString?: string) => {
@@ -203,6 +278,72 @@ export default function VendorLeads() {
     } catch {
       return dateString;
     }
+  };
+
+  const buildOfferLifecycle = (offer: Offer) => {
+    const lifecycle = [];
+    
+    lifecycle.push({
+      label: 'Original Price',
+      price: offer.originalPrice,
+      type: 'original',
+      icon: Package
+    });
+    
+    lifecycle.push({
+      label: 'User Offered',
+      price: offer.offeredPrice,
+      type: 'user-offer',
+      icon: HandCoins
+    });
+    
+    if (offer.counterPrice) {
+      lifecycle.push({
+        label: 'Vendor Countered',
+        price: offer.counterPrice,
+        type: 'vendor-counter',
+        icon: ArrowRight
+      });
+    }
+    
+    if (offer.status === 'ACCEPTED') {
+      lifecycle.push({
+        label: 'Vendor Accepted',
+        price: offer.counterPrice || offer.offeredPrice,
+        type: 'accepted',
+        icon: CheckCircle
+      });
+    } else if (offer.status === 'REJECTED') {
+      lifecycle.push({
+        label: 'Vendor Rejected',
+        price: null,
+        type: 'rejected',
+        icon: XCircle
+      });
+    } else if (offer.status === 'WITHDRAWN') {
+      lifecycle.push({
+        label: 'User Withdrew',
+        price: null,
+        type: 'withdrawn',
+        icon: XCircle
+      });
+    } else if (offer.status === 'COUNTERED') {
+      lifecycle.push({
+        label: 'Waiting for User',
+        price: offer.counterPrice,
+        type: 'waiting',
+        icon: Clock
+      });
+    } else {
+      lifecycle.push({
+        label: 'Pending Response',
+        price: offer.offeredPrice,
+        type: 'pending',
+        icon: Clock
+      });
+    }
+    
+    return lifecycle;
   };
 
   if (loading) {
@@ -238,9 +379,9 @@ export default function VendorLeads() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Leads & Quote Requests</h1>
+            <h1 className="text-2xl font-bold text-foreground">Leads & Offers</h1>
             <p className="text-muted-foreground">
-              {leads.length} total leads • {leads.filter(l => l.status?.toLowerCase() === 'new').length} new
+              {leads.length} total leads
             </p>
           </div>
           <div className="flex gap-3">
@@ -257,20 +398,11 @@ export default function VendorLeads() {
         {/* Filters */}
         <Tabs value={activeFilter} onValueChange={setActiveFilter}>
           <TabsList className="bg-muted/50 border border-border">
-            <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              All ({leads.length})
+            <TabsTrigger value="pending" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Pending ({pendingCount})
             </TabsTrigger>
-            <TabsTrigger value="new" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              New ({leads.filter(l => l.status?.toLowerCase() === 'new').length})
-            </TabsTrigger>
-            <TabsTrigger value="open" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Open ({leads.filter(l => l.status?.toLowerCase() === 'open').length})
-            </TabsTrigger>
-            <TabsTrigger value="quoted" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Quoted ({leads.filter(l => l.status?.toLowerCase() === 'quoted').length})
-            </TabsTrigger>
-            <TabsTrigger value="accepted" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Accepted ({leads.filter(l => l.status?.toLowerCase() === 'accepted').length})
+            <TabsTrigger value="closed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Closed ({closedCount})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -279,7 +411,7 @@ export default function VendorLeads() {
           <Card className="border-border">
             <CardContent className="p-12 text-center">
               <MessageSquare className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
-              <p className="text-foreground/60">No leads found</p>
+              <p className="text-foreground/60">No {activeFilter} leads found</p>
             </CardContent>
           </Card>
         ) : (
@@ -291,7 +423,7 @@ export default function VendorLeads() {
                   key={lead.id}
                   onClick={() => setSelectedLead(lead)}
                   className={`border-border shadow-card cursor-pointer transition-all hover:shadow-elegant ${
-                    selectedLead?.id === lead.id ? 'border-primary' : ''
+                    selectedLead?.id === lead.id ? 'border-primary ring-2 ring-primary/20' : ''
                   }`}
                 >
                   <CardContent className="p-4">
@@ -306,7 +438,7 @@ export default function VendorLeads() {
                         </div>
                       </div>
                       <Badge className={getStatusColor(lead.status)}>
-                        {lead.status || 'NEW'}
+                        {getFinalStatusDisplay(lead)}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-sm text-foreground/60">
@@ -332,173 +464,275 @@ export default function VendorLeads() {
             {/* Lead Details */}
             <div className="lg:col-span-2">
               {selectedLead ? (
-                <Card className="border-border shadow-card border-border">
-                  <CardHeader className="flex flex-row items-start justify-between">
-                    <div>
-                      <CardTitle className="text-foreground text-xl">{selectedLead.name}</CardTitle>
-                      <p className="text-foreground/60">{selectedLead.eventType || 'Event Inquiry'}</p>
+                <Card className="border-border shadow-card">
+                  <CardHeader className="flex flex-row items-start justify-between border-b pb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-primary font-semibold text-lg">{selectedLead.name?.[0]?.toUpperCase() || '?'}</span>
+                        </div>
+                        <div>
+                          <CardTitle className="text-foreground text-xl">{selectedLead.name}</CardTitle>
+                          <p className="text-foreground/60 text-sm">{selectedLead.eventType || 'Event Inquiry'}</p>
+                        </div>
+                      </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} className="text-foreground/60">
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getStatusColor(selectedLead.status)}>
+                        {getFinalStatusDisplay(selectedLead)}
+                      </Badge>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} className="text-foreground/60">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Event Details */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedLead.eventDate && (
-                        <div className="p-4 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-1">
-                            <Calendar className="h-4 w-4" /> Event Date
+                  
+                  <CardContent className="space-y-6 pt-6">
+                    {/* Contact & Event Info Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Contact Information */}
+                      <Card className="border-border/50">
+                        <CardContent className="p-4">
+                          <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
+                            <Mail className="h-4 w-4" /> Contact Information
+                          </h3>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-foreground/80">
+                              <Mail className="h-3.5 w-3.5 text-foreground/50" />
+                              <span className="break-all">{selectedLead.email}</span>
+                            </div>
+                            {selectedLead.phone && (
+                              <div className="flex items-center gap-2 text-foreground/80">
+                                <Phone className="h-3.5 w-3.5 text-foreground/50" />
+                                <span>{selectedLead.phone}</span>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-foreground font-medium">{formatDate(selectedLead.eventDate)}</p>
-                        </div>
-                      )}
-                      {selectedLead.venueAddress && (
-                        <div className="p-4 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-1">
-                            <MapPin className="h-4 w-4" /> Venue
+                        </CardContent>
+                      </Card>
+
+                      {/* Event Details */}
+                      <Card className="border-border/50">
+                        <CardContent className="p-4">
+                          <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
+                            <Calendar className="h-4 w-4" /> Event Details
+                          </h3>
+                          <div className="space-y-2 text-sm">
+                            {selectedLead.eventDate && (
+                              <div className="flex items-center gap-2 text-foreground/80">
+                                <Calendar className="h-3.5 w-3.5 text-foreground/50" />
+                                <span>{formatDate(selectedLead.eventDate)}</span>
+                              </div>
+                            )}
+                            {selectedLead.guestCount && (
+                              <div className="flex items-center gap-2 text-foreground/80">
+                                <Users className="h-3.5 w-3.5 text-foreground/50" />
+                                <span>{selectedLead.guestCount} guests</span>
+                              </div>
+                            )}
+                            {selectedLead.venueAddress && (
+                              <div className="flex items-start gap-2 text-foreground/80">
+                                <MapPin className="h-3.5 w-3.5 text-foreground/50 mt-0.5" />
+                                <span className="flex-1">{selectedLead.venueAddress}</span>
+                              </div>
+                            )}
                           </div>
-                          <p className="text-foreground font-medium">{selectedLead.venueAddress}</p>
-                        </div>
-                      )}
-                      {selectedLead.guestCount && (
-                        <div className="p-4 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-1">
-                            <Users className="h-4 w-4" /> Guests
-                          </div>
-                          <p className="text-foreground font-medium">{selectedLead.guestCount} people</p>
-                        </div>
-                      )}
-                      {selectedLead.budget && (
-                        <div className="p-4 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-1">
-                            <IndianRupee className="h-4 w-4" /> Budget
-                          </div>
-                          <p className="text-foreground font-medium">{selectedLead.budget}</p>
-                        </div>
-                      )}
+                        </CardContent>
+                      </Card>
                     </div>
 
                     {/* Message */}
                     {selectedLead.message && (
-                      <div className="p-4 rounded-xl bg-muted/50">
-                        <p className="text-foreground/60 text-sm mb-2">Message:</p>
-                        <p className="text-foreground">{selectedLead.message}</p>
-                      </div>
+                      <Card className="border-border/50">
+                        <CardContent className="p-4">
+                          <h3 className="text-sm font-semibold text-foreground/80 mb-2">Message from Customer</h3>
+                          <p className="text-sm text-foreground/70 leading-relaxed">{selectedLead.message}</p>
+                        </CardContent>
+                      </Card>
                     )}
 
-                    {/* Contact */}
-                    <div className="p-4 rounded-xl bg-muted/50">
-                      <p className="text-foreground/60 text-sm mb-2">Contact:</p>
-                      <p className="text-foreground">{selectedLead.email}</p>
-                      {selectedLead.phone && <p className="text-foreground">{selectedLead.phone}</p>}
-                    </div>
-
-                    {/* Existing Quotes */}
-                    {loadingQuotes ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    {/* Offers with Horizontal Lifecycle */}
+                    {loadingOffers ? (
+                      <div className="flex items-center justify-center p-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
-                    ) : existingQuotes.length > 0 && (
-                      <div className="p-4 rounded-xl bg-muted/50">
-                        <p className="text-foreground/60 text-sm mb-3 font-medium">Existing Quotes:</p>
-                        <div className="space-y-2">
-                          {existingQuotes.map((quote) => (
-                            <div key={quote.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
-                              <div>
-                                <p className="text-foreground font-medium">₹{quote.amount?.toLocaleString()}</p>
-                                {quote.description && (
-                                  <p className="text-sm text-foreground/60">{quote.description}</p>
-                                )}
-                              </div>
-                              <Badge className={quote.isAccepted ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}>
-                                {quote.isAccepted ? 'Accepted' : 'Pending'}
-                              </Badge>
-                            </div>
-                          ))}
+                    ) : offers.length > 0 ? (
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold text-foreground">Offers</h3>
                         </div>
+                        {offers.map((offer) => {
+                          const lifecycle = buildOfferLifecycle(offer);
+                          const discount = ((offer.originalPrice - offer.offeredPrice) / offer.originalPrice * 100).toFixed(0);
+                          
+                          return (
+                            <Card key={offer.id} className="border-border">
+                              <CardContent className="p-5">
+                                {/* Listing Info */}
+                                <div className="flex items-start gap-4 mb-5">
+                                  <div className="w-20 h-20 rounded-lg bg-muted/50 border border-border/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {offer.listingImage ? (
+                                      <img 
+                                        src={offer.listingImage} 
+                                        alt={offer.listingName}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <Package className="h-8 w-8 text-foreground/40" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-3 mb-2">
+                                      <div className="flex-1">
+                                        <h4 className="text-base font-semibold text-foreground mb-1">{offer.listingName}</h4>
+                                        <div className="flex items-center gap-3 text-sm">
+                                          <span className="text-foreground/60">Original Price:</span>
+                                          <span className="font-semibold text-foreground">
+                                            <IndianRupee className="inline h-3.5 w-3.5" />
+                                            {offer.originalPrice.toLocaleString()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <Badge className={getOfferStatusColor(offer.status)}>
+                                        {offer.status}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Horizontal Lifecycle */}
+                                <div className="mb-5">
+                                  <h4 className="text-sm font-semibold text-foreground/80 mb-3">Offer Negotiation Timeline</h4>
+                                  <div className="flex items-center gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+                                    {lifecycle.map((step, index) => {
+                                      const Icon = step.icon;
+                                      const isLast = index === lifecycle.length - 1;
+                                      return (
+                                        <div key={index} className="flex items-center flex-shrink-0">
+                                          <div className="flex flex-col items-center min-w-[100px]">
+                                            <div className={`p-2.5 rounded-full mb-2 ${
+                                              step.type === 'original' ? 'bg-gray-500/20' :
+                                              step.type === 'user-offer' ? 'bg-green-500/20' :
+                                              step.type === 'vendor-counter' ? 'bg-blue-500/20' :
+                                              step.type === 'accepted' ? 'bg-green-500/20' :
+                                              step.type === 'rejected' || step.type === 'withdrawn' ? 'bg-red-500/20' :
+                                              'bg-yellow-500/20'
+                                            }`}>
+                                              <Icon className={`h-4 w-4 ${
+                                                step.type === 'original' ? 'text-gray-400' :
+                                                step.type === 'user-offer' ? 'text-green-400' :
+                                                step.type === 'vendor-counter' ? 'text-blue-400' :
+                                                step.type === 'accepted' ? 'text-green-400' :
+                                                step.type === 'rejected' || step.type === 'withdrawn' ? 'text-red-400' :
+                                                'text-yellow-400'
+                                              }`} />
+                                            </div>
+                                            <p className="text-xs font-medium text-foreground/70 text-center mb-1">{step.label}</p>
+                                            {step.price !== null && (
+                                              <p className="text-sm font-semibold text-foreground text-center">
+                                                <IndianRupee className="inline h-3 w-3" />
+                                                {step.price.toLocaleString()}
+                                              </p>
+                                            )}
+                                          </div>
+                                          {!isLast && (
+                                            <ArrowRight className="h-4 w-4 text-foreground/30 mx-1 flex-shrink-0" />
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Messages */}
+                                {(offer.counterMessage || offer.message) && (
+                                  <div className="space-y-2 mb-4">
+                                    {offer.message && (
+                                      <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                                        <p className="text-xs font-medium text-foreground/60 mb-1">Customer Message:</p>
+                                        <p className="text-sm text-foreground/80">{offer.message}</p>
+                                      </div>
+                                    )}
+                                    {offer.counterMessage && (
+                                      <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                        <p className="text-xs font-medium text-blue-400 mb-1">Your Counter Message:</p>
+                                        <p className="text-sm text-foreground/80">{offer.counterMessage}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Action Buttons - Only show for PENDING offers */}
+                                {offer.status === 'PENDING' && (
+                                  <div className="flex gap-2 pt-4 border-t">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleAcceptOffer(offer.id)}
+                                      disabled={processingOffer === offer.id}
+                                      className="flex-1 bg-green-600 hover:bg-green-700"
+                                    >
+                                      {processingOffer === offer.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                                          Accept Offer
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openCounterModal(offer.id, offer)}
+                                      disabled={processingOffer === offer.id}
+                                      className="flex-1"
+                                    >
+                                      <HandCoins className="h-4 w-4 mr-2" />
+                                      Make Counter Offer
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleRejectOffer(offer.id)}
+                                      disabled={processingOffer === offer.id}
+                                      className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                    >
+                                      {processingOffer === offer.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <XCircle className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
                       </div>
+                    ) : (
+                      <Card className="border-border/50">
+                        <CardContent className="p-8 text-center">
+                          <AlertCircle className="h-10 w-10 text-foreground/40 mx-auto mb-3" />
+                          <p className="text-foreground/60 font-medium">No offers found for this lead</p>
+                          <p className="text-sm text-foreground/50 mt-1">This lead doesn't have any offers yet</p>
+                        </CardContent>
+                      </Card>
                     )}
 
                     {/* Actions */}
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-3 pt-2 border-t">
                       <Button 
                         onClick={() => navigate('/vendor/chat')}
-                        className="bg-primary hover:bg-primary/80"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         <MessageSquare className="mr-2 h-4 w-4" /> Reply in Chat
-                      </Button>
-                      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
-                        <DialogTrigger asChild>
-                          <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                            <FileText className="mr-2 h-4 w-4" /> Create Quote
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-card border-border max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle className="text-foreground">Create Quote for {selectedLead.name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4 pt-4">
-                            <div className="space-y-2">
-                              <Label className="text-foreground">Quote Amount (₹) *</Label>
-                              <Input 
-                                type="number"
-                                value={quoteAmount}
-                                onChange={(e) => setQuoteAmount(e.target.value)}
-                                placeholder="Enter amount"
-                                className="bg-muted/50 border-border text-foreground"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label className="text-foreground">Description</Label>
-                              <Textarea 
-                                value={quoteDescription}
-                                onChange={(e) => setQuoteDescription(e.target.value)}
-                                placeholder="Add quote description, terms, and conditions..."
-                                className="bg-muted/50 border-border text-foreground min-h-[100px]"
-                              />
-                            </div>
-
-                            <div className="flex gap-3">
-                              <Button 
-                                variant="outline" 
-                                onClick={() => setShowQuoteModal(false)}
-                                className="flex-1 border-border text-foreground hover:bg-muted"
-                              >
-                                Cancel
-                              </Button>
-                              <Button 
-                                onClick={handleCreateQuote} 
-                                disabled={creatingQuote || !quoteAmount}
-                                className="flex-1 bg-secondary text-secondary-foreground"
-                              >
-                                {creatingQuote ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Send className="mr-2 h-4 w-4" /> Send Quote
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      <Button 
-                        onClick={() => handleDecline(selectedLead)}
-                        variant="outline" 
-                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                      >
-                        <X className="mr-2 h-4 w-4" /> Decline
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-border shadow-card border-border h-full flex items-center justify-center">
+                <Card className="border-border shadow-card h-full flex items-center justify-center min-h-[400px]">
                   <div className="text-center py-12">
                     <MessageSquare className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
                     <p className="text-foreground/40">Select a lead to view details</p>
@@ -508,6 +742,90 @@ export default function VendorLeads() {
             </div>
           </div>
         )}
+
+        {/* Counter Offer Modal */}
+        <Dialog open={showCounterModal} onOpenChange={setShowCounterModal}>
+          <DialogContent className="bg-card border-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Make Counter Offer</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              {selectedOfferId && (() => {
+                const offer = offers.find(o => o.id === selectedOfferId);
+                if (!offer) return null;
+                return (
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-1 text-sm">
+                    <p className="text-foreground/60">Original Price: ₹{offer.originalPrice.toLocaleString()}</p>
+                    <p className="text-foreground/60">Customer Offered: ₹{offer.offeredPrice.toLocaleString()}</p>
+                  </div>
+                );
+              })()}
+              
+              <div className="space-y-2">
+                <Label className="text-foreground">Counter Price (₹) *</Label>
+                <Input 
+                  type="number"
+                  value={counterPrice}
+                  onChange={(e) => setCounterPrice(e.target.value)}
+                  placeholder="Enter counter price"
+                  className="bg-muted/50 border-border text-foreground"
+                />
+                {selectedOfferId && (() => {
+                  const offer = offers.find(o => o.id === selectedOfferId);
+                  if (!offer) return null;
+                  const price = parseFloat(counterPrice);
+                  if (price && price <= offer.offeredPrice) {
+                    return <p className="text-sm text-red-400">Must be greater than ₹{offer.offeredPrice.toLocaleString()}</p>;
+                  }
+                  if (price && price >= offer.originalPrice) {
+                    return <p className="text-sm text-red-400">Must be less than ₹{offer.originalPrice.toLocaleString()}</p>;
+                  }
+                  return null;
+                })()}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Message (Optional)</Label>
+                <Textarea 
+                  value={counterMessage}
+                  onChange={(e) => setCounterMessage(e.target.value)}
+                  placeholder="Add a message to your counter offer..."
+                  className="bg-muted/50 border-border text-foreground min-h-[100px]"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowCounterModal(false);
+                    setCounterPrice('');
+                    setCounterMessage('');
+                    setSelectedOfferId(null);
+                  }}
+                  className="flex-1 border-border text-foreground hover:bg-muted"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCounterOffer} 
+                  disabled={processingOffer !== null || !counterPrice}
+                  className="flex-1"
+                >
+                  {processingOffer ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                    </>
+                  ) : (
+                    <>
+                      <HandCoins className="mr-2 h-4 w-4" /> Send Counter Offer
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </VendorLayout>
   );

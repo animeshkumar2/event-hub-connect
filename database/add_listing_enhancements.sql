@@ -24,3 +24,5 @@ COMMENT ON COLUMN listings.extra_charges_json IS 'JSON array of extra charges: [
 
 
 
+
+

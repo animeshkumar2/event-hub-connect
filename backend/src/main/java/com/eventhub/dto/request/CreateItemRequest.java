@@ -46,5 +46,7 @@ public class CreateItemRequest {
     private List<String> extraCharges;
     
     private List<String> images;
+    
+    private Boolean openForNegotiation = true; // Allow customers to make offers on this listing
 }
 

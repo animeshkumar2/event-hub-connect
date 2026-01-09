@@ -15,7 +15,12 @@ import {
   Wifi,
   WifiOff,
   CheckCheck,
-  ArrowLeft
+  ArrowLeft,
+  HandCoins,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  IndianRupee
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useVendorChatThreads } from '@/shared/hooks/useApi';
@@ -63,6 +68,11 @@ export default function VendorChat() {
   const [otherTyping, setOtherTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [counterPrice, setCounterPrice] = useState<string>('');
+  const [counterMessage, setCounterMessage] = useState<string>('');
+  const [showCounterForm, setShowCounterForm] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -150,9 +160,99 @@ export default function VendorChat() {
   useEffect(() => {
     if (selectedThread) {
       loadMessages(selectedThread.id);
+      loadOffers(selectedThread.id);
       setShowMobileChat(true);
     }
   }, [selectedThread]);
+  
+  const loadOffers = async (threadId: string) => {
+    setLoadingOffers(true);
+    try {
+      const response = await vendorApi.getOffersByThread(threadId);
+      if (response.success) {
+        setOffers(response.data || []);
+      }
+    } catch (err) {
+      console.error('Error loading offers:', err);
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+  
+  const handleAcceptOffer = async (offerId: string) => {
+    try {
+      const response = await vendorApi.acceptOffer(offerId);
+      if (response.success) {
+        toast.success('Offer accepted! Order created successfully.');
+        await loadOffers(selectedThread!.id);
+        refetchThreads();
+      } else {
+        throw new Error(response.message || 'Failed to accept offer');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to accept offer');
+    }
+  };
+  
+  const handleRejectOffer = async (offerId: string) => {
+    try {
+      const response = await vendorApi.rejectOffer(offerId);
+      if (response.success) {
+        toast.success('Offer rejected');
+        await loadOffers(selectedThread!.id);
+      } else {
+        throw new Error(response.message || 'Failed to reject offer');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reject offer');
+    }
+  };
+  
+  const handleCounterOffer = async (offerId: string) => {
+    if (!counterPrice) {
+      toast.error('Please enter a counter price');
+      return;
+    }
+    
+    const price = parseFloat(counterPrice);
+    if (isNaN(price) || price <= 0) {
+      toast.error('Please enter a valid price');
+      return;
+    }
+    
+    try {
+      const response = await vendorApi.counterOffer(offerId, {
+        counterPrice: price,
+        counterMessage: counterMessage || undefined,
+      });
+      if (response.success) {
+        toast.success('Counter offer sent');
+        setCounterPrice('');
+        setCounterMessage('');
+        setShowCounterForm(null);
+        await loadOffers(selectedThread!.id);
+      } else {
+        throw new Error(response.message || 'Failed to send counter offer');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send counter offer');
+    }
+  };
+  
+  const getOfferStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACCEPTED':
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs"><CheckCircle2 className="h-3 w-3 mr-1" />Accepted</Badge>;
+      case 'REJECTED':
+        return <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-xs"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
+      case 'COUNTERED':
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs"><Clock className="h-3 w-3 mr-1" />Countered</Badge>;
+      case 'PENDING':
+        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 text-xs"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs">{status}</Badge>;
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -390,9 +490,136 @@ export default function VendorChat() {
                   </div>
                 </div>
 
-                {/* Messages */}
+                {/* Messages and Offers */}
                 <ScrollArea className="flex-1 min-h-0">
-                  <div className="p-4">
+                  <div className="p-4 space-y-4">
+                    {/* Offers Section */}
+                    {selectedThread && (
+                      <div className="border-b pb-4 mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <HandCoins className="h-4 w-4 text-primary" />
+                          <h4 className="font-semibold text-sm">Offers</h4>
+                        </div>
+                        {loadingOffers ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          </div>
+                        ) : offers.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No offers yet</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {offers.map((offer: any) => (
+                              <Card key={offer.id} className="p-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-sm font-medium">{offer.listingName}</span>
+                                        {getOfferStatusBadge(offer.status)}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground space-y-0.5">
+                                        <div>Original: ₹{offer.originalPrice?.toLocaleString('en-IN')}</div>
+                                        <div className="font-medium text-foreground">
+                                          Customer Offer: ₹{offer.offeredPrice?.toLocaleString('en-IN')}
+                                        </div>
+                                        {offer.counterPrice && (
+                                          <div className="text-blue-600 dark:text-blue-400">
+                                            Your Counter: ₹{offer.counterPrice.toLocaleString('en-IN')}
+                                          </div>
+                                        )}
+                                      </div>
+                                      {offer.message && (
+                                        <p className="text-xs text-muted-foreground mt-1">{offer.message}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {offer.status === 'PENDING' && (
+                                    <div className="flex gap-2 pt-2 border-t">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleAcceptOffer(offer.id)}
+                                        className="flex-1 text-xs h-7"
+                                      >
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        Accept
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setShowCounterForm(showCounterForm === offer.id ? null : offer.id)}
+                                        className="flex-1 text-xs h-7"
+                                      >
+                                        <HandCoins className="h-3 w-3 mr-1" />
+                                        Counter
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleRejectOffer(offer.id)}
+                                        className="text-xs h-7"
+                                      >
+                                        <XCircle className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                  
+                                  {showCounterForm === offer.id && (
+                                    <div className="pt-2 border-t space-y-2">
+                                      <Input
+                                        type="number"
+                                        placeholder="Counter price"
+                                        value={counterPrice}
+                                        onChange={(e) => setCounterPrice(e.target.value)}
+                                        className="h-8 text-xs"
+                                      />
+                                      <Input
+                                        placeholder="Message (optional)"
+                                        value={counterMessage}
+                                        onChange={(e) => setCounterMessage(e.target.value)}
+                                        className="h-8 text-xs"
+                                      />
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handleCounterOffer(offer.id)}
+                                          className="flex-1 text-xs h-7"
+                                        >
+                                          Send Counter
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setShowCounterForm(null);
+                                            setCounterPrice('');
+                                            setCounterMessage('');
+                                          }}
+                                          className="text-xs h-7"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {offer.status === 'ACCEPTED' && offer.orderId && (
+                                    <div className="pt-2 border-t">
+                                      <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+                                        Order Created
+                                      </Badge>
+                                    </div>
+                                  )}
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Messages */}
+                    <div>
                     {loadingMessages ? (
                       <div className="flex items-center justify-center py-12">
                         <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -452,6 +679,7 @@ export default function VendorChat() {
                       </div>
                     )}
                     <div ref={messagesEndRef} />
+                    </div>
                   </div>
                 </ScrollArea>
 

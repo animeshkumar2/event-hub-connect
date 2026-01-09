@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp QR Code - Event Hub Connect</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 WhatsApp QR Code</h1>
+        <p>Scan this QR code with your WhatsApp to connect</p>
+        <div id="qrcode-container">
+            <p>Loading QR code...</p>
+        </div>
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Open WhatsApp on your phone</li>
+                <li>Go to <strong>Settings → Linked Devices</strong></li>
+                <li>Tap <strong>Link a Device</strong></li>
+                <li>Scan the QR code above</li>
+                <li>Wait a few seconds for connection</li>
+            </ol>
+        </div>
+        <div class="status">
+            <p><strong>Instance:</strong> event-hub-connect</p>
+            <button onclick="checkStatus()">Check Connection Status</button>
+            <div id="status-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'change-me-to-secure-key';
+        const BASE_URL = 'http://localhost:8082';
+        const INSTANCE_NAME = 'event-hub-connect';
+        
+        function fetchQRCode() {
+            const container = document.getElementById('qrcode-container');
+            container.innerHTML = '<p>Loading QR code...</p>';
+            
+            // Try the connect endpoint
+            fetch(BASE_URL + '/instance/connect/' + INSTANCE_NAME, {
+                headers: {
+                    'apikey': API_KEY
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('QR Response:', data);
+                
+                // Check different possible response formats
+                if (data.code) {
+                    // Direct base64 code
+                    container.innerHTML = '<img src="data:image/png;base64,' + data.code + '" style="max-width: 300px; border: 5px solid white; border-radius: 10px;" />';
+                } else if (data.base64) {
+                    // Base64 field
+                    container.innerHTML = '<img src="data:image/png;base64,' + data.base64 + '" style="max-width: 300px; border: 5px solid white; border-radius: 10px;" />';
+                } else if (data.qrcode && data.qrcode.base64) {
+                    // Nested qrcode.base64
+                    container.innerHTML = '<img src="data:image/png;base64,' + data.qrcode.base64 + '" style="max-width: 300px; border: 5px solid white; border-radius: 10px;" />';
+                } else if (data.qrcode && data.qrcode.code) {
+                    // Nested qrcode.code
+                    container.innerHTML = '<img src="data:image/png;base64,' + data.qrcode.code + '" style="max-width: 300px; border: 5px solid white; border-radius: 10px;" />';
+                } else if (data.count === 0 || (data.qrcode && data.qrcode.count === 0)) {
+                    // QR code not generated yet - keep waiting
+                    container.innerHTML = '<p>⏳ Waiting for QR code generation...</p><p style="font-size: 12px;">(This may take 10-30 seconds after instance creation)</p>';
+                } else {
+                    // Show raw data for debugging
+                    container.innerHTML = '<p>QR code format: ' + JSON.stringify(data) + '</p><p>Waiting for QR code generation...</p>';
+                }
+            })
+            .catch(error => {
+                container.innerHTML = '<p style="color: red;">Error: ' + error + '</p>';
+            });
+        }
+        
+        // Initial fetch
+        fetchQRCode();
+        
+        // Show instructions if QR code takes time
+        setTimeout(() => {
+            const container = document.getElementById('qrcode-container');
+            if (container.innerHTML.includes('Waiting') || container.innerHTML.includes('Loading')) {
+                container.innerHTML += '<p style="margin-top: 20px; font-size: 14px;">💡 <strong>Tip:</strong> If QR code doesn\'t appear, run: <code>./force-qr-code.sh</code> in terminal</p>';
+            }
+        }, 15000);
+
+        function checkStatus() {
+            const resultDiv = document.getElementById('status-result');
+            resultDiv.innerHTML = '<p>Checking...</p>';
+            
+            fetch('http://localhost:8082/instance/connectionState/event-hub-connect', {
+                headers: {
+                    'apikey': 'change-me-to-secure-key'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const state = data.instance?.state || 'unknown';
+                if (state === 'open') {
+                    resultDiv.innerHTML = '<p style="color: #4CAF50;">✅ Connected!</p>';
+                } else {
+                    resultDiv.innerHTML = '<p>Status: ' + state + '</p>';
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = '<p style="color: red;">Error: ' + error + '</p>';
+            });
+        }
+
+        // Auto-refresh QR code every 3 seconds until we get one
+        let refreshCount = 0;
+        let refreshInterval = setInterval(() => {
+            refreshCount++;
+            fetch(BASE_URL + '/instance/connect/' + INSTANCE_NAME, {
+                headers: {
+                    'apikey': API_KEY
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('qrcode-container');
+                // If we get a valid QR code, stop auto-refreshing
+                if (data.code || data.base64 || (data.qrcode && data.qrcode.base64) || (data.qrcode && data.qrcode.code)) {
+                    clearInterval(refreshInterval);
+                    // Switch to slower refresh (every 30 seconds) once we have QR
+                    setInterval(fetchQRCode, 30000);
+                } else if (data.count === 0 || (data.qrcode && data.qrcode.count === 0)) {
+                    // Still waiting for QR code - show progress
+                    const waitTime = refreshCount * 3;
+                    container.innerHTML = '<p>⏳ Waiting for QR code generation...</p>' +
+                        '<p style="font-size: 12px;">Elapsed: ' + waitTime + ' seconds</p>' +
+                        '<p style="font-size: 12px;">(This can take 10-30 seconds after instance creation)</p>';
+                    
+                    // After 30 seconds, suggest recreating
+                    if (waitTime >= 30) {
+                        container.innerHTML += '<p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 5px;">' +
+                            '💡 <strong>QR code taking too long?</strong><br>' +
+                            'Run in terminal: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;">./force-qr-code.sh</code>' +
+                            '</p>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing QR:', error);
+                const container = document.getElementById('qrcode-container');
+                if (refreshCount > 10) {
+                    container.innerHTML = '<p style="color: #ff6b6b;">Error fetching QR code. Check terminal for details.</p>' +
+                        '<p style="font-size: 12px;">Run: ./debug-qr-code.sh</p>';
+                }
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

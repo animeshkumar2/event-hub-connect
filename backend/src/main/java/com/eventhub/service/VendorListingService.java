@@ -109,6 +109,7 @@ public class VendorListingService {
         
         listing.setImages(request.getImages());
         listing.setIsActive(true);
+        listing.setOpenForNegotiation(request.getOpenForNegotiation() != null ? request.getOpenForNegotiation() : true);
         
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
@@ -185,6 +186,7 @@ public class VendorListingService {
         
         listing.setImages(request.getImages());
         listing.setIsActive(true);
+        listing.setOpenForNegotiation(request.getOpenForNegotiation() != null ? request.getOpenForNegotiation() : true);
         
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
@@ -272,6 +274,9 @@ public class VendorListingService {
         // Status
         if (updatedListing.getIsActive() != null) {
             listing.setIsActive(updatedListing.getIsActive());
+        }
+        if (updatedListing.getOpenForNegotiation() != null) {
+            listing.setOpenForNegotiation(updatedListing.getOpenForNegotiation());
         }
         
         return listingRepository.save(listing);

@@ -32,3 +32,5 @@ CREATE INDEX IF NOT EXISTS idx_analytics_type_date_user ON analytics_events(even
 
 
 
+
+

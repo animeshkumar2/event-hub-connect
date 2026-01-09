@@ -34,11 +34,26 @@ public class DatabaseWarmup {
                 try (Connection conn = dataSource.getConnection()) {
                     // Execute a simple query to ensure connection is fully established
                     conn.createStatement().execute("SELECT 1");
+                    log.debug("Database connection {} established successfully", i + 1);
+                } catch (SQLException e) {
+                    log.error("Failed to establish connection {} during warmup | SQL State: {} | Error Code: {} | Message: {}", 
+                            i + 1,
+                            e.getSQLState(),
+                            e.getErrorCode(),
+                            e.getMessage(),
+                            e);
+                    throw e; // Re-throw to be caught by outer catch
                 }
             }
             log.info("Database connection pool warmed up successfully");
         } catch (SQLException e) {
-            log.warn("Failed to warm up database connections: {}", e.getMessage());
+            String errorDetails = buildSqlExceptionDetails(e);
+            log.error("Failed to warm up database connections | {}", errorDetails, e);
+        } catch (Exception e) {
+            log.error("Unexpected error during database warmup | Type: {} | Message: {}", 
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
         }
     }
 
@@ -51,10 +66,46 @@ public class DatabaseWarmup {
             conn.createStatement().execute("SELECT 1");
             log.debug("Database keep-alive ping successful");
         } catch (SQLException e) {
-            log.warn("Database keep-alive failed: {}", e.getMessage());
+            String errorDetails = buildSqlExceptionDetails(e);
+            log.warn("Database keep-alive failed | {}", errorDetails);
+            log.debug("Database keep-alive SQLException stack trace:", e);
+        } catch (Exception e) {
+            log.error("Unexpected error during database keep-alive | Type: {} | Message: {}", 
+                    e.getClass().getName(),
+                    e.getMessage(),
+                    e);
         }
     }
+
+    /**
+     * Build detailed error information from SQLException.
+     */
+    private String buildSqlExceptionDetails(SQLException e) {
+        StringBuilder details = new StringBuilder();
+        details.append("SQL State: ").append(e.getSQLState() != null ? e.getSQLState() : "N/A");
+        details.append(" | Error Code: ").append(e.getErrorCode());
+        details.append(" | Message: ").append(e.getMessage());
+        
+        // Add cause information if available
+        Throwable cause = e.getCause();
+        if (cause != null) {
+            details.append(" | Cause: ").append(cause.getClass().getSimpleName());
+            if (cause.getMessage() != null) {
+                details.append(" - ").append(cause.getMessage());
+            }
+        }
+        
+        // Chain SQL exceptions if present
+        SQLException next = e.getNextException();
+        if (next != null) {
+            details.append(" | Next Exception: ").append(next.getMessage());
+        }
+        
+        return details.toString();
+    }
 }
+
+
 
 
 

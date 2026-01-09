@@ -18,7 +18,6 @@ import {
   FileQuestion,
   Lock,
   AlertTriangle,
-  Menu,
   X,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -35,13 +34,18 @@ import {
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
 
+interface VendorSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/vendor/dashboard', locked: false },
   { icon: User, label: 'Profile', path: '/vendor/profile', locked: false },
   { icon: Package, label: 'Listings', path: '/vendor/listings', locked: false },
   { icon: Calendar, label: 'Calendar', path: '/vendor/calendar', locked: false },
   { icon: Inbox, label: 'Leads', path: '/vendor/leads', locked: false },
-  { icon: ClipboardList, label: 'Orders', path: '/vendor/orders', locked: false },
+  { icon: ClipboardList, label: 'Bookings', path: '/vendor/bookings', locked: false },
   { icon: MessageSquare, label: 'Chat', path: '/vendor/chat', locked: false },
   // PHASE 1: Wallet - Completely hidden for initial release
   // { icon: Wallet, label: 'Wallet', path: '/vendor/wallet', locked: !FEATURE_FLAGS.WALLET_ENABLED },
@@ -53,29 +57,19 @@ const menuItems = [
   { icon: HelpCircle, label: 'Help', path: '/vendor/help', locked: false },
 ];
 
-export const VendorSidebar = () => {
+export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  // Close mobile menu on route change
+  // Close sidebar on route change (mobile)
   useEffect(() => {
-    setMobileOpen(false);
+    if (isOpen) {
+      onClose?.();
+    }
   }, [location.pathname]);
-
-  // Close mobile menu on desktop resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setMobileOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const handleLogoutClick = () => {
     setShowLogoutDialog(true);
@@ -84,40 +78,20 @@ export const VendorSidebar = () => {
   const handleLogoutConfirm = () => {
     logout();
     navigate('/');
+    onClose?.();
   };
+
+  const sidebarWidth = collapsed ? 'md:w-16 w-64' : 'w-64';
 
   return (
     <>
-      {/* Mobile Menu Button - Only show when sidebar is closed */}
-      {!mobileOpen && (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileOpen(true)}
-          className="fixed top-4 left-4 z-50 md:hidden bg-card border border-border shadow-lg"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      )}
-
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-screen transition-all duration-200',
-          'bg-card border-r border-border shadow-elegant',
-          // Tablet and Desktop - always visible
-          'hidden md:block',
-          collapsed ? 'md:w-16' : 'md:w-64',
-          // Mobile - show only when mobileOpen is true
-          mobileOpen && 'block w-64'
+          'fixed left-0 top-0 z-40 h-screen transition-all duration-300',
+          'bg-card border-r border-border shadow-elegant flex flex-col',
+          sidebarWidth,
+          isOpen ? 'translate-x-0' : '-translate-x-full',
+          'md:translate-x-0'
         )}
       >
         {/* Logo */}
@@ -127,75 +101,78 @@ export const VendorSidebar = () => {
               cartevent<span className="text-[#7C6BFF]">.</span>
             </Link>
           )}
-          {/* Desktop collapse button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:flex text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
-          {/* Mobile close button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(false)}
-            className="md:hidden text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCollapsed(!collapsed)}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden md:inline-flex"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors md:hidden"
+              aria-label="Close navigation"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
-                'group relative',
-                isActive
-                  ? 'bg-primary/10 text-primary shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              )}
-            >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-              )}
-              <item.icon className={cn(
-                'h-5 w-5 flex-shrink-0',
-                isActive && 'text-primary'
-              )} />
-              {!collapsed && (
-                <span className={cn(
-                  'text-sm font-medium flex-1',
-                  isActive && 'font-semibold'
-                )}>
-                  {item.label}
-                </span>
-              )}
-              {!collapsed && item.locked && (
-                <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
-              )}
-            </NavLink>
-          );
-        })}
-      </nav>
+        {/* Navigation */}
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
+                  'group relative',
+                  isActive
+                    ? 'bg-primary/10 text-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                )}
+                <item.icon className={cn(
+                  'h-5 w-5 flex-shrink-0',
+                  isActive && 'text-primary'
+                )} />
+                {!collapsed && (
+                  <span className={cn(
+                    'text-sm font-medium flex-1',
+                    isActive && 'font-semibold'
+                  )}>
+                    {item.label}
+                  </span>
+                )}
+                {!collapsed && item.locked && (
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
 
-      {/* Logout */}
-      <div className="p-2 border-t border-border">
-        <button
-          onClick={handleLogoutClick}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
-        >
-          <LogOut className="h-5 w-5" />
-          {!collapsed && <span className="text-sm font-medium">Logout</span>}
-        </button>
-      </div>
+        {/* Logout */}
+        <div className="p-2 border-t border-border">
+          <button
+            onClick={handleLogoutClick}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
+          >
+            <LogOut className="h-5 w-5" />
+            {!collapsed && <span className="text-sm font-medium">Logout</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Logout Confirmation Dialog */}

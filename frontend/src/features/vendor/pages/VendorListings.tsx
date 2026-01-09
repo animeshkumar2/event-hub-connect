@@ -9,6 +9,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/shared/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/shared/components/ui/alert-dialog';
 import { 
   Plus, 
   Search, 
@@ -46,6 +47,7 @@ export default function VendorListings() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track which listing is being deleted
   const [formStep, setFormStep] = useState<1 | 2>(1); // Two-step form
+  const [pendingDelete, setPendingDelete] = useState<any>(null);
   
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
@@ -83,6 +85,8 @@ export default function VendorListings() {
     // Item fields
     unit: '',
     minimumQuantity: 1,
+    // Negotiation
+    openForNegotiation: true,
   });
 
   // Get vendor category
@@ -236,6 +240,7 @@ export default function VendorListings() {
         extraCharges: editingListing.extraCharges || [],
         unit: editingListing.unit || '',
         minimumQuantity: editingListing.minimumQuantity || 1,
+        openForNegotiation: editingListing.openForNegotiation || false,
       });
       setListingType(editingListing.type || 'PACKAGE');
       setFormStep(1); // Reset to first step when editing
@@ -258,6 +263,7 @@ export default function VendorListings() {
         extraCharges: [],
         unit: '',
         minimumQuantity: 1,
+        openForNegotiation: true,
       });
       setListingType('PACKAGE');
     }
@@ -330,6 +336,7 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
+        openForNegotiation: formData.openForNegotiation,
       };
 
       if (listingType === 'PACKAGE') {
@@ -378,9 +385,14 @@ export default function VendorListings() {
     }
   };
 
-  const handleDelete = async (listing: any) => {
-    if (!confirm(`Are you sure you want to delete "${listing.name}"?`)) return;
-    
+  const requestDelete = (listing: any) => {
+    setPendingDelete(listing);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const listing = pendingDelete;
+
     // Prevent multiple clicks
     if (isDeleting === listing.id) {
       return;
@@ -399,6 +411,7 @@ export default function VendorListings() {
       toast.error(error.message || 'Failed to delete listing');
     } finally {
       setIsDeleting(null);
+      setPendingDelete(null);
     }
   };
 
@@ -598,7 +611,7 @@ export default function VendorListings() {
   if (listingsLoading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </VendorLayout>
@@ -607,7 +620,7 @@ export default function VendorListings() {
 
   return (
     <VendorLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {/* Back Button */}
         <div className="mb-4">
           <Button
@@ -628,18 +641,18 @@ export default function VendorListings() {
               {filteredListings.length} listings • {filteredListings.filter((l: any) => l.isActive).length} active
             </p>
           </div>
-          <div className="flex gap-3">
-            <div className="relative">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, description, or category..."
-                className="pl-10 bg-background border-border text-foreground w-64"
+                  className="pl-10 bg-background border-border text-foreground w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
-              <SelectTrigger className="w-48 bg-background border-border text-foreground">
+              <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-48 bg-background border-border text-foreground">
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
@@ -796,6 +809,25 @@ export default function VendorListings() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Open for Negotiation Toggle */}
+                  <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+                    <div className="space-y-0.5">
+                      <Label className="text-foreground font-medium">Open for Negotiation</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Allow customers to make offers on this listing
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.openForNegotiation}
+                        onChange={(e) => setFormData({ ...formData, openForNegotiation: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
                   </div>
 
                   <div className="space-y-2">
@@ -1367,7 +1399,7 @@ export default function VendorListings() {
                         size="sm" 
                         variant="outline"
                         className="border-red-500/30 text-red-500 hover:bg-red-500/10"
-                        onClick={() => handleDelete(listing)}
+                        onClick={() => requestDelete(listing)}
                         disabled={isDeleting === listing.id}
                       >
                         {isDeleting === listing.id ? (
@@ -1455,7 +1487,7 @@ export default function VendorListings() {
                           {listing.isActive ? '○ Deactivate' : '● Activate'}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
+                          onClick={(e) => { e.stopPropagation(); requestDelete(listing); }} 
                           className="text-red-600 focus:text-red-600"
                           disabled={isDeleting === listing.id}
                         >
@@ -1580,7 +1612,7 @@ export default function VendorListings() {
                           {listing.isActive ? '○ Deactivate' : '● Activate'}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
+                          onClick={(e) => { e.stopPropagation(); requestDelete(listing); }} 
                           className="text-red-600 focus:text-red-600"
                           disabled={isDeleting === listing.id}
                         >
@@ -1624,6 +1656,39 @@ export default function VendorListings() {
         </div>
 
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete listing?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete ? `This will permanently delete "${pendingDelete.name || 'Untitled'}". This action cannot be undone.` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setPendingDelete(null)}
+              className="border-border"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting === pendingDelete?.id}
+            >
+              {isDeleting === pendingDelete?.id ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Deleting...
+                </span>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </VendorLayout>
   );
 }

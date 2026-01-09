@@ -105,6 +105,7 @@ public class ListingService {
             List.of());
         dto.setIsPopular(listing.getIsPopular());
         dto.setIsTrending(listing.getIsTrending());
+        dto.setOpenForNegotiation(listing.getOpenForNegotiation());
         return dto;
     }
 }

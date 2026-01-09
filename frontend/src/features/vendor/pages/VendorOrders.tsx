@@ -117,7 +117,7 @@ export default function VendorOrders() {
   if (ordersLoading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </VendorLayout>
@@ -126,7 +126,7 @@ export default function VendorOrders() {
 
   return (
     <VendorLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -137,7 +137,7 @@ export default function VendorOrders() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
             <Input
               placeholder="Search orders..."
-              className="pl-10 bg-muted/50 border-border text-foreground w-64"
+              className="pl-10 bg-muted/50 border-border text-foreground w-full md:w-64"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -232,7 +232,7 @@ export default function VendorOrders() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Event Details */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedOrder.eventDate && (
                       <div className="p-4 rounded-xl bg-muted/50">
                         <div className="flex items-center gap-2 text-foreground/60 mb-1">

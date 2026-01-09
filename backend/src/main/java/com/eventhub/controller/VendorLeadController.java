@@ -1,8 +1,10 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.dto.response.OfferDTO;
 import com.eventhub.model.Lead;
 import com.eventhub.service.LeadService;
+import com.eventhub.service.OfferService;
 import com.eventhub.util.VendorIdResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class VendorLeadController {
     
     private final LeadService leadService;
+    private final OfferService offerService;
     private final VendorIdResolver vendorIdResolver;
     
     @GetMapping
@@ -25,6 +28,13 @@ public class VendorLeadController {
         UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         List<Lead> leads = leadService.getVendorLeads(vendorId);
         return ResponseEntity.ok(ApiResponse.success(leads));
+    }
+    
+    @GetMapping("/{leadId}/offers")
+    public ResponseEntity<ApiResponse<List<OfferDTO>>> getLeadOffers(
+            @PathVariable UUID leadId) {
+        List<OfferDTO> offers = offerService.getOffersByLeadId(leadId);
+        return ResponseEntity.ok(ApiResponse.success(offers));
     }
     
     @PutMapping("/{leadId}/status")

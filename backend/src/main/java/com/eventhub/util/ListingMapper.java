@@ -51,6 +51,7 @@ public class ListingMapper {
         
         dto.setIsPopular(listing.getIsPopular());
         dto.setIsTrending(listing.getIsTrending());
+        dto.setOpenForNegotiation(listing.getOpenForNegotiation());
         
         // New fields for enhanced package features
         dto.setHighlights(listing.getHighlights());

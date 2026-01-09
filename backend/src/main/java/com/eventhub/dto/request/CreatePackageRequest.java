@@ -50,6 +50,8 @@ public class CreatePackageRequest {
     
     private List<String> images;
     
+    private Boolean openForNegotiation = true; // Allow customers to make offers on this listing
+    
     @Data
     public static class ExtraCharge {
         private String name;

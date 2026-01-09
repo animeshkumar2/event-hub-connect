@@ -87,6 +87,9 @@ public class Listing {
     @Column(name = "is_trending")
     private Boolean isTrending = false;
     
+    @Column(name = "open_for_negotiation")
+    private Boolean openForNegotiation = true;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

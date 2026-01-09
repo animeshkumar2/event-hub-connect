@@ -32,9 +32,11 @@ public class QuoteService {
         quote.setVendor(lead.getVendor());
         quote.setIsAccepted(false);
         
-        // Update lead status to QUOTED
-        lead.setStatus(com.eventhub.model.Lead.LeadStatus.QUOTED);
-        leadRepository.save(lead);
+        // Update lead status to OPEN when vendor creates a quote (vendor is actively working on it)
+        if (lead.getStatus() == com.eventhub.model.Lead.LeadStatus.NEW) {
+            lead.setStatus(com.eventhub.model.Lead.LeadStatus.OPEN);
+            leadRepository.save(lead);
+        }
         
         return quoteRepository.save(quote);
     }
@@ -75,6 +77,8 @@ public class QuoteService {
         return quoteRepository.findByLead(lead);
     }
 }
+
+
 
 
 
