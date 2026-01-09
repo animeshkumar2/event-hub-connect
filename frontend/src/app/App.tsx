@@ -37,6 +37,9 @@ const VendorProfile = lazy(() => import("@/features/vendor/pages/VendorProfile")
 const VendorCalendar = lazy(() => import("@/features/vendor/pages/VendorCalendar"));
 const VendorLeads = lazy(() => import("@/features/vendor/pages/VendorLeads"));
 const VendorListings = lazy(() => import("@/features/vendor/pages/VendorListings"));
+const VendorListingsDrafts = lazy(() => import("@/features/vendor/pages/VendorListingsDrafts"));
+const VendorListingsPackages = lazy(() => import("@/features/vendor/pages/VendorListingsPackages"));
+const VendorListingsItems = lazy(() => import("@/features/vendor/pages/VendorListingsItems"));
 const VendorOrders = lazy(() => import("@/features/vendor/pages/VendorOrders"));
 const VendorBookings = lazy(() => import("@/features/vendor/pages/VendorBookings"));
 const VendorChat = lazy(() => import("@/features/vendor/pages/VendorChat"));
@@ -213,6 +216,21 @@ const App = () => (
             <Route path="/vendor/listings" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorListings />
+              </Suspense>
+            } />
+            <Route path="/vendor/listings/drafts" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorListingsDrafts />
+              </Suspense>
+            } />
+            <Route path="/vendor/listings/packages" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorListingsPackages />
+              </Suspense>
+            } />
+            <Route path="/vendor/listings/items" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <VendorListingsItems />
               </Suspense>
             } />
             <Route path="/vendor/bookings" element={

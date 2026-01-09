@@ -32,6 +32,8 @@ public class ListingDTO {
     private String unit;
     private Integer minimumQuantity;
     private List<Integer> eventTypeIds;
+    private Boolean isActive;
+    private Boolean isDraft;
     private Boolean isPopular;
     private Boolean isTrending;
     private Boolean openForNegotiation;    // If true, customers can make offers on this listing

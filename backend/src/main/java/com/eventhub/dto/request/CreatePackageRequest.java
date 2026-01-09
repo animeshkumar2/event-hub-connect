@@ -52,6 +52,12 @@ public class CreatePackageRequest {
     
     private Boolean openForNegotiation = true; // Allow customers to make offers on this listing
     
+    // Control whether listing is active/visible to customers
+    private Boolean isActive;
+    
+    // Mark as draft (incomplete listing)
+    private Boolean isDraft;
+    
     @Data
     public static class ExtraCharge {
         private String name;

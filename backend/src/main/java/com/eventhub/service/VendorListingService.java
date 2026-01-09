@@ -108,7 +108,10 @@ public class VendorListingService {
         }
         
         listing.setImages(request.getImages());
-        listing.setIsActive(true);
+        // Use isActive from request, default to true if not specified
+        listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        // Use isDraft from request, default to false if not specified
+        listing.setIsDraft(request.getIsDraft() != null ? request.getIsDraft() : false);
         listing.setOpenForNegotiation(request.getOpenForNegotiation() != null ? request.getOpenForNegotiation() : true);
         
         // Set event types
@@ -185,7 +188,10 @@ public class VendorListingService {
         }
         
         listing.setImages(request.getImages());
-        listing.setIsActive(true);
+        // Use isActive from request, default to true if not specified
+        listing.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        // Use isDraft from request, default to false if not specified
+        listing.setIsDraft(request.getIsDraft() != null ? request.getIsDraft() : false);
         listing.setOpenForNegotiation(request.getOpenForNegotiation() != null ? request.getOpenForNegotiation() : true);
         
         // Set event types
@@ -275,6 +281,9 @@ public class VendorListingService {
         if (updatedListing.getIsActive() != null) {
             listing.setIsActive(updatedListing.getIsActive());
         }
+        if (updatedListing.getIsDraft() != null) {
+            listing.setIsDraft(updatedListing.getIsDraft());
+        }
         if (updatedListing.getOpenForNegotiation() != null) {
             listing.setOpenForNegotiation(updatedListing.getOpenForNegotiation());
         }
@@ -291,9 +300,15 @@ public class VendorListingService {
             throw new BusinessRuleException("You don't have permission to delete this listing");
         }
         
-        // Soft delete
-        listing.setIsActive(false);
-        listingRepository.save(listing);
+        // Hard delete for drafts, soft delete for active listings
+        if (listing.getIsDraft() != null && listing.getIsDraft()) {
+            // Draft listings can be permanently deleted
+            listingRepository.delete(listing);
+        } else {
+            // Active listings are soft deleted (in case there are orders/bookings)
+            listing.setIsActive(false);
+            listingRepository.save(listing);
+        }
     }
     
     @Transactional(readOnly = true)

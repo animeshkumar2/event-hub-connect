@@ -81,6 +81,9 @@ public class Listing {
     @Column(name = "is_active")
     private Boolean isActive = true;
     
+    @Column(name = "is_draft")
+    private Boolean isDraft = false;
+    
     @Column(name = "is_popular")
     private Boolean isPopular = false;
     

@@ -9,7 +9,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/shared/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/shared/components/ui/alert-dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
 import { 
   Plus, 
   Search, 
@@ -25,7 +25,17 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
-  ArrowLeft
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Camera,
+  Palette,
+  UtensilsCrossed,
+  MapPin,
+  Sparkles,
+  Music,
+  Lightbulb,
+  Tag
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -34,6 +44,22 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useVendorListingsData, useEventTypeCategories } from '@/shared/hooks/useApi';
 import { vendorApi } from '@/shared/services/api';
+import { useResponsiveCardLimit } from '@/shared/hooks/useResponsiveCardLimit';
+import { ListingCard } from '@/features/vendor/components/ListingCard';
+import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
+
+// Category icon mapping
+const getCategoryIcon = (categoryName: string) => {
+  const name = categoryName.toLowerCase();
+  if (name.includes('photo') || name.includes('video')) return Camera;
+  if (name.includes('décor') || name.includes('decor')) return Palette;
+  if (name.includes('catering') || name.includes('food')) return UtensilsCrossed;
+  if (name.includes('venue')) return MapPin;
+  if (name.includes('makeup') || name.includes('styling')) return Sparkles;
+  if (name.includes('dj') || name.includes('entertainment')) return Music;
+  if (name.includes('sound') || name.includes('light')) return Lightbulb;
+  return Tag;
+};
 
 export default function VendorListings() {
   const navigate = useNavigate();
@@ -46,8 +72,25 @@ export default function VendorListings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track which listing is being deleted
-  const [formStep, setFormStep] = useState<1 | 2>(1); // Two-step form
-  const [pendingDelete, setPendingDelete] = useState<any>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; listing: any | null }>({
+    open: false,
+    listing: null,
+  });
+  const [draftSectionOpen, setDraftSectionOpen] = useState<string | undefined>('drafts'); // Default open
+  const cardLimit = useResponsiveCardLimit(); // Get responsive card limit
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    basic: true,
+    pricing: true,
+    included: true,
+    highlights: false,
+    photos: true,
+  });
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
   
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
@@ -61,43 +104,93 @@ export default function VendorListings() {
   const categoriesData = categories.data;
   const eventTypeCategories = eventTypeCategoriesData || [];
 
+  // Core category mapping for Phase 1
+  // Maps display categories to their underlying DB category IDs
+  const CORE_CATEGORY_MAP = {
+    'photography-videography': ['photographer', 'cinematographer', 'videographer'],
+    'decorator': ['decorator'],
+    'caterer': ['caterer'],
+    'venue': ['venue'],
+    'mua': ['mua'],
+    'dj-entertainment': ['dj', 'live-music'],
+    'sound-lights': ['sound-lights'],
+    'other': ['other', 'return-gifts', 'invitations', 'anchors', 'event-coordinator'],
+  };
+
+  // Helper: Get core category ID from DB category ID
+  const getCoreCategoryId = (dbCategoryId: string): string => {
+    for (const [coreId, dbIds] of Object.entries(CORE_CATEGORY_MAP)) {
+      if (dbIds.includes(dbCategoryId)) {
+        return coreId;
+      }
+    }
+    return 'other'; // Default to other if not found
+  };
+
+  // Helper: Get primary DB category ID from core category ID
+  const getDbCategoryId = (coreCategoryId: string): string => {
+    const dbIds = CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP];
+    return dbIds ? dbIds[0] : 'other';
+  };
+
+  // Helper: Get all DB category IDs for a core category
+  const getAllDbCategoryIds = (coreCategoryId: string): string[] => {
+    return CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP] || ['other'];
+  };
+
+  // Build core categories list for dropdowns
+  const coreCategories = [
+    { id: 'photography-videography', name: 'Photography & Videography', icon: '📸' },
+    { id: 'decorator', name: 'Décor', icon: '🎨' },
+    { id: 'caterer', name: 'Catering', icon: '🍽️' },
+    { id: 'venue', name: 'Venue', icon: '🏛️' },
+    { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
+    { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
+    { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
+    { id: 'other', name: 'Other', icon: '📦' },
+  ];
+
   // Extra charge with pricing type
   type ExtraCharge = { name: string; price: string };
 
-  // Form state
-  const [formData, setFormData] = useState({
+  // Initial form state
+  const initialFormData = {
     name: '',
     description: '',
     price: '',
     categoryId: '',
-    customCategoryName: '', // Custom category name when categoryId is "other"
+    customCategoryName: '',
     eventTypeIds: [] as number[],
     images: [] as string[],
-    // Highlights - key features
     highlights: [] as string[],
-    // Package fields
     includedItemsText: [] as string[],
-    includedItemIds: [] as string[], // IDs of linked items
+    includedItemIds: [] as string[],
     excludedItemsText: [] as string[],
     deliveryTime: '',
-    extraChargesDetailed: [] as ExtraCharge[], // New structured format
-    extraCharges: [] as string[], // Legacy format
-    // Item fields
+    extraChargesDetailed: [] as ExtraCharge[],
+    extraCharges: [] as string[],
     unit: '',
     minimumQuantity: 1,
-    // Negotiation
-    openForNegotiation: true,
-  });
+  };
+
+  // Form state
+  const [formData, setFormData] = useState(initialFormData);
 
   // Get vendor category
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
   const vendorCategoryName = profileData?.vendorCategory?.name || profileData?.categoryName || '';
+  const vendorCoreCategoryId = getCoreCategoryId(vendorCategoryId);
 
-  // Get category name helper
+  // Get category name helper - converts DB category to core category name
   const getCategoryName = (categoryId: string) => {
-    if (!categoriesData || !Array.isArray(categoriesData)) return '';
-    const category = categoriesData.find((cat: any) => cat.id === categoryId);
-    return category?.name || '';
+    // Check if it's already a core category ID
+    const coreCategory = coreCategories.find(cat => cat.id === categoryId);
+    if (coreCategory) return coreCategory.name;
+    
+    // Otherwise, convert DB category to core category
+    const coreCategoryId = getCoreCategoryId(categoryId);
+    const coreCat = coreCategories.find(cat => cat.id === coreCategoryId);
+    return coreCat?.name || 'Other';
   };
 
   // Filter event types based on selected category
@@ -106,26 +199,35 @@ export default function VendorListings() {
     if (!eventTypesData || !Array.isArray(eventTypesData)) return [];
     if (!eventTypeCategories || eventTypeCategories.length === 0) return eventTypesData;
     
-    // If no category selected, show all event types
-    if (!formData.categoryId || formData.categoryId === 'other') {
+    // If no category selected, show warning message
+    if (!formData.categoryId) {
+      return [];
+    }
+
+    // Special case: "Other" category can be used for any event type
+    if (formData.categoryId === 'other') {
       return eventTypesData;
     }
 
-    // Get valid event type IDs for selected category
+    // Get all DB category IDs for the selected core category
+    const dbCategoryIds = getAllDbCategoryIds(formData.categoryId);
+
+    // Get valid event type IDs for ALL mapped DB categories
     const validEventTypeIds = new Set<number>();
     
-    eventTypeCategories.forEach((etc: any) => {
-      // Handle different possible structures
-      const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
-      const etcCategoryId = etc.categoryId || etc.category?.id;
-      
-      if (etcCategoryId === formData.categoryId && etcEventTypeId) {
-        validEventTypeIds.add(etcEventTypeId);
-      }
+    dbCategoryIds.forEach(dbCategoryId => {
+      eventTypeCategories.forEach((etc: any) => {
+        const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
+        const etcCategoryId = etc.categoryId || etc.category?.id;
+        
+        if (etcCategoryId === dbCategoryId && etcEventTypeId) {
+          validEventTypeIds.add(etcEventTypeId);
+        }
+      });
     });
 
-    // Special case: Add Corporate to DJ category (as requested)
-    if (formData.categoryId === 'dj') {
+    // Special case: Add Corporate to DJ & Entertainment category
+    if (formData.categoryId === 'dj-entertainment') {
       const corporateEventType = eventTypesData.find((et: any) => 
         et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
       );
@@ -139,7 +241,8 @@ export default function VendorListings() {
       validEventTypeIds.has(et.id)
     );
 
-    return filtered;
+    // If no event types found, show all (fallback for categories without mappings)
+    return filtered.length > 0 ? filtered : eventTypesData;
   }, [eventTypesData, eventTypeCategories, formData.categoryId]);
 
   // Filter listings with enhanced search (name, description, category)
@@ -151,8 +254,9 @@ export default function VendorListings() {
     // Filter by category
     if (selectedCategoryFilter !== 'all') {
       filtered = filtered.filter((listing: any) => {
-        const listingCategoryId = listing.listingCategory?.id || listing.categoryId || '';
-        return listingCategoryId === selectedCategoryFilter;
+        const listingDbCategoryId = listing.listingCategory?.id || listing.categoryId || '';
+        const listingCoreCategoryId = getCoreCategoryId(listingDbCategoryId);
+        return listingCoreCategoryId === selectedCategoryFilter;
       });
     }
     
@@ -160,7 +264,8 @@ export default function VendorListings() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((listing: any) => {
-        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '').toLowerCase();
+        const dbCategoryId = listing.listingCategory?.id || listing.categoryId || '';
+        const categoryName = getCategoryName(dbCategoryId).toLowerCase();
         return (
           listing.name?.toLowerCase().includes(query) ||
           listing.description?.toLowerCase().includes(query) ||
@@ -170,7 +275,7 @@ export default function VendorListings() {
     }
     
     return filtered;
-  }, [listingsData, searchQuery, selectedCategoryFilter, categoriesData]);
+  }, [listingsData, searchQuery, selectedCategoryFilter]);
 
   // Exclude drafts from main listings
   const completedListings = useMemo(() => 
@@ -182,17 +287,8 @@ export default function VendorListings() {
   
   // Helper function to check if draft - needs to be defined before useMemo calls
   function isDraftListing(listing: any) {
-    // A listing is a draft if:
-    // 1. Explicitly marked as draft
-    // 2. Price is 0 or 0.01 (draft marker)
-    // 3. Not active (isActive = false)
-    // 4. Missing required fields (no images, no price, etc.)
-    return listing.isDraft || 
-           !listing.isActive || 
-           !listing.price || 
-           listing.price === 0 || 
-           listing.price === 0.01 ||
-           !listing.images?.length;
+    // A listing is a draft if it has the isDraft flag set to true
+    return listing.isDraft === true;
   }
 
   // Handle edit query parameter (from preview page)
@@ -223,11 +319,15 @@ export default function VendorListings() {
         }
       }
       
+      // Convert DB category ID to core category ID
+      const dbCategoryId = editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId;
+      const coreCategoryId = getCoreCategoryId(dbCategoryId);
+      
       setFormData({
         name: editingListing.name || '',
         description: editingListing.description || '',
         price: editingListing.price?.toString() || '',
-        categoryId: editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId,
+        categoryId: coreCategoryId, // Use core category ID
         customCategoryName: editingListing.customCategoryName || '',
         eventTypeIds: editingListing.eventTypes?.map((et: any) => et.id || et) || [],
         images: editingListing.images || [],
@@ -240,18 +340,31 @@ export default function VendorListings() {
         extraCharges: editingListing.extraCharges || [],
         unit: editingListing.unit || '',
         minimumQuantity: editingListing.minimumQuantity || 1,
-        openForNegotiation: editingListing.openForNegotiation || false,
       });
       setListingType(editingListing.type || 'PACKAGE');
-      setFormStep(1); // Reset to first step when editing
+      // Expand all sections when editing
+      setExpandedSections({
+        basic: true,
+        pricing: true,
+        included: true,
+        highlights: true,
+        photos: true,
+      });
     } else {
-      // Reset form
-      setFormStep(1);
+      // Reset form - use core category ID
+      setExpandedSections({
+        basic: true,
+        pricing: true,
+        included: true,
+        highlights: false,
+        photos: true,
+      });
       setFormData({
         name: '',
         description: '',
         price: '',
-        categoryId: vendorCategoryId,
+        categoryId: vendorCoreCategoryId, // Use core category ID
+        customCategoryName: '',
         eventTypeIds: [],
         images: [],
         highlights: [],
@@ -263,11 +376,10 @@ export default function VendorListings() {
         extraCharges: [],
         unit: '',
         minimumQuantity: 1,
-        openForNegotiation: true,
       });
       setListingType('PACKAGE');
     }
-  }, [editingListing, vendorCategoryId]);
+  }, [editingListing, vendorCategoryId, vendorCoreCategoryId]);
 
   const handleSubmit = async () => {
     // Prevent multiple clicks
@@ -277,6 +389,12 @@ export default function VendorListings() {
 
     if (!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    // Validate images are required for publishing
+    if (!formData.images || formData.images.length === 0) {
+      // This shouldn't happen as button is disabled, but keep as safety check
       return;
     }
     
@@ -290,16 +408,20 @@ export default function VendorListings() {
     if (formData.categoryId && formData.categoryId !== 'other' && eventTypeCategories.length > 0) {
       const validEventTypeIds = new Set<number>();
       
+      // Get all DB category IDs for the selected core category
+      const dbCategoryIds = getAllDbCategoryIds(formData.categoryId);
+      
       eventTypeCategories.forEach((etc: any) => {
         const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
         const etcCategoryId = etc.categoryId || etc.category?.id;
-        if (etcCategoryId === formData.categoryId && etcEventTypeId) {
+        // Check if the event type is valid for ANY of the mapped DB categories
+        if (dbCategoryIds.includes(etcCategoryId) && etcEventTypeId) {
           validEventTypeIds.add(etcEventTypeId);
         }
       });
       
       // Add Corporate to DJ category
-      if (formData.categoryId === 'dj') {
+      if (formData.categoryId === 'dj-entertainment') {
         const corporateEventType = eventTypesData?.find((et: any) => 
           et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
         );
@@ -311,6 +433,13 @@ export default function VendorListings() {
       // Check if all selected event types are valid
       const invalidEventTypes = formData.eventTypeIds.filter(id => !validEventTypeIds.has(id));
       if (invalidEventTypes.length > 0) {
+        console.log('❌ Event type validation failed:', {
+          categoryId: formData.categoryId,
+          dbCategoryIds,
+          selectedEventTypeIds: formData.eventTypeIds,
+          validEventTypeIds: Array.from(validEventTypeIds),
+          invalidEventTypes
+        });
         toast.error(`Some selected event types are not valid for the chosen category. Please select valid event types.`);
         return;
       }
@@ -318,36 +447,35 @@ export default function VendorListings() {
 
     setIsPublishing(true);
     try {
+      // Convert core category ID to DB category ID for API
+      const dbCategoryId = getDbCategoryId(formData.categoryId);
+      
       const payload: any = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
-        categoryId: formData.categoryId,
+        categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
-        highlights: formData.highlights,
+        highlights: formData.highlights.filter(h => h.trim()), // Remove empty highlights
         deliveryTime: formData.deliveryTime,
-        // Include both formats for extra charges
-        extraChargesDetailed: formData.extraChargesDetailed.map(ec => ({
-          name: ec.name,
-          price: parseFloat(ec.price) || 0
-        })),
+        // Include both formats for extra charges, filter empty ones
+        extraChargesDetailed: formData.extraChargesDetailed
+          .filter(ec => ec.name.trim() && ec.price)
+          .map(ec => ({
+            name: ec.name,
+            price: parseFloat(ec.price) || 0
+          })),
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
-        openForNegotiation: formData.openForNegotiation,
       };
 
       if (listingType === 'PACKAGE') {
-        payload.includedItemsText = formData.includedItemsText;
+        payload.includedItemsText = formData.includedItemsText.filter(i => i.trim());
         payload.includedItemIds = formData.includedItemIds;
-        payload.excludedItemsText = formData.excludedItemsText;
-        console.log('📦 Package payload being sent:', {
-          includedItemIds: payload.includedItemIds,
-          includedItemsText: payload.includedItemsText,
-          formDataIncludedItemIds: formData.includedItemIds,
-        });
+        payload.excludedItemsText = formData.excludedItemsText.filter(i => i.trim());
       } else {
         payload.unit = formData.unit;
         payload.minimumQuantity = formData.minimumQuantity;
@@ -385,24 +513,24 @@ export default function VendorListings() {
     }
   };
 
-  const requestDelete = (listing: any) => {
-    setPendingDelete(listing);
+  const handleDelete = async (listing: any) => {
+    setDeleteDialog({ open: true, listing });
   };
 
   const confirmDelete = async () => {
-    if (!pendingDelete) return;
-    const listing = pendingDelete;
-
+    if (!deleteDialog.listing) return;
+    
     // Prevent multiple clicks
-    if (isDeleting === listing.id) {
+    if (isDeleting === deleteDialog.listing.id) {
       return;
     }
 
-    setIsDeleting(listing.id);
+    setIsDeleting(deleteDialog.listing.id);
     try {
-      const response = await vendorApi.deleteListing(listing.id);
+      const response = await vendorApi.deleteListing(deleteDialog.listing.id);
       if (response.success) {
         toast.success('Listing deleted successfully!');
+        setDeleteDialog({ open: false, listing: null });
         refetch();
       } else {
         throw new Error(response.message || 'Failed to delete listing');
@@ -411,7 +539,6 @@ export default function VendorListings() {
       toast.error(error.message || 'Failed to delete listing');
     } finally {
       setIsDeleting(null);
-      setPendingDelete(null);
     }
   };
 
@@ -526,13 +653,15 @@ export default function VendorListings() {
 
     setIsSaving(true);
     try {
-      // Use price=0.01 as a marker for draft listings (real listings will have actual prices)
-      // IMPORTANT: Set isActive to false so draft listings are NOT visible on user side
+      // Convert core category ID to DB category ID for API
+      const dbCategoryId = getDbCategoryId(formData.categoryId);
+      
+      // Save as draft - keep isActive true so vendor can still see it, but mark as draft
       const payload: any = {
         name: formData.name,
         description: formData.description || 'Draft - description pending',
         price: formData.price ? parseFloat(formData.price) : 0.01, // 0.01 marks draft
-        categoryId: formData.categoryId,
+        categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: formData.eventTypeIds,
         images: formData.images,
@@ -543,8 +672,8 @@ export default function VendorListings() {
           price: parseFloat(ec.price) || 0
         })),
         extraCharges: formData.extraCharges,
-        isActive: false, // Drafts should NOT be active/visible on user side
-        isDraft: true, // Explicitly mark as draft
+        isActive: false, // Drafts should NOT be visible to customers
+        isDraft: true, // Mark as draft
       };
 
       if (listingType === 'PACKAGE') {
@@ -561,7 +690,9 @@ export default function VendorListings() {
         if (response.success) {
           toast.success('Draft saved successfully!');
           closeModal();
-          refetch();
+          await refetch();
+        } else {
+          throw new Error(response.message || 'Failed to save draft');
         }
       } else {
         const response = listingType === 'PACKAGE'
@@ -571,10 +702,13 @@ export default function VendorListings() {
         if (response.success) {
           toast.success('Draft saved! You can complete it later.');
           closeModal();
-          refetch();
+          await refetch();
+        } else {
+          throw new Error(response.message || 'Failed to save draft');
         }
       }
     } catch (error: any) {
+      console.error('Error saving draft:', error);
       toast.error(error.message || 'Failed to save draft');
     } finally {
       setIsSaving(false);
@@ -585,33 +719,29 @@ export default function VendorListings() {
   const closeModal = () => {
     setShowCreateModal(false);
     setEditingListing(null);
-    setFormStep(1);
+    setFormData(initialFormData); // Reset form to initial state
+    setExpandedSections({
+      basic: true,
+      pricing: true,
+      included: true,
+      highlights: false,
+      photos: true,
+    });
   };
 
-  // Navigate to next step
-  const goToNextStep = () => {
-    if (!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0) {
-      toast.error('Please fill in all required fields before proceeding');
-      return;
+  // Separate drafts from active listings - use listingsData directly, not filtered
+  const draftListings = useMemo(() => {
+    if (!listingsData || !Array.isArray(listingsData)) {
+      return [];
     }
-    setFormStep(2);
-  };
-
-  // Navigate to previous step
-  const goToPreviousStep = () => {
-    setFormStep(1);
-  };
-
-  // Separate drafts from active listings
-  const draftListings = useMemo(() => 
-    filteredListings.filter((l: any) => isDraftListing(l)), 
-    [filteredListings]
-  );
+    const drafts = listingsData.filter((l: any) => isDraftListing(l));
+    return drafts;
+  }, [listingsData]);
 
   if (listingsLoading) {
     return (
       <VendorLayout>
-        <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </VendorLayout>
@@ -620,13 +750,14 @@ export default function VendorListings() {
 
   return (
     <VendorLayout>
-      <div className="p-4 sm:p-6 space-y-6">
+      <div className="p-6 space-y-6">
         {/* Back Button */}
         <div className="mb-4">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => navigate('/vendor/dashboard')}
-            className="text-muted-foreground hover:text-foreground"
+            className="border-primary/20 text-primary hover:bg-primary/10 hover:text-primary"
+            size="sm"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
@@ -634,70 +765,81 @@ export default function VendorListings() {
         </div>
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Packages & Listings</h1>
-            <p className="text-muted-foreground">
-              {filteredListings.length} listings • {filteredListings.filter((l: any) => l.isActive).length} active
-            </p>
+        <div className="flex flex-col gap-4 mb-6">
+          {/* Title Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Packages & Listings</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                {completedListings.length} listing{completedListings.length !== 1 ? 's' : ''} • {completedListings.filter((l: any) => l.isActive).length} active
+              </p>
+            </div>
+            {/* Add Listing Button - Desktop */}
+            <Button 
+              className="hidden sm:flex bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Listing
+            </Button>
           </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search by name, description, or category..."
-                  className="pl-10 bg-background border-border text-foreground w-full"
+                placeholder="Search listings..."
+                className="pl-10 bg-background border-border text-foreground w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-              <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
-                <SelectTrigger className="w-full sm:w-48 bg-background border-border text-foreground">
-                <SelectValue placeholder="Filter by category" />
+            
+            {/* Category Filter */}
+            <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48 bg-background border-border text-foreground">
+                <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categoriesData && Array.isArray(categoriesData) && categoriesData.map((cat: any) => (
+                {coreCategories.map((cat: any) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Dialog open={showCreateModal} onOpenChange={(open) => {
-              if (!open) closeModal();
-              else setShowCreateModal(open);
-            }}>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all">
-                  <Plus className="mr-2 h-4 w-4" /> Add Listing
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-foreground">
-                    {editingListing ? 'Edit Listing' : 'Create New Listing'}
-                  </DialogTitle>
-                  <DialogDescription className="sr-only">
-                    {formStep === 1 ? 'Enter basic information for your listing' : 'Add details, images and pricing for your listing'}
-                  </DialogDescription>
-                  {/* Step indicator */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${formStep === 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-xs font-bold">1</span>
-                      Basic Info
-                    </div>
-                    <div className="w-8 h-0.5 bg-border" />
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${formStep === 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      <span className="w-5 h-5 rounded-full bg-background/20 flex items-center justify-center text-xs font-bold">2</span>
-                      Details
-                    </div>
-                  </div>
-                </DialogHeader>
+            
+            {/* Add Listing Button - Mobile */}
+            <Button 
+              className="sm:hidden w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Listing
+            </Button>
+          </div>
+        </div>
 
-                {/* STEP 1: Basic Information */}
-                {formStep === 1 && (
-                <div className="space-y-4 pt-4">
+        {/* Create/Edit Listing Dialog */}
+        <Dialog open={showCreateModal} onOpenChange={(open) => {
+          if (!open) closeModal();
+          else setShowCreateModal(open);
+        }}>
+          <DialogContent className="bg-card border-border max-w-2xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-foreground text-lg sm:text-xl">
+                {editingListing ? 'Edit Listing' : 'Create New Listing'}
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground text-sm mt-2">
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-red-500">*</span> Required fields must be completed to publish
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+
+                {/* Single Scrollable Form */}
+                <div className="space-y-3 pt-4">
                   <div className="space-y-2">
                     <Label className="text-foreground">Listing Type</Label>
                     <Select value={listingType} onValueChange={(value: 'PACKAGE' | 'ITEM') => setListingType(value)}>
@@ -731,7 +873,8 @@ export default function VendorListings() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Pricing & Category */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-foreground">Price (₹) *</Label>
                       <Input
@@ -787,7 +930,7 @@ export default function VendorListings() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categoriesData && Array.isArray(categoriesData) && categoriesData.map((cat: any) => (
+                          {coreCategories.map((cat: any) => (
                             <SelectItem key={cat.id} value={cat.id}>
                               {cat.name}
                             </SelectItem>
@@ -811,28 +954,9 @@ export default function VendorListings() {
                     </div>
                   </div>
 
-                  {/* Open for Negotiation Toggle */}
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
-                    <div className="space-y-0.5">
-                      <Label className="text-foreground font-medium">Open for Negotiation</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Allow customers to make offers on this listing
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.openForNegotiation}
-                        onChange={(e) => setFormData({ ...formData, openForNegotiation: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                  </div>
-
                   <div className="space-y-2">
                     <Label className="text-foreground">Event Types *</Label>
-                    {!formData.categoryId || formData.categoryId === 'other' ? (
+                    {!formData.categoryId ? (
                       <div className="p-3 border border-border rounded-lg bg-muted/30">
                         <p className="text-sm text-muted-foreground">
                           ⚠️ Please select a category first to see available event types
@@ -840,7 +964,7 @@ export default function VendorListings() {
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
                           {availableEventTypes && Array.isArray(availableEventTypes) && availableEventTypes.length > 0 ? (
                             availableEventTypes.map((et: any) => (
                               <div key={et.id} className="flex items-center space-x-2">
@@ -874,60 +998,16 @@ export default function VendorListings() {
                         )}
                         {formData.eventTypeIds.length > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            💡 Event types shown are valid for the selected category
+                            💡 {formData.categoryId === 'other' 
+                              ? 'All event types available for custom categories' 
+                              : 'Event types shown are valid for the selected category'}
                           </p>
                         )}
                       </>
                     )}
                   </div>
 
-                  {/* Step 1 Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-border">
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-border hover:bg-muted"
-                      onClick={closeModal}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
-                      onClick={handleSaveAsDraft}
-                      disabled={isSaving || !formData.name || !formData.categoryId || formData.eventTypeIds.length === 0}
-                    >
-                      {isSaving ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      Save & Exit
-                    </Button>
-                    <Button
-                      className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow"
-                      onClick={goToNextStep}
-                      disabled={!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0}
-                    >
-                      Next →
-                    </Button>
-                  </div>
-                </div>
-                )}
 
-                {/* STEP 2: Details */}
-                {formStep === 2 && (
-                <div className="space-y-4 pt-4">
-                  {/* Back Button for Step 2 */}
-                  <div className="mb-4 pb-4 border-b border-border">
-                    <Button
-                      variant="ghost"
-                      onClick={goToPreviousStep}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Basic Info
-                    </Button>
-                  </div>
 
                   {/* Highlights Section (for both PACKAGE and ITEM) */}
                   <div className="space-y-2">
@@ -1175,7 +1255,7 @@ export default function VendorListings() {
 
                   {listingType === 'ITEM' && (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-foreground">Unit</Label>
                           <Input
@@ -1274,15 +1354,15 @@ export default function VendorListings() {
                     )}
                   </div>
 
-                  {/* Step 2 Buttons */}
+                  {/* Action Buttons */}
                   <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         variant="outline"
                         className="flex-1 border-border hover:bg-muted"
-                        onClick={goToPreviousStep}
+                        onClick={closeModal}
                       >
-                        ← Back
+                        Cancel
                       </Button>
                       <Button
                         variant="outline"
@@ -1299,9 +1379,9 @@ export default function VendorListings() {
                       </Button>
                     </div>
                     <Button
-                      className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow"
+                      className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleSubmit}
-                      disabled={!formData.price || isPublishing || isSaving}
+                      disabled={!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0 || formData.images.length === 0 || isPublishing || isSaving}
                     >
                       {isPublishing ? (
                         <>
@@ -1315,19 +1395,18 @@ export default function VendorListings() {
                       )}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
-                      {!formData.price 
-                        ? '⚠️ Set a price to publish' 
-                        : formData.images.length === 0 
-                          ? '⚠️ Consider adding images before publishing'
-                          : '✓ Ready to publish'}
+                      {!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0
+                        ? '⚠️ Complete all required fields to publish' 
+                        : !formData.price 
+                          ? '⚠️ Set a price to publish' 
+                          : formData.images.length === 0 
+                            ? '⚠️ Add at least one image to publish'
+                            : '✓ Ready to publish'}
                     </p>
                   </div>
                 </div>
-                )}
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
 
         {listingsError && (
           <Alert className="border-destructive">
@@ -1336,96 +1415,80 @@ export default function VendorListings() {
           </Alert>
         )}
 
-        {/* Draft Listings Section */}
+        {/* Draft Listings Section - Collapsible */}
         {draftListings.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-yellow-500" />
-              <h2 className="text-lg font-semibold text-foreground">Incomplete Listings ({draftListings.length})</h2>
-              <span className="text-xs text-muted-foreground ml-2">Complete these to make them visible to customers</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {draftListings.map((listing: any) => (
-                <Card key={listing.id} className="border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 overflow-hidden hover:border-yellow-500/50 transition-all">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-full bg-yellow-500/20">
-                          <AlertTriangle className="h-3 w-3 text-yellow-600" />
-                        </div>
-                        <Badge className="bg-yellow-500/20 text-yellow-700 text-xs font-medium">Draft</Badge>
-                      </div>
-                      <Badge variant="outline" className="text-xs bg-background">
-                        {listing.type === 'PACKAGE' ? <Package className="h-3 w-3 mr-1" /> : <Box className="h-3 w-3 mr-1" />}
-                        {listing.type === 'PACKAGE' ? 'Package' : 'Item'}
-                      </Badge>
-                    </div>
-                    <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-1">{listing.name || 'Untitled'}</h3>
-                    <div className="space-y-1 mb-3">
-                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                        {listing.price && listing.price > 0.01 ? (
-                          <><CheckCircle2 className="h-3 w-3 text-green-500" /> Price set</>
-                        ) : (
-                          <><X className="h-3 w-3 text-red-400" /> No price</>
-                        )}
-                      </p>
-                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                        {listing.images?.length > 0 ? (
-                          <><CheckCircle2 className="h-3 w-3 text-green-500" /> {listing.images.length} image(s)</>
-                        ) : (
-                          <><X className="h-3 w-3 text-red-400" /> No images</>
-                        )}
-                      </p>
-                      <p className="text-xs flex items-center gap-1 text-muted-foreground">
-                        {listing.description ? (
-                          <><CheckCircle2 className="h-3 w-3 text-green-500" /> Has description</>
-                        ) : (
-                          <><X className="h-3 w-3 text-red-400" /> No description</>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-gradient-to-r from-primary to-primary-glow text-primary-foreground"
-                        onClick={() => {
-                          setEditingListing(listing);
-                          setShowCreateModal(true);
-                        }}
-                      >
-                        <Edit className="h-3 w-3 mr-1" /> Complete
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="border-red-500/30 text-red-500 hover:bg-red-500/10"
-                        onClick={() => requestDelete(listing)}
-                        disabled={isDeleting === listing.id}
-                      >
-                        {isDeleting === listing.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <Accordion 
+            type="single" 
+            collapsible 
+            value={draftSectionOpen}
+            onValueChange={setDraftSectionOpen}
+            className="mb-10"
+          >
+            <AccordionItem value="drafts" className="border rounded-lg bg-yellow-50/50 dark:bg-yellow-900/10">
+              <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                <div className="flex items-center gap-3 flex-1">
+                  <Clock className="h-6 w-6 text-yellow-500" />
+                  <div className="text-left">
+                    <h2 className="text-xl font-semibold text-foreground">Incomplete Listings</h2>
+                    <p className="text-sm text-muted-foreground">Complete these to make them visible to customers</p>
+                  </div>
+                  <Badge variant="secondary" className="ml-2">{draftListings.length}</Badge>
+                  {draftListings.length > cardLimit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/vendor/listings/drafts');
+                      }}
+                      className="ml-auto mr-4"
+                    >
+                      View All <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {draftListings.slice(0, cardLimit).map((listing: any) => (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      isDraft={true}
+                      onEdit={(listing) => {
+                        setEditingListing(listing);
+                        setShowCreateModal(true);
+                      }}
+                      onDelete={handleDelete}
+                      isDeleting={isDeleting === listing.id}
+                    />
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
 
         {/* Packages Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <Package className="h-5 w-5 text-primary" />
+                <Package className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Packages</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Packages</h2>
               <Badge variant="secondary" className="ml-2">{packages.length}</Badge>
             </div>
+            {packages.length > cardLimit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/vendor/listings/packages')}
+                className="self-start sm:self-auto"
+              >
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
           </div>
           {packages.length === 0 ? (
             <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
@@ -1439,12 +1502,11 @@ export default function VendorListings() {
               </CardContent>
             </Card>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {packages.map((listing: any) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packages.slice(0, cardLimit).map((listing: any) => (
               <Card 
                 key={listing.id} 
-                className="border-border overflow-hidden group hover:shadow-lg hover:border-primary/30 transition-all duration-300 cursor-pointer"
-                onClick={() => window.open(`/listing/${listing.id}?view=customer`, '_blank')}
+                className="border-border overflow-hidden group hover:shadow-lg hover:border-primary/30 transition-all duration-300"
               >
                 <div className="relative aspect-[16/10]">
                   {listing.images && listing.images.length > 0 ? (
@@ -1487,7 +1549,7 @@ export default function VendorListings() {
                           {listing.isActive ? '○ Deactivate' : '● Activate'}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); requestDelete(listing); }} 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
                           className="text-red-600 focus:text-red-600"
                           disabled={isDeleting === listing.id}
                         >
@@ -1524,15 +1586,51 @@ export default function VendorListings() {
                     <h3 className="text-foreground font-semibold text-base line-clamp-1 flex-1">{listing.name}</h3>
                   </div>
                   <p className="text-muted-foreground text-sm line-clamp-2 mb-3 min-h-[2.5rem]">{listing.description || 'No description'}</p>
-                  <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other'}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      {listing.eventTypes?.length > 0 && (
-                        <span>{listing.eventTypes.length} event type{listing.eventTypes.length > 1 ? 's' : ''}</span>
-                      )}
+                  
+                  {/* Category & Event Types Section */}
+                  <div className="space-y-2 pt-3 border-t border-border/50">
+                    {/* Category with icon */}
+                    <div className="flex items-center gap-1.5">
+                      {(() => {
+                        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                        const CategoryIcon = getCategoryIcon(categoryName);
+                        return (
+                          <>
+                            <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                            <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                          </>
+                        );
+                      })()}
                     </div>
+                    
+                    {/* Event Types as chips */}
+                    {listing.eventTypes && listing.eventTypes.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {listing.eventTypes.slice(0, 3).map((eventType: any, index: number) => {
+                          const displayText = typeof eventType === 'string' 
+                            ? eventType 
+                            : (eventType?.displayName || eventType?.name || 'Event');
+                          
+                          return (
+                            <Badge 
+                              key={index} 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/20"
+                            >
+                              {displayText}
+                            </Badge>
+                          );
+                        })}
+                        {listing.eventTypes.length > 3 && (
+                          <Badge 
+                            variant="secondary" 
+                            className="text-[10px] px-1.5 py-0 h-5 bg-muted text-muted-foreground"
+                          >
+                            +{listing.eventTypes.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1542,15 +1640,25 @@ export default function VendorListings() {
         </div>
 
         {/* Items Section */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-secondary/10">
-                <Box className="h-5 w-5 text-secondary" />
+                <Box className="h-6 w-6 text-secondary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Individual Items</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Individual Items</h2>
               <Badge variant="secondary" className="ml-2">{items.length}</Badge>
             </div>
+            {items.length > cardLimit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/vendor/listings/items')}
+                className="self-start sm:self-auto"
+              >
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
           </div>
           {items.length === 0 ? (
             <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
@@ -1564,12 +1672,11 @@ export default function VendorListings() {
               </CardContent>
             </Card>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {items.map((listing: any) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {items.slice(0, cardLimit).map((listing: any) => (
               <Card 
                 key={listing.id} 
-                className="border-border overflow-hidden group hover:shadow-lg hover:border-secondary/30 transition-all duration-300 cursor-pointer"
-                onClick={() => window.open(`/listing/${listing.id}?view=customer`, '_blank')}
+                className="border-border overflow-hidden group hover:shadow-lg hover:border-secondary/30 transition-all duration-300"
               >
                 <div className="relative aspect-square">
                   {listing.images && listing.images.length > 0 ? (
@@ -1612,7 +1719,7 @@ export default function VendorListings() {
                           {listing.isActive ? '○ Deactivate' : '● Activate'}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); requestDelete(listing); }} 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
                           className="text-red-600 focus:text-red-600"
                           disabled={isDeleting === listing.id}
                         >
@@ -1657,38 +1764,20 @@ export default function VendorListings() {
 
       </div>
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete listing?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDelete ? `This will permanently delete "${pendingDelete.name || 'Untitled'}". This action cannot be undone.` : ''}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => setPendingDelete(null)}
-              className="border-border"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeleting === pendingDelete?.id}
-            >
-              {isDeleting === pendingDelete?.id ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Deleting...
-                </span>
-              ) : (
-                'Delete'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, listing: null })}
+        onConfirm={confirmDelete}
+        title="Delete Listing"
+        description={
+          deleteDialog.listing?.isDraft
+            ? "Are you sure you want to delete this draft? This action cannot be undone."
+            : "Are you sure you want to delete this listing? This will remove it from customer view and cannot be undone."
+        }
+        itemName={deleteDialog.listing?.name}
+        isDeleting={isDeleting !== null}
+      />
     </VendorLayout>
   );
 }

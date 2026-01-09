@@ -89,25 +89,6 @@ export const ImageUpload = ({
     handleFileSelect(e.dataTransfer.files);
   }, [disabled, handleFileSelect]);
 
-  // Handle URL input
-  const handleAddUrl = useCallback(() => {
-    const url = prompt('Enter image URL:');
-    if (url && url.trim()) {
-      // Basic URL validation
-      try {
-        new URL(url);
-        if (images.length >= maxImages) {
-          toast.error(`Maximum ${maxImages} images allowed`);
-          return;
-        }
-        onChange([...images, url.trim()]);
-        toast.success('Image URL added');
-      } catch {
-        toast.error('Please enter a valid URL');
-      }
-    }
-  }, [images, maxImages, onChange]);
-
   // Remove image
   const handleRemove = useCallback((index: number) => {
     onChange(images.filter((_, i) => i !== index));
@@ -236,20 +217,6 @@ export const ImageUpload = ({
             </div>
           ))}
         </div>
-      )}
-
-      {/* Add URL Button */}
-      {!disabled && images.length < maxImages && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleAddUrl}
-          className="w-full"
-          disabled={isUploading}
-        >
-          <ImageIcon className="h-4 w-4 mr-2" />
-          Add Image URL
-        </Button>
       )}
 
       {/* Helper Text */}
