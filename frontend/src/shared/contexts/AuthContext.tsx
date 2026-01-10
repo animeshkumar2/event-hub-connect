@@ -46,6 +46,18 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to batch localStorage operations
+// This reduces UI blocking on slow devices by batching multiple sync operations
+const batchLocalStorageUpdate = (updates: Record<string, string | null>) => {
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, value);
+    }
+  });
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -71,12 +83,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         apiClient.setToken(storedToken);
       } catch (error) {
         console.error('Error loading auth state:', error);
-        // Clear invalid data
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('vendor_id');
-        localStorage.removeItem('user_role');
+        // Clear invalid data using batch operation
+        batchLocalStorageUpdate({
+          'auth_token': null,
+          'user_data': null,
+          'user_id': null,
+          'vendor_id': null,
+          'user_role': null,
+        });
       }
     }
     setIsLoading(false);
@@ -106,13 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Store token
         setToken(newToken);
         apiClient.setToken(newToken);
-        localStorage.setItem('auth_token', newToken);
-        localStorage.setItem('user_id', userId);
-
-        // Store vendor ID if present
-        if (vendorId) {
-          localStorage.setItem('vendor_id', vendorId);
-        }
 
         // Create user object
         const userData: User = {
@@ -123,8 +130,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setUser(userData);
-        localStorage.setItem('user_data', JSON.stringify(userData));
-        localStorage.setItem('user_role', role); // Store role separately for easy access
+
+        // Batch all localStorage operations for better performance
+        const storageUpdates: Record<string, string> = {
+          'auth_token': newToken,
+          'user_id': userId,
+          'user_data': JSON.stringify(userData),
+          'user_role': role,
+        };
+
+        // Add vendor ID if present (already returned from backend - no extra API call needed!)
+        if (vendorId) {
+          storageUpdates['vendor_id'] = vendorId;
+        }
+
+        batchLocalStorageUpdate(storageUpdates);
 
         // Store flag if this is a new user (for onboarding)
         if (isNewUser && isVendor) {
@@ -163,13 +183,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Store token
         setToken(newToken);
         apiClient.setToken(newToken);
-        localStorage.setItem('auth_token', newToken);
-        localStorage.setItem('user_id', userId);
-
-        // Store vendor ID if present
-        if (vendorId) {
-          localStorage.setItem('vendor_id', vendorId);
-        }
 
         // Create user object
         const userData: User = {
@@ -180,8 +193,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setUser(userData);
-        localStorage.setItem('user_data', JSON.stringify(userData));
-        localStorage.setItem('user_role', role); // Store role separately for easy access
+
+        // Batch all localStorage operations for better performance
+        const storageUpdates: Record<string, string> = {
+          'auth_token': newToken,
+          'user_id': userId,
+          'user_data': JSON.stringify(userData),
+          'user_role': role,
+        };
+
+        // Add vendor ID if present (already returned from backend - no extra API call needed!)
+        if (vendorId) {
+          storageUpdates['vendor_id'] = vendorId;
+        }
+
+        batchLocalStorageUpdate(storageUpdates);
       } else {
         throw new Error(response.message || 'Login failed');
       }
@@ -219,13 +245,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Store token
         setToken(newToken);
         apiClient.setToken(newToken);
-        localStorage.setItem('auth_token', newToken);
-        localStorage.setItem('user_id', userId);
-
-        // Store vendor ID if present
-        if (vendorId) {
-          localStorage.setItem('vendor_id', vendorId);
-        }
 
         // Create user object
         const userData: User = {
@@ -237,8 +256,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setUser(userData);
-        localStorage.setItem('user_data', JSON.stringify(userData));
-        localStorage.setItem('user_role', role); // Store role separately for easy access
+
+        // Batch all localStorage operations for better performance
+        const storageUpdates: Record<string, string> = {
+          'auth_token': newToken,
+          'user_id': userId,
+          'user_data': JSON.stringify(userData),
+          'user_role': role,
+        };
+
+        // Add vendor ID if present (already returned from backend - no extra API call needed!)
+        if (vendorId) {
+          storageUpdates['vendor_id'] = vendorId;
+        }
+
+        batchLocalStorageUpdate(storageUpdates);
 
         // If vendor, store signup data for onboarding
         if (data.isVendor) {
@@ -265,11 +297,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
     setUser(null);
     apiClient.setToken(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('vendor_id');
+    
+    // Batch all localStorage clear operations for better performance
+    batchLocalStorageUpdate({
+      'auth_token': null,
+      'user_data': null,
+      'user_id': null,
+      'user_role': null,
+      'vendor_id': null,
+    });
+    
     sessionStorage.removeItem('vendorSignupData');
   };
 

@@ -47,6 +47,8 @@ import { vendorApi } from '@/shared/services/api';
 import { useResponsiveCardLimit } from '@/shared/hooks/useResponsiveCardLimit';
 import { ListingCard } from '@/features/vendor/components/ListingCard';
 import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
+import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -64,6 +66,7 @@ const getCategoryIcon = (categoryName: string) => {
 export default function VendorListings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [listingType, setListingType] = useState<'PACKAGE' | 'ITEM'>('PACKAGE');
   const [editingListing, setEditingListing] = useState<any>(null);
@@ -95,6 +98,10 @@ export default function VendorListings() {
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
   const { data: eventTypeCategoriesData } = useEventTypeCategories();
+  
+  // Check if vendor profile is complete (MUST be after all other hooks)
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
+  
   const listingsData = listings.data;
   const listingsLoading = listings.loading || dataLoading;
   const listingsError = listings.error;
@@ -744,6 +751,30 @@ export default function VendorListings() {
         <div className="p-6 flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      </VendorLayout>
+    );
+  }
+
+  // Show loading state
+  if (profileLoading) {
+    return (
+      <VendorLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </VendorLayout>
+    );
+  }
+  
+  // Show profile completion prompt if profile is not complete
+  if (!profileComplete) {
+    return (
+      <VendorLayout>
+        <CompleteProfilePrompt 
+          title="Complete Your Profile to Create Listings"
+          description="You need to set up your vendor profile before you can create and manage listings."
+          featureName="listings"
+        />
       </VendorLayout>
     );
   }

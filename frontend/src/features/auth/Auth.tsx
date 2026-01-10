@@ -18,7 +18,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { login, loginWithGoogle, register, isAuthenticated, user } = useAuth();
+  const { login, loginWithGoogle, register, isAuthenticated } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   // Support mode and type from URL search params
@@ -26,7 +26,10 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const urlType = searchParams.get('type');
   const mode = propMode || urlMode || "login";
   
-  const [isVendor, setIsVendor] = useState(urlType === 'vendor');
+  // Default to vendor for signup (Phase 1 priority), unless explicitly set to customer via URL
+  const [isVendor, setIsVendor] = useState(
+    urlType === 'customer' ? false : (mode === 'signup' || urlType === 'vendor')
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -120,7 +123,12 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     } else {
       setRememberMe(false);
     }
-  }, [mode]);
+    
+    // Reset vendor selection to default (vendor for signup, based on URL for login)
+    if (mode === 'signup') {
+      setIsVendor(urlType === 'customer' ? false : true); // Default to vendor for signup
+    }
+  }, [mode, urlType]);
 
   // Redirect if already authenticated (but allow vendor onboarding)
   if (isAuthenticated && !isLoading && mode === "login") {
@@ -188,17 +196,21 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         // Navigate based on user type
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         const userRole = localStorage.getItem('user_role') || userData.role;
+        const vendorId = localStorage.getItem('vendor_id');
+        const onboardingSkipped = localStorage.getItem('onboarding_skipped');
         
         if (userRole === 'ADMIN') {
           setLoadingMessage("Redirecting to admin dashboard...");
           navigate('/admin/dashboard');
         } else if (isVendor || userRole === 'VENDOR' || userData.role === 'VENDOR') {
-          // For vendors, ensure vendor ID is fetched before navigating
-          // This prevents race condition where dashboard loads before vendor ID is available
-          setLoadingMessage("Setting up your vendor profile...");
-          await ensureVendorIdLoaded();
-          setLoadingMessage("Redirecting to dashboard...");
-          navigate("/vendor/dashboard");
+          // Check if vendor has completed onboarding or skipped it
+          if (!vendorId && !onboardingSkipped) {
+            setLoadingMessage("Setting up your profile...");
+            navigate("/vendor/onboarding");
+          } else {
+            setLoadingMessage("Redirecting to dashboard...");
+            navigate("/vendor/dashboard");
+          }
         } else {
           // Customer
           setLoadingMessage("Redirecting...");
@@ -232,17 +244,21 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           // Navigate based on user role
           const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
           const userRole = localStorage.getItem('user_role') || userData.role;
+          const vendorId = localStorage.getItem('vendor_id');
+          const onboardingSkipped = localStorage.getItem('onboarding_skipped');
           
           if (userRole === 'ADMIN') {
             setLoadingMessage("Redirecting to admin dashboard...");
             navigate('/admin/dashboard');
           } else if (userRole === 'VENDOR' || userData.role === 'VENDOR') {
-            // For vendors, ensure vendor ID is fetched before navigating
-            // This prevents race condition where dashboard loads before vendor ID is available
-            setLoadingMessage("Loading your vendor profile...");
-            await ensureVendorIdLoaded();
-            setLoadingMessage("Redirecting to dashboard...");
-            navigate('/vendor/dashboard');
+            // Check if vendor has completed onboarding or skipped it
+            if (!vendorId && !onboardingSkipped) {
+              setLoadingMessage("Setting up your profile...");
+              navigate("/vendor/onboarding");
+            } else {
+              setLoadingMessage("Redirecting to dashboard...");
+              navigate('/vendor/dashboard');
+            }
           } else {
             // Customer or default
             setLoadingMessage("Redirecting...");
@@ -314,17 +330,21 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       } else {
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         const userRole = localStorage.getItem('user_role') || userData.role;
+        const vendorId = localStorage.getItem('vendor_id');
+        const onboardingSkipped = localStorage.getItem('onboarding_skipped');
         
         if (userRole === 'ADMIN') {
           setLoadingMessage("Redirecting to admin dashboard...");
           navigate('/admin/dashboard');
         } else if (isVendor || userRole === 'VENDOR' || userData.role === 'VENDOR') {
-          // For vendors, ensure vendor ID is fetched before navigating
-          // This prevents race condition where dashboard loads before vendor ID is available
-          setLoadingMessage("Setting up your profile...");
-          await ensureVendorIdLoaded();
-          setLoadingMessage("Redirecting to dashboard...");
-          navigate('/vendor/dashboard');
+          // Check if vendor has completed onboarding or skipped it
+          if (!vendorId && !onboardingSkipped) {
+            setLoadingMessage("Setting up your profile...");
+            navigate("/vendor/onboarding");
+          } else {
+            setLoadingMessage("Redirecting to dashboard...");
+            navigate('/vendor/dashboard');
+          }
         } else {
           // Customer
           setLoadingMessage("Redirecting...");
@@ -332,9 +352,23 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         }
       }
     } catch (error: any) {
+      // Better error handling with specific messages
+      let errorTitle = "Sign-In Failed";
+      let errorMessage = "Please try again or use email/password.";
+      
+      if (error.message?.includes("network")) {
+        errorTitle = "Network Error";
+        errorMessage = "Please check your internet connection and try again.";
+      } else if (error.message?.includes("already exists")) {
+        errorTitle = "Account Exists";
+        errorMessage = "This email is already registered. Please log in instead.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Google sign-in failed. Please try again.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -344,42 +378,14 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   };
 
   const handleGoogleError = () => {
+    setIsGoogleLoading(false);
+    setLoadingMessage("");
+    
     toast({
-      title: "Error",
-      description: "Google sign-in was cancelled or failed. Please try again.",
+      title: "Google Sign-In Cancelled",
+      description: "You can try again or use email/password to sign in.",
       variant: "destructive",
     });
-  };
-
-  // Helper function to ensure vendor ID is loaded before navigating
-  const ensureVendorIdLoaded = async () => {
-    // Check if vendor ID is already in localStorage
-    const existingVendorId = localStorage.getItem('vendor_id');
-    if (existingVendorId) {
-      return; // Already loaded
-    }
-
-    // If not, fetch it from the API
-    try {
-      const userId = localStorage.getItem('user_id');
-      if (!userId) {
-        console.warn('No user ID found, cannot fetch vendor ID');
-        return;
-      }
-
-      // Import vendorApi dynamically to avoid circular dependencies
-      const { vendorApi } = await import('@/shared/services/api');
-      const response = await vendorApi.getVendorByUserId(userId);
-      
-      if (response.success && response.data?.id) {
-        localStorage.setItem('vendor_id', response.data.id);
-      } else {
-        console.warn('Vendor not found - user may need to complete onboarding');
-      }
-    } catch (error) {
-      console.error('Error fetching vendor ID:', error);
-      // Don't throw - let the dashboard handle the missing vendor ID
-    }
   };
 
   return (
@@ -399,18 +405,44 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Vendor Checkbox - Show BEFORE Google Sign-In for signup */}
+          {/* Vendor Selection - Improved for signup */}
           {mode === "signup" && (
-            <div className="flex items-center space-x-2 p-3 rounded-lg bg-primary/5 border border-primary/20 mb-4">
-              <Checkbox
-                id="vendor-google"
-                checked={isVendor}
-                onCheckedChange={(checked) => setIsVendor(checked === true)}
-                disabled={isLoading || isGoogleLoading}
-              />
-              <Label htmlFor="vendor-google" className="text-sm font-medium cursor-pointer">
-                I want to register as a vendor
-              </Label>
+            <div className="mb-4">
+              <Label className="text-sm font-medium mb-3 block">I want to sign up as:</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsVendor(true)}
+                  disabled={isLoading || isGoogleLoading}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    isVendor
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-2xl mb-1">💼</div>
+                    <div className="font-semibold text-sm">Vendor</div>
+                    <div className="text-xs text-muted-foreground mt-1">Offer services</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsVendor(false)}
+                  disabled={isLoading || isGoogleLoading}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    !isVendor
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-2xl mb-1">🎉</div>
+                    <div className="font-semibold text-sm">Customer</div>
+                    <div className="text-xs text-muted-foreground mt-1">Book vendors</div>
+                  </div>
+                </button>
+              </div>
             </div>
           )}
 
@@ -420,7 +452,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               {isGoogleLoading ? (
                 <Button disabled className="w-full h-10">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in with Google...
+                  {loadingMessage || "Signing in with Google..."}
                 </Button>
               ) : (
                 <GoogleLogin

@@ -23,6 +23,8 @@ import { useMyVendorAvailability, useVendorUpcomingOrders } from '@/shared/hooks
 import { vendorApi } from '@/shared/services/api';
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, parseISO, isToday } from 'date-fns';
 import { cn } from '@/shared/lib/utils';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
+import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 
 type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BUSY' | 'BLOCKED';
 
@@ -50,6 +52,9 @@ export default function VendorCalendar() {
   const endDate = format(endOfMonth(addMonths(currentMonth, 1)), 'yyyy-MM-dd');
   const { data: availabilityData, loading: availabilityLoading, refetch: refetchAvailability } = useMyVendorAvailability(startDate, endDate);
   const { data: upcomingOrders } = useVendorUpcomingOrders();
+  
+  // Check if vendor profile is complete (MUST be after all other hooks)
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -249,6 +254,28 @@ export default function VendorCalendar() {
     }
   };
 
+  // Show profile completion prompt if profile is not complete
+  if (profileLoading) {
+    return (
+      <VendorLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </VendorLayout>
+    );
+  }
+  
+  if (!profileComplete) {
+    return (
+      <VendorLayout>
+        <CompleteProfilePrompt 
+          title="Complete Your Profile to Manage Availability"
+          description="You need to set up your vendor profile before you can manage your calendar and availability."
+          featureName="calendar"
+        />
+      </VendorLayout>
+    );
+  }
 
   return (
     <VendorLayout>

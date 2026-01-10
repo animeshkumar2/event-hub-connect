@@ -78,59 +78,88 @@ export default function VendorOnboarding() {
 
   const handleComplete = async () => {
     // Validation
-    if (!businessName || !category || !city || !phone) {
-      toast.error('Please complete all required fields');
+    if (!businessName.trim()) {
+      toast.error('Please enter your business name');
       return;
     }
-    
-    // Validate custom category name if "Other" is selected
-    if (category === 'other' && (!customCategoryName || customCategoryName.trim().length === 0)) {
-      toast.error('Please enter a custom category name');
+    if (!contactPerson.trim()) {
+      toast.error('Please enter contact person name');
+      return;
+    }
+    if (!category) {
+      toast.error('Please select a category');
+      return;
+    }
+    if (category === 'other' && !customCategoryName.trim()) {
+      toast.error('Please enter your custom category name');
+      return;
+    }
+    if (!city) {
+      toast.error('Please select a city');
+      return;
+    }
+    if (!phone.trim()) {
+      toast.error('Please enter your WhatsApp number');
+      return;
+    }
+    if (!email.trim()) {
+      toast.error('Please enter your email');
       return;
     }
 
     setIsSubmitting(true);
+
     try {
-      const onboardingData = {
-        businessName,
-        categoryId: category,
-        customCategoryName: category === 'other' ? customCategoryName : undefined,
-        cityName: city,
-        phone,
-        email: email || user?.email || '',
-        instagram,
-        bio: businessName, // Use business name as fallback
+      // Create vendor profile
+      const vendorData = {
+        businessName: businessName.trim(),
+        contactPerson: contactPerson.trim(),
+        category: category === 'other' ? customCategoryName.trim() : category,
+        city,
+        phone: phone.trim(),
+        email: email.trim(),
+        instagram: instagram.trim() || undefined,
+        userId: user?.id,
       };
 
-      const response = await vendorApi.onboard(onboardingData);
-      
+      const response = await vendorApi.createVendor(vendorData);
+
       if (response.success && response.data) {
-        // Store vendor ID in localStorage
-        const vendorId = response.data.id;
-        localStorage.setItem('vendor_id', vendorId);
+        // Store vendor ID
+        localStorage.setItem('vendor_id', response.data.id);
         
-        // Update user role to VENDOR if not already set
-        if (user && user.role !== 'VENDOR') {
+        // Clear onboarding skipped flag since they completed it
+        localStorage.removeItem('onboarding_skipped');
+        
+        // Refresh vendor info in auth context
+        await refreshVendorInfo();
+
+        // Update user role to VENDOR if not already
+        if (user?.role !== 'VENDOR') {
           updateUser({ role: 'VENDOR' });
         }
+
+        toast.success('Profile created successfully!');
         
-        // Refresh vendor info to ensure everything is synced
-        await refreshVendorInfo();
-        
-        toast.success('Welcome! Your vendor profile has been created.');
-        setStep('success');
+        // Navigate to dashboard
+        navigate('/vendor/dashboard');
       } else {
-        toast.error(response.message || 'Failed to create vendor profile');
+        throw new Error(response.message || 'Failed to create vendor profile');
       }
     } catch (error: any) {
-      console.error('Onboarding error:', error);
-      toast.error(error.message || 'An error occurred during onboarding. Please try again.');
+      console.error('Error creating vendor profile:', error);
+      toast.error(error.message || 'Failed to create vendor profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Removed listing-related state and helpers
+  const handleSkipForNow = () => {
+    // Mark onboarding as skipped (can be completed later)
+    localStorage.setItem('onboarding_skipped', 'true');
+    toast.info('You can complete your profile anytime from the Profile page');
+    navigate('/vendor/dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -282,31 +311,37 @@ export default function VendorOnboarding() {
                 </div>
 
                 {/* Action Buttons - Inside Card */}
-                <div className="flex gap-3 pt-2">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => navigate('/')} 
-                    className="flex-1 h-10 text-muted-foreground hover:text-foreground"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleComplete}
-                    disabled={!businessName || !contactPerson || !phone || !category || !city || isSubmitting}
-                    className="flex-[2] h-10 bg-primary hover:bg-primary/90 text-white font-medium transition-all disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        Complete Onboarding
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+                <div className="flex flex-col gap-3 pt-2">
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleSkipForNow} 
+                      className="flex-1 h-10 border-border hover:bg-muted"
+                      disabled={isSubmitting}
+                    >
+                      Skip for now
+                    </Button>
+                    <Button 
+                      onClick={handleComplete}
+                      disabled={!businessName || !contactPerson || !phone || !category || !city || isSubmitting}
+                      className="flex-[2] h-10 bg-primary hover:bg-primary/90 text-white font-medium transition-all disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          Complete Onboarding
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground">
+                    You can complete your profile anytime from the Profile page
+                  </p>
                 </div>
               </CardContent>
             </Card>
