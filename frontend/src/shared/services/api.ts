@@ -21,6 +21,7 @@ interface ApiResponse<T> {
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
+  private refreshPromise: Promise<boolean> | null = null; // Track ongoing refresh
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -78,37 +79,65 @@ class ApiClient {
       if (response.status === 401 && !isRetry && endpoint !== '/auth/refresh') {
         console.log('🔄 401 detected, attempting token refresh...');
         
+        // If refresh is already in progress, wait for it
+        if (this.refreshPromise) {
+          console.log('⏳ Refresh already in progress, waiting...');
+          const refreshSuccess = await this.refreshPromise;
+          if (refreshSuccess) {
+            console.log('✅ Using refreshed token from parallel request');
+            return this.request<T>(endpoint, options, true);
+          } else {
+            throw new Error('Session expired. Please log in again.');
+          }
+        }
+        
         const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
         if (refreshToken) {
-          try {
-            // Try to refresh the token
-            const refreshResponse = await fetch(`${this.baseURL}/auth/refresh`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': refreshToken,
-              },
-            });
+          // Create refresh promise to prevent multiple simultaneous refreshes
+          this.refreshPromise = (async () => {
+            try {
+              // Try to refresh the token
+              const refreshResponse = await fetch(`${this.baseURL}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': refreshToken,
+                },
+              });
 
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              if (refreshData.success && refreshData.data) {
-                const { token: newToken, refreshToken: newRefreshToken } = refreshData.data;
-                
-                // Update tokens
-                this.setToken(newToken);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('refresh_token', newRefreshToken);
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                if (refreshData.success && refreshData.data) {
+                  const { token: newToken, refreshToken: newRefreshToken } = refreshData.data;
+                  
+                  // Update tokens
+                  this.setToken(newToken);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('refresh_token', newRefreshToken);
+                  }
+                  
+                  console.log('✅ Token refreshed successfully');
+                  return true;
                 }
-                
-                console.log('✅ Token refreshed, retrying original request');
-                
-                // Retry the original request with new token
-                return this.request<T>(endpoint, options, true);
               }
+              
+              console.error('❌ Token refresh failed - invalid response');
+              return false;
+            } catch (refreshError) {
+              console.error('❌ Token refresh failed:', refreshError);
+              return false;
+            } finally {
+              // Clear the promise after completion
+              this.refreshPromise = null;
             }
-          } catch (refreshError) {
-            console.error('❌ Token refresh failed:', refreshError);
+          })();
+          
+          const refreshSuccess = await this.refreshPromise;
+          
+          if (refreshSuccess) {
+            console.log('✅ Token refreshed, retrying original request');
+            // Retry the original request with new token
+            return this.request<T>(endpoint, options, true);
           }
         }
         
