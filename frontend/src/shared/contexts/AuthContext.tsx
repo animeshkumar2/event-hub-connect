@@ -34,6 +34,7 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   refreshVendorInfo: () => Promise<void>;
+  refreshAccessToken: () => Promise<void>;
 }
 
 interface RegisterData {
@@ -61,17 +62,98 @@ const batchLocalStorageUpdate = (updates: Record<string, string | null>) => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshTimerRef, setRefreshTimerRef] = useState<NodeJS.Timeout | null>(null);
+
+  // Auto-refresh token before expiry
+  const startTokenRefreshTimer = (accessToken: string) => {
+    try {
+      // Clear existing timer
+      if (refreshTimerRef) {
+        clearTimeout(refreshTimerRef);
+      }
+
+      // Decode JWT to get expiration
+      const decoded = jwtDecode<{ exp: number }>(accessToken);
+      const expiresAt = decoded.exp * 1000; // Convert to milliseconds
+      const now = Date.now();
+      const timeUntilExpiry = expiresAt - now;
+      
+      // Refresh 5 minutes before expiry
+      const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
+      
+      console.log(`Token expires in ${Math.floor(timeUntilExpiry / 1000 / 60)} minutes. Will refresh in ${Math.floor(refreshTime / 1000 / 60)} minutes.`);
+      
+      if (refreshTime > 0) {
+        const timer = setTimeout(async () => {
+          console.log('Auto-refreshing token...');
+          await refreshAccessToken();
+        }, refreshTime);
+        setRefreshTimerRef(timer);
+      } else {
+        // Token already expired or about to expire - refresh immediately
+        console.log('Token expired or about to expire. Refreshing now...');
+        refreshAccessToken();
+      }
+    } catch (error) {
+      console.error('Error parsing token for refresh timer:', error);
+    }
+  };
+
+  const refreshAccessToken = async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refresh_token');
+      if (!storedRefreshToken) {
+        console.error('No refresh token found');
+        logout();
+        return;
+      }
+      
+      const response = await apiClient.post<{
+        token: string;
+        refreshToken: string;
+        expiresIn: number;
+        userId: string;
+        email: string;
+        role: string;
+        vendorId?: string;
+      }>('/auth/refresh', {}, {
+        headers: { 'Authorization': storedRefreshToken }
+      });
+      
+      if (response.success && response.data) {
+        const { token: newToken, refreshToken: newRefreshToken } = response.data;
+        
+        setToken(newToken);
+        setRefreshToken(newRefreshToken);
+        apiClient.setToken(newToken);
+        
+        batchLocalStorageUpdate({
+          'auth_token': newToken,
+          'refresh_token': newRefreshToken,
+        });
+        
+        // Start new refresh timer
+        startTokenRefreshTimer(newToken);
+        
+        console.log('✅ Token refreshed successfully');
+      }
+    } catch (error: any) {
+      console.error('❌ Token refresh failed:', error);
+      // Don't logout immediately - let the 401 interceptor handle it
+      // This gives the user a chance to save their work
+    }
+  };
 
   // Load auth state from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('auth_token');
+    const storedRefreshToken = localStorage.getItem('refresh_token');
     const storedUser = localStorage.getItem('user_data');
-    const storedUserId = localStorage.getItem('user_id');
-    const storedVendorId = localStorage.getItem('vendor_id');
     const storedRole = localStorage.getItem('user_role');
 
-    if (storedToken && storedUser) {
+    if (storedToken && storedRefreshToken && storedUser) {
       try {
         const userData = JSON.parse(storedUser);
         // If admin role is stored separately, use it
@@ -79,22 +161,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userData.role = 'ADMIN';
         }
         setToken(storedToken);
+        setRefreshToken(storedRefreshToken);
         setUser(userData);
         apiClient.setToken(storedToken);
+        
+        // Start token refresh timer
+        startTokenRefreshTimer(storedToken);
       } catch (error) {
         console.error('Error loading auth state:', error);
         // Clear invalid data using batch operation
         batchLocalStorageUpdate({
           'auth_token': null,
+          'refresh_token': null,
           'user_data': null,
           'user_id': null,
           'vendor_id': null,
           'user_role': null,
+          'onboarding_skipped': null,
         });
       }
     }
     setIsLoading(false);
   }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef) {
+        clearTimeout(refreshTimerRef);
+      }
+    };
+  }, [refreshTimerRef]);
 
   const loginWithGoogle = async (credentialResponse: GoogleCredentialResponse, isVendor: boolean = false) => {
     try {
@@ -104,21 +201,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Send to backend for verification and user creation/login
       const response = await apiClient.post<{
         token: string;
+        refreshToken: string;
         userId: string;
         email: string;
         role: string;
         isNewUser?: boolean;
         vendorId?: string;
+        expiresIn: number;
       }>('/auth/google', {
         credential: credentialResponse.credential,
         isVendor: isVendor,
       });
 
       if (response.success && response.data) {
-        const { token: newToken, userId, email: userEmail, role, isNewUser, vendorId } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, isNewUser, vendorId } = response.data;
         
-        // Store token
+        // Store tokens
         setToken(newToken);
+        setRefreshToken(newRefreshToken);
         apiClient.setToken(newToken);
 
         // Create user object
@@ -134,6 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Batch all localStorage operations for better performance
         const storageUpdates: Record<string, string> = {
           'auth_token': newToken,
+          'refresh_token': newRefreshToken,
           'user_id': userId,
           'user_data': JSON.stringify(userData),
           'user_role': role,
@@ -145,6 +246,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         batchLocalStorageUpdate(storageUpdates);
+        
+        // Start token refresh timer
+        startTokenRefreshTimer(newToken);
 
         // Store flag if this is a new user (for onboarding)
         if (isNewUser && isVendor) {
@@ -171,17 +275,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await apiClient.post<{
         token: string;
+        refreshToken: string;
         userId: string;
         email: string;
         role: string;
         vendorId?: string;
+        expiresIn: number;
       }>('/auth/login', { email, password });
 
       if (response.success && response.data) {
-        const { token: newToken, userId, email: userEmail, role, vendorId } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, vendorId } = response.data;
         
-        // Store token
+        // Store tokens
         setToken(newToken);
+        setRefreshToken(newRefreshToken);
         apiClient.setToken(newToken);
 
         // Create user object
@@ -197,6 +304,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Batch all localStorage operations for better performance
         const storageUpdates: Record<string, string> = {
           'auth_token': newToken,
+          'refresh_token': newRefreshToken,
           'user_id': userId,
           'user_data': JSON.stringify(userData),
           'user_role': role,
@@ -208,6 +316,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         batchLocalStorageUpdate(storageUpdates);
+        
+        // Start token refresh timer
+        startTokenRefreshTimer(newToken);
       } else {
         throw new Error(response.message || 'Login failed');
       }
@@ -227,10 +338,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await apiClient.post<{
         token: string;
+        refreshToken: string;
         userId: string;
         email: string;
         role: string;
         vendorId?: string;
+        expiresIn: number;
       }>('/auth/register', {
         email: data.email,
         password: data.password,
@@ -240,10 +353,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (response.success && response.data) {
-        const { token: newToken, userId, email: userEmail, role, vendorId } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, vendorId } = response.data;
         
-        // Store token
+        // Store tokens
         setToken(newToken);
+        setRefreshToken(newRefreshToken);
         apiClient.setToken(newToken);
 
         // Create user object
@@ -260,6 +374,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Batch all localStorage operations for better performance
         const storageUpdates: Record<string, string> = {
           'auth_token': newToken,
+          'refresh_token': newRefreshToken,
           'user_id': userId,
           'user_data': JSON.stringify(userData),
           'user_role': role,
@@ -271,6 +386,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         batchLocalStorageUpdate(storageUpdates);
+        
+        // Start token refresh timer
+        startTokenRefreshTimer(newToken);
 
         // If vendor, store signup data for onboarding
         if (data.isVendor) {
@@ -294,17 +412,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // Clear refresh timer
+    if (refreshTimerRef) {
+      clearTimeout(refreshTimerRef);
+      setRefreshTimerRef(null);
+    }
+    
     setToken(null);
+    setRefreshToken(null);
     setUser(null);
     apiClient.setToken(null);
     
     // Batch all localStorage clear operations for better performance
     batchLocalStorageUpdate({
       'auth_token': null,
+      'refresh_token': null,
       'user_data': null,
       'user_id': null,
       'user_role': null,
       'vendor_id': null,
+      'onboarding_skipped': null,
     });
     
     sessionStorage.removeItem('vendorSignupData');
@@ -349,6 +476,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         updateUser,
         refreshVendorInfo,
+        refreshAccessToken,
       }}
     >
       {children}

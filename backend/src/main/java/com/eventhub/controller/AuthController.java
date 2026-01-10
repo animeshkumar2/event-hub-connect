@@ -60,6 +60,23 @@ public class AuthController {
         boolean isValid = passwordResetService.validateToken(token);
         return ResponseEntity.ok(ApiResponse.success("Token validation result", isValid));
     }
+    
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthService.AuthResponse>> refreshToken(
+            @RequestHeader("Authorization") String refreshToken) {
+        try {
+            // Remove "Bearer " prefix if present
+            String token = refreshToken.startsWith("Bearer ") 
+                ? refreshToken.substring(7) 
+                : refreshToken;
+            
+            AuthService.AuthResponse response = authService.refreshToken(token);
+            return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.error("Failed to refresh token: " + e.getMessage()));
+        }
+    }
 }
 
 

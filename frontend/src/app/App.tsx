@@ -8,6 +8,7 @@ import { CartProvider } from "@/shared/contexts/CartContext";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { PreLaunchProvider, PreLaunchGuard } from "@/shared/contexts/PreLaunchContext";
 import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
+import { SessionExpiryWarning } from "@/shared/components/SessionExpiryWarning";
 import { useEffect } from "react";
 import { publicApi } from "@/shared/services/api";
 import { Loader2 } from "lucide-react";
@@ -145,6 +146,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <SessionExpiryWarning />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <PreLaunchProvider>
               <Routes>

@@ -69,6 +69,7 @@ public class AuthService {
         userProfileRepository.save(user);
         
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
         
         // Fetch vendor ID if user is a vendor
         UUID vendorId = null;
@@ -78,7 +79,7 @@ public class AuthService {
                     .orElse(null);
         }
         
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), vendorId);
+        return new AuthResponse(token, refreshToken, user.getId(), user.getEmail(), user.getRole().name(), vendorId, jwtUtil.getExpiresIn());
     }
     
     public AuthResponse login(LoginRequest request) {
@@ -98,6 +99,7 @@ public class AuthService {
         }
         
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
         
         // Fetch vendor ID if user is a vendor
         UUID vendorId = null;
@@ -107,7 +109,7 @@ public class AuthService {
                     .orElse(null);
         }
         
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), vendorId);
+        return new AuthResponse(token, refreshToken, user.getId(), user.getEmail(), user.getRole().name(), vendorId, jwtUtil.getExpiresIn());
     }
     
     public GoogleAuthResponse authenticateWithGoogle(GoogleAuthRequest request) {
@@ -173,6 +175,7 @@ public class AuthService {
             }
             
             String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
+            String refreshToken = jwtUtil.generateRefreshToken(user.getId());
             
             // Fetch vendor ID if user is a vendor
             UUID vendorId = null;
@@ -183,12 +186,14 @@ public class AuthService {
             }
             
             return new GoogleAuthResponse(
-                    token, 
+                    token,
+                    refreshToken,
                     user.getId(), 
                     user.getEmail(), 
                     user.getRole().name(), 
                     isNewUser,
-                    vendorId
+                    vendorId,
+                    jwtUtil.getExpiresIn()
             );
             
         } catch (AuthException e) {
@@ -202,25 +207,82 @@ public class AuthService {
         }
     }
     
+    public AuthResponse refreshToken(String refreshToken) {
+        try {
+            // Validate refresh token
+            if (!jwtUtil.validateToken(refreshToken)) {
+                throw new AuthException(
+                    AuthException.INVALID_TOKEN,
+                    "Invalid or expired refresh token. Please log in again."
+                );
+            }
+            
+            // Get user ID from refresh token
+            UUID userId = jwtUtil.getUserIdFromToken(refreshToken);
+            
+            // Fetch user
+            UserProfile user = userProfileRepository.findById(userId)
+                    .orElseThrow(() -> new AuthException(
+                        AuthException.EMAIL_NOT_FOUND,
+                        "User not found. Please log in again."
+                    ));
+            
+            // Generate new tokens
+            String newAccessToken = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
+            String newRefreshToken = jwtUtil.generateRefreshToken(user.getId());
+            
+            // Fetch vendor ID if user is a vendor
+            UUID vendorId = null;
+            if (user.getRole() == UserProfile.Role.VENDOR) {
+                vendorId = vendorRepository.findByUserId(user.getId())
+                        .map(vendor -> vendor.getId())
+                        .orElse(null);
+            }
+            
+            return new AuthResponse(
+                newAccessToken,
+                newRefreshToken,
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name(),
+                vendorId,
+                jwtUtil.getExpiresIn()
+            );
+            
+        } catch (AuthException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Token refresh failed", e);
+            throw new AuthException(
+                AuthException.INVALID_TOKEN,
+                "Failed to refresh token. Please log in again."
+            );
+        }
+    }
+    
     @lombok.Data
     @lombok.AllArgsConstructor
     public static class AuthResponse {
         private String token;
+        private String refreshToken;
         private UUID userId;
         private String email;
         private String role;
         private UUID vendorId; // Include vendor ID for vendors
+        private Long expiresIn; // Seconds until expiration
     }
     
     @lombok.Data
     @lombok.AllArgsConstructor
     public static class GoogleAuthResponse {
         private String token;
+        private String refreshToken;
         private UUID userId;
         private String email;
         private String role;
         private boolean isNewUser;
         private UUID vendorId; // Include vendor ID for vendors
+        private Long expiresIn; // Seconds until expiration
     }
 }
 
