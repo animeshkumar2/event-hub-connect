@@ -21,6 +21,8 @@ import Home from "@/features/home/Home";
 import Search from "@/features/search/Search";
 import VendorDetails from "@/features/vendor/VendorDetails";
 import Auth from "@/features/auth/Auth";
+import ForgotPassword from "@/features/auth/ForgotPassword";
+import ResetPassword from "@/features/auth/ResetPassword";
 import NotFound from "@/features/home/NotFound";
 import Cart from "@/features/cart/Cart";
 import Checkout from "@/features/cart/Checkout";
@@ -162,6 +164,8 @@ const App = () => (
             <Route path="/login" element={<Auth mode="login" />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/for-vendors" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorLandingPage />

@@ -633,19 +633,27 @@ const Auth = ({ mode: propMode }: AuthProps) => {
 
             {/* Remember Me checkbox - only for login */}
             {mode === "login" && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember-me"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  disabled={isLoading}
-                />
-                <Label 
-                  htmlFor="remember-me" 
-                  className="text-sm font-normal cursor-pointer text-muted-foreground"
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember-me"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    disabled={isLoading}
+                  />
+                  <Label 
+                    htmlFor="remember-me" 
+                    className="text-sm font-normal cursor-pointer text-muted-foreground"
+                  >
+                    Remember me
+                  </Label>
+                </div>
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-primary hover:underline"
                 >
-                  Remember me for 30 days
-                </Label>
+                  Forgot password?
+                </Link>
               </div>
             )}
 
