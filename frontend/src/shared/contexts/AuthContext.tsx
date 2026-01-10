@@ -94,19 +94,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: string;
         role: string;
         isNewUser?: boolean;
+        vendorId?: string;
       }>('/auth/google', {
         credential: credentialResponse.credential,
         isVendor: isVendor,
       });
 
       if (response.success && response.data) {
-        const { token: newToken, userId, email: userEmail, role, isNewUser } = response.data;
+        const { token: newToken, userId, email: userEmail, role, isNewUser, vendorId } = response.data;
         
         // Store token
         setToken(newToken);
         apiClient.setToken(newToken);
         localStorage.setItem('auth_token', newToken);
         localStorage.setItem('user_id', userId);
+
+        // Store vendor ID if present
+        if (vendorId) {
+          localStorage.setItem('vendor_id', vendorId);
+        }
 
         // Create user object
         const userData: User = {
@@ -118,19 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(userData);
         localStorage.setItem('user_data', JSON.stringify(userData));
-
-        // If vendor, fetch and store vendor ID
-        if (role === 'VENDOR') {
-          try {
-            const vendorResponse = await vendorApi.getVendorByUserId(userId);
-            if (vendorResponse.success && vendorResponse.data) {
-              const vendorId = vendorResponse.data.id;
-              localStorage.setItem('vendor_id', vendorId);
-            }
-          } catch (error) {
-            console.error('Error fetching vendor ID:', error);
-          }
-        }
+        localStorage.setItem('user_role', role); // Store role separately for easy access
 
         // Store flag if this is a new user (for onboarding)
         if (isNewUser && isVendor) {
@@ -143,7 +137,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      throw new Error(error.message || 'Google login failed. Please try again.');
+      // Extract error code and message from API response
+      const errorCode = error.response?.data?.code || error.code;
+      const errorMessage = error.response?.data?.message || error.message || 'Google login failed. Please try again.';
+      
+      const enhancedError = new Error(errorMessage);
+      (enhancedError as any).code = errorCode;
+      throw enhancedError;
     }
   };
 
@@ -154,16 +154,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userId: string;
         email: string;
         role: string;
+        vendorId?: string;
       }>('/auth/login', { email, password });
 
       if (response.success && response.data) {
-        const { token: newToken, userId, email: userEmail, role } = response.data;
+        const { token: newToken, userId, email: userEmail, role, vendorId } = response.data;
         
         // Store token
         setToken(newToken);
         apiClient.setToken(newToken);
         localStorage.setItem('auth_token', newToken);
         localStorage.setItem('user_id', userId);
+
+        // Store vendor ID if present
+        if (vendorId) {
+          localStorage.setItem('vendor_id', vendorId);
+        }
 
         // Create user object
         const userData: User = {
@@ -175,27 +181,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(userData);
         localStorage.setItem('user_data', JSON.stringify(userData));
-
-        // If vendor, fetch and store vendor ID
-        if (role === 'VENDOR') {
-          try {
-            const vendorResponse = await vendorApi.getVendorByUserId(userId);
-            if (vendorResponse.success && vendorResponse.data) {
-              const vendorId = vendorResponse.data.id;
-              localStorage.setItem('vendor_id', vendorId);
-            }
-          } catch (error) {
-            console.error('Error fetching vendor ID:', error);
-            // Vendor might not have completed onboarding yet - this is OK
-            // They will be redirected to onboarding if needed
-          }
-        }
+        localStorage.setItem('user_role', role); // Store role separately for easy access
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      throw new Error(error.message || 'Login failed. Please check your credentials.');
+      // Extract error code and message from API response
+      const errorCode = error.response?.data?.code || error.code;
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please check your credentials.';
+      
+      const enhancedError = new Error(errorMessage);
+      (enhancedError as any).code = errorCode;
+      throw enhancedError;
     }
   };
 
@@ -206,6 +204,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userId: string;
         email: string;
         role: string;
+        vendorId?: string;
       }>('/auth/register', {
         email: data.email,
         password: data.password,
@@ -215,13 +214,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (response.success && response.data) {
-        const { token: newToken, userId, email: userEmail, role } = response.data;
+        const { token: newToken, userId, email: userEmail, role, vendorId } = response.data;
         
         // Store token
         setToken(newToken);
         apiClient.setToken(newToken);
         localStorage.setItem('auth_token', newToken);
         localStorage.setItem('user_id', userId);
+
+        // Store vendor ID if present
+        if (vendorId) {
+          localStorage.setItem('vendor_id', vendorId);
+        }
 
         // Create user object
         const userData: User = {
@@ -234,30 +238,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(userData);
         localStorage.setItem('user_data', JSON.stringify(userData));
+        localStorage.setItem('user_role', role); // Store role separately for easy access
 
-        // If vendor, fetch and store vendor ID (if vendor profile exists)
+        // If vendor, store signup data for onboarding
         if (data.isVendor) {
           sessionStorage.setItem('vendorSignupData', JSON.stringify({
             email: userEmail,
           }));
-          // Try to fetch vendor ID if vendor profile already exists
-          try {
-            const vendorResponse = await vendorApi.getVendorByUserId(userId);
-            if (vendorResponse.success && vendorResponse.data) {
-              const vendorId = vendorResponse.data.id;
-              localStorage.setItem('vendor_id', vendorId);
-            }
-          } catch (error) {
-            // Vendor profile doesn't exist yet - will be created during onboarding
-            console.log('Vendor profile not found - will be created during onboarding');
-          }
         }
       } else {
         throw new Error(response.message || 'Registration failed');
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      throw new Error(error.message || 'Registration failed. Please try again.');
+      // Extract error code and message from API response
+      const errorCode = error.response?.data?.code || error.code;
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+      
+      const enhancedError = new Error(errorMessage);
+      (enhancedError as any).code = errorCode;
+      throw enhancedError;
     }
   };
 
@@ -268,6 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     localStorage.removeItem('user_id');
+    localStorage.removeItem('user_role');
     localStorage.removeItem('vendor_id');
     sessionStorage.removeItem('vendorSignupData');
   };

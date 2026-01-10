@@ -5,8 +5,10 @@ import com.eventhub.dto.request.LoginRequest;
 import com.eventhub.dto.request.RegisterRequest;
 import com.eventhub.model.UserProfile;
 import com.eventhub.repository.UserProfileRepository;
+import com.eventhub.repository.VendorRepository;
 import com.eventhub.util.JwtUtil;
 import com.eventhub.exception.ValidationException;
+import com.eventhub.exception.AuthException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -29,6 +31,7 @@ import java.util.UUID;
 public class AuthService {
     
     private final UserProfileRepository userProfileRepository;
+    private final VendorRepository vendorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     
@@ -37,7 +40,18 @@ public class AuthService {
     
     public AuthResponse register(RegisterRequest request) {
         if (userProfileRepository.existsByEmail(request.getEmail())) {
-            throw new ValidationException("Email already registered");
+            throw new AuthException(
+                AuthException.EMAIL_ALREADY_EXISTS, 
+                "An account with this email already exists. Please login instead."
+            );
+        }
+        
+        // Validate password strength
+        if (request.getPassword().length() < 8) {
+            throw new AuthException(
+                AuthException.WEAK_PASSWORD,
+                "Password must be at least 8 characters long"
+            );
         }
         
         UserProfile user = new UserProfile();
@@ -56,22 +70,44 @@ public class AuthService {
         
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
         
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
+        // Fetch vendor ID if user is a vendor
+        UUID vendorId = null;
+        if (user.getRole() == UserProfile.Role.VENDOR) {
+            vendorId = vendorRepository.findByUserId(user.getId())
+                    .map(vendor -> vendor.getId())
+                    .orElse(null);
+        }
+        
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), vendorId);
     }
     
     public AuthResponse login(LoginRequest request) {
         UserProfile user = userProfileRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ValidationException("Invalid email or password"));
+                .orElseThrow(() -> new AuthException(
+                    AuthException.EMAIL_NOT_FOUND,
+                    "No account found with this email. Please check your email or sign up."
+                ));
         
         // Verify password
         if (user.getPasswordHash() == null || 
             !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new ValidationException("Invalid email or password");
+            throw new AuthException(
+                AuthException.INVALID_PASSWORD,
+                "Incorrect password. Please try again or reset your password."
+            );
         }
         
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
         
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
+        // Fetch vendor ID if user is a vendor
+        UUID vendorId = null;
+        if (user.getRole() == UserProfile.Role.VENDOR) {
+            vendorId = vendorRepository.findByUserId(user.getId())
+                    .map(vendor -> vendor.getId())
+                    .orElse(null);
+        }
+        
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name(), vendorId);
     }
     
     public GoogleAuthResponse authenticateWithGoogle(GoogleAuthRequest request) {
@@ -85,7 +121,10 @@ public class AuthService {
             GoogleIdToken idToken = verifier.verify(request.getCredential());
             
             if (idToken == null) {
-                throw new ValidationException("Invalid Google token");
+                throw new AuthException(
+                    AuthException.GOOGLE_AUTH_FAILED,
+                    "Google authentication failed. Please try again."
+                );
             }
             
             GoogleIdToken.Payload payload = idToken.getPayload();
@@ -135,17 +174,31 @@ public class AuthService {
             
             String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole().name());
             
+            // Fetch vendor ID if user is a vendor
+            UUID vendorId = null;
+            if (user.getRole() == UserProfile.Role.VENDOR) {
+                vendorId = vendorRepository.findByUserId(user.getId())
+                        .map(vendor -> vendor.getId())
+                        .orElse(null);
+            }
+            
             return new GoogleAuthResponse(
                     token, 
                     user.getId(), 
                     user.getEmail(), 
                     user.getRole().name(), 
-                    isNewUser
+                    isNewUser,
+                    vendorId
             );
             
+        } catch (AuthException e) {
+            throw e; // Re-throw our custom exceptions
         } catch (Exception e) {
             log.error("Google authentication failed", e);
-            throw new ValidationException("Google authentication failed: " + e.getMessage());
+            throw new AuthException(
+                AuthException.GOOGLE_AUTH_FAILED,
+                "Google authentication failed. Please try again or use email/password."
+            );
         }
     }
     
@@ -156,6 +209,7 @@ public class AuthService {
         private UUID userId;
         private String email;
         private String role;
+        private UUID vendorId; // Include vendor ID for vendors
     }
     
     @lombok.Data
@@ -166,6 +220,7 @@ public class AuthService {
         private String email;
         private String role;
         private boolean isNewUser;
+        private UUID vendorId; // Include vendor ID for vendors
     }
 }
 

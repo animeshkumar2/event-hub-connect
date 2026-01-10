@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 interface AuthProps {
@@ -28,6 +28,15 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   
   const [isVendor, setIsVendor] = useState(urlType === 'vendor');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+    name?: string;
+    confirmPassword?: string;
+  }>({});
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -35,6 +44,63 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     confirmPassword: "",
     phone: "",
   });
+
+  // Email validation
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Password strength calculation
+  const getPasswordStrength = (password: string) => {
+    if (!password) return { score: 0, label: '', color: '' };
+    
+    let score = 0;
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[^A-Za-z0-9]/.test(password),
+    };
+
+    if (checks.length) score++;
+    if (checks.uppercase) score++;
+    if (checks.lowercase) score++;
+    if (checks.number) score++;
+    if (checks.special) score++;
+
+    if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
+    if (score <= 3) return { score, label: 'Medium', color: 'bg-yellow-500' };
+    return { score, label: 'Strong', color: 'bg-green-500' };
+  };
+
+  // Password requirements
+  const passwordRequirements = useMemo(() => {
+    const password = formData.password;
+    return [
+      { label: 'At least 8 characters', met: password.length >= 8 },
+      { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+      { label: 'One lowercase letter', met: /[a-z]/.test(password) },
+      { label: 'One number', met: /[0-9]/.test(password) },
+    ];
+  }, [formData.password]);
+
+  const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
+
+  // Reset form when mode changes
+  useEffect(() => {
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      phone: "",
+    });
+    setFieldErrors({});
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  }, [mode]);
 
   // Redirect if already authenticated (but allow vendor onboarding)
   if (isAuthenticated && !isLoading && mode === "login") {
@@ -46,6 +112,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoadingMessage("Authenticating...");
 
     try {
       if (mode === "signup") {
@@ -57,6 +124,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
             variant: "destructive",
           });
           setIsLoading(false);
+          setLoadingMessage("");
           return;
         }
 
@@ -67,6 +135,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
             variant: "destructive",
           });
           setIsLoading(false);
+          setLoadingMessage("");
           return;
         }
 
@@ -77,10 +146,12 @@ const Auth = ({ mode: propMode }: AuthProps) => {
             variant: "destructive",
           });
           setIsLoading(false);
+          setLoadingMessage("");
           return;
         }
 
         // Register
+        setLoadingMessage("Creating your account...");
         await register({
           email: formData.email,
           password: formData.password,
@@ -94,18 +165,28 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           description: "Your account has been created successfully.",
         });
 
-        // For vendor signup, navigate to onboarding
-        // For customer signup, navigate to home
-        if (isVendor) {
-          // Small delay to ensure state is saved
-          setTimeout(() => {
-            navigate("/vendor/onboarding");
-          }, 100);
+        // Navigate based on user type
+        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        const userRole = localStorage.getItem('user_role') || userData.role;
+        
+        if (userRole === 'ADMIN') {
+          setLoadingMessage("Redirecting to admin dashboard...");
+          navigate('/admin/dashboard');
+        } else if (isVendor || userRole === 'VENDOR' || userData.role === 'VENDOR') {
+          // For vendors, ensure vendor ID is fetched before navigating
+          // This prevents race condition where dashboard loads before vendor ID is available
+          setLoadingMessage("Setting up your vendor profile...");
+          await ensureVendorIdLoaded();
+          setLoadingMessage("Redirecting to dashboard...");
+          navigate("/vendor/dashboard");
         } else {
+          // Customer
+          setLoadingMessage("Redirecting...");
           navigate("/");
         }
       } else {
         // Login
+        setLoadingMessage("Signing you in...");
         await login(formData.email, formData.password);
 
         toast({
@@ -113,36 +194,61 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           description: "You have successfully logged in.",
         });
 
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          // Check for redirect parameter
-          const redirect = searchParams.get('redirect');
-          if (redirect) {
-            navigate(redirect);
+        // Check for redirect parameter
+        const redirect = searchParams.get('redirect');
+        if (redirect) {
+          setLoadingMessage("Redirecting...");
+          navigate(redirect);
+        } else {
+          // Navigate based on user role
+          const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+          const userRole = localStorage.getItem('user_role') || userData.role;
+          
+          if (userRole === 'ADMIN') {
+            setLoadingMessage("Redirecting to admin dashboard...");
+            navigate('/admin/dashboard');
+          } else if (userRole === 'VENDOR' || userData.role === 'VENDOR') {
+            // For vendors, ensure vendor ID is fetched before navigating
+            // This prevents race condition where dashboard loads before vendor ID is available
+            setLoadingMessage("Loading your vendor profile...");
+            await ensureVendorIdLoaded();
+            setLoadingMessage("Redirecting to dashboard...");
+            navigate('/vendor/dashboard');
           } else {
-            // If vendor, check if they have completed onboarding
-            const vendorId = localStorage.getItem('vendor_id');
-            const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-            if (userData.role === 'VENDOR') {
-              if (vendorId) {
-                navigate('/vendor/dashboard');
-              } else {
-                navigate('/vendor/onboarding');
-              }
-            } else {
-              navigate("/");
-            }
+            // Customer or default
+            setLoadingMessage("Redirecting...");
+            navigate("/");
           }
-        }, 100);
+        }
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || (mode === "login" ? "Login failed. Please check your credentials." : "Registration failed. Please try again."),
-        variant: "destructive",
-      });
+      // Clear previous errors
+      setFieldErrors({});
+      
+      // Parse error code and show specific message
+      const errorCode = error.code || error.errorCode;
+      const errorMessage = error.message || (mode === "login" ? "Login failed" : "Registration failed");
+      
+      // Map error codes to field-specific errors
+      if (errorCode === 'EMAIL_NOT_FOUND') {
+        setFieldErrors({ email: "No account found with this email" });
+      } else if (errorCode === 'INVALID_PASSWORD') {
+        setFieldErrors({ password: "Incorrect password" });
+      } else if (errorCode === 'EMAIL_ALREADY_EXISTS') {
+        setFieldErrors({ email: "This email is already registered" });
+      } else if (errorCode === 'WEAK_PASSWORD') {
+        setFieldErrors({ password: "Password must be at least 8 characters" });
+      } else {
+        // Show generic error in toast
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
@@ -157,6 +263,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     }
 
     setIsGoogleLoading(true);
+    setLoadingMessage("Verifying with Google...");
+    
     try {
       await loginWithGoogle({
         credential: credentialResponse.credential,
@@ -169,23 +277,31 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         description: "You have successfully signed in with Google.",
       });
 
-      // Small delay to ensure state is updated
-      setTimeout(() => {
-        const redirect = searchParams.get('redirect');
-        if (redirect) {
-          navigate(redirect);
-        } else if (isVendor) {
-          // Check if vendor has completed onboarding
-          const vendorId = localStorage.getItem('vendor_id');
-          if (vendorId) {
-            navigate('/vendor/dashboard');
-          } else {
-            navigate('/vendor/onboarding');
-          }
+      // Navigate based on redirect or user type
+      const redirect = searchParams.get('redirect');
+      if (redirect) {
+        setLoadingMessage("Redirecting...");
+        navigate(redirect);
+      } else {
+        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        const userRole = localStorage.getItem('user_role') || userData.role;
+        
+        if (userRole === 'ADMIN') {
+          setLoadingMessage("Redirecting to admin dashboard...");
+          navigate('/admin/dashboard');
+        } else if (isVendor || userRole === 'VENDOR' || userData.role === 'VENDOR') {
+          // For vendors, ensure vendor ID is fetched before navigating
+          // This prevents race condition where dashboard loads before vendor ID is available
+          setLoadingMessage("Setting up your profile...");
+          await ensureVendorIdLoaded();
+          setLoadingMessage("Redirecting to dashboard...");
+          navigate('/vendor/dashboard');
         } else {
+          // Customer
+          setLoadingMessage("Redirecting...");
           navigate("/");
         }
-      }, 100);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -194,6 +310,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       });
     } finally {
       setIsGoogleLoading(false);
+      setLoadingMessage("");
     }
   };
 
@@ -203,6 +320,37 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       description: "Google sign-in was cancelled or failed. Please try again.",
       variant: "destructive",
     });
+  };
+
+  // Helper function to ensure vendor ID is loaded before navigating
+  const ensureVendorIdLoaded = async () => {
+    // Check if vendor ID is already in localStorage
+    const existingVendorId = localStorage.getItem('vendor_id');
+    if (existingVendorId) {
+      return; // Already loaded
+    }
+
+    // If not, fetch it from the API
+    try {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        console.warn('No user ID found, cannot fetch vendor ID');
+        return;
+      }
+
+      // Import vendorApi dynamically to avoid circular dependencies
+      const { vendorApi } = await import('@/shared/services/api');
+      const response = await vendorApi.getVendorByUserId(userId);
+      
+      if (response.success && response.data?.id) {
+        localStorage.setItem('vendor_id', response.data.id);
+      } else {
+        console.warn('Vendor not found - user may need to complete onboarding');
+      }
+    } catch (error) {
+      console.error('Error fetching vendor ID:', error);
+      // Don't throw - let the dashboard handle the missing vendor ID
+    }
   };
 
   return (
@@ -293,39 +441,151 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                 type="email"
                 placeholder="you@example.com"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  // Clear error when user starts typing
+                  if (fieldErrors.email) {
+                    setFieldErrors({ ...fieldErrors, email: undefined });
+                  }
+                }}
+                onBlur={() => {
+                  // Validate email on blur
+                  if (formData.email && !isValidEmail(formData.email)) {
+                    setFieldErrors({ ...fieldErrors, email: 'Please enter a valid email address' });
+                  }
+                }}
                 required
                 disabled={isLoading}
+                className={fieldErrors.email ? "border-red-500" : ""}
               />
+              {fieldErrors.email && (
+                <p className="text-sm text-red-500">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder={mode === "login" ? "Enter your password" : "At least 6 characters"}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
-                disabled={isLoading}
-                minLength={mode === "signup" ? 6 : undefined}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder={mode === "login" ? "Enter your password" : "At least 8 characters"}
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    // Clear error when user starts typing
+                    if (fieldErrors.password) {
+                      setFieldErrors({ ...fieldErrors, password: undefined });
+                    }
+                  }}
+                  required
+                  disabled={isLoading}
+                  minLength={mode === "signup" ? 8 : undefined}
+                  className={fieldErrors.password ? "border-red-500 pr-10" : "pr-10"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  disabled={isLoading}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {fieldErrors.password && (
+                <p className="text-sm text-red-500">{fieldErrors.password}</p>
+              )}
+              
+              {/* Password strength indicator for signup */}
+              {mode === "signup" && formData.password && (
+                <div className="space-y-2 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  
+                  {/* Password requirements checklist */}
+                  <div className="space-y-1">
+                    {passwordRequirements.map((req, index) => (
+                      <div key={index} className="flex items-center gap-2 text-xs">
+                        {req.met ? (
+                          <Check className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <X className="h-3 w-3 text-muted-foreground" />
+                        )}
+                        <span className={req.met ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
+                          {req.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {mode === "signup" && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required
-                    disabled={isLoading}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => {
+                        setFormData({ ...formData, confirmPassword: e.target.value });
+                        // Clear error when user starts typing
+                        if (fieldErrors.confirmPassword) {
+                          setFieldErrors({ ...fieldErrors, confirmPassword: undefined });
+                        }
+                      }}
+                      onBlur={() => {
+                        // Check if passwords match on blur
+                        if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
+                          setFieldErrors({ ...fieldErrors, confirmPassword: 'Passwords do not match' });
+                        }
+                      }}
+                      required
+                      disabled={isLoading}
+                      className={fieldErrors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      disabled={isLoading}
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.confirmPassword && (
+                    <p className="text-sm text-red-500">{fieldErrors.confirmPassword}</p>
+                  )}
+                  {/* Show success indicator when passwords match */}
+                  {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                      <Check className="h-3 w-3" />
+                      <span>Passwords match</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -342,11 +602,11 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               </>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+              {isLoading || isGoogleLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {mode === "login" ? "Signing in..." : "Creating account..."}
+                  {loadingMessage || (mode === "login" ? "Signing in..." : "Creating account...")}
                 </>
               ) : (
                 mode === "login" ? "Sign In" : "Create Account"

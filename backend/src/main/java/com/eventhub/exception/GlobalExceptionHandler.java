@@ -63,6 +63,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
     
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ErrorResponse> handleAuthException(
+            AuthException ex,
+            HttpServletRequest request) {
+        log.warn("Authentication error: {} | Code: {} | URI: {} | Method: {}", 
+                ex.getUserMessage(), 
+                ex.getErrorCode(),
+                request.getRequestURI(),
+                request.getMethod());
+        log.debug("AuthException stack trace:", ex);
+        
+        ErrorResponse error = new ErrorResponse(ex.getErrorCode(), ex.getUserMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+    
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRuleException(
             BusinessRuleException ex,
