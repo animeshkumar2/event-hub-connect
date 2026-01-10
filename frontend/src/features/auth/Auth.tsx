@@ -31,6 +31,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string;
     password?: string;
@@ -44,6 +45,15 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     confirmPassword: "",
     phone: "",
   });
+
+  // Load remembered email on mount
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('remembered_email');
+    if (rememberedEmail && mode === 'login') {
+      setFormData(prev => ({ ...prev, email: rememberedEmail }));
+      setRememberMe(true);
+    }
+  }, [mode]);
 
   // Email validation
   const isValidEmail = (email: string) => {
@@ -88,11 +98,14 @@ const Auth = ({ mode: propMode }: AuthProps) => {
 
   const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
 
-  // Reset form when mode changes
+  // Reset form when mode changes and load remembered email for login
   useEffect(() => {
+    const rememberedEmail = localStorage.getItem('remembered_email');
+    const shouldRemember = localStorage.getItem('remember_me') === 'true';
+    
     setFormData({
       name: "",
-      email: "",
+      email: (mode === 'login' && shouldRemember && rememberedEmail) ? rememberedEmail : "",
       password: "",
       confirmPassword: "",
       phone: "",
@@ -100,6 +113,13 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     setFieldErrors({});
     setShowPassword(false);
     setShowConfirmPassword(false);
+    
+    // Set remember me checkbox if email was remembered
+    if (mode === 'login' && shouldRemember && rememberedEmail) {
+      setRememberMe(true);
+    } else {
+      setRememberMe(false);
+    }
   }, [mode]);
 
   // Redirect if already authenticated (but allow vendor onboarding)
@@ -188,6 +208,15 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         // Login
         setLoadingMessage("Signing you in...");
         await login(formData.email, formData.password);
+
+        // Handle remember me
+        if (rememberMe) {
+          localStorage.setItem('remembered_email', formData.email);
+          localStorage.setItem('remember_me', 'true');
+        } else {
+          localStorage.removeItem('remembered_email');
+          localStorage.removeItem('remember_me');
+        }
 
         toast({
           title: "Welcome back!",
@@ -600,6 +629,24 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   />
                 </div>
               </>
+            )}
+
+            {/* Remember Me checkbox - only for login */}
+            {mode === "login" && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  disabled={isLoading}
+                />
+                <Label 
+                  htmlFor="remember-me" 
+                  className="text-sm font-normal cursor-pointer text-muted-foreground"
+                >
+                  Remember me for 30 days
+                </Label>
+              </div>
             )}
 
             <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
