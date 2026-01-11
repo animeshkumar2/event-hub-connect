@@ -496,39 +496,41 @@ const Auth = ({ mode: propMode }: AuthProps) => {
             </div>
           )}
 
-          {/* Google Sign-In Button */}
-          <div className="mb-6">
-            <div className="flex justify-center">
-              {isGoogleLoading ? (
-                <Button disabled className="w-full h-10">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {loadingMessage || "Signing in with Google..."}
-                </Button>
-              ) : (
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap
-                  theme="outline"
-                  size="large"
-                  width="100%"
-                  text={mode === "login" ? "signin_with" : "signup_with"}
-                />
-              )}
-            </div>
-            
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+          {/* Google Sign-In Button - Only show if client ID is configured */}
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+            <div className="mb-6">
+              <div className="flex justify-center">
+                {isGoogleLoading ? (
+                  <Button disabled className="w-full h-10">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {loadingMessage || "Signing in with Google..."}
+                  </Button>
+                ) : (
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    useOneTap
+                    theme="outline"
+                    size="large"
+                    width="100%"
+                    text={mode === "login" ? "signin_with" : "signup_with"}
+                  />
+                )}
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with email
-                </span>
+              
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with email
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
