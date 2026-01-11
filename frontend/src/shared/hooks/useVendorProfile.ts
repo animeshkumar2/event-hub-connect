@@ -13,16 +13,22 @@ interface VendorProfileStatus {
  */
 export function useVendorProfile(): VendorProfileStatus {
   const { user, isLoading: authLoading } = useAuth();
-  const [vendorId, setVendorId] = useState<string | null>(null);
+  const [vendorId, setVendorId] = useState<string | null>(() => {
+    // Initialize from localStorage immediately
+    return localStorage.getItem('vendor_id');
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading) {
       const storedVendorId = localStorage.getItem('vendor_id');
-      setVendorId(storedVendorId);
+      // Only update if it actually changed
+      if (storedVendorId !== vendorId) {
+        setVendorId(storedVendorId);
+      }
       setIsLoading(false);
     }
-  }, [authLoading, user]);
+  }, [authLoading]); // Removed 'user' dependency to prevent unnecessary re-runs
 
   return {
     isComplete: !!vendorId,

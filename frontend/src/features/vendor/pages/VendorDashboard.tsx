@@ -21,18 +21,22 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useVendorDashboardData } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
-  const { isComplete: profileComplete, vendorId } = useVendorProfile();
+  const { isComplete: profileComplete, vendorId, isLoading: vendorLoading } = useVendorProfile();
+  const hasCheckedRef = useRef(false);
 
   // Redirect to login if not authenticated or not a vendor
   useEffect(() => {
-    if (!authLoading) {
+    // Only run once when auth is ready
+    if (!authLoading && !vendorLoading && !hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      
       if (!isAuthenticated) {
         navigate('/login?redirect=/vendor/dashboard');
         return;
@@ -41,6 +45,7 @@ export default function VendorDashboard() {
         navigate('/');
         return;
       }
+      
       // Check if vendor_id is set - if not and onboarding wasn't skipped, redirect to onboarding
       const onboardingSkipped = localStorage.getItem('onboarding_skipped');
       
@@ -51,7 +56,7 @@ export default function VendorDashboard() {
         return;
       }
     }
-  }, [isAuthenticated, user, authLoading, navigate, vendorId]);
+  }, [isAuthenticated, user, authLoading, vendorLoading, navigate, vendorId]);
   
   // Fetch real data in parallel using optimized hook (only if profile is complete)
   const { stats, profile, upcomingOrders, leads, listings, loading: dataLoading } = useVendorDashboardData();
