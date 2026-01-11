@@ -29,6 +29,31 @@ export default function VendorOnboarding() {
   const [email, setEmail] = useState('');
   const [instagram, setInstagram] = useState('');
 
+  // Validation helper for phone number
+  const isValidPhone = (phoneNumber: string): boolean => {
+    // Remove all spaces, dashes, and parentheses
+    const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    
+    // Check if it's a valid format:
+    // - Starts with + or digit
+    // - Has 10-15 digits (international format)
+    // - Indian format: +91 followed by 10 digits OR just 10 digits
+    const phoneRegex = /^(\+?\d{1,3})?[\s\-]?\d{10}$/;
+    
+    return phoneRegex.test(cleaned) && cleaned.length >= 10;
+  };
+
+  // Check if form is valid
+  const isFormValid = 
+    businessName.trim() !== '' &&
+    contactPerson.trim() !== '' &&
+    category !== '' &&
+    (category !== 'other' || customCategoryName.trim() !== '') &&
+    city !== '' &&
+    phone.trim() !== '' &&
+    isValidPhone(phone) &&
+    email.trim() !== '';
+
   // Listing data removed - no longer required
 
   // UI state
@@ -273,8 +298,16 @@ export default function VendorOnboarding() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+91 98765 43210"
-                      className="h-10 bg-background border-border focus:border-primary"
+                      className={`h-10 bg-background border-border focus:border-primary ${
+                        phone && !isValidPhone(phone) ? 'border-red-500' : ''
+                      }`}
+                      required
                     />
+                    {phone && !isValidPhone(phone) && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Please enter a valid phone number (10 digits)
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-foreground font-medium text-sm flex items-center gap-1.5">
@@ -322,7 +355,7 @@ export default function VendorOnboarding() {
                     </Button>
                     <Button 
                       onClick={handleComplete}
-                      disabled={!businessName || !contactPerson || !phone || !category || !city || isSubmitting}
+                      disabled={!isFormValid || isSubmitting}
                       className="flex-[2] h-10 bg-primary hover:bg-primary/90 text-white font-medium transition-all disabled:opacity-50"
                     >
                       {isSubmitting ? (

@@ -20,7 +20,9 @@ public class VendorOnboardingRequest {
     @NotBlank(message = "City name is required")
     private String cityName;
     
+    @NotBlank(message = "Phone number is required")
     private String phone;
+    
     private String email;
     private String instagram;
     private String bio;

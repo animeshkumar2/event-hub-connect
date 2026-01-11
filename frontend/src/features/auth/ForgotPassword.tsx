@@ -123,12 +123,14 @@ const ForgotPassword = () => {
               )}
             </Button>
 
-            <Link to="/login">
-              <Button variant="ghost" className="w-full">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Login
-              </Button>
-            </Link>
+            <div className="pt-4">
+              <Link to="/login">
+                <Button variant="ghost" className="w-full">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Login
+                </Button>
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

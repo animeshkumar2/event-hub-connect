@@ -75,7 +75,13 @@ public class GlobalExceptionHandler {
         log.debug("AuthException stack trace:", ex);
         
         ErrorResponse error = new ErrorResponse(ex.getErrorCode(), ex.getUserMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        
+        // Use 409 CONFLICT for email already exists, 401 UNAUTHORIZED for auth failures
+        HttpStatus status = ex.getErrorCode().equals("EMAIL_ALREADY_EXISTS") 
+            ? HttpStatus.CONFLICT 
+            : HttpStatus.UNAUTHORIZED;
+            
+        return ResponseEntity.status(status).body(error);
     }
     
     @ExceptionHandler(BusinessRuleException.class)

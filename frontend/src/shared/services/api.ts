@@ -168,7 +168,12 @@ class ApiClient {
         }
         console.error('API Error:', response.status, errorData);
         const errorMessage = errorData.message || errorData.details || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        // Attach error code and full response data to the error object
+        (error as any).code = errorData.code;
+        (error as any).errorCode = errorData.code;
+        (error as any).response = { data: errorData };
+        throw error;
       }
 
       const data = await response.json();

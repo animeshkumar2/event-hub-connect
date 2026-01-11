@@ -40,6 +40,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     password?: string;
     name?: string;
     confirmPassword?: string;
+    phone?: string;
   }>({});
   const [formData, setFormData] = useState({
     name: "",
@@ -100,6 +101,34 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   }, [formData.password]);
 
   const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
+  
+  // Phone number validation
+  const isValidPhone = (phoneNumber: string): boolean => {
+    if (!phoneNumber) return false;
+    // Remove all spaces, dashes, and parentheses
+    const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    
+    // Check if it's a valid format:
+    // - Starts with + or digit
+    // - Has 10-15 digits (international format)
+    // - Indian format: +91 followed by 10 digits OR just 10 digits
+    const phoneRegex = /^(\+?\d{1,3})?[\s\-]?\d{10}$/;
+    
+    return phoneRegex.test(cleaned) && cleaned.length >= 10;
+  };
+  
+  // Check if form is valid for signup
+  const isSignupFormValid = useMemo(() => {
+    if (mode !== 'signup') return true;
+    return (
+      formData.name.trim() !== '' &&
+      formData.email.trim() !== '' &&
+      formData.password.length >= 8 &&
+      formData.confirmPassword === formData.password &&
+      formData.phone.trim() !== '' &&
+      isValidPhone(formData.phone)
+    );
+  }, [mode, formData]);
 
   // Reset form when mode changes and load remembered email for login
   useEffect(() => {
@@ -178,13 +207,28 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           return;
         }
 
+        // Validate phone number
+        if (!formData.phone || !formData.phone.trim()) {
+          setFieldErrors({
+            phone: "Phone number is required",
+          });
+          toast({
+            title: "Validation Error",
+            description: "Please enter your phone number",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          setLoadingMessage("");
+          return;
+        }
+
         // Register
         setLoadingMessage("Creating your account...");
         await register({
           email: formData.email,
           password: formData.password,
           fullName: formData.name,
-          phone: formData.phone || undefined,
+          phone: formData.phone,
           isVendor: isVendor,
         });
 
@@ -291,7 +335,13 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           variant: "destructive",
         });
       }
+      
+      // Stop loading and prevent any navigation
+      setIsLoading(false);
+      setLoadingMessage("");
+      return; // Explicitly return to prevent any further execution
     } finally {
+      // Ensure loading state is cleared even if return is called
       setIsLoading(false);
       setLoadingMessage("");
     }
@@ -650,15 +700,35 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (Optional)</Label>
+                  <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
                   <Input
                     id="phone"
                     type="tel"
                     placeholder="+91 9876543210"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, phone: e.target.value });
+                      // Clear error when user starts typing
+                      if (fieldErrors.phone) {
+                        setFieldErrors({ ...fieldErrors, phone: undefined });
+                      }
+                    }}
                     disabled={isLoading}
+                    required
+                    className={fieldErrors.phone || (formData.phone && !isValidPhone(formData.phone)) ? "border-red-500" : ""}
                   />
+                  {fieldErrors.phone && (
+                    <p className="text-sm text-red-500">{fieldErrors.phone}</p>
+                  )}
+                  {formData.phone && !isValidPhone(formData.phone) && !fieldErrors.phone && (
+                    <p className="text-sm text-red-500">Please enter a valid phone number (10 digits)</p>
+                  )}
+                  {formData.phone && isValidPhone(formData.phone) && (
+                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                      <Check className="h-3 w-3" />
+                      <span>Valid phone number</span>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -689,7 +759,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || !isSignupFormValid}>
               {isLoading || isGoogleLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
