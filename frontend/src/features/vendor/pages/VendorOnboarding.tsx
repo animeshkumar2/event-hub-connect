@@ -113,16 +113,15 @@ export default function VendorOnboarding() {
       // Create vendor profile
       const vendorData = {
         businessName: businessName.trim(),
-        contactPerson: contactPerson.trim(),
-        category: category === 'other' ? customCategoryName.trim() : category,
-        city,
+        categoryId: category === 'other' ? 'other' : category,
+        customCategoryName: category === 'other' ? customCategoryName.trim() : undefined,
+        cityName: city,
         phone: phone.trim(),
         email: email.trim(),
         instagram: instagram.trim() || undefined,
-        userId: user?.id,
       };
 
-      const response = await vendorApi.createVendor(vendorData);
+      const response = await vendorApi.onboard(vendorData);
 
       if (response.success && response.data) {
         // Store vendor ID
