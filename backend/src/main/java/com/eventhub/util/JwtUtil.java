@@ -20,8 +20,11 @@ public class JwtUtil {
     @Value("${jwt.secret:your-secret-key-change-this-in-production-min-256-bits}")
     private String secret;
     
-    @Value("${jwt.expiration:86400000}") // 24 hours
+    @Value("${jwt.expiration:86400000}") // 24 hours (access token)
     private Long expiration;
+    
+    @Value("${jwt.refresh.expiration:604800000}") // 7 days (refresh token)
+    private Long refreshExpiration;
     
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
@@ -30,15 +33,22 @@ public class JwtUtil {
     public String generateToken(UUID userId, String email, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        return createToken(claims, userId.toString(), email);
+        claims.put("type", "access"); // Mark as access token
+        return createToken(claims, userId.toString(), email, expiration);
     }
     
-    private String createToken(Map<String, Object> claims, String subject, String email) {
+    public String generateRefreshToken(UUID userId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "refresh"); // Mark as refresh token
+        return createToken(claims, userId.toString(), null, refreshExpiration);
+    }
+    
+    private String createToken(Map<String, Object> claims, String subject, String email, Long expirationTime) {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -77,5 +87,16 @@ public class JwtUtil {
         final UUID tokenUserId = getUserIdFromToken(token);
         return (tokenUserId.equals(userId) && !isTokenExpired(token));
     }
+    
+    public Boolean validateToken(String token) {
+        try {
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    public Long getExpiresIn() {
+        return expiration / 1000; // Return in seconds
+    }
 }
-

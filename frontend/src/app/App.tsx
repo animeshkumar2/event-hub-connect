@@ -8,6 +8,7 @@ import { CartProvider } from "@/shared/contexts/CartContext";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { PreLaunchProvider, PreLaunchGuard } from "@/shared/contexts/PreLaunchContext";
 import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
+import { SessionExpiryWarning } from "@/shared/components/SessionExpiryWarning";
 import { useEffect } from "react";
 import { publicApi } from "@/shared/services/api";
 import { Loader2 } from "lucide-react";
@@ -21,6 +22,8 @@ import Home from "@/features/home/Home";
 import Search from "@/features/search/Search";
 import VendorDetails from "@/features/vendor/VendorDetails";
 import Auth from "@/features/auth/Auth";
+import ForgotPassword from "@/features/auth/ForgotPassword";
+import ResetPassword from "@/features/auth/ResetPassword";
 import NotFound from "@/features/home/NotFound";
 import Cart from "@/features/cart/Cart";
 import Checkout from "@/features/cart/Checkout";
@@ -143,6 +146,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <SessionExpiryWarning />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <PreLaunchProvider>
               <Routes>
@@ -162,6 +166,8 @@ const App = () => (
             <Route path="/login" element={<Auth mode="login" />} />
             <Route path="/signup" element={<Auth mode="signup" />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/for-vendors" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorLandingPage />

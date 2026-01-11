@@ -21,6 +21,7 @@ interface ApiResponse<T> {
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
+  private refreshPromise: Promise<boolean> | null = null; // Track ongoing refresh
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -41,7 +42,8 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry: boolean = false
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
     
@@ -73,6 +75,81 @@ class ApiClient {
         headers,
       });
 
+      // Handle 401 Unauthorized - try to refresh token
+      if (response.status === 401 && !isRetry && endpoint !== '/auth/refresh') {
+        console.log('🔄 401 detected, attempting token refresh...');
+        
+        // If refresh is already in progress, wait for it
+        if (this.refreshPromise) {
+          console.log('⏳ Refresh already in progress, waiting...');
+          const refreshSuccess = await this.refreshPromise;
+          if (refreshSuccess) {
+            console.log('✅ Using refreshed token from parallel request');
+            return this.request<T>(endpoint, options, true);
+          } else {
+            throw new Error('Session expired. Please log in again.');
+          }
+        }
+        
+        const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+        if (refreshToken) {
+          // Create refresh promise to prevent multiple simultaneous refreshes
+          this.refreshPromise = (async () => {
+            try {
+              // Try to refresh the token
+              const refreshResponse = await fetch(`${this.baseURL}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': refreshToken,
+                },
+              });
+
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                if (refreshData.success && refreshData.data) {
+                  const { token: newToken, refreshToken: newRefreshToken } = refreshData.data;
+                  
+                  // Update tokens
+                  this.setToken(newToken);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('refresh_token', newRefreshToken);
+                  }
+                  
+                  console.log('✅ Token refreshed successfully');
+                  return true;
+                }
+              }
+              
+              console.error('❌ Token refresh failed - invalid response');
+              return false;
+            } catch (refreshError) {
+              console.error('❌ Token refresh failed:', refreshError);
+              return false;
+            } finally {
+              // Clear the promise after completion
+              this.refreshPromise = null;
+            }
+          })();
+          
+          const refreshSuccess = await this.refreshPromise;
+          
+          if (refreshSuccess) {
+            console.log('✅ Token refreshed, retrying original request');
+            // Retry the original request with new token
+            return this.request<T>(endpoint, options, true);
+          }
+        }
+        
+        // If refresh failed or no refresh token, logout
+        console.log('🚪 Logging out due to failed token refresh');
+        if (typeof window !== 'undefined') {
+          localStorage.clear();
+          window.location.href = '/login?session_expired=true';
+        }
+        throw new Error('Session expired. Please log in again.');
+      }
+
       if (!response.ok) {
         let errorData;
         try {
@@ -91,7 +168,12 @@ class ApiClient {
         }
         console.error('API Error:', response.status, errorData);
         const errorMessage = errorData.message || errorData.details || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        // Attach error code and full response data to the error object
+        (error as any).code = errorData.code;
+        (error as any).errorCode = errorData.code;
+        (error as any).response = { data: errorData };
+        throw error;
       }
 
       const data = await response.json();
@@ -130,10 +212,11 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
+      ...options,
     });
   }
 

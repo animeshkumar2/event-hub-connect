@@ -21,16 +21,22 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useVendorDashboardData } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { isComplete: profileComplete, vendorId, isLoading: vendorLoading } = useVendorProfile();
+  const hasCheckedRef = useRef(false);
 
   // Redirect to login if not authenticated or not a vendor
   useEffect(() => {
-    if (!authLoading) {
+    // Only run once when auth is ready
+    if (!authLoading && !vendorLoading && !hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      
       if (!isAuthenticated) {
         navigate('/login?redirect=/vendor/dashboard');
         return;
@@ -39,16 +45,20 @@ export default function VendorDashboard() {
         navigate('/');
         return;
       }
-      // Check if vendor_id is set
-      const vendorId = localStorage.getItem('vendor_id');
-      if (!vendorId) {
-        // Vendor might not have completed onboarding
-        console.warn('Vendor ID not found in localStorage');
+      
+      // Check if vendor_id is set - if not and onboarding wasn't skipped, redirect to onboarding
+      const onboardingSkipped = localStorage.getItem('onboarding_skipped');
+      
+      if (!vendorId && !onboardingSkipped) {
+        // Vendor hasn't completed onboarding and hasn't skipped - redirect to onboarding
+        console.log('Vendor ID not found - redirecting to onboarding');
+        navigate('/vendor/onboarding');
+        return;
       }
     }
-  }, [isAuthenticated, user, authLoading, navigate]);
+  }, [isAuthenticated, user, authLoading, vendorLoading, navigate, vendorId]);
   
-  // Fetch real data in parallel using optimized hook
+  // Fetch real data in parallel using optimized hook (only if profile is complete)
   const { stats, profile, upcomingOrders, leads, listings, loading: dataLoading } = useVendorDashboardData();
   const statsData = stats.data;
   const statsLoading = stats.loading || dataLoading;
@@ -64,6 +74,28 @@ export default function VendorDashboard() {
 
   // Transform stats data into card format
   const statsCards = useMemo(() => {
+    // If profile is incomplete, show zeros
+    if (!profileComplete) {
+      return [
+        { 
+          label: 'Upcoming Bookings', 
+          value: '0', 
+          icon: Calendar, 
+          color: 'text-secondary', 
+          bg: 'bg-secondary/10', 
+          trend: 'Complete profile to get bookings' 
+        },
+        { 
+          label: 'Pending Leads', 
+          value: '0', 
+          icon: Users, 
+          color: 'text-primary', 
+          bg: 'bg-primary/10', 
+          trend: 'Complete profile to receive leads' 
+        },
+      ];
+    }
+    
     if (!statsData) return null;
     return [
       { 
@@ -101,7 +133,7 @@ export default function VendorDashboard() {
       //   trend: 'View analytics' 
       // },
     ];
-  }, [statsData]);
+  }, [statsData, profileComplete]);
 
   // Get today's schedule from upcoming orders
   const todaySchedule = useMemo(() => {
@@ -140,11 +172,11 @@ export default function VendorDashboard() {
       }));
   }, [leadsData]);
 
-  const vendorName = profileData?.businessName || 'Vendor';
-  const vendorRating = profileData?.rating || 0;
-  const reviewCount = profileData?.reviewCount || 0;
-  const isActive = profileData?.isActive !== false;
-  const hasListings = listingsData && Array.isArray(listingsData) && listingsData.length > 0;
+  const vendorName = profileComplete ? (profileData?.businessName || user?.fullName || 'Vendor') : (user?.fullName || 'Vendor');
+  const vendorRating = profileComplete ? (profileData?.rating || 0) : 0;
+  const reviewCount = profileComplete ? (profileData?.reviewCount || 0) : 0;
+  const isActive = profileComplete ? (profileData?.isActive !== false) : false;
+  const hasListings = profileComplete && listingsData && Array.isArray(listingsData) && listingsData.length > 0;
 
   // Show loading while checking auth
   if (authLoading) {
@@ -172,8 +204,8 @@ export default function VendorDashboard() {
     );
   }
 
-  if (statsError) {
-    const vendorId = localStorage.getItem('vendor_id');
+  if (statsError && profileComplete) {
+    // Only show error if profile is complete (otherwise it's expected to fail)
     return (
       <VendorLayout>
         <div className="p-6">
@@ -186,20 +218,6 @@ export default function VendorDashboard() {
                   <p className="text-sm text-muted-foreground">{statsError}</p>
                 </div>
               </div>
-              {!vendorId && (
-                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    <strong>Note:</strong> Vendor ID not found. You may need to complete vendor onboarding first.
-                  </p>
-                  <Button
-                    onClick={() => navigate('/vendor/onboarding')}
-                    className="mt-2"
-                    variant="outline"
-                  >
-                    Go to Onboarding
-                  </Button>
-                </div>
-              )}
               <div className="mt-4">
                 <Button
                   onClick={() => window.location.reload()}
@@ -218,6 +236,34 @@ export default function VendorDashboard() {
   return (
     <VendorLayout>
       <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+        {/* Profile Completion Banner - Show if vendor hasn't completed onboarding */}
+        {!profileComplete && (
+          <Card className="border-yellow-500/50 bg-yellow-500/5">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <p className="font-semibold text-yellow-800 dark:text-yellow-200">
+                      Complete Your Profile to Start Receiving Leads
+                    </p>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                      Add your business details, services, and contact information to make your profile visible to customers and start receiving bookings.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => navigate('/vendor/onboarding')}
+                    size="sm"
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    Complete Profile Now
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Hero Banner */}
         <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-r from-primary/10 via-background to-secondary/10 p-4 sm:p-6 lg:p-8 border border-border shadow-elegant">
           <div className="relative z-10 space-y-4">

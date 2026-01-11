@@ -63,6 +63,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
     
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ErrorResponse> handleAuthException(
+            AuthException ex,
+            HttpServletRequest request) {
+        log.warn("Authentication error: {} | Code: {} | URI: {} | Method: {}", 
+                ex.getUserMessage(), 
+                ex.getErrorCode(),
+                request.getRequestURI(),
+                request.getMethod());
+        log.debug("AuthException stack trace:", ex);
+        
+        ErrorResponse error = new ErrorResponse(ex.getErrorCode(), ex.getUserMessage());
+        
+        // Use 409 CONFLICT for email already exists, 401 UNAUTHORIZED for auth failures
+        HttpStatus status = ex.getErrorCode().equals("EMAIL_ALREADY_EXISTS") 
+            ? HttpStatus.CONFLICT 
+            : HttpStatus.UNAUTHORIZED;
+            
+        return ResponseEntity.status(status).body(error);
+    }
+    
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRuleException(
             BusinessRuleException ex,

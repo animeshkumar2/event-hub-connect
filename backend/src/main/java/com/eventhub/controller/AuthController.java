@@ -1,10 +1,13 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.dto.request.ForgotPasswordRequest;
 import com.eventhub.dto.request.GoogleAuthRequest;
 import com.eventhub.dto.request.LoginRequest;
 import com.eventhub.dto.request.RegisterRequest;
+import com.eventhub.dto.request.ResetPasswordRequest;
 import com.eventhub.service.AuthService;
+import com.eventhub.service.PasswordResetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
     
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthService.AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
@@ -33,6 +37,45 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthService.GoogleAuthResponse>> googleAuth(@RequestBody GoogleAuthRequest request) {
         AuthService.GoogleAuthResponse response = authService.authenticateWithGoogle(request);
         return ResponseEntity.ok(ApiResponse.success("Google authentication successful", response));
+    }
+    
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        passwordResetService.initiatePasswordReset(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success("If the email exists, a password reset link has been sent", null));
+    }
+    
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok(ApiResponse.success("Password reset successful", null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/validate-reset-token")
+    public ResponseEntity<ApiResponse<Boolean>> validateResetToken(@RequestParam String token) {
+        boolean isValid = passwordResetService.validateToken(token);
+        return ResponseEntity.ok(ApiResponse.success("Token validation result", isValid));
+    }
+    
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthService.AuthResponse>> refreshToken(
+            @RequestHeader("Authorization") String refreshToken) {
+        try {
+            // Remove "Bearer " prefix if present
+            String token = refreshToken.startsWith("Bearer ") 
+                ? refreshToken.substring(7) 
+                : refreshToken;
+            
+            AuthService.AuthResponse response = authService.refreshToken(token);
+            return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(401)
+                    .body(ApiResponse.error("Failed to refresh token: " + e.getMessage()));
+        }
     }
 }
 

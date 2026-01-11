@@ -270,15 +270,66 @@ export default function VendorProfile() {
     );
   }
 
-  if (error || !profileData) {
+  // Check if vendor_id exists in localStorage
+  const vendorId = localStorage.getItem('vendor_id');
+  
+  // If no vendor_id, show onboarding prompt
+  if (!vendorId) {
+    return (
+      <VendorLayout>
+        <div className="p-6">
+          <Card className="border-yellow-500/50 bg-yellow-500/5">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Complete Your Vendor Profile
+                  </h3>
+                  <p className="text-muted-foreground">
+                    You haven't set up your vendor profile yet. Complete the onboarding process to create your profile and start managing your business details.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => window.location.href = '/vendor/onboarding'}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                >
+                  Complete Onboarding
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
+  
+  // If vendor_id exists but API failed, show error with retry
+  if (error) {
     return (
       <VendorLayout>
         <div className="p-6">
           <Card className="border-destructive">
             <CardContent className="p-6">
-              <p className="text-destructive">Failed to load profile: {error}</p>
+              <div className="space-y-4">
+                <p className="text-destructive font-semibold">Failed to load profile</p>
+                <p className="text-sm text-muted-foreground">{error}</p>
+                <Button onClick={() => refetch()} variant="outline">
+                  Retry
+                </Button>
+              </div>
             </CardContent>
           </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
+  
+  // If no profile data yet (still loading or empty response)
+  if (!profileData) {
+    return (
+      <VendorLayout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </VendorLayout>
     );

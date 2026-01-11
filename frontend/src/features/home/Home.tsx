@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { MinimalNavbar } from '@/features/home/MinimalNavbar';
 import { CinematicHero } from '@/features/home/CinematicHero';
 import { InteractiveEventShowcase } from '@/features/home/InteractiveEventShowcase';
@@ -11,7 +13,24 @@ import { ArrowRight, Sparkles, CheckCircle2, Star, Zap, Shield, Award, ChevronDo
 import { cn } from '@/shared/lib/utils';
 
 const Home = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [openSection, setOpenSection] = useState<string | null>(null);
+  
+  // Redirect authenticated vendors/admins to their dashboards
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userRole = localStorage.getItem('user_role') || user.role;
+      
+      if (userRole === 'ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (userRole === 'VENDOR' || user.role === 'VENDOR') {
+        // Always redirect vendors to dashboard (vendorId will be fetched there if needed)
+        navigate('/vendor/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+  
   // How It Works steps for floating card
   const howItWorksSteps = [
     {
