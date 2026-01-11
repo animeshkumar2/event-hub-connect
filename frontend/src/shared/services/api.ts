@@ -22,7 +22,6 @@ class ApiClient {
   private baseURL: string;
   private token: string | null = null;
   private refreshPromise: Promise<boolean> | null = null; // Track ongoing refresh
-  private refreshPromise: Promise<boolean> | null = null; // Track ongoing refresh
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
