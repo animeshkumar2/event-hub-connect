@@ -76,7 +76,13 @@ class ApiClient {
       });
 
       // Handle 401 Unauthorized - try to refresh token
-      if (response.status === 401 && !isRetry && endpoint !== '/auth/refresh') {
+      // Skip token refresh for auth endpoints (login, register, etc.)
+      const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                            endpoint.includes('/auth/register') || 
+                            endpoint.includes('/auth/google') ||
+                            endpoint.includes('/auth/refresh');
+      
+      if (response.status === 401 && !isRetry && !isAuthEndpoint) {
         console.log('🔄 401 detected, attempting token refresh...');
         
         // If refresh is already in progress, wait for it
