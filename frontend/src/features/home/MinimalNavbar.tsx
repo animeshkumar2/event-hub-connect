@@ -308,7 +308,7 @@ export const MinimalNavbar = () => {
             {/* For Vendors - Keep this active for Phase 1 */}
             {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
-                to="/for-vendors"
+                to="/join-vendors"
                 className={cn(
                   'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
                 isSolidNav 
@@ -560,7 +560,7 @@ export const MinimalNavbar = () => {
             {/* For Vendors - Keep active for Phase 1 */}
             {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
-                to="/for-vendors"
+                to="/join-vendors"
                 className={cn(
                   'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
                   isSolidNav 

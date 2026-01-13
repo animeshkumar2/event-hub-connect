@@ -73,8 +73,8 @@ const Home = () => {
       links: [
         { label: 'Become a Vendor', to: '/signup' },
         { label: 'Vendor Login', to: '/login' },
-        { label: 'Vendor Benefits', to: '/for-vendors' },
-        { label: 'Commission Rates', to: '/for-vendors' },
+        { label: 'Vendor Benefits', to: '/join-vendors' },
+        { label: 'Commission Rates', to: '/join-vendors' },
       ],
     },
     /* PHASE 1: Support section commented out - will add in Phase 2

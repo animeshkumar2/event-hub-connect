@@ -127,7 +127,7 @@ export function PreLaunchGuard({ children }: { children: ReactNode }) {
 }
 
 // Launching Soon Page Component
-function LaunchingSoonPage() {
+export function LaunchingSoonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated Background */}
@@ -182,7 +182,7 @@ function LaunchingSoonPage() {
           {/* CTA Buttons */}
           <div className="space-y-2.5">
             <a 
-              href="/for-vendors"
+              href="/join-vendors"
               className="flex items-center justify-center w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold py-2.5 px-5 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all transform hover:scale-[1.02] text-sm shadow-lg shadow-purple-500/25"
             >
               Pre-Onboard as Vendor
@@ -223,8 +223,8 @@ function LaunchingSoonPage() {
         {/* Footer */}
         <p className="text-xs text-gray-500 mt-6">
           Questions? Contact us at{' '}
-          <a href="mailto:support@cartevent.com" className="text-purple-400 hover:underline">
-            support@cartevent.com
+          <a href="mailto:cartevent.welcome@gmail.com" className="text-purple-400 hover:underline">
+            cartevent.welcome@gmail.com
           </a>
         </p>
       </div>

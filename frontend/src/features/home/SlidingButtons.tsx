@@ -33,7 +33,7 @@ export const buttonOptions: ButtonOption[] = [
     label: 'For Vendors',
     description: 'List your services and grow your business. Join India\'s fastest-growing event marketplace today!',
     icon: Users,
-    path: '/for-vendors',
+    path: '/join-vendors',
     gradientClass: 'from-green-500 via-emerald-500 to-teal-500',
     hoverGradientClass: 'hover:from-green-600 hover:via-emerald-600 hover:to-teal-600',
     disabled: false,

@@ -274,7 +274,7 @@ export default function VendorLandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12 md:mb-16">
             {/* Analytics Card */}
             <div className="group">
-              <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+              <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 h-full flex flex-col">
                 <div className="h-48 bg-gradient-to-br from-blue-500/10 via-primary/5 to-purple-500/10 flex items-center justify-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-grid-pattern opacity-5" />
                   <div className="relative bg-white rounded-xl shadow-2xl p-4 transform group-hover:scale-105 transition-transform duration-300">
@@ -295,7 +295,7 @@ export default function VendorLandingPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-4 sm:p-6">
+                <CardContent className="p-4 sm:p-6 min-h-[140px] flex flex-col">
                   <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                       <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
@@ -309,7 +309,7 @@ export default function VendorLandingPage() {
 
             {/* Calendar Card */}
             <div className="group">
-              <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+              <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 h-full flex flex-col">
                 <div className="h-48 bg-gradient-to-br from-green-500/10 via-primary/5 to-emerald-500/10 flex items-center justify-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-grid-pattern opacity-5" />
                   <div className="relative bg-white rounded-xl shadow-2xl p-4 transform group-hover:scale-105 transition-transform duration-300">
@@ -325,7 +325,7 @@ export default function VendorLandingPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-4 sm:p-6">
+                <CardContent className="p-4 sm:p-6 min-h-[140px] flex flex-col">
                   <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
                       <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
@@ -339,7 +339,7 @@ export default function VendorLandingPage() {
 
             {/* Payments Card */}
             <div className="group">
-              <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+              <Card className="overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 h-full flex flex-col">
                 <div className="h-48 bg-gradient-to-br from-amber-500/10 via-primary/5 to-orange-500/10 flex items-center justify-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-grid-pattern opacity-5" />
                   <div className="relative bg-white rounded-xl shadow-2xl p-4 transform group-hover:scale-105 transition-transform duration-300">
@@ -355,7 +355,7 @@ export default function VendorLandingPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-4 sm:p-6">
+                <CardContent className="p-4 sm:p-6 min-h-[140px] flex flex-col">
                   <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                       <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
