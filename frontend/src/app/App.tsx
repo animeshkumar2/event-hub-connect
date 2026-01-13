@@ -19,6 +19,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 // Eagerly loaded pages (critical path)
 import Home from "@/features/home/Home";
+import { LaunchingSoon } from "@/features/home/LaunchingSoon";
 import Search from "@/features/search/Search";
 import VendorDetails from "@/features/vendor/VendorDetails";
 import Auth from "@/features/auth/Auth";
@@ -168,6 +169,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/launching-soon" element={<LaunchingSoon />} />
             <Route path="/for-vendors" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorLandingPage />

@@ -61,22 +61,23 @@ const Home = () => {
       id: 'customers',
       title: 'For Customers',
       links: [
-        { label: 'Find Vendors', to: '/search' },
-        { label: 'Event Planner', to: '/event-planner' },
-        { label: 'How It Works', to: '/how-it-works' },
-        { label: 'Pricing', to: '/pricing' },
+        { label: 'Find Vendors', to: '/launching-soon' },
+        { label: 'Event Planner', to: '/launching-soon' },
+        { label: 'How It Works', to: '/launching-soon' },
+        { label: 'Pricing', to: '/launching-soon' },
       ],
     },
     {
       id: 'vendors',
       title: 'For Vendors',
       links: [
-        { label: 'Become a Vendor', to: '/for-vendors' },
+        { label: 'Become a Vendor', to: '/signup' },
         { label: 'Vendor Login', to: '/login' },
         { label: 'Vendor Benefits', to: '/for-vendors' },
         { label: 'Commission Rates', to: '/for-vendors' },
       ],
     },
+    /* PHASE 1: Support section commented out - will add in Phase 2
     {
       id: 'support',
       title: 'Support',
@@ -87,6 +88,7 @@ const Home = () => {
         { label: 'Privacy Policy', to: '/privacy' },
       ],
     },
+    */
   ];
 
   return (
@@ -101,23 +103,34 @@ const Home = () => {
       {/* How It Works - Floating Above Next Section */}
       <section className="relative -mt-8 sm:-mt-12 md:-mt-16 z-20 mb-8 sm:mb-12 md:mb-16">
         <div className="container mx-auto px-3 sm:px-4">
-          <Card className={cn(
-            "bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-xl overflow-hidden animate-on-scroll",
-            "animate-fade-in-up"
-          )} ref={(el) => {
-            const observer = new IntersectionObserver(
-              (entries) => {
-                entries.forEach((entry) => {
-                  if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                  }
-                });
-              },
-              { threshold: 0.1 }
-            );
-            if (el) observer.observe(el);
-          }}>
-            <CardContent className="p-4 md:p-6">
+          <div className="relative">
+            {/* PHASE 1: Coming Soon Badge - Overlapping the card */}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-30">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
+                <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
+                  Coming Soon
+                </Badge>
+              </div>
+            </div>
+            
+            <Card className={cn(
+              "bg-white/95 backdrop-blur-md shadow-xl border-0 rounded-xl overflow-hidden animate-on-scroll",
+              "animate-fade-in-up"
+            )} ref={(el) => {
+              const observer = new IntersectionObserver(
+                (entries) => {
+                  entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                      entry.target.classList.add('visible');
+                    }
+                  });
+                },
+                { threshold: 0.1 }
+              );
+              if (el) observer.observe(el);
+            }}>
+              <CardContent className="p-4 md:p-6">
               {/* Steps Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                 {howItWorksSteps.map((item, index) => {
@@ -168,6 +181,7 @@ const Home = () => {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </section>
 

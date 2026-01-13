@@ -96,6 +96,18 @@ const eventCards: EventCard[] = [
     stats: { label: 'Baby Showers', value: '600+' },
     link: '/search?eventType=Baby Shower',
   },
+  {
+    id: 'other',
+    title: 'Other',
+    subtitle: 'Custom Events',
+    description: 'We support all types of celebrations! From festivals to reunions, we\'re expanding to cover every special moment.',
+    image: '/events/corporate.jpg',
+    cardImage: '/events/corporate.jpg',
+    gradient: 'from-gray-700/80 via-slate-600/70 to-gray-500/80',
+    icon: '🎉',
+    stats: { label: 'Custom Events', value: 'Coming Soon' },
+    link: '/search?eventType=Other',
+  },
 ];
 
 export const InteractiveEventShowcase = () => {
@@ -240,24 +252,22 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* Scrollable Card Container - Same as category carousel */}
-        <div className="relative max-w-5xl mx-auto w-full overflow-x-hidden px-2 sm:px-4 md:px-0">
+        <div className="relative max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-0">
           {/* Navigation Arrows */}
           <button
             onClick={goToPrevious}
-            className="hidden sm:flex absolute -left-2 md:-left-8 lg:-left-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
+            className="hidden sm:flex absolute left-0 md:-left-12 lg:-left-16 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-xl border-2 border-primary/30 hover:border-primary hover:shadow-2xl hover:scale-110 transition-all duration-200"
             aria-label="Previous event"
-            style={{ willChange: 'auto' }}
           >
-            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
+            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </button>
 
           <button
             onClick={goToNext}
-            className="hidden sm:flex absolute -right-2 md:-right-8 lg:-right-10 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-lg border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-colors duration-200"
+            className="hidden sm:flex absolute right-0 md:-right-12 lg:-right-16 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-xl border-2 border-primary/30 hover:border-primary hover:shadow-2xl hover:scale-110 transition-all duration-200"
             aria-label="Next event"
-            style={{ willChange: 'auto' }}
           >
-            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-primary" style={{ transform: 'translateZ(0)' }} />
+            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </button>
 
           {/* Scrollable Container */}
@@ -322,8 +332,8 @@ export const InteractiveEventShowcase = () => {
                           {card.description}
                         </p>
 
-                        {/* Stats - Smaller */}
-                        <div className="flex items-center gap-3 sm:gap-4 pt-1">
+                        {/* PHASE 1: Stats commented out - will show real data in Phase 2 */}
+                        {/* <div className="flex items-center gap-3 sm:gap-4 pt-1">
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <div className="p-1 sm:p-1.5 rounded-lg bg-primary/10">
                               <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
@@ -343,21 +353,31 @@ export const InteractiveEventShowcase = () => {
                               <div className="text-xs text-muted-foreground leading-tight">Cities</div>
                             </div>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
 
                       {/* CTA Button */}
                       <div className="pt-3 sm:pt-4 border-t mt-auto">
-                        <Button 
-                          size="default" 
-                          className="w-full text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-5 rounded-lg bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold shadow-lg hover-lift transition-all duration-300 group micro-bounce"
-                          asChild
-                        >
-                          <Link to={card.link}>
+                        <div className="relative">
+                          {/* PHASE 1: Soon Badge on Button */}
+                          <div className="absolute -top-2 -right-2 z-10">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
+                              <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-black px-3 py-1.5 shadow-lg uppercase tracking-wider border-0">
+                                Soon
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            size="default" 
+                            className="w-full text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-5 rounded-lg bg-gradient-to-r from-primary/40 to-primary-glow/40 text-white font-semibold shadow-lg cursor-not-allowed"
+                            disabled
+                          >
                             Explore {card.title} Packages
-                            <ArrowRight className="ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5 group-hover:translate-x-1 transition-transform smooth-transition" />
-                          </Link>
-                        </Button>
+                            <ArrowRight className="ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </div>
