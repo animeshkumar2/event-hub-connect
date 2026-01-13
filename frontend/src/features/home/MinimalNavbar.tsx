@@ -160,19 +160,10 @@ export const MinimalNavbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/"
-              className={cn(
-                'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
-                isSolidNav 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-            >
-              Home
-            </Link>
+            {/* PHASE 1: Simplified navigation - Home removed (logo serves this purpose) */}
             
-            {/* Vendors Dropdown */}
+            {/* PHASE 1: Customer features commented out - uncomment for Phase 2 */}
+            {/* Vendors Dropdown 
             <div 
               ref={vendorsDropdownRef}
               className="relative"
@@ -201,7 +192,6 @@ export const MinimalNavbar = () => {
                 )} />
               </button>
               
-              {/* Dropdown Menu */}
               {vendorsDropdownOpen && (
                 <div
                   className={cn(
@@ -234,8 +224,9 @@ export const MinimalNavbar = () => {
                 </div>
               )}
             </div>
+            */}
 
-            {/* Event Types Dropdown */}
+            {/* Event Types Dropdown 
             <div 
               ref={eventTypesDropdownRef}
               className="relative"
@@ -264,7 +255,6 @@ export const MinimalNavbar = () => {
                 )} />
               </button>
               
-              {/* Dropdown Menu */}
               {eventTypesDropdownOpen && (
                 <div
                   className={cn(
@@ -297,7 +287,9 @@ export const MinimalNavbar = () => {
                 </div>
               )}
             </div>
+            */}
 
+            {/* Event Planner 
             <Link
               to="/event-planner"
               className={cn(
@@ -310,7 +302,10 @@ export const MinimalNavbar = () => {
               <Sparkles className="h-3.5 w-3.5" />
               Event Planner
             </Link>
+            */}
 
+            {/* For Vendors - Keep this active for Phase 1 */}
+            {/* For Vendors - Keep this active for Phase 1 */}
             {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
                 to="/for-vendors"
@@ -321,11 +316,11 @@ export const MinimalNavbar = () => {
                     : 'text-white/90 hover:text-white hover:bg-white/10'
                 )}
               >
-                Become a Vendor
+                For Vendors
               </Link>
             )}
 
-            {/* Cart */}
+            {/* Cart - Commented out for Phase 1 
             <Button
               variant="ghost"
               size="icon"
@@ -346,6 +341,7 @@ export const MinimalNavbar = () => {
                 )}
               </Link>
             </Button>
+            */}
 
             {/* User Menu or Login/Signup */}
             {isAuthenticated && user ? (
@@ -445,20 +441,10 @@ export const MinimalNavbar = () => {
             'md:hidden py-4 space-y-3 border-t transition-colors',
             isSolidNav ? 'border-border bg-white' : 'border-white/20 bg-white/90'
           )}>
-            <Link
-              to="/"
-              className={cn(
-                'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
-                isSolidNav 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-              onClick={closeMobileMenu}
-            >
-              Home
-            </Link>
+            {/* PHASE 1: Simplified navigation - Home removed (logo serves this purpose) */}
             
-            {/* Mobile Vendors Section */}
+            {/* PHASE 1: Customer features commented out - uncomment for Phase 2 */}
+            {/* Mobile Vendors Section 
             <div ref={mobileVendorsRef}>
               <button
                 className={cn(
@@ -504,8 +490,9 @@ export const MinimalNavbar = () => {
                 </div>
               )}
             </div>
+            */}
 
-            {/* Mobile Event Types Section */}
+            {/* Mobile Event Types Section 
             <div ref={mobileEventTypesRef}>
               <button
                 className={cn(
@@ -551,7 +538,9 @@ export const MinimalNavbar = () => {
                 </div>
               )}
             </div>
+            */}
 
+            {/* Event Planner 
             <Link
               to="/event-planner"
               className={cn(
@@ -565,7 +554,10 @@ export const MinimalNavbar = () => {
               <Sparkles className="h-3.5 w-3.5" />
               Event Planner
             </Link>
+            */}
 
+            {/* For Vendors - Keep active for Phase 1 */}
+            {/* For Vendors - Keep active for Phase 1 */}
             {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
                 to="/for-vendors"
@@ -577,10 +569,11 @@ export const MinimalNavbar = () => {
                 )}
                 onClick={closeMobileMenu}
               >
-                Become a Vendor
+                For Vendors
               </Link>
             )}
 
+            {/* Cart - Commented out for Phase 1 
             <Link
               to="/cart"
               className={cn(
@@ -599,6 +592,7 @@ export const MinimalNavbar = () => {
                 </Badge>
               )}
             </Link>
+            */}
 
             <div className="flex items-center gap-2 pt-2">
               {isAuthenticated && user ? (
