@@ -517,6 +517,8 @@ export const vendorApi = {
   updateSlot: (slotId: string, status: string) =>
     apiClient.put<any>(`/vendors/availability/${slotId}`, { status }),
   deleteSlot: (slotId: string) => apiClient.delete<any>(`/vendors/availability/${slotId}`),
+  bulkUpdateAvailability: (startDate: string, endDate: string, status: string) =>
+    apiClient.post<number>('/vendors/availability/bulk', { startDate, endDate, status }),
   
   // Bookable Setups
   getBookableSetups: () => apiClient.get<any[]>('/vendors/bookable-setups'),

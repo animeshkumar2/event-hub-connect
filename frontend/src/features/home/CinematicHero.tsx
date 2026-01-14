@@ -6,7 +6,7 @@ import { SlidingButtons, buttonOptions } from './SlidingButtons';
 export const CinematicHero = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [description, setDescription] = useState(buttonOptions[0].description);
+  const [description, setDescription] = useState(buttonOptions[1].description); // PHASE 1: Default to "For Vendors"
   const heroRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const floatingIconsRef = useRef<HTMLDivElement>(null);

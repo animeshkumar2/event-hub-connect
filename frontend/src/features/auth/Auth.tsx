@@ -9,6 +9,7 @@ import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { CustomerWaitlistForm } from "@/features/home/CustomerWaitlistForm";
 
 interface AuthProps {
   mode?: "login" | "signup";
@@ -25,6 +26,11 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const urlMode = searchParams.get('mode') as "login" | "signup" | null;
   const urlType = searchParams.get('type');
   const mode = propMode || urlMode || "login";
+  
+  // PHASE 1: Show waitlist form if customer type is selected in signup
+  const [showWaitlistForm, setShowWaitlistForm] = useState(
+    mode === 'signup' && urlType === 'customer'
+  );
   
   // Default to vendor for signup (Phase 1 priority), unless explicitly set to customer via URL
   const [isVendor, setIsVendor] = useState(
@@ -455,17 +461,20 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Vendor Selection - Improved for signup */}
+          {/* Vendor Selection - PHASE 1: Show waitlist form for customers */}
           {mode === "signup" && (
             <div className="mb-4">
               <Label className="text-sm font-medium mb-3 block">I want to sign up as:</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsVendor(true)}
+                  onClick={() => {
+                    setIsVendor(true);
+                    setShowWaitlistForm(false);
+                  }}
                   disabled={isLoading || isGoogleLoading}
                   className={`p-4 rounded-lg border-2 transition-all ${
-                    isVendor
+                    isVendor && !showWaitlistForm
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border hover:border-primary/50'
                   }`}
@@ -476,26 +485,56 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     <div className="text-xs text-muted-foreground mt-1">Offer services</div>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsVendor(false)}
-                  disabled={isLoading || isGoogleLoading}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    !isVendor
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="text-2xl mb-1">🎉</div>
-                    <div className="font-semibold text-sm">Customer</div>
-                    <div className="text-xs text-muted-foreground mt-1">Book vendors</div>
+                {/* PHASE 1: Customer option opens waitlist form */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsVendor(false);
+                      setShowWaitlistForm(true);
+                    }}
+                    disabled={isLoading || isGoogleLoading}
+                    className={`w-full p-4 rounded-lg border-2 transition-all ${
+                      !isVendor && showWaitlistForm
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl mb-1">🎉</div>
+                      <div className="font-semibold text-sm">Customer</div>
+                      <div className="text-xs text-muted-foreground mt-1">Join waitlist</div>
+                    </div>
+                  </button>
+                  {/* Coming Soon Badge */}
+                  <div className="absolute -top-2 -right-2 z-10">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-sm opacity-75"></div>
+                      <div className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg uppercase tracking-wider">
+                        Soon
+                      </div>
+                    </div>
                   </div>
-                </button>
+                </div>
               </div>
             </div>
           )}
 
+          {/* PHASE 1: Show waitlist form for customers in a dialog */}
+          <CustomerWaitlistForm 
+            open={mode === "signup" && showWaitlistForm} 
+            onOpenChange={(open) => {
+              if (!open) {
+                // When form is closed, go back to vendor selection
+                setShowWaitlistForm(false);
+                setIsVendor(true);
+              }
+            }} 
+          />
+
+          {/* Regular Vendor Signup / Login Form - Hide when waitlist form is shown */}
+          {!(mode === "signup" && showWaitlistForm) && (
+            <>
           {/* Google Sign-In Button - Only show if client ID is configured */}
           {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
             <div className="mb-6">
@@ -692,8 +731,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   {fieldErrors.confirmPassword && (
                     <p className="text-sm text-red-500">{fieldErrors.confirmPassword}</p>
                   )}
-                  {/* Show success indicator when passwords match */}
-                  {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                  {/* Show success indicator when passwords match and no error */}
+                  {!fieldErrors.confirmPassword && formData.confirmPassword && formData.password === formData.confirmPassword && (
                     <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
                       <Check className="h-3 w-3" />
                       <span>Passwords match</span>
@@ -790,6 +829,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               )}
             </div>
           </form>
+          </>
+          )}
         </CardContent>
       </Card>
     </div>

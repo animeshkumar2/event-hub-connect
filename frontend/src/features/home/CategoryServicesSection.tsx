@@ -139,18 +139,27 @@ export const CategoryServicesSection = () => {
           {/* Left Column - Services */}
           <section className="flex flex-col order-2 lg:order-1">
             {/* Services selection card */}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 sm:p-6 md:p-8 shadow-sm min-h-[400px] sm:h-[436px] md:h-[576px] flex flex-col justify-center">
+            <div className="relative bg-primary/5 border border-primary/20 rounded-lg p-4 sm:p-6 md:p-8 shadow-sm min-h-[400px] sm:h-[436px] md:h-[576px] flex flex-col justify-center">
+              {/* PHASE 1: Coming Soon Badge - Centered on the card */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
+                  <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
+                    Coming Soon
+                  </Badge>
+                </div>
+              </div>
+              
               <h4 className="text-base sm:text-lg font-medium text-muted-foreground mb-4 sm:mb-6">
                 What are you looking for?
               </h4>
               {/* Grid container for service categories */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
                 {categories.map((category, index) => (
-                  <Link
+                  <div
                     key={category.id}
-                    to={category.searchPath}
                     className={cn(
-                      "service-card flex flex-col items-center justify-center text-center p-4 bg-muted/50 rounded-lg hover:bg-primary/10 transition-all duration-300 group animate-on-scroll",
+                      "service-card flex flex-col items-center justify-center text-center p-4 bg-muted/50 rounded-lg opacity-70 animate-on-scroll",
                       index === 6 && "sm:col-start-2" // Event Planners spans 2 columns on small screens
                     )}
                     style={{
@@ -160,33 +169,22 @@ export const CategoryServicesSection = () => {
                     }}
                   >
                     <div 
-                      className="w-12 h-12 mb-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary-glow/20 p-2 group-hover:scale-110 transition-all duration-300 flex items-center justify-center"
+                      className="w-12 h-12 mb-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary-glow/20 p-2 transition-all duration-300 flex items-center justify-center"
                       style={{
-                        transformStyle: 'preserve-3d',
-                        perspective: '1000px',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(99, 102, 241, 0.1)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'perspective(1000px) rotateY(5deg) rotateX(-5deg) scale(1.1) translateZ(10px)';
-                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(99, 102, 241, 0.3), 0 4px 6px -2px rgba(99, 102, 241, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.2)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1) translateZ(0px)';
-                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(99, 102, 241, 0.1)';
                       }}
                     >
                       <category.icon 
-                        className="w-6 h-6 text-primary group-hover:text-primary-glow transition-colors duration-300"
+                        className="w-6 h-6 text-primary transition-colors duration-300"
                         style={{
-                          transform: 'translateZ(5px)',
                           filter: 'drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3))',
                         }}
                       />
                     </div>
-                    <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                    <span className="text-sm font-medium text-foreground transition-colors">
                       {category.name}
                     </span>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
