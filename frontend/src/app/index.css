@@ -121,6 +121,12 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html {
+    overscroll-behavior-y: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
