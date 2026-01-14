@@ -36,6 +36,17 @@ public class VendorAvailabilityController {
         return ResponseEntity.ok(ApiResponse.success("Availability slots created", slots));
     }
     
+    @PostMapping("/bulk")
+    public ResponseEntity<ApiResponse<Integer>> bulkUpdateAvailability(
+            @RequestHeader("X-Vendor-Id") UUID vendorId,
+            @RequestBody BulkUpdateRequest request) {
+        int updatedCount = availabilityService.bulkUpdateAvailability(
+                vendorId, request.getStartDate(), request.getEndDate(), 
+                AvailabilitySlot.SlotStatus.valueOf(request.getStatus()));
+        return ResponseEntity.ok(ApiResponse.success(
+                updatedCount + " dates updated", updatedCount));
+    }
+    
     @PutMapping("/{slotId}")
     public ResponseEntity<ApiResponse<AvailabilitySlot>> updateSlot(
             @RequestHeader("X-Vendor-Id") UUID vendorId,
@@ -56,6 +67,13 @@ public class VendorAvailabilityController {
     
     @lombok.Data
     public static class UpdateStatusRequest {
+        private String status;
+    }
+    
+    @lombok.Data
+    public static class BulkUpdateRequest {
+        private LocalDate startDate;
+        private LocalDate endDate;
         private String status;
     }
 }

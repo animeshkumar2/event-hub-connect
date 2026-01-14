@@ -30,7 +30,7 @@ export const buttonOptions: ButtonOption[] = [
   },
   {
     id: 'join-vendor',
-    label: 'For Vendors',
+    label: 'Become a Vendor',
     description: 'List your services and grow your business. Join India\'s fastest-growing event marketplace today!',
     icon: Users,
     path: '/join-vendors',
@@ -61,11 +61,14 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
   const [activeIndex, setActiveIndex] = useState(1); // PHASE 1: Default to "For Vendors" button
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleClick = (path: string, disabled: boolean, e: React.MouseEvent) => {
+  const handleClick = (id: string, path: string, disabled: boolean, e: React.MouseEvent) => {
     e.preventDefault();
+    // PHASE 1: Navigate to signup for customer button (waitlist form is on signup page)
+    if (id === 'find-vendors') {
+      navigate('/signup?type=customer');
+      return;
+    }
     if (disabled) {
-      // Show toast for coming soon features
-      // You can add toast notification here if you have a toast library
       return;
     }
     navigate(path);
@@ -167,14 +170,14 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
                 
                 <Button
                   size="lg"
-                  onClick={(e) => handleClick(option.path, isDisabled, e)}
+                  onClick={(e) => handleClick(option.id, option.path, isDisabled, e)}
                   disabled={isDisabled}
                   className={cn(
                     "text-base px-8 py-6 rounded-xl bg-gradient-to-r text-white border-0 shadow-2xl transition-all duration-300 group font-semibold backdrop-blur-sm animate-fade-in-up relative overflow-hidden",
                     `bg-gradient-to-r ${option.gradientClass}`,
                     isDisabled 
-                      ? "cursor-not-allowed" 
-                      : `${option.hoverGradientClass} hover:shadow-2xl hover:scale-105 ring-2 ring-green-400/50`
+                      ? "cursor-not-allowed hover:shadow-2xl" 
+                      : `${option.hoverGradientClass} hover:shadow-[0_20px_60px_-15px_rgba(34,197,94,0.5)] hover:scale-105 ring-2 ring-green-400/50 hover:ring-green-400/70`
                   )}
                   style={{
                     textShadow: '0 2px 8px rgba(0, 0, 0, 0.7)',
@@ -184,7 +187,11 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
                 >
                   {/* Shine effect for active button */}
                   {!isDisabled && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-green-400/0 via-green-400/20 to-green-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></div>
+                    </>
                   )}
                   
                   <Icon className={cn(

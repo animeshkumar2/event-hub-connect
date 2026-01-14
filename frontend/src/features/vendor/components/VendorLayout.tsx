@@ -25,11 +25,10 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <span className="text-base font-semibold text-[#5046E5]">
             cartevent<span className="text-[#7C6BFF]">.</span>
           </span>
-          <span className="text-xs text-muted-foreground">Vendor</span>
         </div>
         <div className="w-10" />
       </header>
@@ -43,7 +42,7 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
         />
       )}
 
-      <main className="min-h-screen bg-background transition-all duration-300 md:ml-64 pt-16 md:pt-0">
+      <main className="min-h-screen bg-background transition-all duration-300 md:ml-64 pt-0 md:pt-0">
         {children}
       </main>
     </div>

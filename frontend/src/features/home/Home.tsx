@@ -264,7 +264,8 @@ const Home = () => {
             })}
           </div>
 
-          <div className="pt-6 border-t border-border">
+          {/* PHASE 1: Bottom footer links commented out - will add in Phase 2 */}
+          {/* <div className="pt-6 border-t border-border">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground text-center md:text-left">
                 © 2025 cartevent. All rights reserved.
@@ -281,7 +282,7 @@ const Home = () => {
                 </Link>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </footer>
     </div>

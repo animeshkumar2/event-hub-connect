@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
                 // Auth endpoints - public
                 .requestMatchers("/api/auth/**").permitAll()
+                // Customer waitlist - public (Phase 1: capture customer leads)
+                .requestMatchers("/api/customer-waitlist/**").permitAll()
                 // Admin login - public
                 .requestMatchers("/api/admin/login").permitAll()
                 // Allow authenticated users to check if they have a vendor profile (must come before /api/vendors/**)
