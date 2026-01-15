@@ -1,12 +1,11 @@
 import { Camera, Music, Utensils, Sparkles, Palette, Heart } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/shared/lib/utils';
-import { SlidingButtons, buttonOptions } from './SlidingButtons';
+import { SlidingButtons } from './SlidingButtons';
 
 export const CinematicHero = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [description, setDescription] = useState(buttonOptions[1].description); // PHASE 1: Default to "For Vendors"
   const heroRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const floatingIconsRef = useRef<HTMLDivElement>(null);
@@ -209,21 +208,6 @@ export const CinematicHero = () => {
               }}
             />
             
-            {/* Subheadline - Center Aligned, Smaller - Changes with Sliding Buttons */}
-            <div className="mt-6 sm:mt-8 md:mt-10 mb-4 sm:mb-6 min-h-[60px] sm:min-h-[50px] flex items-center justify-center px-2">
-              <p 
-                key={description}
-                className="text-xs sm:text-xs md:text-sm lg:text-base text-white/60 font-light tracking-wide max-w-[280px] sm:max-w-xl mx-auto leading-relaxed sm:leading-relaxed text-center px-2 sm:px-4 md:px-6 break-words"
-                style={{
-                  textShadow: '0 2px 8px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4)',
-                  lineHeight: '1.5',
-                  fontSize: 'clamp(0.75rem, 2.5vw, 1rem)',
-                }}
-              >
-                {description}
-              </p>
-            </div>
-            
             {/* Sliding Buttons - Centered */}
             <div 
               className={cn(
@@ -234,7 +218,7 @@ export const CinematicHero = () => {
                 animationDelay: isLoaded ? '1.2s' : '0s',
               }}
             >
-              <SlidingButtons onActiveChange={setDescription} />
+              <SlidingButtons />
             </div>
           </div>
         </div>

@@ -1,91 +1,86 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Users, Sparkles } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
 interface ButtonOption {
   id: string;
   label: string;
+  subtitle: string;
   description: string;
   icon: typeof Search;
   path: string;
-  gradientClass: string;
-  hoverGradientClass: string;
-  disabled?: boolean; // PHASE 1: Mark customer features as disabled
-  comingSoon?: boolean; // PHASE 1: Show "Coming Soon" badge
+  bgColor: string;
+  accentColor: string;
+  iconBg: string;
+  disabled?: boolean;
+  comingSoon?: boolean;
 }
 
 export const buttonOptions: ButtonOption[] = [
   {
     id: 'find-vendors',
-    label: 'For Customers',
-    description: 'Browse vendors, compare prices, and book services for your events with ease.',
+    label: 'Find Vendors',
+    subtitle: 'For Customers',
+    description: 'Discover trusted vendors for your events.\nCompare prices, view portfolios & book instantly!',
     icon: Search,
     path: '/search',
-    gradientClass: 'from-blue-500/40 via-indigo-500/40 to-purple-500/40',
-    hoverGradientClass: 'hover:from-blue-500/50 hover:via-indigo-500/50 hover:to-purple-500/50',
+    bgColor: 'bg-[#1a1a2e]',
+    accentColor: 'text-cyan-400',
+    iconBg: 'bg-cyan-500/20 border-cyan-500/30',
     disabled: true,
     comingSoon: true,
   },
   {
     id: 'join-vendor',
-    label: 'Become a Vendor',
-    description: 'List your services and grow your business. Join India\'s fastest-growing event marketplace today!',
+    label: 'Join as Vendor',
+    subtitle: 'For Businesses',
+    description: 'List your services and grow your business.\nJoin India\'s fastest-growing event marketplace today!',
     icon: Users,
     path: '/join-vendors',
-    gradientClass: 'from-green-500 via-emerald-500 to-teal-500',
-    hoverGradientClass: 'hover:from-green-600 hover:via-emerald-600 hover:to-teal-600',
+    bgColor: 'bg-[#0f172a]',
+    accentColor: 'text-amber-400',
+    iconBg: 'bg-amber-500/20 border-amber-500/30',
     disabled: false,
     comingSoon: false,
   },
   {
     id: 'planner',
-    label: 'Event Planner',
-    description: 'AI-powered recommendations to find perfect vendors for your budget and event type.',
+    label: 'AI Planner',
+    subtitle: 'Smart Planning',
+    description: 'Plan your perfect event with AI assistance.\nGet personalized recommendations in minutes!',
     icon: Sparkles,
     path: '/event-planner',
-    gradientClass: 'from-purple-500/40 via-fuchsia-500/40 to-pink-500/40',
-    hoverGradientClass: 'hover:from-purple-500/50 hover:via-fuchsia-500/50 hover:to-pink-500/50',
+    bgColor: 'bg-[#1e1b4b]',
+    accentColor: 'text-violet-400',
+    iconBg: 'bg-violet-500/20 border-violet-500/30',
     disabled: true,
     comingSoon: true,
   },
 ];
 
-interface SlidingButtonsProps {
-  onActiveChange?: (description: string) => void;
-}
-
-export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
+export const SlidingButtons = () => {
   const navigate = useNavigate();
-  const [activeIndex, setActiveIndex] = useState(1); // PHASE 1: Default to "For Vendors" button
+  const [activeIndex, setActiveIndex] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleClick = (id: string, path: string, disabled: boolean, e: React.MouseEvent) => {
     e.preventDefault();
-    // PHASE 1: Navigate to signup for customer button (waitlist form is on signup page)
     if (id === 'find-vendors') {
       navigate('/signup?type=customer');
       return;
     }
-    if (disabled) {
-      return;
-    }
+    if (disabled) return;
     navigate(path);
   };
 
-  // Handle scroll to update active index - exactly like category carousel
   const handleScroll = () => {
     if (!scrollRef.current) return;
     const scrollLeft = scrollRef.current.scrollLeft;
     const buttonWidth = scrollRef.current.offsetWidth;
     const newIndex = Math.round(scrollLeft / buttonWidth);
     
-    // Update text FIRST, then index - for immediate sync
     if (newIndex !== activeIndex && newIndex >= 0 && newIndex < buttonOptions.length) {
-      if (onActiveChange) {
-        onActiveChange(buttonOptions[newIndex].description);
-      }
       setActiveIndex(newIndex);
     }
   };
@@ -93,48 +88,56 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
   const goToSlide = (index: number) => {
     if (!scrollRef.current) return;
     const buttonWidth = scrollRef.current.offsetWidth;
-    
-    // Update text IMMEDIATELY before scrolling
-    if (onActiveChange) {
-      onActiveChange(buttonOptions[index].description);
-    }
     setActiveIndex(index);
-    
-    // Then scroll smoothly
     scrollRef.current.scrollTo({
       left: index * buttonWidth,
       behavior: 'smooth',
     });
   };
 
-  // Notify parent on mount and scroll to default position
   useEffect(() => {
-    if (onActiveChange) {
-      onActiveChange(buttonOptions[activeIndex].description);
-    }
-    // Scroll to the active index on mount
     if (scrollRef.current) {
       const buttonWidth = scrollRef.current.offsetWidth;
       scrollRef.current.scrollTo({
         left: activeIndex * buttonWidth,
-        behavior: 'auto', // Instant scroll on mount
+        behavior: 'auto',
       });
     }
-  }, [onActiveChange]);
+  }, []);
+
+  const activeOption = buttonOptions[activeIndex];
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
-      {/* Scrollable Button Container - Same as category carousel */}
+    <div className="relative w-full max-w-sm mx-auto">
+      {/* Dynamic Description Text */}
+      <div className="text-center mb-4 px-4 min-h-[50px] flex items-center justify-center">
+        <p 
+          key={activeIndex}
+          className="text-sm leading-relaxed transition-all duration-300 text-white/70"
+          style={{
+            animation: 'fadeIn 0.3s ease-out',
+          }}
+        >
+          {activeOption.description.split('\n').map((line, i) => (
+            <React.Fragment key={i}>
+              {line}
+              {i === 0 && <br />}
+            </React.Fragment>
+          ))}
+        </p>
+      </div>
+
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 pt-6"
-        style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 16px' }}
+        className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 px-2"
+        style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 8px' }}
       >
         {buttonOptions.map((option, index) => {
           const Icon = option.icon;
           const isDisabled = option.disabled || false;
           const isComingSoon = option.comingSoon || false;
+          const isActive = index === activeIndex;
           
           return (
             <div
@@ -142,64 +145,55 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
               className="flex-shrink-0 w-full flex justify-center items-center"
               style={{ scrollSnapAlign: 'start' }}
             >
-              <div className="relative pt-3 pr-3">
-                {/* Coming Soon Badge - Redesigned */}
-                {isComingSoon && (
-                  <div className="absolute -top-2 -right-2 z-10">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
-                      <div className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wider">
-                        Soon
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Live Badge for active button */}
-                {!isDisabled && !isComingSoon && (
-                  <div className="absolute -top-2 -right-2 z-10">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full blur-md opacity-75 animate-pulse"></div>
-                      <div className="relative bg-gradient-to-r from-green-400 to-emerald-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-                        Live
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <Button
-                  size="lg"
+              <div className="relative w-full max-w-[260px]">
+                {/* Button Card */}
+                <button
                   onClick={(e) => handleClick(option.id, option.path, isDisabled, e)}
                   disabled={isDisabled}
                   className={cn(
-                    "text-base px-8 py-6 rounded-xl bg-gradient-to-r text-white border-0 shadow-2xl transition-all duration-300 group font-semibold backdrop-blur-sm animate-fade-in-up relative overflow-hidden",
-                    `bg-gradient-to-r ${option.gradientClass}`,
+                    "relative w-full px-4 py-3.5 rounded-xl transition-all duration-300",
+                    "flex items-center justify-between gap-3",
+                    option.bgColor,
+                    "border border-white/10",
                     isDisabled 
-                      ? "cursor-not-allowed hover:shadow-2xl" 
-                      : `${option.hoverGradientClass} hover:shadow-[0_20px_60px_-15px_rgba(34,197,94,0.5)] hover:scale-105 ring-2 ring-green-400/50 hover:ring-green-400/70`
+                      ? "cursor-not-allowed opacity-60" 
+                      : cn(
+                          "hover:border-white/20 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer",
+                          isActive && "border-white/25 shadow-xl"
+                        )
                   )}
-                  style={{
-                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.7)',
-                    minWidth: '200px',
-                    animationDelay: `${index * 0.1}s`,
-                  }}
                 >
-                  {/* Shine effect for active button */}
-                  {!isDisabled && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                      {/* Glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-green-400/0 via-green-400/20 to-green-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></div>
-                    </>
-                  )}
-                  
-                  <Icon className={cn(
-                    "mr-2 h-5 w-5 drop-shadow-lg transition-transform duration-300 relative z-10",
-                    !isDisabled && "group-hover:rotate-12 group-hover:scale-110"
-                  )} />
-                  <span className="drop-shadow-lg font-bold relative z-10">{option.label}</span>
-                </Button>
+                  {/* Text */}
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-white leading-tight">
+                        {option.label}
+                      </h3>
+                      {/* Status Badge - Inline */}
+                      {isComingSoon ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[7px] font-bold bg-white/10 text-white/50 uppercase tracking-wide">
+                          Soon
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-bold bg-emerald-500/20 text-emerald-400 uppercase tracking-wide">
+                          <span className="w-1 h-1 bg-emerald-400 rounded-full"></span>
+                          Live
+                        </span>
+                      )}
+                    </div>
+                    <p className={cn("text-[10px] font-medium mt-0.5", option.accentColor)}>
+                      {option.subtitle}
+                    </p>
+                  </div>
+
+                  {/* Icon */}
+                  <div className={cn(
+                    "p-2.5 rounded-lg border backdrop-blur-sm flex-shrink-0",
+                    option.iconBg
+                  )}>
+                    <Icon className={cn("h-5 w-5", option.accentColor)} />
+                  </div>
+                </button>
               </div>
             </div>
           );
@@ -207,21 +201,32 @@ export const SlidingButtons = ({ onActiveChange }: SlidingButtonsProps) => {
       </div>
 
       {/* Indicators */}
-      <div className="flex justify-center gap-2 mt-4">
-        {buttonOptions.map((_, index) => (
+      <div className="flex justify-center items-center gap-1.5 mt-3">
+        {buttonOptions.map((option, index) => (
           <button
             key={index}
             onClick={() => goToSlide(index)}
             className={cn(
-              "h-2 rounded-full transition-all duration-300 cursor-pointer",
+              "rounded-full transition-all duration-300 cursor-pointer",
               index === activeIndex
-                ? "w-8 bg-primary"
-                : "w-2 bg-muted-foreground/40 hover:bg-muted-foreground/60"
+                ? cn("w-5 h-1.5", 
+                    option.id === 'find-vendors' ? "bg-cyan-400" :
+                    option.id === 'join-vendor' ? "bg-amber-400" : "bg-violet-400"
+                  )
+                : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
             )}
             aria-label={`Go to ${buttonOptions[index].label}`}
           />
         ))}
       </div>
+
+      {/* Fade animation */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };

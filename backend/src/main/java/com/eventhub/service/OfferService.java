@@ -126,16 +126,18 @@ public class OfferService {
         offer.setStatus(Offer.OfferStatus.ACCEPTED);
         offer.setAcceptedAt(LocalDateTime.now());
         
-        // Create order from accepted offer
+        // Create order from accepted offer (order will be in PENDING status awaiting token payment)
         Order order = createOrderFromOffer(offer);
         offer.setOrderId(order.getId());
         
-        // Update lead status
+        // Update lead status to OPEN (waiting for token payment, not CONVERTED yet)
         if (offer.getLeadId() != null) {
             Lead lead = leadRepository.findById(offer.getLeadId())
                     .orElse(null);
             if (lead != null) {
-                lead.setStatus(Lead.LeadStatus.CONVERTED);
+                lead.setStatus(Lead.LeadStatus.OPEN);
+                lead.setOrder(order); // Link lead to order
+                lead.setSource(Lead.LeadSource.OFFER);
                 leadRepository.save(lead);
             }
         }
@@ -229,16 +231,18 @@ public class OfferService {
         offer.setStatus(Offer.OfferStatus.ACCEPTED);
         offer.setAcceptedAt(LocalDateTime.now());
         
-        // Create order from accepted offer
+        // Create order from accepted offer (order will be in PENDING status awaiting token payment)
         Order order = createOrderFromOffer(offer);
         offer.setOrderId(order.getId());
         
-        // Update lead status
+        // Update lead status to OPEN (waiting for token payment, not CONVERTED yet)
         if (offer.getLeadId() != null) {
             Lead lead = leadRepository.findById(offer.getLeadId())
                     .orElse(null);
             if (lead != null) {
-                lead.setStatus(Lead.LeadStatus.CONVERTED);
+                lead.setStatus(Lead.LeadStatus.OPEN);
+                lead.setOrder(order); // Link lead to order
+                lead.setSource(Lead.LeadSource.OFFER);
                 leadRepository.save(lead);
             }
         }
@@ -460,6 +464,9 @@ public class OfferService {
         
         BigDecimal totalAmount = subtotal.add(platformFee).add(gst);
         
+        // Calculate token amount (25% of total)
+        BigDecimal tokenAmount = totalAmount.multiply(new BigDecimal("0.25")).setScale(0, RoundingMode.HALF_UP);
+        
         // Create order
         Order order = new Order();
         order.setUserId(offer.getUserId());
@@ -477,16 +484,19 @@ public class OfferService {
         order.setDiscountAmount(discountAmount);
         order.setTaxAmount(gst);
         order.setTotalAmount(totalAmount);
+        order.setTokenAmount(tokenAmount);
+        order.setBalanceAmount(totalAmount); // Full amount as balance initially
         order.setCustomerName(user.getFullName());
         order.setCustomerEmail(user.getEmail());
         order.setCustomerPhone(user.getPhone());
         order.setNotes("Order created from accepted offer. Original price: " + offer.getOriginalPrice() + ", Negotiated price: " + offer.getOfferedPrice());
         order.setStatus(Order.OrderStatus.PENDING);
         order.setPaymentStatus(Order.PaymentStatus.PENDING);
+        order.setAwaitingTokenPayment(true); // Order awaits token payment
         
         order = orderRepository.save(order);
         
-        // Create payment record
+        // Create payment record (placeholder for token payment)
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setUserId(offer.getUserId());
@@ -499,7 +509,7 @@ public class OfferService {
         // Create order timeline entry
         OrderTimeline timeline = new OrderTimeline();
         timeline.setOrder(order);
-        timeline.setStage("Order Created from Offer");
+        timeline.setStage("Order Created from Offer - Awaiting Token Payment");
         timeline.setStatus(OrderTimeline.TimelineStatus.PENDING);
         orderTimelineRepository.save(timeline);
         

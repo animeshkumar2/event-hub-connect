@@ -2,6 +2,7 @@ package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
 import com.eventhub.model.Order;
+import com.eventhub.model.OrderTimeline;
 import com.eventhub.model.VendorPastEvent;
 import com.eventhub.service.VendorBookingService;
 import com.eventhub.util.VendorIdResolver;
@@ -70,6 +71,18 @@ public class VendorBookingController {
         UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
         Order booking = bookingService.getBookingById(bookingId, vendorId);
         return ResponseEntity.ok(ApiResponse.success(booking));
+    }
+    
+    /**
+     * Get booking timeline
+     */
+    @GetMapping("/{bookingId}/timeline")
+    public ResponseEntity<ApiResponse<List<OrderTimeline>>> getBookingTimeline(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
+            @PathVariable UUID bookingId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        List<OrderTimeline> timeline = bookingService.getBookingTimeline(bookingId, vendorId);
+        return ResponseEntity.ok(ApiResponse.success(timeline));
     }
     
     /**

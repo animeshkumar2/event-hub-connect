@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/compo
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { ImageUpload } from '@/shared/components/ImageUpload';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
 import { 
   Search, 
   Calendar, 
@@ -28,10 +29,17 @@ import {
   CheckCircle2,
   CreditCard,
   Camera,
-  Sparkles
+  Sparkles,
+  Mail,
+  Building2,
+  Receipt,
+  History,
+  Circle,
+  CircleCheck,
+  CircleX
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useVendorBookings, useVendorUpcomingBookings, useVendorPastBookings } from '@/shared/hooks/useApi';
+import { useVendorBookings, useVendorUpcomingBookings, useVendorPastBookings, useBookingTimeline } from '@/shared/hooks/useApi';
 import { vendorApi } from '@/shared/services/api';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -112,6 +120,14 @@ export default function VendorBookings() {
   const { data: allBookingsData, loading: allBookingsLoading, refetch: refetchAll } = useVendorBookings(page, 10);
   const { data: upcomingBookingsData, loading: upcomingBookingsLoading, refetch: refetchUpcoming } = useVendorUpcomingBookings();
   const { data: pastBookingsData, loading: pastBookingsLoading, refetch: refetchPast } = useVendorPastBookings();
+  
+  // Fetch timeline for selected booking
+  const { data: timelineData } = useBookingTimeline(selectedBooking?.id || null);
+
+  // Clear selected booking when switching tabs
+  useEffect(() => {
+    setSelectedBooking(null);
+  }, [activeTab]);
 
   // Get bookings based on active tab and map them
   const bookings = useMemo(() => {
@@ -222,6 +238,21 @@ export default function VendorBookings() {
     }
   };
 
+  // Check if a booking is upcoming (event date >= today and status is CONFIRMED or IN_PROGRESS)
+  const isUpcomingBooking = (booking: Booking): boolean => {
+    if (!booking.eventDate) return false;
+    const eventDate = new Date(booking.eventDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    
+    const status = booking.status?.toUpperCase() || '';
+    const isUpcomingDate = eventDate >= today;
+    const isBookingStatus = status === 'CONFIRMED' || status === 'IN_PROGRESS';
+    
+    return isUpcomingDate && isBookingStatus;
+  };
+
   const buildUpcomingLifecycle = (booking: Booking) => {
     const lifecycle = [];
     
@@ -302,6 +333,109 @@ export default function VendorBookings() {
     } catch {
       return dateString;
     }
+  };
+
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return 'Not specified';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy hh:mm a');
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Build comprehensive lifecycle timeline
+  const buildLifecycleTimeline = (booking: Booking, timeline: any[] = []) => {
+    const timelineItems: Array<{
+      id: string;
+      label: string;
+      description?: string;
+      date?: string;
+      status: 'completed' | 'pending' | 'in_progress';
+      icon: any;
+    }> = [];
+
+    // 1. Order Created
+    if (booking.createdAt) {
+      timelineItems.push({
+        id: 'order-created',
+        label: 'Order Created',
+        description: `Order #${booking.orderNumber} was created`,
+        date: booking.createdAt,
+        status: 'completed',
+        icon: FileText
+      });
+    }
+
+    // 2. Order Accepted by Vendor (when status changed to CONFIRMED)
+    if (booking.status?.toUpperCase() === 'CONFIRMED' || booking.status?.toUpperCase() === 'IN_PROGRESS' || booking.status?.toUpperCase() === 'COMPLETED') {
+      timelineItems.push({
+        id: 'order-accepted',
+        label: 'Order Accepted',
+        description: 'Vendor accepted the booking',
+        date: booking.updatedAt || booking.createdAt,
+        status: 'completed',
+        icon: CheckCircle2
+      });
+    }
+
+    // 3. Token Payment Received
+    if (booking.tokenPaid && booking.tokenPaid > 0) {
+      timelineItems.push({
+        id: 'token-paid',
+        label: 'Token Payment Received',
+        description: `₹${booking.tokenPaid.toLocaleString('en-IN')} received (25% of total)`,
+        date: booking.updatedAt,
+        status: 'completed',
+        icon: CreditCard
+      });
+    }
+
+    // 4. Event Date
+    if (booking.eventDate) {
+      const isEventPast = new Date(booking.eventDate) < new Date();
+      timelineItems.push({
+        id: 'event-date',
+        label: isEventPast ? 'Event Completed' : 'Event Scheduled',
+        description: `Event date: ${formatDate(booking.eventDate)}${booking.eventTime ? ` at ${booking.eventTime}` : ''}`,
+        date: booking.eventDate,
+        status: isEventPast ? 'completed' : 'pending',
+        icon: Calendar
+      });
+    }
+
+    // 5. Order Completed
+    if (booking.status?.toUpperCase() === 'COMPLETED') {
+      timelineItems.push({
+        id: 'order-completed',
+        label: 'Order Completed',
+        description: 'Event completed and order marked as done',
+        date: booking.updatedAt,
+        status: 'completed',
+        icon: CheckCircle
+      });
+    }
+
+    // 6. Add timeline entries from database
+    if (timeline && Array.isArray(timeline)) {
+      timeline.forEach((item: any) => {
+        timelineItems.push({
+          id: item.id || `timeline-${timelineItems.length}`,
+          label: item.stage || 'Timeline Event',
+          description: item.notes || '',
+          date: item.completedAt || item.createdAt,
+          status: item.status === 'COMPLETED' ? 'completed' : (item.status === 'PENDING' ? 'pending' : 'in_progress'),
+          icon: item.status === 'COMPLETED' ? CheckCircle2 : Clock
+        });
+      });
+    }
+
+    // Sort by date
+    return timelineItems.sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
   };
 
   if (loading) {
@@ -423,171 +557,345 @@ export default function VendorBookings() {
                 </CardHeader>
                 
                 <CardContent className="space-y-6 pt-6">
-                  {/* Listing Info */}
-                  {selectedBooking.listingName && (
-                    <Card className="border-border/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          {selectedBooking.listingImage && (
-                            <div className="w-20 h-20 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
-                              <img 
-                                src={selectedBooking.listingImage} 
-                                alt={selectedBooking.listingName}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Package className="h-4 w-4 text-foreground/60" />
-                              <h3 className="text-base font-semibold text-foreground">{selectedBooking.listingName}</h3>
-                            </div>
-                            {selectedBooking.listingId && (
-                              <p className="text-xs text-foreground/50">Listing ID: {selectedBooking.listingId}</p>
-                            )}
+                  {/* Collapsible Sections */}
+                  <Accordion type="multiple" defaultValue={[]} className="w-full">
+                    {/* Event Details Section */}
+                    <AccordionItem value="event" className="border-border/50">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-blue-500/10">
+                            <Calendar className="h-5 w-5 text-blue-400" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-base font-semibold text-foreground">Event Details</h3>
+                            <p className="text-xs text-foreground/60">Date, venue, and event information</p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {selectedBooking.eventDate && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <Calendar className="h-4 w-4" />
+                                <span className="text-sm font-medium">Event Date</span>
+                              </div>
+                              <p className="text-foreground font-medium">{formatDate(selectedBooking.eventDate)}</p>
+                              {selectedBooking.eventTime && (
+                                <p className="text-sm text-foreground/60">{selectedBooking.eventTime}</p>
+                              )}
+                            </div>
+                          )}
+                          {selectedBooking.venueAddress && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <MapPin className="h-4 w-4" />
+                                <span className="text-sm font-medium">Venue Address</span>
+                              </div>
+                              <p className="text-foreground font-medium">{selectedBooking.venueAddress}</p>
+                            </div>
+                          )}
+                          {selectedBooking.eventType && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <Sparkles className="h-4 w-4" />
+                                <span className="text-sm font-medium">Event Type</span>
+                              </div>
+                              <p className="text-foreground font-medium">{selectedBooking.eventType}</p>
+                            </div>
+                          )}
+                          {selectedBooking.guestCount && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <User className="h-4 w-4" />
+                                <span className="text-sm font-medium">Guest Count</span>
+                              </div>
+                              <p className="text-foreground font-medium">{selectedBooking.guestCount} people</p>
+                            </div>
+                          )}
+                          {selectedBooking.notes && (
+                            <div className="space-y-2 md:col-span-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <FileText className="h-4 w-4" />
+                                <span className="text-sm font-medium">Notes</span>
+                              </div>
+                              <p className="text-foreground/80 text-sm">{selectedBooking.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                  {/* Upcoming Bookings Lifecycle */}
-                  {activeTab === 'upcoming' && (
-                    <Card className="border-border/50 bg-gradient-to-br from-blue-500/5 to-purple-500/5">
-                      <CardContent className="p-5">
-                        <h3 className="text-sm font-semibold text-foreground/80 mb-4 flex items-center gap-2">
-                          <Sparkles className="h-4 w-4" />
-                          Booking Progress
-                        </h3>
-                        <div className="flex items-center gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-                          {buildUpcomingLifecycle(selectedBooking).map((step, index) => {
-                            const Icon = step.icon;
-                            const isLast = index === buildUpcomingLifecycle(selectedBooking).length - 1;
-                            return (
-                              <div key={index} className="flex items-center flex-shrink-0">
-                                <div className="flex flex-col items-center min-w-[120px]">
-                                  <div className={`p-3 rounded-full mb-2 ${
-                                    step.completed ? 'bg-green-500/20' : 'bg-gray-500/20'
-                                  }`}>
-                                    <Icon className={`h-5 w-5 ${step.color}`} />
-                                  </div>
-                                  <p className="text-xs font-medium text-foreground/70 text-center mb-1">{step.label}</p>
-                                  {step.value && (
-                                    <p className="text-xs text-foreground/60 text-center">{step.value}</p>
-                                  )}
-                                </div>
-                                {!isLast && (
-                                  <ArrowRight className="h-4 w-4 text-foreground/30 mx-2 flex-shrink-0" />
+                    {/* Listing Details Section */}
+                    {selectedBooking.listingName && (
+                      <AccordionItem value="listing" className="border-border/50">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-purple-500/10">
+                              <Package className="h-5 w-5 text-purple-400" />
+                            </div>
+                            <div className="text-left">
+                              <h3 className="text-base font-semibold text-foreground">Listing Details</h3>
+                              <p className="text-xs text-foreground/60">Service or package information</p>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-4">
+                          <div className="flex items-start gap-4">
+                            {selectedBooking.listingImage && (
+                              <div className="w-24 h-24 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={selectedBooking.listingImage} 
+                                  alt={selectedBooking.listingName}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 space-y-3">
+                              <div>
+                                <h4 className="text-lg font-semibold text-foreground mb-1">{selectedBooking.listingName}</h4>
+                                {selectedBooking.listingId && (
+                                  <p className="text-xs text-foreground/50 font-mono">ID: {selectedBooking.listingId}</p>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    )}
 
-                  {/* Event Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedBooking.eventDate && (
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-2">
-                            <Calendar className="h-4 w-4" />
-                            <span className="text-sm font-medium">Event Date</span>
+                    {/* Customer Details Section */}
+                    <AccordionItem value="customer" className="border-border/50">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-green-500/10">
+                            <User className="h-5 w-5 text-green-400" />
                           </div>
-                          <p className="text-foreground font-medium">{formatDate(selectedBooking.eventDate)}</p>
-                          {selectedBooking.eventTime && (
-                            <p className="text-sm text-foreground/60 mt-1">{selectedBooking.eventTime}</p>
+                          <div className="text-left">
+                            <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
+                            <p className="text-xs text-foreground/60">Contact and customer information</p>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4">
+                        <div className="space-y-4">
+                          {selectedBooking.customerName && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <User className="h-4 w-4" />
+                                <span className="text-sm font-medium">Name</span>
+                              </div>
+                              <p className="text-foreground font-medium">{selectedBooking.customerName}</p>
+                            </div>
                           )}
-                        </CardContent>
-                      </Card>
-                    )}
-                    {selectedBooking.venueAddress && (
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-2">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm font-medium">Venue</span>
-                          </div>
-                          <p className="text-foreground font-medium">{selectedBooking.venueAddress}</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                    {selectedBooking.guestCount && (
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-2">
-                            <User className="h-4 w-4" />
-                            <span className="text-sm font-medium">Guests</span>
-                          </div>
-                          <p className="text-foreground font-medium">{selectedBooking.guestCount} people</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                    {selectedBooking.customerEmail && (
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-2 text-foreground/60 mb-2">
-                            <MessageSquare className="h-4 w-4" />
-                            <span className="text-sm font-medium">Contact</span>
-                          </div>
-                          <p className="text-foreground font-medium text-sm break-all">{selectedBooking.customerEmail}</p>
+                          {selectedBooking.customerEmail && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <Mail className="h-4 w-4" />
+                                <span className="text-sm font-medium">Email</span>
+                              </div>
+                              <p className="text-foreground font-medium text-sm break-all">{selectedBooking.customerEmail}</p>
+                            </div>
+                          )}
                           {selectedBooking.customerPhone && (
-                            <p className="text-foreground font-medium text-sm mt-1">{selectedBooking.customerPhone}</p>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-foreground/60">
+                                <Phone className="h-4 w-4" />
+                                <span className="text-sm font-medium">Phone</span>
+                              </div>
+                              <p className="text-foreground font-medium">{selectedBooking.customerPhone}</p>
+                            </div>
                           )}
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-
-                  {/* Payment Summary */}
-                  <Card className="border-border/50 bg-secondary/5">
-                    <CardContent className="p-5">
-                      <h3 className="text-base font-semibold text-foreground mb-4">Payment Details</h3>
-                      <div className="space-y-2 text-sm">
-                        {selectedBooking.baseAmount !== undefined && (
-                          <div className="flex justify-between">
-                            <span className="text-foreground/60">Base Amount</span>
-                            <span className="text-foreground font-medium">₹{Number(selectedBooking.baseAmount).toLocaleString('en-IN')}</span>
-                          </div>
-                        )}
-                        {selectedBooking.addOnsAmount && selectedBooking.addOnsAmount > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-foreground/60">Add-ons</span>
-                            <span className="text-foreground font-medium">₹{Number(selectedBooking.addOnsAmount).toLocaleString('en-IN')}</span>
-                          </div>
-                        )}
-                        {selectedBooking.discountAmount && selectedBooking.discountAmount > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-foreground/60">Discount</span>
-                            <span className="text-green-400 font-medium">-₹{Number(selectedBooking.discountAmount).toLocaleString('en-IN')}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between border-t border-border pt-2 mt-2">
-                          <span className="text-foreground font-semibold">Total Amount</span>
-                          <span className="text-foreground font-bold text-lg">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</span>
                         </div>
-                        {selectedBooking.tokenPaid && selectedBooking.tokenPaid > 0 && (
-                          <>
-                            <div className="flex justify-between pt-2">
-                              <span className="text-foreground/60">Token Paid</span>
-                              <span className="text-green-400 font-medium">₹{Number(selectedBooking.tokenPaid).toLocaleString('en-IN')}</span>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Payment Details Section */}
+                    <AccordionItem value="payment" className="border-border/50">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-orange-500/10">
+                            <CreditCard className="h-5 w-5 text-orange-400" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-base font-semibold text-foreground">Payment Details</h3>
+                            <p className="text-xs text-foreground/60">Payment breakdown and earnings</p>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4">
+                        <div className="space-y-6">
+                          {/* Order Value Breakdown */}
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-semibold text-foreground">Order Breakdown</h4>
+                            <div className="space-y-2 text-sm">
+                              {selectedBooking.baseAmount !== undefined && (
+                                <div className="flex justify-between">
+                                  <span className="text-foreground/60">Base Amount</span>
+                                  <span className="text-foreground font-medium">₹{Number(selectedBooking.baseAmount).toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
+                              {selectedBooking.addOnsAmount && selectedBooking.addOnsAmount > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-foreground/60">Add-ons</span>
+                                  <span className="text-foreground font-medium">₹{Number(selectedBooking.addOnsAmount).toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
+                              {selectedBooking.customizationsAmount && selectedBooking.customizationsAmount > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-foreground/60">Customizations</span>
+                                  <span className="text-foreground font-medium">₹{Number(selectedBooking.customizationsAmount).toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
+                              {selectedBooking.discountAmount && selectedBooking.discountAmount > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-foreground/60">Discount</span>
+                                  <span className="text-green-400 font-medium">-₹{Number(selectedBooking.discountAmount).toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
+                              {selectedBooking.taxAmount && selectedBooking.taxAmount > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-foreground/60">Tax (GST)</span>
+                                  <span className="text-foreground font-medium">₹{Number(selectedBooking.taxAmount).toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between border-t border-border pt-2 mt-2">
+                                <span className="text-foreground font-semibold">Total Order Value</span>
+                                <span className="text-foreground font-bold text-lg">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</span>
+                              </div>
                             </div>
-                            <div className="flex justify-between border-t border-border pt-2 mt-2">
-                              <span className="text-foreground font-semibold">Balance Due</span>
-                              <span className="text-foreground font-bold">
-                                ₹{(Number(selectedBooking.totalAmount || 0) - Number(selectedBooking.tokenPaid || 0)).toLocaleString('en-IN')}
-                              </span>
+                          </div>
+
+                          {/* Payment Breakdown */}
+                          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-4 border border-green-500/20">
+                            <h4 className="text-sm font-semibold text-foreground mb-3">Payment Status</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="bg-green-500/20 rounded-lg p-3 text-center">
+                                <div className="flex items-center justify-center gap-1 mb-1">
+                                  <CheckCircle className="h-4 w-4 text-green-400" />
+                                  <span className="text-xs font-medium text-green-400">Token Received</span>
+                                </div>
+                                <p className="text-lg font-bold text-green-400">
+                                  ₹{Number(selectedBooking.tokenPaid || Math.round((selectedBooking.totalAmount || 0) * 0.25)).toLocaleString('en-IN')}
+                                </p>
+                                <p className="text-xs text-green-400/70">25% of total</p>
+                              </div>
+                              <div className="bg-orange-500/20 rounded-lg p-3 text-center">
+                                <div className="flex items-center justify-center gap-1 mb-1">
+                                  <Clock className="h-4 w-4 text-orange-400" />
+                                  <span className="text-xs font-medium text-orange-400">Balance Due</span>
+                                </div>
+                                <p className="text-lg font-bold text-orange-400">
+                                  ₹{Number((selectedBooking.totalAmount || 0) - (selectedBooking.tokenPaid || Math.round((selectedBooking.totalAmount || 0) * 0.25))).toLocaleString('en-IN')}
+                                </p>
+                                <p className="text-xs text-orange-400/70">From customer</p>
+                              </div>
                             </div>
-                          </>
-                        )}
-                        {selectedBooking.paymentStatus && (
-                          <div className="flex justify-between pt-2">
-                            <span className="text-foreground/60">Payment Status</span>
-                            <Badge className={getPaymentStatusColor(selectedBooking.paymentStatus)}>
-                              {getPaymentStatusDisplay(selectedBooking.paymentStatus)}
-                            </Badge>
+                            {selectedBooking.paymentStatus && (
+                              <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                                <span className="text-foreground/60 text-sm">Payment Status</span>
+                                <Badge className={getPaymentStatusColor(selectedBooking.paymentStatus)}>
+                                  {getPaymentStatusDisplay(selectedBooking.paymentStatus)}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Earnings */}
+                          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-blue-500/20">
+                            <h4 className="text-sm font-semibold text-foreground mb-3">Your Earnings</h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-foreground/60">Gross Amount</span>
+                                <span className="text-foreground font-medium">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-foreground/60">Platform Fee (5%)</span>
+                                <span className="text-red-400 font-medium">-₹{Math.round((selectedBooking.totalAmount || 0) * 0.05).toLocaleString('en-IN')}</span>
+                              </div>
+                              <div className="flex justify-between border-t border-border pt-2 mt-2">
+                                <span className="text-foreground font-semibold">Net Payout</span>
+                                <span className="text-blue-400 font-bold text-lg">₹{Math.round((selectedBooking.totalAmount || 0) * 0.95).toLocaleString('en-IN')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
+                  {/* Complete Lifecycle Timeline */}
+                  <Card className="border-border/50 bg-gradient-to-br from-slate-500/5 to-slate-700/5">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <History className="h-5 w-5 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg font-semibold text-foreground">Order Lifecycle</CardTitle>
+                      </div>
+                      <p className="text-xs text-foreground/60 mt-1">Complete timeline of order milestones</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="relative">
+                        {buildLifecycleTimeline(selectedBooking, timelineData || []).map((item, index) => {
+                          const Icon = item.icon;
+                          const isLast = index === buildLifecycleTimeline(selectedBooking, timelineData || []).length - 1;
+                          const isCompleted = item.status === 'completed';
+                          const isPending = item.status === 'pending';
+                          
+                          return (
+                            <div key={item.id} className="relative flex gap-4 pb-6 last:pb-0">
+                              {/* Timeline Line */}
+                              {!isLast && (
+                                <div className="absolute left-5 top-10 w-0.5 h-full bg-border" />
+                              )}
+                              
+                              {/* Icon */}
+                              <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                                isCompleted 
+                                  ? 'bg-green-500/20 border-2 border-green-500' 
+                                  : isPending
+                                  ? 'bg-gray-500/20 border-2 border-gray-500'
+                                  : 'bg-yellow-500/20 border-2 border-yellow-500'
+                              }`}>
+                                <Icon className={`h-5 w-5 ${
+                                  isCompleted 
+                                    ? 'text-green-400' 
+                                    : isPending
+                                    ? 'text-gray-400'
+                                    : 'text-yellow-400'
+                                }`} />
+                              </div>
+                              
+                              {/* Content */}
+                              <div className="flex-1 pt-1">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1">
+                                    <h4 className={`text-sm font-semibold ${
+                                      isCompleted ? 'text-foreground' : 'text-foreground/70'
+                                    }`}>
+                                      {item.label}
+                                    </h4>
+                                    {item.description && (
+                                      <p className="text-xs text-foreground/60 mt-1">{item.description}</p>
+                                    )}
+                                  </div>
+                                  {item.date && (
+                                    <div className="text-right">
+                                      <p className="text-xs text-foreground/50 font-mono">
+                                        {formatDateTime(item.date)}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {buildLifecycleTimeline(selectedBooking, timelineData || []).length === 0 && (
+                          <div className="text-center py-8 text-foreground/40 text-sm">
+                            No timeline events available
                           </div>
                         )}
                       </div>
@@ -595,8 +903,7 @@ export default function VendorBookings() {
                   </Card>
 
                   {/* Complete Event Button for Upcoming Bookings */}
-                  {activeTab === 'upcoming' && 
-                   (selectedBooking.status?.toUpperCase() === 'CONFIRMED' || selectedBooking.status?.toUpperCase() === 'IN_PROGRESS') && 
+                  {isUpcomingBooking(selectedBooking) && 
                    selectedBooking.eventDate && 
                    new Date(selectedBooking.eventDate) <= new Date() && (
                     <Card className="border-green-500/30 bg-green-500/5">

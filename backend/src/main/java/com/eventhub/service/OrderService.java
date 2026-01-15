@@ -30,6 +30,8 @@ public class OrderService {
     private final OrderTimelineRepository orderTimelineRepository;
     private final OrderAddOnRepository orderAddOnRepository;
     private final AddOnRepository addOnRepository;
+    private final LeadRepository leadRepository;
+    private final UserProfileRepository userProfileRepository;
     
     /**
      * Create order from cart
@@ -124,6 +126,9 @@ public class OrderService {
         
         BigDecimal totalAmount = subtotal.add(platformFee).add(gst);
         
+        // Calculate token amount (25% of total)
+        BigDecimal tokenAmount = totalAmount.multiply(new BigDecimal("0.25")).setScale(0, RoundingMode.HALF_UP);
+        
         // Create order
         Order order = new Order();
         order.setUserId(userId);
@@ -141,6 +146,8 @@ public class OrderService {
         order.setDiscountAmount(discountAmount);
         order.setTaxAmount(gst);
         order.setTotalAmount(totalAmount);
+        order.setTokenAmount(tokenAmount);
+        order.setBalanceAmount(totalAmount); // Full amount as balance initially
         order.setCustomerName(request.getCustomerName());
         order.setCustomerEmail(request.getCustomerEmail());
         order.setCustomerPhone(request.getCustomerPhone());
@@ -148,6 +155,7 @@ public class OrderService {
         order.setCustomizations(cartItem.getCustomizations());
         order.setStatus(Order.OrderStatus.PENDING);
         order.setPaymentStatus(Order.PaymentStatus.PENDING);
+        order.setAwaitingTokenPayment(true); // Order awaits token payment
         
         order = orderRepository.save(order);
         
@@ -179,6 +187,36 @@ public class OrderService {
         timeline.setStage("Order Created");
         timeline.setStatus(OrderTimeline.TimelineStatus.PENDING);
         orderTimelineRepository.save(timeline);
+        
+        // Create Lead immediately for direct orders (before token payment)
+        // This ensures vendors can see leads right away, even if payment webhooks are delayed
+        // The lead status will be updated when token payment is completed
+        try {
+            // Check if lead already exists for this order to prevent duplicates
+            if (leadRepository.findByOrder(order).isEmpty()) {
+                Lead lead = new Lead();
+                lead.setVendor(vendor);
+                lead.setUserId(userId);
+                lead.setName(request.getCustomerName());
+                lead.setEmail(request.getCustomerEmail());
+                lead.setPhone(request.getCustomerPhone());
+                lead.setEventType(request.getEventType());
+                lead.setEventDate(eventDate);
+                lead.setVenueAddress(request.getVenueAddress());
+                lead.setGuestCount(request.getGuestCount());
+                lead.setMessage(request.getNotes() != null ? request.getNotes() : "Direct order from checkout");
+                lead.setStatus(Lead.LeadStatus.NEW);
+                lead.setSource(Lead.LeadSource.DIRECT_ORDER);
+                lead.setOrder(order);
+                lead.setListing(listing);
+                // Token amount will be set when payment is completed
+                lead.setBudget(order.getTotalAmount().toString());
+                leadRepository.save(lead);
+            }
+        } catch (Exception e) {
+            // Log but don't fail order creation if lead creation fails
+            // This ensures orders are created even if there's a temporary issue with leads
+        }
         
         return order;
     }

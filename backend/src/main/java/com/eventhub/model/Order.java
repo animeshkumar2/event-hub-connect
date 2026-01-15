@@ -75,11 +75,17 @@ public class Order {
     private BigDecimal totalAmount;
     
     // Payment
+    @Column(name = "token_amount", precision = 10, scale = 2)
+    private BigDecimal tokenAmount = BigDecimal.ZERO; // Required token payment (calculated)
+    
     @Column(name = "token_paid", precision = 10, scale = 2)
     private BigDecimal tokenPaid = BigDecimal.ZERO; // Advance payment
     
     @Column(name = "balance_amount", precision = 10, scale = 2)
     private BigDecimal balanceAmount; // Remaining amount
+    
+    @Column(name = "awaiting_token_payment")
+    private Boolean awaitingTokenPayment = false; // True if order is waiting for token payment
     
     @Convert(converter = PaymentStatusConverter.class)
     @Column(name = "payment_status", length = 20)

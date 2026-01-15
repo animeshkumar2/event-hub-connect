@@ -361,6 +361,15 @@ export const customerApi = {
     apiClient.post<any>(`/customers/payments/verify?transactionId=${transactionId}`, { paymentGatewayResponse }),
   getPaymentStatus: (paymentId: string) => apiClient.get<any>(`/customers/payments/${paymentId}`),
   
+  // Token Payments
+  initiateTokenPayment: (orderId: string, data: { paymentMethod: string; paymentGateway?: string; returnUrl?: string }) =>
+    apiClient.post<any>(`/payments/token/orders/${orderId}`, data),
+  getTokenPaymentStatus: (paymentId: string) => apiClient.get<any>(`/payments/token/${paymentId}/status`),
+  cancelOrderAndRefund: (orderId: string, reason?: string) =>
+    apiClient.post<any>(`/payments/token/orders/${orderId}/cancel`, { reason }),
+  mockCompletePayment: (paymentId: string) =>
+    apiClient.post<any>(`/payments/token/mock-complete/${paymentId}`, {}),
+  
   // Event Planner
   getRecommendations: (data: { budget: number; eventType: string; guestCount: number }) =>
     apiClient.post<any[]>('/public/event-planner/recommendations', data),
@@ -442,14 +451,19 @@ export const vendorApi = {
   getUpcomingBookings: () => apiClient.get<any[]>('/vendors/bookings/upcoming'),
   getPastBookings: () => apiClient.get<any[]>('/vendors/bookings/past'),
   getBooking: (bookingId: string) => apiClient.get<any>(`/vendors/bookings/${bookingId}`),
+  getBookingTimeline: (bookingId: string) => apiClient.get<any[]>(`/vendors/bookings/${bookingId}/timeline`),
   completeEvent: (bookingId: string, data: { images: string[]; description?: string }) =>
     apiClient.post<any>(`/vendors/bookings/${bookingId}/complete`, data),
   
   // Leads
   getLeads: () => apiClient.get<any[]>('/vendors/leads'),
+  getLead: (leadId: string) => apiClient.get<any>(`/vendors/leads/${leadId}`),
   getLeadOffers: (leadId: string) => apiClient.get<any[]>(`/vendors/leads/${leadId}/offers`),
   updateLeadStatus: (leadId: string, status: string) =>
     apiClient.put<any>(`/vendors/leads/${leadId}/status`, { status }),
+  acceptLead: (leadId: string) => apiClient.post<any>(`/vendors/leads/${leadId}/accept`, {}),
+  rejectLead: (leadId: string, reason?: string) =>
+    apiClient.post<any>(`/vendors/leads/${leadId}/reject`, { reason }),
   
   // Quotes
   createQuote: (leadId: string, data: any) => apiClient.post<any>(`/vendors/leads/${leadId}/quotes`, data),

@@ -1,8 +1,10 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.dto.response.LeadAcceptanceResponse;
 import com.eventhub.dto.response.OfferDTO;
 import com.eventhub.model.Lead;
+import com.eventhub.model.Order;
 import com.eventhub.service.LeadService;
 import com.eventhub.service.OfferService;
 import com.eventhub.util.VendorIdResolver;
@@ -30,6 +32,15 @@ public class VendorLeadController {
         return ResponseEntity.ok(ApiResponse.success(leads));
     }
     
+    @GetMapping("/{leadId}")
+    public ResponseEntity<ApiResponse<Lead>> getLeadDetails(
+            @PathVariable UUID leadId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        Lead lead = leadService.getLeadById(leadId, vendorId);
+        return ResponseEntity.ok(ApiResponse.success(lead));
+    }
+    
     @GetMapping("/{leadId}/offers")
     public ResponseEntity<ApiResponse<List<OfferDTO>>> getLeadOffers(
             @PathVariable UUID leadId) {
@@ -45,9 +56,40 @@ public class VendorLeadController {
         return ResponseEntity.ok(ApiResponse.success("Lead status updated", lead));
     }
     
+    /**
+     * Accept a lead - confirms the associated order
+     */
+    @PostMapping("/{leadId}/accept")
+    public ResponseEntity<ApiResponse<LeadAcceptanceResponse>> acceptLead(
+            @PathVariable UUID leadId,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        LeadAcceptanceResponse response = leadService.acceptLead(leadId, vendorId);
+        return ResponseEntity.ok(ApiResponse.success("Lead accepted successfully", response));
+    }
+    
+    /**
+     * Reject a lead - initiates refund if token was paid
+     */
+    @PostMapping("/{leadId}/reject")
+    public ResponseEntity<ApiResponse<Lead>> rejectLead(
+            @PathVariable UUID leadId,
+            @RequestBody(required = false) RejectLeadRequest request,
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        String reason = request != null && request.getReason() != null ? request.getReason() : "Vendor declined";
+        Lead lead = leadService.rejectLead(leadId, vendorId, reason);
+        return ResponseEntity.ok(ApiResponse.success("Lead rejected successfully", lead));
+    }
+    
     @lombok.Data
     public static class UpdateStatusRequest {
         private String status;
+    }
+    
+    @lombok.Data
+    public static class RejectLeadRequest {
+        private String reason;
     }
 }
 

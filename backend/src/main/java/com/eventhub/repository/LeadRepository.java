@@ -1,6 +1,7 @@
 package com.eventhub.repository;
 
 import com.eventhub.model.Lead;
+import com.eventhub.model.Order;
 import com.eventhub.model.Vendor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -21,6 +23,19 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
     List<Lead> findByUserId(UUID userId);
     
     List<Lead> findByVendorAndStatus(Vendor vendor, Lead.LeadStatus status);
+    
+    // Find lead by order
+    Optional<Lead> findByOrder(Order order);
+    
+    // Find lead by order ID
+    @Query("SELECT l FROM Lead l WHERE l.order.id = :orderId")
+    Optional<Lead> findByOrderId(@Param("orderId") UUID orderId);
+    
+    // Find leads by source
+    List<Lead> findBySource(Lead.LeadSource source);
+    
+    // Find leads by vendor and source
+    List<Lead> findByVendorAndSource(Vendor vendor, Lead.LeadSource source);
     
     @Query("SELECT COUNT(l) FROM Lead l WHERE l.createdAt >= :date")
     long countByCreatedAtAfter(@Param("date") LocalDateTime date);

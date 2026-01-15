@@ -9,6 +9,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Separator } from '@/shared/components/ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
 import { 
   Search, 
   Filter, 
@@ -29,7 +30,14 @@ import {
   Clock,
   Mail,
   Phone,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Building2,
+  Receipt,
+  History,
+  FileText,
+  Sparkles,
+  User,
+  CreditCard
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -49,8 +57,33 @@ interface Lead {
   budget?: string;
   message?: string;
   status: string;
+  source?: string; // 'DIRECT_ORDER', 'CHAT', 'OFFER', 'INQUIRY'
   createdAt: string;
+  updatedAt?: string;
   vendor?: any;
+  order?: {
+    id: string;
+    orderNumber?: string;
+    totalAmount: number;
+    tokenAmount?: number;
+    baseAmount: number;
+    addOnsAmount: number;
+    customizationsAmount: number;
+    discountAmount: number;
+    taxAmount: number;
+    balanceAmount: number;
+    paymentStatus: string;
+    status: string;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+  listing?: {
+    id: string;
+    name: string;
+    price: number;
+    images?: string[];
+  };
+  tokenAmount?: number;
 }
 
 interface Offer {
@@ -64,6 +97,9 @@ interface Offer {
   counterMessage?: string;
   status: string;
   createdAt: string;
+  updatedAt?: string;
+  acceptedAt?: string;
+  rejectedAt?: string;
   eventType?: string;
   eventDate?: string;
   guestCount?: number;
@@ -78,6 +114,7 @@ export default function VendorLeads() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
   const [processingOffer, setProcessingOffer] = useState<string | null>(null);
+  const [processingLead, setProcessingLead] = useState(false);
   const [showCounterModal, setShowCounterModal] = useState(false);
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [counterPrice, setCounterPrice] = useState('');
@@ -87,7 +124,12 @@ export default function VendorLeads() {
 
   useEffect(() => {
     if (selectedLead) {
-      loadOffers(selectedLead.id);
+      // Only load offers for non-DIRECT_ORDER leads
+      if (selectedLead.source !== 'DIRECT_ORDER') {
+        loadOffers(selectedLead.id);
+      } else {
+        setOffers([]); // Clear offers for DIRECT_ORDER leads
+      }
     }
   }, [selectedLead]);
 
@@ -244,6 +286,44 @@ export default function VendorLeads() {
     }
   };
 
+  const handleAcceptLead = async () => {
+    if (!selectedLead) return;
+    setProcessingLead(true);
+    try {
+      const response = await vendorApi.acceptLead(selectedLead.id);
+      if (response.success) {
+        toast.success('Lead accepted! Order confirmed successfully.');
+        refetch();
+      } else {
+        toast.error(response.message || 'Failed to accept lead');
+      }
+    } catch (err: any) {
+      console.error('Error accepting lead:', err);
+      toast.error(err.message || 'Failed to accept lead');
+    } finally {
+      setProcessingLead(false);
+    }
+  };
+
+  const handleRejectLead = async () => {
+    if (!selectedLead) return;
+    setProcessingLead(true);
+    try {
+      const response = await vendorApi.rejectLead(selectedLead.id, 'Vendor declined the order');
+      if (response.success) {
+        toast.success('Lead rejected');
+        refetch();
+      } else {
+        toast.error(response.message || 'Failed to reject lead');
+      }
+    } catch (err: any) {
+      console.error('Error rejecting lead:', err);
+      toast.error(err.message || 'Failed to reject lead');
+    } finally {
+      setProcessingLead(false);
+    }
+  };
+
   const openCounterModal = (offerId: string, offer: Offer) => {
     setSelectedOfferId(offerId);
     setCounterPrice('');
@@ -278,6 +358,235 @@ export default function VendorLeads() {
     } catch {
       return dateString;
     }
+  };
+
+  const formatDateTimeFull = (dateString?: string) => {
+    if (!dateString) return 'Not specified';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy hh:mm a');
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Build comprehensive lead lifecycle timeline
+  const buildLeadLifecycle = (lead: Lead, offers: Offer[] = []) => {
+    const timelineItems: Array<{
+      id: string;
+      label: string;
+      description?: string;
+      date?: string;
+      status: 'completed' | 'pending' | 'in_progress';
+      icon: any;
+    }> = [];
+
+    // 1. Lead Created
+    if (lead.createdAt) {
+      const sourceText = lead.source === 'DIRECT_ORDER' 
+        ? 'direct order' 
+        : lead.source === 'OFFER' 
+        ? 'offer' 
+        : lead.source === 'CHAT'
+        ? 'chat'
+        : 'inquiry';
+      timelineItems.push({
+        id: 'lead-created',
+        label: 'Lead Created',
+        description: `Lead received from ${sourceText}`,
+        date: lead.createdAt,
+        status: 'completed',
+        icon: FileText
+      });
+    }
+
+    // 2. Direct Order Created (if applicable)
+    if (lead.source === 'DIRECT_ORDER' && lead.order) {
+      timelineItems.push({
+        id: 'order-created',
+        label: 'Order Created',
+        description: `Order #${lead.order.orderNumber || 'N/A'} created`,
+        date: lead.order.createdAt || lead.createdAt,
+        status: 'completed',
+        icon: Receipt
+      });
+    }
+
+    // 3. Token Payment Received (if applicable)
+    if (lead.tokenAmount && lead.tokenAmount > 0) {
+      timelineItems.push({
+        id: 'token-paid',
+        label: 'Token Payment Received',
+        description: `₹${lead.tokenAmount.toLocaleString('en-IN')} received (25% of total)`,
+        date: lead.updatedAt || lead.createdAt,
+        status: 'completed',
+        icon: HandCoins
+      });
+    }
+
+    // 4. Offer milestones (for non-DIRECT_ORDER leads) - Process in chronological order
+    if (lead.source !== 'DIRECT_ORDER' && offers.length > 0) {
+      // Sort offers by creation date
+      const sortedOffers = [...offers].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      sortedOffers.forEach((offer, index) => {
+        // Offer Created
+        if (offer.createdAt) {
+          timelineItems.push({
+            id: `offer-${offer.id}-created`,
+            label: `Offer ${index + 1} Created`,
+            description: `Customer offered ₹${offer.offeredPrice.toLocaleString('en-IN')}`,
+            date: offer.createdAt,
+            status: 'completed',
+            icon: HandCoins
+          });
+        }
+
+        // Counter Offer (if vendor countered)
+        if (offer.status === 'COUNTERED' && offer.counterPrice && offer.updatedAt) {
+          timelineItems.push({
+            id: `offer-${offer.id}-countered`,
+            label: 'Counter Offer Made',
+            description: `Vendor countered with ₹${offer.counterPrice.toLocaleString('en-IN')}`,
+            date: offer.updatedAt,
+            status: 'completed',
+            icon: ArrowRight
+          });
+        }
+
+        // Offer Accepted
+        if (offer.status === 'ACCEPTED') {
+          timelineItems.push({
+            id: `offer-${offer.id}-accepted`,
+            label: 'Offer Accepted',
+            description: 'Vendor accepted the offer, order created',
+            date: offer.acceptedAt || offer.updatedAt || offer.createdAt,
+            status: 'completed',
+            icon: CheckCircle
+          });
+        }
+
+        // Offer Rejected
+        if (offer.status === 'REJECTED') {
+          timelineItems.push({
+            id: `offer-${offer.id}-rejected`,
+            label: 'Offer Rejected',
+            description: 'Vendor rejected the offer',
+            date: offer.rejectedAt || offer.updatedAt || offer.createdAt,
+            status: 'completed',
+            icon: XCircle
+          });
+        }
+
+        // Offer Withdrawn
+        if (offer.status === 'WITHDRAWN') {
+          timelineItems.push({
+            id: `offer-${offer.id}-withdrawn`,
+            label: 'Offer Withdrawn',
+            description: 'Customer withdrew the offer',
+            date: offer.updatedAt || offer.createdAt,
+            status: 'completed',
+            icon: XCircle
+          });
+        }
+      });
+    }
+
+    // 5. Lead Status Changes (check after processing offers to get correct order)
+    const status = lead.status?.toUpperCase() || '';
+    
+    // Lead Opened - only if there's a counter offer but not yet accepted
+    if (status === 'OPEN' && lead.source !== 'DIRECT_ORDER') {
+      const hasCounterOffer = offers.some(o => o.status === 'COUNTERED' && o.counterPrice);
+      if (hasCounterOffer) {
+        // Find the latest counter offer date
+        const counterOffers = offers.filter(o => o.status === 'COUNTERED' && o.counterPrice);
+        const latestCounter = counterOffers.sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA;
+        })[0];
+        
+        timelineItems.push({
+          id: 'lead-opened',
+          label: 'Lead Opened',
+          description: 'Vendor responded with counter offer',
+          date: latestCounter?.updatedAt || lead.updatedAt || lead.createdAt,
+          status: 'completed',
+          icon: CheckCircle2
+        });
+      }
+    }
+
+    // Lead Converted
+    if (status === 'CONVERTED') {
+      timelineItems.push({
+        id: 'lead-converted',
+        label: 'Lead Converted',
+        description: 'Lead converted to booking',
+        date: lead.updatedAt || lead.createdAt,
+        status: 'completed',
+        icon: CheckCircle
+      });
+    }
+
+    // Lead Declined
+    if (status === 'DECLINED') {
+      timelineItems.push({
+        id: 'lead-declined',
+        label: 'Lead Declined',
+        description: 'Vendor declined the lead',
+        date: lead.updatedAt || lead.createdAt,
+        status: 'completed',
+        icon: XCircle
+      });
+    }
+
+    // Lead Withdrawn
+    if (status === 'WITHDRAWN') {
+      timelineItems.push({
+        id: 'lead-withdrawn',
+        label: 'Lead Withdrawn',
+        description: 'Customer withdrew the lead',
+        date: lead.updatedAt || lead.createdAt,
+        status: 'completed',
+        icon: XCircle
+      });
+    }
+
+    // 6. Order Accepted (if vendor accepted direct order)
+    if (lead.source === 'DIRECT_ORDER' && lead.order) {
+      if (lead.order.status === 'CONFIRMED' || lead.order.status === 'IN_PROGRESS') {
+        timelineItems.push({
+          id: 'order-accepted',
+          label: 'Order Accepted',
+          description: 'Vendor accepted the order',
+          date: lead.order.updatedAt || lead.updatedAt || lead.createdAt,
+          status: 'completed',
+          icon: CheckCircle2
+        });
+      }
+    }
+
+    // Sort by date (chronological order)
+    return timelineItems.sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      // If dates are the same, maintain order based on event type
+      if (dateA === dateB) {
+        // Lead created should come first, then offers, then status changes
+        const order = ['lead-created', 'order-created', 'offer', 'token-paid', 'lead-opened', 'lead-converted', 'order-accepted'];
+        const aOrder = order.findIndex(o => a.id.includes(o));
+        const bOrder = order.findIndex(o => b.id.includes(o));
+        return (aOrder === -1 ? 999 : aOrder) - (bOrder === -1 ? 999 : bOrder);
+      }
+      return dateA - dateB;
+    });
   };
 
   const buildOfferLifecycle = (offer: Offer) => {
@@ -488,236 +797,566 @@ export default function VendorLeads() {
                   </CardHeader>
                   
                   <CardContent className="space-y-6 pt-6">
-                    {/* Contact & Event Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Contact Information */}
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                            <Mail className="h-4 w-4" /> Contact Information
-                          </h3>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-foreground/80">
-                              <Mail className="h-3.5 w-3.5 text-foreground/50" />
-                              <span className="break-all">{selectedLead.email}</span>
+                    {/* Collapsible Sections */}
+                    <Accordion type="multiple" defaultValue={[]} className="w-full">
+                      {/* Event Details Section */}
+                      <AccordionItem value="event" className="border-border/50">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-500/10">
+                              <Calendar className="h-5 w-5 text-blue-400" />
                             </div>
-                            {selectedLead.phone && (
-                              <div className="flex items-center gap-2 text-foreground/80">
-                                <Phone className="h-3.5 w-3.5 text-foreground/50" />
-                                <span>{selectedLead.phone}</span>
-                              </div>
-                            )}
+                            <div className="text-left">
+                              <h3 className="text-base font-semibold text-foreground">Event Details</h3>
+                              <p className="text-xs text-foreground/60">Date, venue, and event information</p>
+                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Event Details */}
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <h3 className="text-sm font-semibold text-foreground/80 mb-3 flex items-center gap-2">
-                            <Calendar className="h-4 w-4" /> Event Details
-                          </h3>
-                          <div className="space-y-2 text-sm">
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-4">
+                          <div className="space-y-4">
                             {selectedLead.eventDate && (
-                              <div className="flex items-center gap-2 text-foreground/80">
-                                <Calendar className="h-3.5 w-3.5 text-foreground/50" />
-                                <span>{formatDate(selectedLead.eventDate)}</span>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <Calendar className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Event Date</span>
+                                </div>
+                                <p className="text-foreground font-medium">{formatDate(selectedLead.eventDate)}</p>
                               </div>
                             )}
-                            {selectedLead.guestCount && (
-                              <div className="flex items-center gap-2 text-foreground/80">
-                                <Users className="h-3.5 w-3.5 text-foreground/50" />
-                                <span>{selectedLead.guestCount} guests</span>
+                            {selectedLead.eventType && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <Sparkles className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Event Type</span>
+                                </div>
+                                <p className="text-foreground font-medium">{selectedLead.eventType}</p>
                               </div>
                             )}
                             {selectedLead.venueAddress && (
-                              <div className="flex items-start gap-2 text-foreground/80">
-                                <MapPin className="h-3.5 w-3.5 text-foreground/50 mt-0.5" />
-                                <span className="flex-1">{selectedLead.venueAddress}</span>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <MapPin className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Venue Address</span>
+                                </div>
+                                <p className="text-foreground font-medium">{selectedLead.venueAddress}</p>
+                              </div>
+                            )}
+                            {selectedLead.guestCount && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <Users className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Guest Count</span>
+                                </div>
+                                <p className="text-foreground font-medium">{selectedLead.guestCount} people</p>
+                              </div>
+                            )}
+                            {selectedLead.budget && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <IndianRupee className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Budget</span>
+                                </div>
+                                <p className="text-foreground font-medium">{selectedLead.budget}</p>
+                              </div>
+                            )}
+                            {selectedLead.message && (
+                              <div className="space-y-2 pt-2 border-t">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <FileText className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Customer Message</span>
+                                </div>
+                                <p className="text-foreground/80 text-sm leading-relaxed">{selectedLead.message}</p>
                               </div>
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                    {/* Message */}
-                    {selectedLead.message && (
-                      <Card className="border-border/50">
-                        <CardContent className="p-4">
-                          <h3 className="text-sm font-semibold text-foreground/80 mb-2">Message from Customer</h3>
-                          <p className="text-sm text-foreground/70 leading-relaxed">{selectedLead.message}</p>
-                        </CardContent>
-                      </Card>
-                    )}
+                      {/* Customer Details Section */}
+                      <AccordionItem value="customer" className="border-border/50">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-green-500/10">
+                              <User className="h-5 w-5 text-green-400" />
+                            </div>
+                            <div className="text-left">
+                              <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
+                              <p className="text-xs text-foreground/60">Contact and customer information</p>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-4">
+                          <div className="space-y-4">
+                            {selectedLead.name && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <User className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Name</span>
+                                </div>
+                                <p className="text-foreground font-medium">{selectedLead.name}</p>
+                              </div>
+                            )}
+                            {selectedLead.email && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <Mail className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Email</span>
+                                </div>
+                                <p className="text-foreground font-medium text-sm break-all">{selectedLead.email}</p>
+                              </div>
+                            )}
+                            {selectedLead.phone && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-foreground/60">
+                                  <Phone className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Phone</span>
+                                </div>
+                                <p className="text-foreground font-medium">{selectedLead.phone}</p>
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
 
-                    {/* Offers with Horizontal Lifecycle */}
-                    {loadingOffers ? (
-                      <div className="flex items-center justify-center p-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    ) : offers.length > 0 ? (
-                      <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-foreground">Offers</h3>
-                        </div>
-                        {offers.map((offer) => {
-                          const lifecycle = buildOfferLifecycle(offer);
-                          const discount = ((offer.originalPrice - offer.offeredPrice) / offer.originalPrice * 100).toFixed(0);
-                          
-                          return (
-                            <Card key={offer.id} className="border-border">
-                              <CardContent className="p-5">
-                                {/* Listing Info */}
-                                <div className="flex items-start gap-4 mb-5">
-                                  <div className="w-20 h-20 rounded-lg bg-muted/50 border border-border/50 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {offer.listingImage ? (
-                                      <img 
-                                        src={offer.listingImage} 
-                                        alt={offer.listingName}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <Package className="h-8 w-8 text-foreground/40" />
-                                    )}
+                      {/* Listing Details Section (for DIRECT_ORDER) */}
+                      {selectedLead.source === 'DIRECT_ORDER' && selectedLead.listing && (
+                        <AccordionItem value="listing" className="border-border/50">
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-purple-500/10">
+                                <Package className="h-5 w-5 text-purple-400" />
+                              </div>
+                              <div className="text-left">
+                                <h3 className="text-base font-semibold text-foreground">Listing Details</h3>
+                                <p className="text-xs text-foreground/60">Service or package information</p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-4">
+                            <div className="flex items-start gap-4">
+                              <div className="w-24 h-24 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
+                                {selectedLead.listing.images && selectedLead.listing.images.length > 0 ? (
+                                  <img 
+                                    src={selectedLead.listing.images[0]} 
+                                    alt={selectedLead.listing.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="h-8 w-8 text-foreground/40" />
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-3 mb-2">
-                                      <div className="flex-1">
-                                        <h4 className="text-base font-semibold text-foreground mb-1">{offer.listingName}</h4>
-                                        <div className="flex items-center gap-3 text-sm">
-                                          <span className="text-foreground/60">Original Price:</span>
-                                          <span className="font-semibold text-foreground">
-                                            <IndianRupee className="inline h-3.5 w-3.5" />
-                                            {offer.originalPrice.toLocaleString()}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <Badge className={getOfferStatusColor(offer.status)}>
-                                        {offer.status}
-                                      </Badge>
-                                    </div>
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-3">
+                                <div>
+                                  <h4 className="text-lg font-semibold text-foreground mb-1">{selectedLead.listing.name}</h4>
+                                  <div className="flex items-center gap-3 text-sm">
+                                    <span className="text-foreground/60">Original Price:</span>
+                                    <span className="font-semibold text-foreground">
+                                      <IndianRupee className="inline h-3.5 w-3.5" />
+                                      {selectedLead.listing.price?.toLocaleString() || selectedLead.order?.totalAmount?.toLocaleString()}
+                                    </span>
                                   </div>
                                 </div>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
 
-                                {/* Horizontal Lifecycle */}
-                                <div className="mb-5">
-                                  <h4 className="text-sm font-semibold text-foreground/80 mb-3">Offer Negotiation Timeline</h4>
-                                  <div className="flex items-center gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-                                    {lifecycle.map((step, index) => {
-                                      const Icon = step.icon;
-                                      const isLast = index === lifecycle.length - 1;
-                                      return (
-                                        <div key={index} className="flex items-center flex-shrink-0">
-                                          <div className="flex flex-col items-center min-w-[100px]">
-                                            <div className={`p-2.5 rounded-full mb-2 ${
-                                              step.type === 'original' ? 'bg-gray-500/20' :
-                                              step.type === 'user-offer' ? 'bg-green-500/20' :
-                                              step.type === 'vendor-counter' ? 'bg-blue-500/20' :
-                                              step.type === 'accepted' ? 'bg-green-500/20' :
-                                              step.type === 'rejected' || step.type === 'withdrawn' ? 'bg-red-500/20' :
-                                              'bg-yellow-500/20'
-                                            }`}>
-                                              <Icon className={`h-4 w-4 ${
-                                                step.type === 'original' ? 'text-gray-400' :
-                                                step.type === 'user-offer' ? 'text-green-400' :
-                                                step.type === 'vendor-counter' ? 'text-blue-400' :
-                                                step.type === 'accepted' ? 'text-green-400' :
-                                                step.type === 'rejected' || step.type === 'withdrawn' ? 'text-red-400' :
-                                                'text-yellow-400'
-                                              }`} />
-                                            </div>
-                                            <p className="text-xs font-medium text-foreground/70 text-center mb-1">{step.label}</p>
-                                            {step.price !== null && (
-                                              <p className="text-sm font-semibold text-foreground text-center">
-                                                <IndianRupee className="inline h-3 w-3" />
-                                                {step.price.toLocaleString()}
-                                              </p>
+                      {/* Payment Details Section (for DIRECT_ORDER) */}
+                      {selectedLead.source === 'DIRECT_ORDER' && selectedLead.order && (
+                        <AccordionItem value="payment" className="border-border/50">
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-orange-500/10">
+                                <CreditCard className="h-5 w-5 text-orange-400" />
+                              </div>
+                              <div className="text-left">
+                                <h3 className="text-base font-semibold text-foreground">Payment Details</h3>
+                                <p className="text-xs text-foreground/60">Payment breakdown and earnings</p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-4">
+                            <div className="space-y-6">
+                              {/* Order Value Breakdown */}
+                              <div className="space-y-3">
+                                <h4 className="text-sm font-semibold text-foreground">Order Breakdown</h4>
+                                <div className="space-y-2 text-sm">
+                                  {selectedLead.order.baseAmount !== undefined && (
+                                    <div className="flex justify-between">
+                                      <span className="text-foreground/60">Base Amount</span>
+                                      <span className="text-foreground font-medium">
+                                        <IndianRupee className="inline h-3.5 w-3.5" />
+                                        {selectedLead.order.baseAmount?.toLocaleString() || '0'}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {selectedLead.order.addOnsAmount > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-foreground/60">Add-ons</span>
+                                      <span className="text-foreground font-medium">
+                                        <IndianRupee className="inline h-3.5 w-3.5" />
+                                        {selectedLead.order.addOnsAmount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {selectedLead.order.customizationsAmount > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-foreground/60">Customizations</span>
+                                      <span className="text-foreground font-medium">
+                                        <IndianRupee className="inline h-3.5 w-3.5" />
+                                        {selectedLead.order.customizationsAmount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {selectedLead.order.discountAmount > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-foreground/60">Discount</span>
+                                      <span className="text-green-400 font-medium">
+                                        -<IndianRupee className="inline h-3.5 w-3.5" />
+                                        {selectedLead.order.discountAmount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {selectedLead.order.taxAmount > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-foreground/60">Tax (GST)</span>
+                                      <span className="text-foreground font-medium">
+                                        <IndianRupee className="inline h-3.5 w-3.5" />
+                                        {selectedLead.order.taxAmount.toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between border-t border-border pt-2 mt-2">
+                                    <span className="text-foreground font-semibold">Total Order Value</span>
+                                    <span className="text-foreground font-bold text-lg">
+                                      <IndianRupee className="inline h-4 w-4" />
+                                      {selectedLead.order.totalAmount?.toLocaleString() || '0'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Payment Breakdown */}
+                              <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-4 border border-green-500/20">
+                                <h4 className="text-sm font-semibold text-foreground mb-3">Payment Status</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="bg-green-500/20 rounded-lg p-3 text-center">
+                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                      <CheckCircle className="h-4 w-4 text-green-400" />
+                                      <span className="text-xs font-medium text-green-400">Token Received</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-green-400">
+                                      <IndianRupee className="inline h-4 w-4" />
+                                      {(selectedLead.tokenAmount || Math.round((selectedLead.order.totalAmount || 0) * 0.25)).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-green-400/70">25% of total</p>
+                                  </div>
+                                  <div className="bg-orange-500/20 rounded-lg p-3 text-center">
+                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                      <Clock className="h-4 w-4 text-orange-400" />
+                                      <span className="text-xs font-medium text-orange-400">Balance Due</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-orange-400">
+                                      <IndianRupee className="inline h-4 w-4" />
+                                      {((selectedLead.order.totalAmount || 0) - (selectedLead.tokenAmount || Math.round((selectedLead.order.totalAmount || 0) * 0.25))).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-orange-400/70">From customer</p>
+                                  </div>
+                                </div>
+                                {selectedLead.order.paymentStatus && (
+                                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
+                                    <span className="text-foreground/60 text-sm">Payment Status</span>
+                                    <Badge className={selectedLead.order.paymentStatus === 'PARTIAL' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
+                                      {selectedLead.order.paymentStatus}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Earnings */}
+                              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-blue-500/20">
+                                <h4 className="text-sm font-semibold text-foreground mb-3">Your Earnings</h4>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-foreground/60">Gross Amount</span>
+                                    <span className="text-foreground font-medium">
+                                      <IndianRupee className="inline h-3.5 w-3.5" />
+                                      {selectedLead.order.totalAmount?.toLocaleString() || '0'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-foreground/60">Platform Fee (5%)</span>
+                                    <span className="text-red-400 font-medium">
+                                      -<IndianRupee className="inline h-3.5 w-3.5" />
+                                      {Math.round((selectedLead.order.totalAmount || 0) * 0.05).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between border-t border-border pt-2 mt-2">
+                                    <span className="text-foreground font-semibold">Net Payout</span>
+                                    <span className="text-blue-400 font-bold text-lg">
+                                      <IndianRupee className="inline h-4 w-4" />
+                                      {Math.round((selectedLead.order.totalAmount || 0) * 0.95).toLocaleString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+
+                      {/* Offers Section (for non-DIRECT_ORDER leads) */}
+                      {selectedLead.source !== 'DIRECT_ORDER' && (
+                        <AccordionItem value="offers" className="border-border/50">
+                          <AccordionTrigger className="hover:no-underline">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-yellow-500/10">
+                                <HandCoins className="h-5 w-5 text-yellow-400" />
+                              </div>
+                              <div className="text-left">
+                                <h3 className="text-base font-semibold text-foreground">Offers</h3>
+                                <p className="text-xs text-foreground/60">
+                                  {loadingOffers ? 'Loading...' : offers.length > 0 ? `${offers.length} offer${offers.length > 1 ? 's' : ''}` : 'No offers yet'}
+                                </p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pt-4">
+                            {loadingOffers ? (
+                              <div className="flex items-center justify-center p-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              </div>
+                            ) : offers.length > 0 ? (
+                              <div className="space-y-4">
+                                {offers.map((offer) => {
+                                  return (
+                                    <Card key={offer.id} className="border-border/50">
+                                      <CardContent className="p-4">
+                                        <div className="flex items-start gap-4 mb-4">
+                                          <div className="w-16 h-16 rounded-lg bg-muted/50 border border-border/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                            {offer.listingImage ? (
+                                              <img 
+                                                src={offer.listingImage} 
+                                                alt={offer.listingName}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <Package className="h-6 w-6 text-foreground/40" />
                                             )}
                                           </div>
-                                          {!isLast && (
-                                            <ArrowRight className="h-4 w-4 text-foreground/30 mx-1 flex-shrink-0" />
-                                          )}
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between gap-3 mb-2">
+                                              <div className="flex-1">
+                                                <h4 className="text-base font-semibold text-foreground mb-1">{offer.listingName}</h4>
+                                                <div className="flex items-center gap-3 text-sm">
+                                                  <span className="text-foreground/60">Original:</span>
+                                                  <span className="font-semibold text-foreground">
+                                                    <IndianRupee className="inline h-3.5 w-3.5" />
+                                                    {offer.originalPrice.toLocaleString()}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              <Badge className={getOfferStatusColor(offer.status)}>
+                                                {offer.status}
+                                              </Badge>
+                                            </div>
+                                          </div>
                                         </div>
-                                      );
-                                    })}
+
+                                        {/* Messages */}
+                                        {(offer.counterMessage || offer.message) && (
+                                          <div className="space-y-2 mb-4">
+                                            {offer.message && (
+                                              <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                                                <p className="text-xs font-medium text-foreground/60 mb-1">Customer Message:</p>
+                                                <p className="text-sm text-foreground/80">{offer.message}</p>
+                                              </div>
+                                            )}
+                                            {offer.counterMessage && (
+                                              <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                                <p className="text-xs font-medium text-blue-400 mb-1">Your Counter Message:</p>
+                                                <p className="text-sm text-foreground/80">{offer.counterMessage}</p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Action Buttons */}
+                                        {offer.status === 'PENDING' && (
+                                          <div className="flex gap-2 pt-3 border-t">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handleAcceptOffer(offer.id)}
+                                              disabled={processingOffer === offer.id}
+                                              className="flex-1 bg-green-600 hover:bg-green-700"
+                                            >
+                                              {processingOffer === offer.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <>
+                                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                                  Accept
+                                                </>
+                                              )}
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => openCounterModal(offer.id, offer)}
+                                              disabled={processingOffer === offer.id}
+                                              className="flex-1"
+                                            >
+                                              <HandCoins className="h-4 w-4 mr-2" />
+                                              Counter
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => handleRejectOffer(offer.id)}
+                                              disabled={processingOffer === offer.id}
+                                              className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                            >
+                                              {processingOffer === offer.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <XCircle className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 text-foreground/40 text-sm">
+                                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-foreground/20" />
+                                <p>No offers found for this lead</p>
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                    </Accordion>
+
+                    {/* Complete Lifecycle Timeline */}
+                    <Card className="border-border/50 bg-gradient-to-br from-slate-500/5 to-slate-700/5">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <History className="h-5 w-5 text-primary" />
+                          </div>
+                          <CardTitle className="text-lg font-semibold text-foreground">Lead Lifecycle</CardTitle>
+                        </div>
+                        <p className="text-xs text-foreground/60 mt-1">Complete timeline of lead milestones</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="relative">
+                          {selectedLead && buildLeadLifecycle(selectedLead, offers).map((item, index) => {
+                            const timeline = buildLeadLifecycle(selectedLead, offers);
+                            const Icon = item.icon;
+                            const isLast = index === timeline.length - 1;
+                            const isCompleted = item.status === 'completed';
+                            const isPending = item.status === 'pending';
+                            
+                            return (
+                              <div key={item.id} className="relative flex gap-4 pb-6 last:pb-0">
+                                {/* Timeline Line */}
+                                {!isLast && (
+                                  <div className="absolute left-5 top-10 w-0.5 h-full bg-border" />
+                                )}
+                                
+                                {/* Icon */}
+                                <div className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                                  isCompleted 
+                                    ? 'bg-green-500/20 border-2 border-green-500' 
+                                    : isPending
+                                    ? 'bg-gray-500/20 border-2 border-gray-500'
+                                    : 'bg-yellow-500/20 border-2 border-yellow-500'
+                                }`}>
+                                  <Icon className={`h-5 w-5 ${
+                                    isCompleted 
+                                      ? 'text-green-400' 
+                                      : isPending
+                                      ? 'text-gray-400'
+                                      : 'text-yellow-400'
+                                  }`} />
+                                </div>
+                                
+                                {/* Content */}
+                                <div className="flex-1 pt-1">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <h4 className={`text-sm font-semibold ${
+                                        isCompleted ? 'text-foreground' : 'text-foreground/70'
+                                      }`}>
+                                        {item.label}
+                                      </h4>
+                                      {item.description && (
+                                        <p className="text-xs text-foreground/60 mt-1">{item.description}</p>
+                                      )}
+                                    </div>
+                                    {item.date && (
+                                      <div className="text-right">
+                                        <p className="text-xs text-foreground/50 font-mono">
+                                          {formatDateTimeFull(item.date)}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
+                              </div>
+                            );
+                          })}
+                          
+                          {selectedLead && buildLeadLifecycle(selectedLead, offers).length === 0 && (
+                            <div className="text-center py-8 text-foreground/40 text-sm">
+                              No timeline events available
+                            </div>
+                          )}
+                          
+                          {!selectedLead && (
+                            <div className="text-center py-8 text-foreground/40 text-sm">
+                              Select a lead to view timeline
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                                {/* Messages */}
-                                {(offer.counterMessage || offer.message) && (
-                                  <div className="space-y-2 mb-4">
-                                    {offer.message && (
-                                      <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-                                        <p className="text-xs font-medium text-foreground/60 mb-1">Customer Message:</p>
-                                        <p className="text-sm text-foreground/80">{offer.message}</p>
-                                      </div>
-                                    )}
-                                    {offer.counterMessage && (
-                                      <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                                        <p className="text-xs font-medium text-blue-400 mb-1">Your Counter Message:</p>
-                                        <p className="text-sm text-foreground/80">{offer.counterMessage}</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Action Buttons - Only show for PENDING offers */}
-                                {offer.status === 'PENDING' && (
-                                  <div className="flex gap-2 pt-4 border-t">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleAcceptOffer(offer.id)}
-                                      disabled={processingOffer === offer.id}
-                                      className="flex-1 bg-green-600 hover:bg-green-700"
-                                    >
-                                      {processingOffer === offer.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <>
-                                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                                          Accept Offer
-                                        </>
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => openCounterModal(offer.id, offer)}
-                                      disabled={processingOffer === offer.id}
-                                      className="flex-1"
-                                    >
-                                      <HandCoins className="h-4 w-4 mr-2" />
-                                      Make Counter Offer
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleRejectOffer(offer.id)}
-                                      disabled={processingOffer === offer.id}
-                                      className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                                    >
-                                      {processingOffer === offer.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <XCircle className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
+                    {/* Action Buttons for DIRECT_ORDER */}
+                    {selectedLead.source === 'DIRECT_ORDER' && selectedLead.status === 'NEW' && (
+                      <div className="flex gap-3 pt-4 border-t">
+                        <Button
+                          onClick={handleAcceptLead}
+                          disabled={processingLead}
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          {processingLead ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                          )}
+                          Accept Order
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleRejectLead}
+                          disabled={processingLead}
+                          className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                        >
+                          {processingLead ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <XCircle className="h-4 w-4 mr-2" />
+                          )}
+                          Reject Order
+                        </Button>
                       </div>
-                    ) : (
-                      <Card className="border-border/50">
-                        <CardContent className="p-8 text-center">
-                          <AlertCircle className="h-10 w-10 text-foreground/40 mx-auto mb-3" />
-                          <p className="text-foreground/60 font-medium">No offers found for this lead</p>
-                          <p className="text-sm text-foreground/50 mt-1">This lead doesn't have any offers yet</p>
-                        </CardContent>
-                      </Card>
                     )}
 
                     {/* Actions */}

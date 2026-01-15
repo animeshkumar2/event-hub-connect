@@ -493,7 +493,9 @@ export function useVendorUpcomingBookings() {
     queryKey: ['vendorUpcomingBookings'],
     queryFn: async () => {
       const response = await vendorApi.getUpcomingBookings();
-      return unwrapResponse(response);
+      const data = unwrapResponse(response);
+      // Ensure we return an array even if data is null or undefined
+      return Array.isArray(data) ? data : (data ? [data] : []);
     },
     staleTime: 30 * 1000, // 30 seconds
   });
@@ -505,8 +507,24 @@ export function useVendorPastBookings() {
     queryKey: ['vendorPastBookings'],
     queryFn: async () => {
       const response = await vendorApi.getPastBookings();
+      const data = unwrapResponse(response);
+      // Ensure we return an array even if data is null or undefined
+      return Array.isArray(data) ? data : (data ? [data] : []);
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  });
+  return convertQueryResult(query);
+}
+
+export function useBookingTimeline(bookingId: string | null) {
+  const query = useQuery({
+    queryKey: ['bookingTimeline', bookingId],
+    queryFn: async () => {
+      if (!bookingId) return null;
+      const response = await vendorApi.getBookingTimeline(bookingId);
       return unwrapResponse(response);
     },
+    enabled: !!bookingId,
     staleTime: 30 * 1000, // 30 seconds
   });
   return convertQueryResult(query);

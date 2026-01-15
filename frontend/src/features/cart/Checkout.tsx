@@ -9,11 +9,15 @@ import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { useCart } from '@/shared/contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/shared/hooks/use-toast';
-import { CheckCircle2, Shield, Lock, CreditCard } from 'lucide-react';
+import { CheckCircle2, Shield, Lock, CreditCard, Info } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { customerApi } from '@/shared/services/api';
 import { Loader2 } from 'lucide-react';
+import { TokenPaymentModal } from '@/shared/components/TokenPaymentModal';
+
+// Token payment percentage (25%)
+const TOKEN_PERCENTAGE = 0.25;
 
 const Checkout = () => {
   const { items, getTotalPrice, clearCart } = useCart();
@@ -40,6 +44,12 @@ const Checkout = () => {
     notes: '',
   });
   const [processing, setProcessing] = useState(false);
+  
+  // Token payment modal state
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [orderTotalAmount, setOrderTotalAmount] = useState(0);
+  const [orderTokenAmount, setOrderTokenAmount] = useState(0);
 
   // Pre-fill customer details from auth if available
   useEffect(() => {
@@ -64,69 +74,13 @@ const Checkout = () => {
       return;
     }
 
-    // Payment details are optional for testing
-    // if (paymentMethod === 'card' && (!cardDetails.number || !cardDetails.name || !cardDetails.expiry || !cardDetails.cvv)) {
-    //   toast({
-    //     title: 'Invalid Card Details',
-    //     description: 'Please fill in all card details',
-    //     variant: 'destructive',
-    //   });
-    //   return;
-    // }
-
-    // if (paymentMethod === 'upi' && !upiId) {
-    //   toast({
-    //     title: 'Invalid UPI ID',
-    //     description: 'Please enter your UPI ID',
-    //     variant: 'destructive',
-    //   });
-    //   return;
-    // }
-
     setProcessing(true);
 
     try {
-      // First, ensure all cart items are saved to backend
-      const userId = localStorage.getItem('user_id');
-      const token = localStorage.getItem('auth_token');
+      // Cart items are already synced to backend by CartContext
+      // No need to re-add them here - that causes duplicates!
       
-      if (userId && token) {
-        // Save any unsaved cart items to backend
-        for (const item of items) {
-          if (item.id && item.id.startsWith('cart-') && item.packageId) {
-            // This is a local-only cart item, save it to backend
-            try {
-              const addOnIds = item.addOns?.filter(a => a.id && a.id.length > 0)
-                .map(a => a.id)
-                .filter(id => {
-                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                  return uuidRegex.test(id);
-                }) || [];
-              
-              let customizations = undefined;
-              if (item.customizations && item.customizations.length > 0) {
-                const customizationsPrice = item.customizations.reduce((sum, c) => sum + (c.price || 0), 0);
-                customizations = {
-                  price: customizationsPrice,
-                  items: item.customizations,
-                };
-              }
-
-              await customerApi.addToCart({
-                listingId: item.packageId,
-                quantity: item.quantity || 1,
-                addOnIds: addOnIds.length > 0 ? addOnIds : undefined,
-                customizations: customizations,
-              });
-            } catch (error) {
-              console.error('Failed to save cart item to backend before checkout:', error);
-              // Continue with other items
-            }
-          }
-        }
-      }
-      
-      // Then create order
+      // Create order from cart items already in backend
       const orderData = {
           paymentMethod: paymentMethod === 'card' ? 'card' : 'upi',
           customerName: customerDetails.name,
@@ -138,31 +92,22 @@ const Checkout = () => {
           guestCount: customerDetails.guestCount ? parseInt(customerDetails.guestCount) : undefined,
           eventType: customerDetails.eventType || undefined,
           notes: customerDetails.notes || undefined,
-          // Payment details are optional for testing
-          ...(paymentMethod === 'card' && cardDetails.number ? {
-            cardDetails: {
-              cardNumber: cardDetails.number,
-              cardholderName: cardDetails.name,
-              expiryDate: cardDetails.expiry,
-              cvv: cardDetails.cvv,
-            }
-          } : paymentMethod === 'upi' && upiId ? {
-            upiId: upiId,
-          } : {}),
         };
-
-      // Wait a bit for cart items to be saved
-      await new Promise(resolve => setTimeout(resolve, 500));
       
       const response = await customerApi.createOrder(orderData);
       
-      if (response.success) {
+      if (response.success && response.data) {
+        // Order created successfully - now show token payment modal
+        const order = response.data;
+        setCreatedOrderId(order.id);
+        setOrderTotalAmount(order.totalAmount || total);
+        setOrderTokenAmount(order.tokenAmount || Math.round(total * TOKEN_PERCENTAGE));
+        setShowTokenModal(true);
+        
         toast({
-          title: 'Payment Successful!',
-          description: 'Your booking has been confirmed. You will receive a confirmation email shortly.',
+          title: 'Order Created!',
+          description: 'Please complete the token payment to confirm your booking.',
         });
-        clearCart();
-        navigate('/booking-success');
       } else {
         // If cart is empty, it means items weren't saved - show helpful message
         if (response.message?.includes('Cart is empty')) {
@@ -178,8 +123,8 @@ const Checkout = () => {
     } catch (error: any) {
       console.error('Order creation error:', error);
       toast({
-        title: 'Payment Failed',
-        description: error.message || 'Failed to process payment. Please try again.',
+        title: 'Order Creation Failed',
+        description: error.message || 'Failed to create order. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -187,7 +132,32 @@ const Checkout = () => {
     }
   };
 
+  // Handle token payment success
+  const handleTokenPaymentSuccess = () => {
+    setShowTokenModal(false);
+    clearCart();
+    toast({
+      title: 'Token Payment Successful!',
+      description: 'Your booking is confirmed. The vendor will contact you shortly.',
+    });
+    navigate('/booking-success');
+  };
+
+  // Handle token payment modal close
+  const handleTokenModalClose = () => {
+    setShowTokenModal(false);
+    // Order is created but token not paid - redirect to orders page
+    toast({
+      title: 'Payment Pending',
+      description: 'Your order is created. Please complete the token payment from your orders page.',
+    });
+    clearCart();
+    navigate('/customer/orders');
+  };
+
   const total = getTotalPrice() * 1.23;
+  const tokenAmount = Math.round(total * TOKEN_PERCENTAGE);
+  const balanceAmount = total - tokenAmount;
 
   return (
     <div className="min-h-screen bg-background">
@@ -462,9 +432,26 @@ const Checkout = () => {
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center text-lg font-bold">
                     <span>Total</span>
-                    <span className="text-primary">₹{total.toLocaleString()}</span>
+                    <span>₹{total.toLocaleString()}</span>
                   </div>
                 </div>
+                
+                {/* Token Payment Info */}
+                <div className="bg-primary/10 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                    <Info className="h-4 w-4" />
+                    <span>Pay only 25% token now!</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Token Amount (25%)</span>
+                    <span className="text-lg font-bold text-primary">₹{tokenAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Balance (pay later)</span>
+                    <span>₹{balanceAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+                
                 <Button
                   onClick={handlePayment}
                   className="w-full"
@@ -474,15 +461,18 @@ const Checkout = () => {
                   {processing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
+                      Creating Order...
                     </>
                   ) : (
                     <>
                       <Lock className="mr-2 h-4 w-4" />
-                      Pay Securely ₹{total.toLocaleString()}
+                      Pay Token ₹{tokenAmount.toLocaleString()}
                     </>
                   )}
                 </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  Balance ₹{balanceAmount.toLocaleString()} to be paid after vendor confirmation
+                </p>
                 <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-3 w-3 text-green-600" />
@@ -502,6 +492,18 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+      
+      {/* Token Payment Modal */}
+      {createdOrderId && (
+        <TokenPaymentModal
+          isOpen={showTokenModal}
+          onClose={handleTokenModalClose}
+          orderId={createdOrderId}
+          totalAmount={orderTotalAmount}
+          tokenAmount={orderTokenAmount}
+          onPaymentSuccess={handleTokenPaymentSuccess}
+        />
+      )}
     </div>
   );
 };

@@ -1,9 +1,11 @@
 package com.eventhub.service;
 
 import com.eventhub.model.Order;
+import com.eventhub.model.OrderTimeline;
 import com.eventhub.model.Vendor;
 import com.eventhub.model.VendorPastEvent;
 import com.eventhub.repository.OrderRepository;
+import com.eventhub.repository.OrderTimelineRepository;
 import com.eventhub.repository.VendorRepository;
 import com.eventhub.repository.VendorPastEventRepository;
 import com.eventhub.exception.NotFoundException;
@@ -29,19 +31,30 @@ public class VendorBookingService {
     private final OrderRepository orderRepository;
     private final VendorRepository vendorRepository;
     private final VendorPastEventRepository vendorPastEventRepository;
+    private final OrderTimelineRepository orderTimelineRepository;
     
     /**
-     * Get all bookings for a vendor
+     * Get all bookings for a vendor (only CONFIRMED, IN_PROGRESS, COMPLETED orders)
+     * PENDING orders should be in Leads section, not Bookings
      */
     @Transactional(readOnly = true)
     public Page<Order> getAllBookings(UUID vendorId, Pageable pageable) {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
-        return orderRepository.findByVendor(vendor, pageable);
+        
+        // Only return orders that are confirmed or beyond (not PENDING or CANCELLED)
+        List<Order.OrderStatus> bookingStatuses = List.of(
+            Order.OrderStatus.CONFIRMED,
+            Order.OrderStatus.IN_PROGRESS,
+            Order.OrderStatus.COMPLETED
+        );
+        
+        return orderRepository.findByVendorAndStatusIn(vendor, bookingStatuses, pageable);
     }
     
     /**
      * Get upcoming bookings (event date >= today, status CONFIRMED or IN_PROGRESS)
+     * Only includes orders that are confirmed or in progress (not PENDING or CANCELLED)
      */
     @Transactional(readOnly = true)
     public List<Order> getUpcomingBookings(UUID vendorId) {
@@ -49,14 +62,39 @@ public class VendorBookingService {
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
         
         LocalDate today = LocalDate.now();
-        List<Order> allOrders = orderRepository.findByVendor(vendor, Pageable.unpaged()).getContent();
         
-        return allOrders.stream()
-                .filter(order -> order.getEventDate() != null && !order.getEventDate().isBefore(today))
-                .filter(order -> order.getStatus() == Order.OrderStatus.CONFIRMED 
-                        || order.getStatus() == Order.OrderStatus.IN_PROGRESS)
+        // Only get orders that are confirmed or beyond (not PENDING or CANCELLED)
+        List<Order.OrderStatus> bookingStatuses = List.of(
+            Order.OrderStatus.CONFIRMED,
+            Order.OrderStatus.IN_PROGRESS,
+            Order.OrderStatus.COMPLETED
+        );
+        
+        List<Order> bookingOrders = orderRepository.findByVendorAndStatusIn(vendor, bookingStatuses, Pageable.unpaged()).getContent();
+        
+        return bookingOrders.stream()
+                .filter(order -> {
+                    // Only include CONFIRMED or IN_PROGRESS (exclude COMPLETED from upcoming)
+                    boolean isCorrectStatus = order.getStatus() == Order.OrderStatus.CONFIRMED 
+                            || order.getStatus() == Order.OrderStatus.IN_PROGRESS;
+                    if (!isCorrectStatus) return false;
+                    
+                    // If event date is null, include it in upcoming (assume it's a future booking)
+                    // This handles cases where event date wasn't set during order creation
+                    if (order.getEventDate() == null) {
+                        return true; // Include orders without event date in upcoming
+                    }
+                    
+                    // Check if event date is today or in the future
+                    // isBefore returns true if date is before today, so we want !isBefore (today or future)
+                    boolean isUpcoming = !order.getEventDate().isBefore(today);
+                    return isUpcoming;
+                })
                 .sorted((o1, o2) -> {
-                    if (o1.getEventDate() == null || o2.getEventDate() == null) return 0;
+                    // Sort: null dates go to end, then by date ascending
+                    if (o1.getEventDate() == null && o2.getEventDate() == null) return 0;
+                    if (o1.getEventDate() == null) return 1;
+                    if (o2.getEventDate() == null) return -1;
                     return o1.getEventDate().compareTo(o2.getEventDate());
                 })
                 .collect(Collectors.toList());
@@ -64,6 +102,7 @@ public class VendorBookingService {
     
     /**
      * Get past bookings (event date < today OR status COMPLETED)
+     * Only includes orders that are confirmed or beyond (not PENDING or CANCELLED)
      */
     @Transactional(readOnly = true)
     public List<Order> getPastBookings(UUID vendorId) {
@@ -71,17 +110,34 @@ public class VendorBookingService {
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
         
         LocalDate today = LocalDate.now();
-        List<Order> allOrders = orderRepository.findByVendor(vendor, Pageable.unpaged()).getContent();
         
-        return allOrders.stream()
+        // Only get orders that are confirmed or beyond (not PENDING or CANCELLED)
+        List<Order.OrderStatus> bookingStatuses = List.of(
+            Order.OrderStatus.CONFIRMED,
+            Order.OrderStatus.IN_PROGRESS,
+            Order.OrderStatus.COMPLETED
+        );
+        
+        List<Order> bookingOrders = orderRepository.findByVendorAndStatusIn(vendor, bookingStatuses, Pageable.unpaged()).getContent();
+        
+        return bookingOrders.stream()
                 .filter(order -> {
+                    // Include if status is COMPLETED (regardless of event date)
                     if (order.getStatus() == Order.OrderStatus.COMPLETED) {
                         return true;
                     }
-                    return order.getEventDate() != null && order.getEventDate().isBefore(today);
+                    // Include if event date has passed (and status is CONFIRMED or IN_PROGRESS)
+                    // If event date is null, don't include in past (keep it in upcoming)
+                    if (order.getEventDate() == null) {
+                        return false; // Orders without event date should stay in upcoming
+                    }
+                    return order.getEventDate().isBefore(today);
                 })
                 .sorted((o1, o2) -> {
-                    if (o1.getEventDate() == null || o2.getEventDate() == null) return 0;
+                    // Sort: null dates go to end, then by date descending (most recent first)
+                    if (o1.getEventDate() == null && o2.getEventDate() == null) return 0;
+                    if (o1.getEventDate() == null) return 1;
+                    if (o2.getEventDate() == null) return -1;
                     return o2.getEventDate().compareTo(o1.getEventDate()); // Descending
                 })
                 .collect(Collectors.toList());
@@ -100,6 +156,15 @@ public class VendorBookingService {
         }
         
         return order;
+    }
+    
+    /**
+     * Get order timeline for a booking
+     */
+    @Transactional(readOnly = true)
+    public List<OrderTimeline> getBookingTimeline(UUID bookingId, UUID vendorId) {
+        Order order = getBookingById(bookingId, vendorId);
+        return orderTimelineRepository.findByOrderOrderByCreatedAtAsc(order);
     }
     
     /**

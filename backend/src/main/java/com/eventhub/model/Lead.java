@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -56,6 +57,21 @@ public class Lead {
     @Column(length = 20)
     private LeadStatus status = LeadStatus.NEW;
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20)
+    private LeadSource source = LeadSource.INQUIRY; // Source of the lead
+    
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private Order order; // Reference to order if lead was created from direct order
+    
+    @ManyToOne
+    @JoinColumn(name = "listing_id")
+    private Listing listing; // Reference to listing
+    
+    @Column(name = "token_amount", precision = 10, scale = 2)
+    private BigDecimal tokenAmount; // Token amount paid for this lead
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -75,6 +91,13 @@ public class Lead {
     
     public enum LeadStatus {
         NEW, OPEN, DECLINED, WITHDRAWN, CONVERTED
+    }
+    
+    public enum LeadSource {
+        INQUIRY,        // Manual inquiry from user
+        DIRECT_ORDER,   // Created from direct order with token payment
+        CHAT,           // Created from chat/negotiation
+        OFFER           // Created from offer acceptance
     }
 }
 

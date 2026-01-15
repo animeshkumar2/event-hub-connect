@@ -54,6 +54,27 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.vendor.id = :vendorId AND o.status = 'COMPLETED' AND o.createdAt >= :date")
     java.math.BigDecimal calculateRevenueByVendorSince(@Param("vendorId") UUID vendorId, @Param("date") java.time.LocalDateTime date);
+    
+    // Token payment related queries
+    List<Order> findByUserIdAndAwaitingTokenPayment(UUID userId, Boolean awaitingTokenPayment);
+    
+    @Query("SELECT o FROM Order o WHERE o.awaitingTokenPayment = true AND o.createdAt < :cutoffTime")
+    List<Order> findExpiredPendingTokenPayments(@Param("cutoffTime") java.time.LocalDateTime cutoffTime);
+    
+    List<Order> findByUserId(UUID userId);
+    
+    // Booking lifecycle queries
+    List<Order> findByStatusAndEventDate(Order.OrderStatus status, java.time.LocalDate eventDate);
+    
+    @Query("SELECT o FROM Order o WHERE o.status = 'IN_PROGRESS' AND o.eventDate < :cutoffDate")
+    List<Order> findOverdueInProgressOrders(@Param("cutoffDate") java.time.LocalDate cutoffDate);
+    
+    @Query("SELECT o FROM Order o WHERE o.status = 'CONFIRMED' AND o.eventDate BETWEEN :startDate AND :endDate")
+    List<Order> findConfirmedOrdersBetweenDates(@Param("startDate") java.time.LocalDate startDate, 
+                                                 @Param("endDate") java.time.LocalDate endDate);
+    
+    // Find bookings by vendor and status list (for filtering confirmed bookings only)
+    Page<Order> findByVendorAndStatusIn(Vendor vendor, List<Order.OrderStatus> statuses, Pageable pageable);
 }
 
 

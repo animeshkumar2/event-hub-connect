@@ -4,11 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -21,59 +18,83 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
     
     @Column(name = "user_id", nullable = false)
     private UUID userId;
     
-    @ManyToOne
-    @JoinColumn(name = "vendor_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id")
     private Vendor vendor;
     
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(name = "amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal amount;
     
-    @Column(name = "payment_method", nullable = false, length = 50)
-    private String paymentMethod; // 'razorpay', 'stripe', 'cash', etc.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", length = 20)
+    private PaymentType paymentType;
     
-    @Column(name = "payment_gateway", length = 50)
-    private String paymentGateway; // 'razorpay', 'stripe'
-    
-    @Column(name = "transaction_id", length = 255)
-    private String transactionId; // Payment gateway transaction ID
-    
-    @Convert(converter = PaymentStatusConverterForPayment.class)
-    @Column(length = 20)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     private PaymentStatus status = PaymentStatus.PENDING;
     
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "payment_data", columnDefinition = "jsonb")
-    private Map<String, Object> paymentData; // Store gateway response
+    @Column(name = "payment_method", length = 50)
+    private String paymentMethod;
     
-    @Column(name = "paid_at")
-    private LocalDateTime paidAt;
+    @Column(name = "transaction_id", unique = true)
+    private String transactionId;
     
-    @Column(name = "created_at")
+    @Column(name = "gateway_response", columnDefinition = "TEXT")
+    private String gatewayResponse;
+    
+    @Column(name = "failure_reason")
+    private String failureReason;
+    
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
     
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        if (status == null) {
+            status = PaymentStatus.PENDING;
+        }
     }
     
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-    
+    // Inner enum for PaymentStatus
     public enum PaymentStatus {
-        PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED
+        PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED
+    }
+    
+    // Utility methods
+    public boolean isCompleted() {
+        return status == PaymentStatus.COMPLETED;
+    }
+    
+    public boolean isPending() {
+        return status == PaymentStatus.PENDING;
+    }
+    
+    public boolean isFailed() {
+        return status == PaymentStatus.FAILED;
+    }
+    
+    public boolean isRefunded() {
+        return status == PaymentStatus.REFUNDED;
+    }
+    
+    public void markCompleted() {
+        this.status = PaymentStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+    
+    public void markFailed(String reason) {
+        this.status = PaymentStatus.FAILED;
+        this.failureReason = reason;
     }
 }
-
