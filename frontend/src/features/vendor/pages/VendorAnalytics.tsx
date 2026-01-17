@@ -13,7 +13,6 @@ import {
   Download,
   BarChart3,
   PieChart,
-  Loader2,
   Lock,
   Sparkles,
   Zap
@@ -22,10 +21,14 @@ import { useVendorDashboardStats, useVendorOrders } from '@/shared/hooks/useApi'
 import { useMemo } from 'react';
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 
 export default function VendorAnalytics() {
-  const { data: statsData, loading, error } = useVendorDashboardStats();
-  const { data: ordersData } = useVendorOrders();
+  // PHASE 1: Skip API calls if analytics is disabled
+  const shouldFetchData = FEATURE_FLAGS.ANALYTICS_ENABLED;
+  
+  const { data: statsData, loading, error } = useVendorDashboardStats({ enabled: shouldFetchData });
+  const { data: ordersData } = useVendorOrders(undefined, 0, 10, { enabled: shouldFetchData });
 
   const stats = statsData || {
     upcomingBookings: 0,
@@ -36,7 +39,7 @@ export default function VendorAnalytics() {
 
   // Calculate monthly data from real orders
   const monthlyData = useMemo(() => {
-    if (!ordersData?.content || !Array.isArray(ordersData.content)) {
+    if (!shouldFetchData || !ordersData?.content || !Array.isArray(ordersData.content)) {
       return [];
     }
 
@@ -66,11 +69,11 @@ export default function VendorAnalytics() {
         revenue: Math.round(revenue)
       };
     });
-  }, [ordersData]);
+  }, [ordersData, shouldFetchData]);
 
   // Calculate top services from orders
   const topServices = useMemo(() => {
-    if (!ordersData?.content || !Array.isArray(ordersData.content)) {
+    if (!shouldFetchData || !ordersData?.content || !Array.isArray(ordersData.content)) {
       return [];
     }
 
@@ -107,7 +110,7 @@ export default function VendorAnalytics() {
       ...service,
       percentage: totalRevenue > 0 ? Math.round((service.revenue / totalRevenue) * 100) : 0
     }));
-  }, [ordersData]);
+  }, [ordersData, shouldFetchData]);
 
   const displayStats = [
     { 
@@ -156,34 +159,7 @@ export default function VendorAnalytics() {
     },
   ];
 
-  if (loading) {
-    return (
-      <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </VendorLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <VendorLayout>
-        <div className="p-6">
-          <Card className="border-border">
-            <CardContent className="p-6 text-center">
-              <p className="text-destructive mb-4">{error}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </VendorLayout>
-    );
-  }
-
-  const maxRevenue = monthlyData.length > 0 ? Math.max(...monthlyData.map(d => d.revenue)) : 1;
-  const maxBookings = monthlyData.length > 0 ? Math.max(...monthlyData.map(d => d.bookings)) : 1;
-
-  // PHASE 1: Show locked state if analytics is disabled
+  // PHASE 1: Show locked state immediately if analytics is disabled
   if (!FEATURE_FLAGS.ANALYTICS_ENABLED) {
     return (
       <VendorLayout>
@@ -216,7 +192,12 @@ export default function VendorAnalytics() {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                {displayStats.map((stat, i) => (
+                {[
+                  { label: 'Upcoming Bookings', value: '12', icon: Calendar, color: 'text-secondary', bg: 'bg-secondary/10' },
+                  { label: 'Monthly Revenue', value: '₹50K', icon: IndianRupee, color: 'text-green-400', bg: 'bg-green-500/10' },
+                  { label: 'Pending Leads', value: '8', icon: Users, color: 'text-primary', bg: 'bg-primary/10' },
+                  { label: 'Wallet Balance', value: '₹25K', icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                ].map((stat, i) => (
                   <Card key={i} className="border-0 shadow-none bg-card/50">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-2">
@@ -339,7 +320,35 @@ export default function VendorAnalytics() {
     );
   }
 
-  // Original analytics content (when ANALYTICS_ENABLED = true)
+  // PHASE 2+: Show loading/error states when analytics is enabled
+  if (loading) {
+    return (
+      <VendorLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading analytics" />
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <VendorLayout>
+        <div className="p-6">
+          <Card className="border-border">
+            <CardContent className="p-6 text-center">
+              <p className="text-destructive mb-4">{error}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </VendorLayout>
+    );
+  }
+
+  const maxRevenue = monthlyData.length > 0 ? Math.max(...monthlyData.map(d => d.revenue)) : 1;
+  const maxBookings = monthlyData.length > 0 ? Math.max(...monthlyData.map(d => d.bookings)) : 1;
+
+  // PHASE 2+: Original analytics content (when ANALYTICS_ENABLED = true)
   return (
     <VendorLayout>
       <div className="p-4 space-y-4">

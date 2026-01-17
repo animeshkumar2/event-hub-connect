@@ -8,6 +8,8 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Switch } from '@/shared/components/ui/switch';
 import { Badge } from '@/shared/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { InlineError } from '@/shared/components/InlineError';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { 
   Camera, 
   Upload, 
@@ -263,8 +265,8 @@ export default function VendorProfile() {
   if (loading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading profile" />
         </div>
       </VendorLayout>
     );
@@ -307,19 +309,13 @@ export default function VendorProfile() {
   if (error) {
     return (
       <VendorLayout>
-        <div className="p-6">
-          <Card className="border-destructive">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <p className="text-destructive font-semibold">Failed to load profile</p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <Button onClick={() => refetch()} variant="outline">
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <InlineError
+          title="Failed to load profile"
+          message="We couldn't load your profile data. Please try again."
+          error={error}
+          onRetry={() => refetch()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }
@@ -328,8 +324,8 @@ export default function VendorProfile() {
   if (!profileData) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading profile" />
         </div>
       </VendorLayout>
     );

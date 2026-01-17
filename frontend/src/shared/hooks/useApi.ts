@@ -320,7 +320,7 @@ export function useMyVendorListings() {
   return convertQueryResult(query);
 }
 
-export function useVendorOrders(status?: string, page = 0, size = 10) {
+export function useVendorOrders(status?: string, page = 0, size = 10, options?: { enabled?: boolean }) {
   const query = useQuery({
     queryKey: ['vendorOrders', status, page, size],
     queryFn: async () => {
@@ -328,6 +328,7 @@ export function useVendorOrders(status?: string, page = 0, size = 10) {
       return unwrapResponse(response);
     },
     staleTime: 30 * 1000, // 30 seconds
+    enabled: options?.enabled !== false, // Default to true, only disable if explicitly set to false
   });
   return convertQueryResult(query);
 }
@@ -344,7 +345,7 @@ export function useVendorLeads() {
   return convertQueryResult(query);
 }
 
-export function useMyVendorReviews(page = 0, size = 10) {
+export function useMyVendorReviews(page = 0, size = 10, options?: { enabled?: boolean }) {
   const query = useQuery({
     queryKey: ['myVendorReviews', page, size],
     queryFn: async () => {
@@ -352,11 +353,12 @@ export function useMyVendorReviews(page = 0, size = 10) {
       return unwrapResponse(response);
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
+    enabled: options?.enabled !== false, // Default to true, only disable if explicitly set to false
   });
   return convertQueryResult(query);
 }
 
-export function useVendorReviewStatistics() {
+export function useVendorReviewStatistics(options?: { enabled?: boolean }) {
   const query = useQuery({
     queryKey: ['vendorReviewStatistics'],
     queryFn: async () => {
@@ -364,6 +366,7 @@ export function useVendorReviewStatistics() {
       return unwrapResponse(response);
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
+    enabled: options?.enabled !== false, // Default to true, only disable if explicitly set to false
   });
   return convertQueryResult(query);
 }
@@ -416,7 +419,7 @@ export function useVendorWalletTransactions(page = 0, size = 10) {
   return convertQueryResult(query);
 }
 
-export function useVendorDashboardStats() {
+export function useVendorDashboardStats(options?: { enabled?: boolean }) {
   const query = useQuery({
     queryKey: ['vendorDashboardStats'],
     queryFn: async () => {
@@ -424,6 +427,7 @@ export function useVendorDashboardStats() {
       return unwrapResponse(response);
     },
     staleTime: 30 * 1000, // 30 seconds
+    enabled: options?.enabled !== false, // Default to true, only disable if explicitly set to false
   });
   return convertQueryResult(query);
 }
