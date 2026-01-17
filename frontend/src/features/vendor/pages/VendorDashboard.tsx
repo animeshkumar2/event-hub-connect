@@ -308,7 +308,7 @@ export default function VendorDashboard() {
               <Button 
                 onClick={() => navigate('/vendor/calendar')} 
                 variant="outline" 
-                className="border-border hover:bg-muted transition-all w-full justify-center"
+                className="border border-primary/20 bg-primary/5 hover:bg-primary/15 hover:border-primary/30 hover:text-foreground hover:shadow-md transition-all w-full justify-center shadow-sm"
                 size="sm"
               >
                 <Calendar className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
@@ -317,7 +317,7 @@ export default function VendorDashboard() {
               <Button 
                 onClick={() => navigate('/vendor/leads')} 
                 variant="outline" 
-                className="border-border hover:bg-muted transition-all w-full justify-center sm:col-span-2 lg:col-span-1"
+                className="border border-primary/20 bg-primary/5 hover:bg-primary/15 hover:border-primary/30 hover:text-foreground hover:shadow-md transition-all w-full justify-center sm:col-span-2 lg:col-span-1 shadow-sm"
                 size="sm"
               >
                 <MessageSquare className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
@@ -397,9 +397,10 @@ export default function VendorDashboard() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-primary hover:text-primary/80"
+                className="text-primary hover:text-primary hover:bg-primary/10 gap-1.5 font-medium"
                 onClick={() => navigate('/vendor/calendar')}
               >
+                <Calendar className="h-3.5 w-3.5" />
                 View Calendar
               </Button>
             </CardHeader>
@@ -442,9 +443,10 @@ export default function VendorDashboard() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-primary hover:text-primary/80" 
+                className="text-primary hover:text-primary hover:bg-primary/10 gap-1.5 font-medium" 
                 onClick={() => navigate('/vendor/leads')}
               >
+                <MessageSquare className="h-3.5 w-3.5" />
                 View All
               </Button>
             </CardHeader>

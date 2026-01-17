@@ -207,7 +207,7 @@ export function ListingCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}?view=customer`, '_blank'); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/vendor/listings/preview/${listing.id}`); }}>
                 <Eye className="mr-2 h-4 w-4" /> Preview as Customer
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => {
