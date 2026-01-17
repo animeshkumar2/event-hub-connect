@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, Camera, Palette, Music2, ChefHat, Hand, CalendarCheck, LucideIcon } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
+import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
 
 interface Category {
   id: string;
@@ -65,6 +66,8 @@ const galleryImages = {
 
 export const CategoryServicesSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const navigate = useNavigate();
+  const { hasFullAccess } = usePreLaunch();
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -140,13 +143,24 @@ export const CategoryServicesSection = () => {
           <section className="flex flex-col order-2 lg:order-1">
             {/* Services selection card */}
             <div className="relative bg-primary/5 border border-primary/20 rounded-lg p-4 sm:p-6 md:p-8 shadow-sm min-h-[400px] sm:h-[436px] md:h-[576px] flex flex-col justify-center">
-              {/* PHASE 1: Coming Soon Badge - Centered on the card */}
+              {/* Badge - Admin or Coming Soon - Centered on the card */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
-                  <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
-                    Coming Soon
-                  </Badge>
+                  {hasFullAccess ? (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full blur-md opacity-75 animate-pulse"></div>
+                      <Badge className="relative bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
+                        Admin Access
+                      </Badge>
+                    </>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
+                      <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
+                        Coming Soon
+                      </Badge>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -158,8 +172,12 @@ export const CategoryServicesSection = () => {
                 {categories.map((category, index) => (
                   <div
                     key={category.id}
+                    onClick={() => hasFullAccess && navigate(category.searchPath)}
                     className={cn(
-                      "service-card flex flex-col items-center justify-center text-center p-4 bg-muted/50 rounded-lg opacity-70 animate-on-scroll",
+                      "service-card flex flex-col items-center justify-center text-center p-4 bg-muted/50 rounded-lg animate-on-scroll",
+                      hasFullAccess 
+                        ? "opacity-100 cursor-pointer hover:bg-primary/10 hover:scale-105 transition-all duration-300" 
+                        : "opacity-70",
                       index === 6 && "sm:col-start-2" // Event Planners spans 2 columns on small screens
                     )}
                     style={{

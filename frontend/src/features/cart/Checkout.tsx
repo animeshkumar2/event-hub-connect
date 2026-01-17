@@ -7,7 +7,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { useCart } from '@/shared/contexts/CartContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/shared/hooks/use-toast';
 import { CheckCircle2, Shield, Lock, CreditCard, Info } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
@@ -15,6 +15,8 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { customerApi } from '@/shared/services/api';
 import { Loader2 } from 'lucide-react';
 import { TokenPaymentModal } from '@/shared/components/TokenPaymentModal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { eventTypes } from '@/shared/constants/mockData';
 
 // Token payment percentage (25%)
 const TOKEN_PERCENTAGE = 0.25;
@@ -24,6 +26,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [cardDetails, setCardDetails] = useState({
     number: '',
@@ -32,15 +35,16 @@ const Checkout = () => {
     cvv: '',
   });
   const [upiId, setUpiId] = useState('');
+  // Auto-fill event type and date from URL params if available
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
     email: '',
     phone: '',
-    eventDate: '',
+    eventDate: searchParams.get('eventDate') || '',
     eventTime: '',
     venueAddress: '',
     guestCount: '',
-    eventType: '',
+    eventType: searchParams.get('eventType') || '',
     notes: '',
   });
   const [processing, setProcessing] = useState(false);
@@ -69,6 +73,25 @@ const Checkout = () => {
       toast({
         title: 'Missing Information',
         description: 'Please fill in your name and email',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate event type and date (mandatory)
+    if (!customerDetails.eventType.trim()) {
+      toast({
+        title: 'Missing Event Type',
+        description: 'Please select an event type',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!customerDetails.eventDate) {
+      toast({
+        title: 'Missing Event Date',
+        description: 'Please select an event date',
         variant: 'destructive',
       });
       return;
@@ -204,21 +227,32 @@ const Checkout = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="eventType">Event Type</Label>
-                    <Input
-                      id="eventType"
-                      value={customerDetails.eventType}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, eventType: e.target.value })}
-                      placeholder="e.g., Wedding, Birthday"
-                    />
+                    <Label htmlFor="eventType">Event Type *</Label>
+                    <Select 
+                      value={customerDetails.eventType} 
+                      onValueChange={(value) => setCustomerDetails({ ...customerDetails, eventType: value })}
+                    >
+                      <SelectTrigger className={!customerDetails.eventType.trim() ? 'border-orange-400' : 'border-green-400'}>
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <Label htmlFor="eventDate">Event Date</Label>
+                    <Label htmlFor="eventDate">Event Date *</Label>
                     <Input
                       id="eventDate"
                       type="date"
                       value={customerDetails.eventDate}
                       onChange={(e) => setCustomerDetails({ ...customerDetails, eventDate: e.target.value })}
+                      className={!customerDetails.eventDate ? 'border-orange-400 focus:border-orange-500' : 'border-green-400'}
+                      required
                     />
                   </div>
                   <div>

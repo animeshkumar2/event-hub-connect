@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Separator } from '@/shared/components/ui/separator';
-import { HandCoins, IndianRupee, Clock, CheckCircle2, XCircle, Package, User, Calendar } from 'lucide-react';
+import { HandCoins, IndianRupee, Clock, CheckCircle2, XCircle, Package, User, Calendar, CreditCard, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface OfferCardProps {
@@ -22,6 +22,9 @@ interface OfferCardProps {
     eventTime?: string;
     guestCount?: number;
     createdAt: string;
+    orderId?: string;
+    tokenAmount?: number;
+    tokenPaid?: boolean;
   };
   isVendor?: boolean;
   onAccept?: (offerId: string) => void;
@@ -29,6 +32,7 @@ interface OfferCardProps {
   onCounter?: (offerId: string) => void;
   onAcceptCounter?: (offerId: string) => void;
   onWithdraw?: (offerId: string) => void;
+  onPayToken?: (offerId: string, orderId: string, tokenAmount: number) => void;
 }
 
 export const OfferCard = ({
@@ -39,13 +43,25 @@ export const OfferCard = ({
   onCounter,
   onAcceptCounter,
   onWithdraw,
+  onPayToken,
 }: OfferCardProps) => {
   const hasCustomization = offer.customizedPrice && offer.customizedPrice !== offer.originalPrice;
   const customizationData = offer.customization ? JSON.parse(offer.customization) : null;
+  
+  // Check if customer needs to pay token (vendor accepted but no token paid yet)
+  const needsTokenPayment = offer.status === 'ACCEPTED' && offer.orderId && !offer.tokenPaid && !isVendor;
 
   const getStatusBadge = (status: string) => {
+    // Special case: show "Awaiting Payment" for accepted offers that need token payment
+    if (needsTokenPayment) {
+      return <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20 animate-pulse"><Wallet className="h-3 w-3 mr-1" />Pay to Confirm</Badge>;
+    }
+    
     switch (status) {
       case 'ACCEPTED':
+        if (offer.tokenPaid) {
+          return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle2 className="h-3 w-3 mr-1" />Confirmed</Badge>;
+        }
         return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle2 className="h-3 w-3 mr-1" />Accepted</Badge>;
       case 'REJECTED':
         return <Badge className="bg-red-500/10 text-red-600 border-red-500/20"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
@@ -233,18 +249,56 @@ export const OfferCard = ({
                   </Button>
                 </div>
               )}
+              {/* Vendor view: Show waiting for payment status */}
+              {offer.status === 'ACCEPTED' && offer.orderId && !offer.tokenPaid && (
+                <div className="pt-2 border-t">
+                  <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <Clock className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                      Waiting for customer to pay token
+                    </p>
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">
+                      Booking will be confirmed once payment is received
+                    </p>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>
+              {/* Customer: Pay Token to Confirm when vendor accepted */}
+              {needsTokenPayment && (
+                <div className="pt-2 border-t space-y-2">
+                  <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                      Vendor accepted your offer!
+                    </p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                      Pay token amount to confirm your booking
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => onPayToken?.(offer.id, offer.orderId!, offer.tokenAmount || 0)}
+                    className="w-full font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pay ₹{(offer.tokenAmount || 0).toLocaleString('en-IN')} to Confirm Booking
+                  </Button>
+                </div>
+              )}
+              
+              {/* Customer: Accept Counter Offer (will lead to payment) */}
               {offer.status === 'COUNTERED' && (
                 <div className="flex gap-2 pt-2 border-t">
                   <Button
                     size="sm"
                     onClick={() => onAcceptCounter?.(offer.id)}
-                    className="flex-1 font-semibold"
+                    className="flex-1 font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                   >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Accept Counter Offer
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Accept & Pay Token
                   </Button>
                   <Button
                     size="sm"
@@ -256,7 +310,9 @@ export const OfferCard = ({
                   </Button>
                 </div>
               )}
-              {(offer.status === 'PENDING' || offer.status === 'COUNTERED') && (
+              
+              {/* Customer: Withdraw pending offer */}
+              {offer.status === 'PENDING' && (
                 <div className="pt-2 border-t">
                   <Button
                     size="sm"

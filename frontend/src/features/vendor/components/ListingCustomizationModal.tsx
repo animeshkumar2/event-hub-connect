@@ -43,13 +43,11 @@ export const ListingCustomizationModal = ({
   onCustomize,
   loading = false,
 }: ListingCustomizationModalProps) => {
-  if (!listing) return null;
+  const listingType = listing?.type?.toLowerCase() || '';
+  const isPackage = listingType === 'package' || listing?.type === 'PACKAGE';
+  const isItem = !!listing && (listingType === 'item' || listing?.type === 'ITEM' || (!isPackage && listingType !== 'package'));
 
-  const listingType = listing.type?.toLowerCase() || '';
-  const isPackage = listingType === 'package' || listing.type === 'PACKAGE';
-  const isItem = listingType === 'item' || listing.type === 'ITEM' || (!isPackage && listingType !== 'package');
-
-  const [quantity, setQuantity] = useState(listing.minimumQuantity || 1);
+  const [quantity, setQuantity] = useState(listing?.minimumQuantity || 1);
   const [selectedAddOns, setSelectedAddOns] = useState<Set<string>>(new Set());
 
   // Calculate customized price
@@ -80,6 +78,8 @@ export const ListingCustomizationModal = ({
       .filter(addOn => selectedAddOns.has(addOn.id))
       .reduce((sum, addOn) => sum + addOn.price, 0);
   }, [listing?.addOns, selectedAddOns]);
+
+  if (!listing) return null;
 
   const handleQuantityChange = (newQuantity: number) => {
     const minQty = listing?.minimumQuantity || 1;

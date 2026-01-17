@@ -53,40 +53,25 @@ export const TokenPaymentModal: React.FC<TokenPaymentModalProps> = ({
   const handlePayment = async () => {
     setPaymentState({ status: 'processing', message: 'Processing payment...' });
 
-    // TEST MODE: Skip actual payment and simulate success
-    if (TEST_MODE) {
-      setTimeout(() => {
-        setPaymentState({
-          status: 'success',
-          message: 'Payment successful! (Test Mode)',
-          paymentId: 'test-payment-' + Date.now(),
-        });
-        
-        setTimeout(() => {
-          onPaymentSuccess('test-payment-' + Date.now());
-        }, 1500);
-      }, 1000);
-      return;
-    }
-
-    // PRODUCTION MODE: Call actual payment API
     try {
+      // Always call backend API to process the token payment
+      // This updates the order status and lead status
       const response = await customerApi.initiateTokenPayment(orderId, {
         paymentMethod: selectedMethod,
-        paymentGateway: 'razorpay',
+        paymentGateway: TEST_MODE ? 'mock' : 'razorpay',
       });
 
       if (response.success && response.data) {
-        // Payment initiated successfully
+        // Payment processed successfully
         setPaymentState({
           status: 'success',
-          message: 'Payment successful!',
-          paymentId: response.data.paymentId,
+          message: TEST_MODE ? 'Payment successful! (Test Mode)' : 'Payment successful!',
+          paymentId: response.data.paymentId || 'test-payment-' + Date.now(),
         });
         
         setTimeout(() => {
-          onPaymentSuccess(response.data.paymentId);
-        }, 2000);
+          onPaymentSuccess(response.data.paymentId || 'test-payment-' + Date.now());
+        }, 1500);
       } else {
         setPaymentState({
           status: 'failed',
@@ -95,6 +80,7 @@ export const TokenPaymentModal: React.FC<TokenPaymentModalProps> = ({
         onPaymentFailure?.(response.message || 'Payment failed');
       }
     } catch (error: any) {
+      console.error('Token payment error:', error);
       setPaymentState({
         status: 'failed',
         message: error.message || 'Network error. Please try again.',

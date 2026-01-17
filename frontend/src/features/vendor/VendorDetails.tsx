@@ -74,6 +74,7 @@ const VendorDetails = () => {
     // Packages come from the packages endpoint
     const packages = (packagesData || []).map((l: any) => ({
       id: l.id,
+      vendorId: vendorId || '',
       name: l.name,
       description: l.description,
       price: parseFloat(l.price),
@@ -85,6 +86,7 @@ const VendorDetails = () => {
       category: l.categoryId,
       isPopular: l.isPopular,
       isTrending: l.isTrending,
+      addOns: l.addOns || [],
     }));
 
     // Individual listings/items come from the listings endpoint
@@ -137,6 +139,7 @@ const VendorDetails = () => {
       })),
       bookableSetups: (bookableSetupsData || []).map((s: any) => ({
         id: s.id,
+        vendorId: vendorId || '',
         image: s.image,
         title: s.title,
         description: s.description,
@@ -159,9 +162,9 @@ const VendorDetails = () => {
     
     apiAvailability.forEach((slot: any) => {
       // Handle different possible field names from API
-      let date = slot.date || slot.dateSlot;
-      let timeSlot = slot.timeSlot || slot.time;
-      let status = slot.status || slot.slotStatus;
+      const date = slot.date || slot.dateSlot;
+      const timeSlot = slot.timeSlot || slot.time;
+      const status = slot.status || slot.slotStatus;
       
       // If date is missing, skip this slot
       if (!date) return;
@@ -749,7 +752,7 @@ const VendorDetails = () => {
                                 handleBookPackage(pkg.id, pkg.name, totalPrice, addOns, customizations);
                               }}
                               theme={theme}
-                              showOtherPackagesButton={isHighlighted && !showAllPackages && highlightedPackageId}
+                              showOtherPackagesButton={isHighlighted && !showAllPackages && !!highlightedPackageId}
                               onShowOtherPackages={() => setShowAllPackages(true)}
                             />
                           </div>

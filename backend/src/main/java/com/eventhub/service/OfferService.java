@@ -226,8 +226,8 @@ public class OfferService {
             throw new BusinessRuleException("This offer is not a counter offer");
         }
         
-        // Update offered price to counter price and accept
-        offer.setOfferedPrice(offer.getCounterPrice());
+        // Keep original offeredPrice intact - counterPrice is the final accepted price
+        // This preserves the negotiation history: offeredPrice = customer's original, counterPrice = vendor's counter (accepted)
         offer.setStatus(Offer.OfferStatus.ACCEPTED);
         offer.setAcceptedAt(LocalDateTime.now());
         
@@ -322,7 +322,7 @@ public class OfferService {
     }
     
     /**
-     * Get offers for a thread
+     * Get offers for a thread with order token details
      */
     @Transactional(readOnly = true)
     public List<OfferDTO> getOffersByThread(UUID threadId) {
@@ -331,8 +331,28 @@ public class OfferService {
         
         List<Offer> offers = offerRepository.findByThreadOrderByCreatedAtDesc(thread);
         return offers.stream()
-                .map(OfferDTO::fromEntity)
+                .map(this::toOfferDTOWithOrderDetails)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Convert Offer to OfferDTO with order token details
+     */
+    private OfferDTO toOfferDTOWithOrderDetails(Offer offer) {
+        if (offer.getOrderId() != null) {
+            Order order = orderRepository.findById(offer.getOrderId()).orElse(null);
+            if (order != null) {
+                boolean tokenPaid = (order.getTokenPaid() != null && order.getTokenPaid().compareTo(BigDecimal.ZERO) > 0) || 
+                    (order.getPaymentStatus() == Order.PaymentStatus.PARTIAL || 
+                     order.getPaymentStatus() == Order.PaymentStatus.PAID);
+                return OfferDTO.fromEntityWithOrderDetails(
+                    offer, 
+                    order.getTokenAmount(), 
+                    tokenPaid
+                );
+            }
+        }
+        return OfferDTO.fromEntity(offer);
     }
     
     /**
@@ -345,7 +365,7 @@ public class OfferService {
         
         List<Offer> offers = offerRepository.findByVendorOrderByCreatedAtDesc(vendor);
         return offers.stream()
-                .map(OfferDTO::fromEntity)
+                .map(this::toOfferDTOWithOrderDetails)
                 .collect(Collectors.toList());
     }
     
@@ -356,7 +376,7 @@ public class OfferService {
     public List<OfferDTO> getUserOffers(UUID userId) {
         List<Offer> offers = offerRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return offers.stream()
-                .map(OfferDTO::fromEntity)
+                .map(this::toOfferDTOWithOrderDetails)
                 .collect(Collectors.toList());
     }
     
@@ -449,11 +469,17 @@ public class OfferService {
         UserProfile user = userProfileRepository.findById(offer.getUserId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
         
-        // Calculate amounts using the accepted offer price
-        BigDecimal baseAmount = offer.getOfferedPrice();
+        // Calculate amounts using the final accepted price
+        // If counterPrice exists, customer accepted vendor's counter offer
+        // Otherwise, vendor accepted customer's original offer
+        BigDecimal finalAcceptedPrice = offer.getCounterPrice() != null 
+                ? offer.getCounterPrice() 
+                : offer.getOfferedPrice();
+        
+        BigDecimal baseAmount = finalAcceptedPrice;
         BigDecimal addOnsAmount = BigDecimal.ZERO;
         BigDecimal customizationsAmount = BigDecimal.ZERO;
-        BigDecimal discountAmount = offer.getOriginalPrice().subtract(offer.getOfferedPrice());
+        BigDecimal discountAmount = offer.getOriginalPrice().subtract(finalAcceptedPrice);
         
         // Platform fee: 5% of subtotal
         BigDecimal subtotal = baseAmount.add(addOnsAmount).add(customizationsAmount).subtract(discountAmount);
@@ -489,7 +515,10 @@ public class OfferService {
         order.setCustomerName(user.getFullName());
         order.setCustomerEmail(user.getEmail());
         order.setCustomerPhone(user.getPhone());
-        order.setNotes("Order created from accepted offer. Original price: " + offer.getOriginalPrice() + ", Negotiated price: " + offer.getOfferedPrice());
+        order.setNotes("Order created from accepted offer. Original price: " + offer.getOriginalPrice() + 
+                ", Customer offered: " + offer.getOfferedPrice() + 
+                (offer.getCounterPrice() != null ? ", Vendor countered: " + offer.getCounterPrice() : "") +
+                ", Final price: " + finalAcceptedPrice);
         order.setStatus(Order.OrderStatus.PENDING);
         order.setPaymentStatus(Order.PaymentStatus.PENDING);
         order.setAwaitingTokenPayment(true); // Order awaits token payment

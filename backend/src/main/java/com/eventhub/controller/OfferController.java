@@ -5,12 +5,15 @@ import com.eventhub.dto.request.CreateOfferRequest;
 import com.eventhub.dto.request.CounterOfferRequest;
 import com.eventhub.dto.response.OfferDTO;
 import com.eventhub.model.Offer;
+import com.eventhub.model.Order;
+import com.eventhub.repository.OrderRepository;
 import com.eventhub.service.OfferService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +23,7 @@ import java.util.UUID;
 public class OfferController {
     
     private final OfferService offerService;
+    private final OrderRepository orderRepository;
     
     @PostMapping
     public ResponseEntity<ApiResponse<OfferDTO>> createOffer(
@@ -63,7 +67,19 @@ public class OfferController {
             @PathVariable UUID offerId) {
         
         Offer offer = offerService.acceptCounterOffer(userId, offerId);
-        OfferDTO dto = OfferDTO.fromEntity(offer);
+        
+        // Get token amount from the created order
+        BigDecimal tokenAmount = BigDecimal.ZERO;
+        boolean tokenPaid = false;
+        if (offer.getOrderId() != null) {
+            Order order = orderRepository.findById(offer.getOrderId()).orElse(null);
+            if (order != null) {
+                tokenAmount = order.getTokenAmount() != null ? order.getTokenAmount() : BigDecimal.ZERO;
+                tokenPaid = order.getTokenPaid() != null ? order.getTokenPaid().compareTo(BigDecimal.ZERO) > 0 : false;
+            }
+        }
+        
+        OfferDTO dto = OfferDTO.fromEntityWithOrderDetails(offer, tokenAmount, tokenPaid);
         return ResponseEntity.ok(ApiResponse.success("Counter offer accepted. Order created successfully", dto));
     }
     

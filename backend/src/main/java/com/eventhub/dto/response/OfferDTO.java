@@ -44,6 +44,10 @@ public class OfferDTO {
     private UUID orderId;
     private UUID leadId;
     
+    // Token payment details (populated when orderId exists)
+    private BigDecimal tokenAmount;
+    private boolean tokenPaid;
+    
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -93,6 +97,19 @@ public class OfferDTO {
         dto.setRejectedAt(offer.getRejectedAt());
         dto.setExpiredAt(offer.getExpiredAt());
         
+        // Token payment fields need to be set from order - this is a placeholder
+        // They'll be set by the service layer when fetching offers with order details
+        
+        return dto;
+    }
+    
+    /**
+     * Create OfferDTO with order token details
+     */
+    public static OfferDTO fromEntityWithOrderDetails(Offer offer, BigDecimal tokenAmount, boolean tokenPaid) {
+        OfferDTO dto = fromEntity(offer);
+        dto.setTokenAmount(tokenAmount);
+        dto.setTokenPaid(tokenPaid);
         return dto;
     }
 }

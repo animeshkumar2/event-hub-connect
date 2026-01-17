@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, Users, MapPin } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { eventTypes } from '@/shared/constants/mockData';
+import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
 
 interface EventCard {
   id: string;
@@ -114,6 +115,8 @@ export const InteractiveEventShowcase = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { hasFullAccess } = usePreLaunch();
 
   // Auto-rotate cards every 5 seconds (disabled for scrolling)
   useEffect(() => {
@@ -359,20 +362,38 @@ export const InteractiveEventShowcase = () => {
                       {/* CTA Button */}
                       <div className="pt-3 sm:pt-4 border-t mt-auto">
                         <div className="relative">
-                          {/* PHASE 1: Soon Badge on Button */}
-                          <div className="absolute -top-2 -right-2 z-10">
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
-                              <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-black px-3 py-1.5 shadow-lg uppercase tracking-wider border-0">
-                                Soon
-                              </Badge>
+                          {/* Badge - Admin or Soon */}
+                          {!hasFullAccess && (
+                            <div className="absolute -top-2 -right-2 z-10">
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
+                                <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-black px-3 py-1.5 shadow-lg uppercase tracking-wider border-0">
+                                  Soon
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
+                          )}
+                          {hasFullAccess && (
+                            <div className="absolute -top-2 -right-2 z-10">
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full blur-md opacity-75 animate-pulse"></div>
+                                <Badge className="relative bg-gradient-to-r from-purple-500 to-purple-600 text-white text-[10px] font-black px-3 py-1.5 shadow-lg uppercase tracking-wider border-0">
+                                  Admin
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
                           
                           <Button 
                             size="default" 
-                            className="w-full text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-5 rounded-lg bg-gradient-to-r from-primary/40 to-primary-glow/40 text-white font-semibold shadow-lg cursor-not-allowed"
-                            disabled
+                            className={cn(
+                              "w-full text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-5 rounded-lg text-white font-semibold shadow-lg",
+                              hasFullAccess 
+                                ? "bg-gradient-to-r from-primary to-primary-glow hover:from-primary/90 hover:to-primary-glow/90 cursor-pointer"
+                                : "bg-gradient-to-r from-primary/40 to-primary-glow/40 cursor-not-allowed"
+                            )}
+                            disabled={!hasFullAccess}
+                            onClick={() => hasFullAccess && navigate(card.link)}
                           >
                             Explore {card.title} Packages
                             <ArrowRight className="ml-2 h-3 w-3 sm:h-3.5 sm:w-3.5" />
