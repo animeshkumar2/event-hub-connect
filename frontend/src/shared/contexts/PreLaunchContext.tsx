@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 
 interface PreLaunchContextType {
   isPreLaunchMode: boolean;
@@ -10,20 +11,33 @@ interface PreLaunchContextType {
 
 const PreLaunchContext = createContext<PreLaunchContextType | undefined>(undefined);
 
-// Secret key for admin access - change this to something secure
+// Secret key for admin/tester access - change this to something secure
 const ADMIN_ACCESS_KEY = 'cartevent2025';
+const TESTER_ACCESS_KEY = 'testmode2025'; // URL param: ?tester=testmode2025
 const STORAGE_KEY = 'cartevent_full_access';
 
-// List of allowed admin emails (optional additional check)
+// List of allowed admin emails
 const ADMIN_EMAILS = [
   'admin@cartevent.com',
   'animesh@cartevent.com',
-  // Add more admin emails here
+];
+
+// List of tester emails - these users get full access for testing customer features
+const TESTER_EMAILS = [
+  // Add tester emails here - they can access everything while being customers
+  'test@cartevent.com',
+  'tester@example.com',
+  'test@gmail.com',
+  'test',
+  'customer@gmail.com',
+  'customer',
 ];
 
 export function PreLaunchProvider({ children }: { children: ReactNode }) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
+  
   // Initialize as false - no access by default
   const [hasFullAccess, setHasFullAccess] = useState(false);
   
@@ -32,29 +46,61 @@ export function PreLaunchProvider({ children }: { children: ReactNode }) {
   const isPreLaunchMode = true;
 
   useEffect(() => {
-    // FIRST: Clear any stored access - we'll only grant it if user is admin
-    localStorage.removeItem(STORAGE_KEY);
-    
-    // Check if user is admin (by role or email)
-    const userData = localStorage.getItem('user_data');
-    const userRole = localStorage.getItem('user_role');
+    // Check if user is admin or tester using auth context (primary) or localStorage (fallback)
     let isAdmin = false;
+    let isTester = false;
     
-    // Check if user has ADMIN role
-    if (userRole === 'ADMIN') {
-      isAdmin = true;
+    // Primary check: Use auth context
+    if (isAuthenticated && user) {
+      const userEmail = user.email?.toLowerCase();
+      if (user.role === 'ADMIN' || ADMIN_EMAILS.includes(userEmail)) {
+        isAdmin = true;
+      }
+      if (TESTER_EMAILS.includes(userEmail)) {
+        isTester = true;
+      }
     }
     
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        // Check if role is ADMIN in user data or email is in admin list
-        if (user.role === 'ADMIN' || ADMIN_EMAILS.includes(user.email?.toLowerCase())) {
-          isAdmin = true;
-        }
-      } catch (e) {
-        // Ignore parse errors
+    // Fallback: Check localStorage for edge cases (e.g., page reload before auth loads)
+    if (!isAdmin && !isTester) {
+      const userData = localStorage.getItem('user_data');
+      const userRole = localStorage.getItem('user_role');
+      
+      if (userRole === 'ADMIN') {
+        isAdmin = true;
       }
+      
+      if (userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          const parsedEmail = parsedUser.email?.toLowerCase();
+          if (parsedUser.role === 'ADMIN' || ADMIN_EMAILS.includes(parsedEmail)) {
+            isAdmin = true;
+          }
+          if (TESTER_EMAILS.includes(parsedEmail)) {
+            isTester = true;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Check URL for tester access key - works for any logged in user
+    const testerKey = searchParams.get('tester');
+    if (testerKey === TESTER_ACCESS_KEY && isAuthenticated) {
+      isTester = true;
+      // Store tester mode in session storage (cleared on browser close)
+      sessionStorage.setItem('tester_mode', 'true');
+      // Clean up URL (remove tester param)
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tester');
+      window.history.replaceState({}, '', url.toString());
+    }
+    
+    // Check if tester mode was previously activated in this session
+    if (sessionStorage.getItem('tester_mode') === 'true' && isAuthenticated) {
+      isTester = true;
     }
 
     // Check URL for admin access key - ONLY works if user is already logged in as admin
@@ -70,18 +116,17 @@ export function PreLaunchProvider({ children }: { children: ReactNode }) {
       return; // Exit early after granting access via key
     }
 
-    // ONLY grant full access if user is actually logged in as admin
-    // For everyone else, explicitly deny access
-    if (isAdmin) {
+    // Grant full access if user is admin OR tester
+    if (isAdmin || isTester) {
       setHasFullAccess(true);
       localStorage.setItem(STORAGE_KEY, 'true');
     } else {
-      // For non-admin users or users not logged in, explicitly deny access
+      // For non-admin/non-tester users or users not logged in, explicitly deny access
       setHasFullAccess(false);
       // Make sure stored access is cleared
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [searchParams, location.pathname]);
+  }, [searchParams, location.pathname, user, isAuthenticated]); // React to auth changes
 
   const grantFullAccess = () => {
     localStorage.setItem(STORAGE_KEY, 'true');

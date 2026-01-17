@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -7,6 +7,10 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { HandCoins, IndianRupee, MessageSquare, Calendar, Loader2, Package } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { eventTypes } from '@/shared/constants/mockData';
 
 interface OfferFormDialogProps {
   open: boolean;
@@ -23,13 +27,15 @@ interface OfferFormDialogProps {
   onSubmit: (data: {
     offeredPrice: number;
     message?: string;
-    eventType?: string;
-    eventDate?: string;
+    eventType: string;  // Now required
+    eventDate: string;  // Now required
     eventTime?: string;
     venueAddress?: string;
     guestCount?: number;
   }) => Promise<void>;
   loading?: boolean;
+  initialEventType?: string;
+  initialEventDate?: string;
 }
 
 export const OfferFormDialog = ({
@@ -41,14 +47,24 @@ export const OfferFormDialog = ({
   customization,
   onSubmit,
   loading = false,
+  initialEventType,
+  initialEventDate,
 }: OfferFormDialogProps) => {
+  const [searchParams] = useSearchParams();
   const [offeredPrice, setOfferedPrice] = useState<string>('');
   const [message, setMessage] = useState<string>('');
-  const [eventType, setEventType] = useState<string>('');
-  const [eventDate, setEventDate] = useState<string>('');
+  // Auto-fill from props or URL params
+  const [eventType, setEventType] = useState<string>(initialEventType || searchParams.get('eventType') || '');
+  const [eventDate, setEventDate] = useState<string>(initialEventDate || searchParams.get('eventDate') || '');
   const [eventTime, setEventTime] = useState<string>('');
   const [venueAddress, setVenueAddress] = useState<string>('');
   const [guestCount, setGuestCount] = useState<string>('');
+
+  // Update from props when they change
+  useEffect(() => {
+    if (initialEventType) setEventType(initialEventType);
+    if (initialEventDate) setEventDate(initialEventDate);
+  }, [initialEventType, initialEventDate]);
 
   const basePrice = customizedPrice || originalPrice;
   const hasCustomization = !!customization && customizedPrice !== originalPrice;
@@ -68,17 +84,29 @@ export const OfferFormDialog = ({
   const handleSubmit = async () => {
     const price = parseFloat(offeredPrice);
     if (isNaN(price) || price <= 0) {
+      toast.error('Please enter a valid offer price');
       return;
     }
     if (price >= basePrice) {
+      toast.error('Offer must be less than the listing price');
+      return;
+    }
+
+    // Validate mandatory fields
+    if (!eventType.trim()) {
+      toast.error('Please select an event type');
+      return;
+    }
+    if (!eventDate) {
+      toast.error('Please select an event date');
       return;
     }
 
     await onSubmit({
       offeredPrice: price,
       message: message || undefined,
-      eventType: eventType || undefined,
-      eventDate: eventDate || undefined,
+      eventType: eventType.trim(),
+      eventDate: eventDate,
       eventTime: eventTime || undefined,
       venueAddress: venueAddress || undefined,
       guestCount: guestCount ? parseInt(guestCount) : undefined,
@@ -252,27 +280,37 @@ export const OfferFormDialog = ({
           <div className="space-y-3">
             <Label className="text-sm font-semibold flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Event Details (Optional)
+              Event Details
             </Label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="eventType" className="text-xs">Event Type</Label>
-                <Input
-                  id="eventType"
-                  placeholder="e.g., Wedding"
-                  value={eventType}
-                  onChange={(e) => setEventType(e.target.value)}
-                  className="h-10"
-                />
+                <Label htmlFor="eventType" className="text-xs">
+                  Event Type <span className="text-red-500">*</span>
+                </Label>
+                <Select value={eventType} onValueChange={setEventType}>
+                  <SelectTrigger className={`h-10 ${!eventType.trim() ? 'border-orange-400' : 'border-green-400'}`}>
+                    <SelectValue placeholder="Select event type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eventTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="eventDate" className="text-xs">Event Date</Label>
+                <Label htmlFor="eventDate" className="text-xs">
+                  Event Date <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="eventDate"
                   type="date"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  className="h-10"
+                  className={`h-10 ${!eventDate ? 'border-orange-400 focus:border-orange-500' : 'border-green-400'}`}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -325,7 +363,7 @@ export const OfferFormDialog = ({
           <Button
             onClick={handleSubmit}
             className="flex-1 sm:flex-initial"
-            disabled={!offeredPrice || parseFloat(offeredPrice) <= 0 || parseFloat(offeredPrice) >= basePrice || loading}
+            disabled={!offeredPrice || parseFloat(offeredPrice) <= 0 || parseFloat(offeredPrice) >= basePrice || !eventType.trim() || !eventDate || loading}
           >
             {loading ? (
               <>

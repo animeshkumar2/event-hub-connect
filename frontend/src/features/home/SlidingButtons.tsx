@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Users, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
 
 interface ButtonOption {
   id: string;
@@ -61,11 +62,17 @@ export const buttonOptions: ButtonOption[] = [
 
 export const SlidingButtons = () => {
   const navigate = useNavigate();
+  const { hasFullAccess } = usePreLaunch();
   const [activeIndex, setActiveIndex] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleClick = (id: string, path: string, disabled: boolean, e: React.MouseEvent) => {
     e.preventDefault();
+    // Admins with full access can click any button
+    if (hasFullAccess) {
+      navigate(path);
+      return;
+    }
     if (id === 'find-vendors') {
       navigate('/signup?type=customer');
       return;
@@ -135,7 +142,8 @@ export const SlidingButtons = () => {
       >
         {buttonOptions.map((option, index) => {
           const Icon = option.icon;
-          const isDisabled = option.disabled || false;
+          // If admin has full access, nothing is disabled
+          const isDisabled = hasFullAccess ? false : (option.disabled || false);
           const isComingSoon = option.comingSoon || false;
           const isActive = index === activeIndex;
           
@@ -170,7 +178,13 @@ export const SlidingButtons = () => {
                         {option.label}
                       </h3>
                       {/* Status Badge - Inline */}
-                      {isComingSoon ? (
+                      {hasFullAccess && isComingSoon ? (
+                        // Admin access badge for coming soon features
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-bold bg-purple-500/20 text-purple-400 uppercase tracking-wide">
+                          <span className="w-1 h-1 bg-purple-400 rounded-full animate-pulse"></span>
+                          Admin
+                        </span>
+                      ) : isComingSoon ? (
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[7px] font-bold bg-white/10 text-white/50 uppercase tracking-wide">
                           Soon
                         </span>

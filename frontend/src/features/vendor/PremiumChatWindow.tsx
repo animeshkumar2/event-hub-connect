@@ -19,6 +19,9 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { OfferCard } from './components/OfferCard';
 import { useListingDetails } from '@/shared/hooks/useApi';
+import { useSearchParams } from 'react-router-dom';
+import { eventTypes } from '@/shared/constants/mockData';
+import { TokenPaymentModal } from '@/shared/components/TokenPaymentModal';
 
 interface Message {
   id: string;
@@ -47,6 +50,7 @@ const CUSTOMER_SUGGESTIONS = [
 
 export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPrice, openForNegotiation = true, onClose }: PremiumChatWindowProps) => {
   const { user, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
@@ -164,14 +168,21 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
   const [customPrice, setCustomPrice] = useState<string>('');
   const [offeredPrice, setOfferedPrice] = useState<string>('');
   const [offerMessage, setOfferMessage] = useState<string>('');
-  const [eventType, setEventType] = useState<string>('');
-  const [eventDate, setEventDate] = useState<string>('');
+  // Auto-fill from URL params if available (from search filters)
+  const [eventType, setEventType] = useState<string>(searchParams.get('eventType') || '');
+  const [eventDate, setEventDate] = useState<string>(searchParams.get('eventDate') || '');
   const [eventTime, setEventTime] = useState<string>('');
   const [venueAddress, setVenueAddress] = useState<string>('');
   const [guestCount, setGuestCount] = useState<string>('');
   const [submittingOffer, setSubmittingOffer] = useState(false);
   const [offerFormExpanded, setOfferFormExpanded] = useState(true);
   const [enableCustomization, setEnableCustomization] = useState(false);
+  
+  // Token payment modal state
+  const [showTokenPaymentModal, setShowTokenPaymentModal] = useState(false);
+  const [tokenPaymentOrderId, setTokenPaymentOrderId] = useState<string | null>(null);
+  const [tokenPaymentAmount, setTokenPaymentAmount] = useState(0);
+  const [tokenPaymentTotalAmount, setTokenPaymentTotalAmount] = useState(0);
 
   // Reset customization fields when toggled off
   useEffect(() => {
@@ -513,12 +524,24 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
       console.log('✅ [handleAcceptCounterOffer] API response', {
         success: response.success,
         message: response.message,
+        data: response.data,
         offerId,
       });
 
       if (response.success) {
-        toast.success('Counter offer accepted! Order created successfully.');
+        // Reload offers to get the updated offer with orderId
         await loadOffers();
+        
+        // Get the updated offer with orderId and tokenAmount
+        const updatedOffer = offers.find(o => o.id === offerId) || response.data;
+        
+        if (updatedOffer?.orderId) {
+          // Show token payment modal
+          toast.success('Counter offer accepted! Please complete token payment to confirm booking.');
+          handlePayToken(offerId, updatedOffer.orderId, updatedOffer.tokenAmount || 0);
+        } else {
+          toast.success('Counter offer accepted! Order created successfully.');
+        }
       } else {
         const errorMsg = response.message || 'Failed to accept counter offer';
         console.error('❌ [handleAcceptCounterOffer] API returned error', {
@@ -582,6 +605,39 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
     }
   };
 
+  // Handle Pay Token for accepted offers
+  const handlePayToken = (offerId: string, orderId: string, tokenAmount: number) => {
+    console.log('🔍 [handlePayToken] Opening payment modal', {
+      offerId,
+      orderId,
+      tokenAmount,
+    });
+    
+    // Find the offer to get total amount
+    const offer = offers.find(o => o.id === offerId);
+    const totalAmount = offer?.offeredPrice || offer?.counterPrice || tokenAmount * 4;
+    
+    setTokenPaymentOrderId(orderId);
+    setTokenPaymentAmount(tokenAmount);
+    setTokenPaymentTotalAmount(totalAmount);
+    setShowTokenPaymentModal(true);
+  };
+
+  // Handle successful token payment
+  const handleTokenPaymentSuccess = async (paymentId: string) => {
+    console.log('✅ [handleTokenPaymentSuccess] Payment completed', {
+      paymentId,
+      orderId: tokenPaymentOrderId,
+    });
+    
+    toast.success('🎉 Booking confirmed! Token payment received.');
+    setShowTokenPaymentModal(false);
+    setTokenPaymentOrderId(null);
+    
+    // Reload offers to get updated status
+    await loadOffers();
+  };
+
   // Handle inline offer form submit
   const handleInlineOfferSubmit = async () => {
     const finalListingId = listingId || selectedListingId;
@@ -633,6 +689,17 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
     
     if (offerPrice >= basePrice) {
       toast.error(`Offer must be less than ${basePrice > 0 ? `₹${basePrice.toLocaleString('en-IN')}` : 'the listing price'}`);
+      return;
+    }
+
+    // Validate mandatory fields: Event Type and Event Date
+    if (!eventType.trim()) {
+      toast.error('Please select an event type');
+      return;
+    }
+    
+    if (!eventDate) {
+      toast.error('Please select an event date');
       return;
     }
 
@@ -1106,6 +1173,7 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
                             isVendor={false}
                             onAcceptCounter={(id) => handleAcceptCounterOffer(id)}
                             onWithdraw={(id) => handleWithdrawOffer(id)}
+                            onPayToken={(offerId, orderId, tokenAmount) => handlePayToken(offerId, orderId, tokenAmount)}
                           />
                         </div>
                       );
@@ -1326,20 +1394,31 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
                       </div>
                     )}
 
-                    {/* Event Details - Single row */}
+                    {/* Event Details - Single row (Event Type & Date are mandatory) */}
                     <div className="grid grid-cols-3 gap-1.5">
-                      <Input
-                        placeholder="Event type"
-                        value={eventType}
-                        onChange={(e) => setEventType(e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                      <Input
-                        type="date"
-                        value={eventDate}
-                        onChange={(e) => setEventDate(e.target.value)}
-                        className="h-7 text-xs"
-                      />
+                      <div className="relative">
+                        <Select value={eventType} onValueChange={setEventType}>
+                          <SelectTrigger className={`h-7 text-xs ${!eventType.trim() ? 'border-orange-400' : 'border-green-400'}`}>
+                            <SelectValue placeholder="Event *" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eventTypes.map((type) => (
+                              <SelectItem key={type} value={type} className="text-xs">
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="date"
+                          value={eventDate}
+                          onChange={(e) => setEventDate(e.target.value)}
+                          className={`h-7 text-xs ${!eventDate ? 'border-orange-400 focus:border-orange-500' : 'border-green-400'}`}
+                          placeholder="Date *"
+                        />
+                      </div>
                       <Input
                         type="number"
                         placeholder="Guests"
@@ -1354,6 +1433,8 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
                       onClick={handleInlineOfferSubmit}
                       disabled={
                         submittingOffer ||
+                        !eventType.trim() ||
+                        !eventDate ||
                         (enableCustomization 
                           ? !customPrice || parseFloat(customPrice) <= 0 || parseFloat(customPrice) >= (currentListingPrice || 0)
                           : !offeredPrice || parseFloat(offeredPrice) <= 0 || parseFloat(offeredPrice) >= basePriceForOffer
@@ -1432,6 +1513,18 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
           </div>
       </CardContent>
     </Card>
+    
+    {/* Token Payment Modal */}
+    {showTokenPaymentModal && tokenPaymentOrderId && (
+      <TokenPaymentModal
+        isOpen={showTokenPaymentModal}
+        onClose={() => setShowTokenPaymentModal(false)}
+        orderId={tokenPaymentOrderId}
+        tokenAmount={tokenPaymentAmount}
+        totalAmount={tokenPaymentTotalAmount}
+        onPaymentSuccess={handleTokenPaymentSuccess}
+      />
+    )}
   </>
   );
 };

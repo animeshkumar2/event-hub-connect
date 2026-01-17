@@ -168,27 +168,74 @@ export default function VendorLeads() {
     return status === 'WITHDRAWN' || status === 'DECLINED' || status === 'CONVERTED';
   }).length;
 
-  const getFinalStatusDisplay = (lead: Lead): string => {
+  // Get the current lifecycle status considering lead data and offers
+  const getCurrentLifecycleStatus = (lead: Lead, offers: Offer[]): { label: string; color: string } => {
     const statusUpper = lead.status?.toUpperCase() || '';
-    switch (statusUpper) {
-      case 'NEW': return 'User made offer';
-      case 'OPEN': return 'Counter offer by vendor';
-      case 'DECLINED': return 'Booking rejected';
-      case 'WITHDRAWN': return 'Offer withdrawn';
-      case 'CONVERTED': return 'Booking confirmed';
-      default: return lead.status || 'Unknown';
+    
+    // Priority 1: Check if token payment received (booking confirmed)
+    if (lead.tokenAmount && lead.tokenAmount > 0) {
+      return { label: 'Booking confirmed', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
     }
-  };
-
-  const getStatusColor = (status: string) => {
-    const statusUpper = status?.toUpperCase() || '';
+    
+    // Priority 2: Check if lead is converted
+    if (statusUpper === 'CONVERTED') {
+      return { label: 'Booking confirmed', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+    }
+    
+    // Priority 3: Check offer statuses
+    if (offers.length > 0) {
+      // Get the latest offer by date
+      const sortedOffers = [...offers].sort((a, b) => {
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      const latestOffer = sortedOffers[0];
+      
+      if (latestOffer) {
+        const offerStatus = latestOffer.status?.toUpperCase();
+        
+        // If offer is accepted, check if waiting for payment
+        if (offerStatus === 'ACCEPTED') {
+          if (!lead.tokenAmount || lead.tokenAmount === 0) {
+            return { label: 'Waiting for payment', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+          }
+        }
+        
+        // If offer is countered by vendor
+        if (offerStatus === 'COUNTERED') {
+          return { label: 'Waiting for customer response', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+        }
+        
+        // If offer is pending (new offer from customer)
+        if (offerStatus === 'PENDING') {
+          return { label: 'New offer received', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
+        }
+        
+        // If offer is rejected
+        if (offerStatus === 'REJECTED') {
+          return { label: 'Offer rejected', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+        }
+        
+        // If offer is withdrawn
+        if (offerStatus === 'WITHDRAWN') {
+          return { label: 'Offer withdrawn', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+        }
+      }
+    }
+    
+    // Priority 4: Check if order exists (direct order) but awaiting payment
+    if (lead.order && (!lead.tokenAmount || lead.tokenAmount === 0)) {
+      return { label: 'Waiting for payment', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+    }
+    
+    // Priority 5: Fall back to lead status
     switch (statusUpper) {
-      case 'NEW': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'OPEN': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'WITHDRAWN': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'DECLINED': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'CONVERTED': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'NEW': return { label: 'New offer received', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
+      case 'OPEN': return { label: 'Counter offer sent', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+      case 'DECLINED': return { label: 'Booking rejected', color: 'bg-red-500/20 text-red-400 border-red-500/30' };
+      case 'WITHDRAWN': return { label: 'Offer withdrawn', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+      default: return { label: lead.status || 'Unknown', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
     }
   };
 
@@ -433,48 +480,69 @@ export default function VendorLeads() {
       });
 
       sortedOffers.forEach((offer, index) => {
-        // Offer Created
+        const discountFromCustomer = ((offer.originalPrice - offer.offeredPrice) / offer.originalPrice * 100).toFixed(0);
+        
+        // 1. Customer Made Offer (always first for this offer)
         if (offer.createdAt) {
           timelineItems.push({
-            id: `offer-${offer.id}-created`,
-            label: `Offer ${index + 1} Created`,
-            description: `Customer offered ₹${offer.offeredPrice.toLocaleString('en-IN')}`,
+            id: `offer-${offer.id}-1-created`,
+            label: `Customer Made Offer`,
+            description: `Offered ₹${offer.offeredPrice.toLocaleString('en-IN')} (${discountFromCustomer}% off original ₹${offer.originalPrice.toLocaleString('en-IN')})`,
             date: offer.createdAt,
             status: 'completed',
             icon: HandCoins
           });
         }
 
-        // Counter Offer (if vendor countered)
-        if (offer.status === 'COUNTERED' && offer.counterPrice && offer.updatedAt) {
+        // 2. Vendor Counter Offer - ONLY if vendor countered with a DIFFERENT price
+        const hasRealCounter = offer.counterPrice && offer.counterPrice !== offer.offeredPrice;
+        if (hasRealCounter) {
+          const discountFromVendor = ((offer.originalPrice - offer.counterPrice!) / offer.originalPrice * 100).toFixed(0);
           timelineItems.push({
-            id: `offer-${offer.id}-countered`,
-            label: 'Counter Offer Made',
-            description: `Vendor countered with ₹${offer.counterPrice.toLocaleString('en-IN')}`,
-            date: offer.updatedAt,
-            status: 'completed',
+            id: `offer-${offer.id}-2-countered`,
+            label: 'Vendor Counter Offer',
+            description: `Countered with ₹${offer.counterPrice!.toLocaleString('en-IN')} (${discountFromVendor}% off original price)`,
+            date: offer.updatedAt || offer.createdAt,
+            status: offer.status === 'COUNTERED' ? 'in_progress' : 'completed',
             icon: ArrowRight
           });
         }
 
-        // Offer Accepted
+        // 3. Offer Accepted by Vendor
         if (offer.status === 'ACCEPTED') {
+          const finalPrice = hasRealCounter ? offer.counterPrice! : offer.offeredPrice;
+          const savings = offer.originalPrice - finalPrice;
+          const acceptedWhat = hasRealCounter ? 'Customer accepted counter offer' : 'Vendor accepted customer\'s offer';
           timelineItems.push({
-            id: `offer-${offer.id}-accepted`,
+            id: `offer-${offer.id}-3-accepted`,
             label: 'Offer Accepted',
-            description: 'Vendor accepted the offer, order created',
+            description: `${acceptedWhat}. Final: ₹${finalPrice.toLocaleString('en-IN')} (Save ₹${savings.toLocaleString('en-IN')})`,
             date: offer.acceptedAt || offer.updatedAt || offer.createdAt,
             status: 'completed',
             icon: CheckCircle
           });
+          
+          // 4. Waiting for Token Payment (if applicable)
+          const tokenPaid = lead.tokenAmount && lead.tokenAmount > 0;
+          if (!tokenPaid && lead.status !== 'CONVERTED') {
+            const tokenAmount = Math.round(finalPrice * 0.25);
+            timelineItems.push({
+              id: `offer-${offer.id}-4-awaiting`,
+              label: 'Awaiting Token Payment',
+              description: `Pay ₹${tokenAmount.toLocaleString('en-IN')} (25% token) to confirm booking`,
+              date: offer.acceptedAt || offer.updatedAt,
+              status: 'in_progress',
+              icon: Clock
+            });
+          }
         }
 
         // Offer Rejected
         if (offer.status === 'REJECTED') {
           timelineItems.push({
-            id: `offer-${offer.id}-rejected`,
+            id: `offer-${offer.id}-3-rejected`,
             label: 'Offer Rejected',
-            description: 'Vendor rejected the offer',
+            description: `Customer's offer of ₹${offer.offeredPrice.toLocaleString('en-IN')} was rejected`,
             date: offer.rejectedAt || offer.updatedAt || offer.createdAt,
             status: 'completed',
             icon: XCircle
@@ -484,9 +552,9 @@ export default function VendorLeads() {
         // Offer Withdrawn
         if (offer.status === 'WITHDRAWN') {
           timelineItems.push({
-            id: `offer-${offer.id}-withdrawn`,
+            id: `offer-${offer.id}-3-withdrawn`,
             label: 'Offer Withdrawn',
-            description: 'Customer withdrew the offer',
+            description: `Customer withdrew offer of ₹${offer.offeredPrice.toLocaleString('en-IN')}`,
             date: offer.updatedAt || offer.createdAt,
             status: 'completed',
             icon: XCircle
@@ -571,19 +639,42 @@ export default function VendorLeads() {
       }
     }
 
-    // Sort by date (chronological order)
+    // Sort by date (chronological order) with proper ordering for same timestamps
     return timelineItems.sort((a, b) => {
       if (!a.date) return 1;
       if (!b.date) return -1;
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      // If dates are the same, maintain order based on event type
-      if (dateA === dateB) {
-        // Lead created should come first, then offers, then status changes
-        const order = ['lead-created', 'order-created', 'offer', 'token-paid', 'lead-opened', 'lead-converted', 'order-accepted'];
-        const aOrder = order.findIndex(o => a.id.includes(o));
-        const bOrder = order.findIndex(o => b.id.includes(o));
-        return (aOrder === -1 ? 999 : aOrder) - (bOrder === -1 ? 999 : bOrder);
+      
+      // If dates are the same (or very close - within 1 second), use predefined order
+      if (Math.abs(dateA - dateB) < 1000) {
+        // Extract order number from ID (e.g., offer-xxx-1-created -> 1, offer-xxx-2-countered -> 2)
+        const getItemOrder = (id: string): number => {
+          // Check for numbered offer items first (offer-xxx-N-type)
+          const offerMatch = id.match(/offer-[^-]+-(\d+)-/);
+          if (offerMatch) {
+            return 100 + parseInt(offerMatch[1]); // 101, 102, 103, 104 for offer items
+          }
+          
+          // Predefined order for non-offer items
+          const orderMap: Record<string, number> = {
+            'lead-created': 1,
+            'order-created': 2,
+            'token-paid': 200,
+            'lead-opened': 150,
+            'lead-converted': 300,
+            'lead-declined': 300,
+            'lead-withdrawn': 300,
+            'order-accepted': 250
+          };
+          
+          for (const [key, order] of Object.entries(orderMap)) {
+            if (id.includes(key)) return order;
+          }
+          return 999;
+        };
+        
+        return getItemOrder(a.id) - getItemOrder(b.id);
       }
       return dateA - dateB;
     });
@@ -746,8 +837,8 @@ export default function VendorLeads() {
                           <p className="text-sm text-foreground/60">{lead.eventType || 'Event Inquiry'}</p>
                         </div>
                       </div>
-                      <Badge className={getStatusColor(lead.status)}>
-                        {getFinalStatusDisplay(lead)}
+                      <Badge className={getCurrentLifecycleStatus(lead, []).color}>
+                        {getCurrentLifecycleStatus(lead, []).label}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-sm text-foreground/60">
@@ -757,10 +848,16 @@ export default function VendorLeads() {
                           {formatDate(lead.eventDate)}
                         </div>
                       )}
-                      {lead.budget && (
+                      {lead.listing && (
                         <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          <span className="truncate">{lead.listing.name}</span>
+                        </div>
+                      )}
+                      {lead.listing?.price && (
+                        <div className="flex items-center gap-2 text-foreground/80">
                           <IndianRupee className="h-4 w-4" />
-                          {lead.budget}
+                          <span>Listing: ₹{lead.listing.price.toLocaleString('en-IN')}</span>
                         </div>
                       )}
                     </div>
@@ -787,8 +884,8 @@ export default function VendorLeads() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(selectedLead.status)}>
-                        {getFinalStatusDisplay(selectedLead)}
+                      <Badge className={getCurrentLifecycleStatus(selectedLead, offers).color}>
+                        {getCurrentLifecycleStatus(selectedLead, offers).label}
                       </Badge>
                       <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} className="text-foreground/60">
                         <X className="h-4 w-4" />
@@ -1132,6 +1229,15 @@ export default function VendorLeads() {
                             ) : offers.length > 0 ? (
                               <div className="space-y-4">
                                 {offers.map((offer) => {
+                                  // Determine final price based on status
+                                  const finalPrice = offer.status === 'ACCEPTED' 
+                                    ? (offer.counterPrice || offer.offeredPrice)
+                                    : offer.status === 'COUNTERED' 
+                                    ? offer.counterPrice 
+                                    : offer.offeredPrice;
+                                  const discount = offer.originalPrice - (finalPrice || offer.offeredPrice);
+                                  const discountPercent = ((discount / offer.originalPrice) * 100).toFixed(1);
+                                  
                                   return (
                                     <Card key={offer.id} className="border-border/50">
                                       <CardContent className="p-4">
@@ -1149,20 +1255,80 @@ export default function VendorLeads() {
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-3 mb-2">
-                                              <div className="flex-1">
-                                                <h4 className="text-base font-semibold text-foreground mb-1">{offer.listingName}</h4>
-                                                <div className="flex items-center gap-3 text-sm">
-                                                  <span className="text-foreground/60">Original:</span>
-                                                  <span className="font-semibold text-foreground">
-                                                    <IndianRupee className="inline h-3.5 w-3.5" />
-                                                    {offer.originalPrice.toLocaleString()}
-                                                  </span>
-                                                </div>
-                                              </div>
+                                              <h4 className="text-base font-semibold text-foreground">{offer.listingName}</h4>
                                               <Badge className={getOfferStatusColor(offer.status)}>
                                                 {offer.status}
                                               </Badge>
                                             </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Price Negotiation Breakdown */}
+                                        <div className="bg-muted/30 rounded-lg p-4 mb-4 border border-border/50">
+                                          <h5 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                            <IndianRupee className="h-4 w-4" />
+                                            Price Negotiation
+                                          </h5>
+                                          <div className="space-y-3">
+                                            {/* Original Price */}
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                                <span className="text-sm text-foreground/60">Original Listing Price</span>
+                                              </div>
+                                              <span className="font-semibold text-foreground">
+                                                ₹{offer.originalPrice.toLocaleString('en-IN')}
+                                              </span>
+                                            </div>
+                                            
+                                            {/* Customer's Offer */}
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                                                <span className="text-sm text-yellow-400">Customer's Offer</span>
+                                              </div>
+                                              <span className="font-semibold text-yellow-400">
+                                                ₹{offer.offeredPrice.toLocaleString('en-IN')}
+                                                <span className="text-xs text-foreground/40 ml-1">
+                                                  (-{((offer.originalPrice - offer.offeredPrice) / offer.originalPrice * 100).toFixed(0)}%)
+                                                </span>
+                                              </span>
+                                            </div>
+                                            
+                                            {/* Vendor's Counter (only if different from customer's offer) */}
+                                            {offer.counterPrice && offer.counterPrice !== offer.offeredPrice && (
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                                                  <span className="text-sm text-blue-400">Vendor's Counter Offer</span>
+                                                </div>
+                                                <span className="font-semibold text-blue-400">
+                                                  ₹{offer.counterPrice.toLocaleString('en-IN')}
+                                                  <span className="text-xs text-foreground/40 ml-1">
+                                                    (-{((offer.originalPrice - offer.counterPrice) / offer.originalPrice * 100).toFixed(0)}%)
+                                                  </span>
+                                                </span>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Final Accepted Price (if accepted) */}
+                                            {offer.status === 'ACCEPTED' && (
+                                              <>
+                                                <Separator className="my-2" />
+                                                <div className="flex items-center justify-between bg-green-500/10 rounded-lg p-2 -mx-2">
+                                                  <div className="flex items-center gap-2">
+                                                    <CheckCircle className="h-4 w-4 text-green-400" />
+                                                    <span className="text-sm font-semibold text-green-400">Final Accepted Price</span>
+                                                  </div>
+                                                  <span className="font-bold text-green-400">
+                                                    ₹{((offer.counterPrice && offer.counterPrice !== offer.offeredPrice) ? offer.counterPrice : offer.offeredPrice).toLocaleString('en-IN')}
+                                                    <span className="text-xs text-green-300/70 ml-1">
+                                                      (Save ₹{(offer.originalPrice - ((offer.counterPrice && offer.counterPrice !== offer.offeredPrice) ? offer.counterPrice : offer.offeredPrice)).toLocaleString('en-IN')})
+                                                    </span>
+                                                  </span>
+                                                </div>
+                                              </>
+                                            )}
                                           </div>
                                         </div>
 
