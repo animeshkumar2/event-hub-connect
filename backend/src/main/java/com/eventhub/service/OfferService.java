@@ -342,8 +342,8 @@ public class OfferService {
         if (offer.getOrderId() != null) {
             Order order = orderRepository.findById(offer.getOrderId()).orElse(null);
             if (order != null) {
-                boolean tokenPaid = order.getTokenPaidAt() != null || 
-                    (order.getPaymentStatus() == Order.PaymentStatus.PARTIAL_PAID || 
+                boolean tokenPaid = (order.getTokenPaid() != null && order.getTokenPaid().compareTo(BigDecimal.ZERO) > 0) || 
+                    (order.getPaymentStatus() == Order.PaymentStatus.PARTIAL || 
                      order.getPaymentStatus() == Order.PaymentStatus.PAID);
                 return OfferDTO.fromEntityWithOrderDetails(
                     offer, 
