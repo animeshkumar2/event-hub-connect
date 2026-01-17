@@ -165,12 +165,9 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     }
   }, [mode, urlType]);
 
-  // Redirect if already authenticated (but allow vendor onboarding)
-  if (isAuthenticated && !isLoading && mode === "login") {
-    navigate("/");
-    return null;
-  }
-  // For signup, allow authenticated users to proceed (they might be completing onboarding)
+  // Note: Removed early redirect for authenticated users
+  // The handleSubmit function now handles all redirects based on user role
+  // This prevents vendors from being incorrectly redirected to "/" after login
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
