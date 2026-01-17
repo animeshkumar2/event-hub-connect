@@ -59,22 +59,13 @@ export default function VendorOnboarding() {
   // UI state
   const [step, setStep] = useState<OnboardingStep>('basic-info');
   
-  // Check authentication and redirect if needed
+  // Check authentication
   useEffect(() => {
     if (!user) {
       // Not authenticated - redirect to login with return path
       navigate('/login?redirect=/vendor/onboarding');
       return;
     }
-    
-    // If user is already a vendor with a completed profile, redirect to dashboard
-    const vendorId = localStorage.getItem('vendor_id');
-    if (user.role === 'VENDOR' && vendorId) {
-      // Vendor has completed onboarding - redirect to dashboard
-      navigate('/vendor/dashboard');
-      return;
-    }
-    // If user is a customer or vendor without profile, allow them to proceed with onboarding
   }, [user, navigate]);
 
   // Load email from signup if available

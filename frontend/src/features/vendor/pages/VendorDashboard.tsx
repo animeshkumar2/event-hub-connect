@@ -21,44 +21,16 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useVendorDashboardData } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
-  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
-  const { isComplete: profileComplete, vendorId, isLoading: vendorLoading } = useVendorProfile();
-  const hasCheckedRef = useRef(false);
-
-  // Redirect to login if not authenticated or not a vendor
-  useEffect(() => {
-    // Only run once when auth is ready
-    if (!authLoading && !vendorLoading && !hasCheckedRef.current) {
-      hasCheckedRef.current = true;
-      
-      if (!isAuthenticated) {
-        navigate('/login?redirect=/vendor/dashboard');
-        return;
-      }
-      if (user?.role !== 'VENDOR') {
-        navigate('/');
-        return;
-      }
-      
-      // Check if vendor_id is set - if not and onboarding wasn't skipped, redirect to onboarding
-      const onboardingSkipped = localStorage.getItem('onboarding_skipped');
-      
-      if (!vendorId && !onboardingSkipped) {
-        // Vendor hasn't completed onboarding and hasn't skipped - redirect to onboarding
-        console.log('Vendor ID not found - redirecting to onboarding');
-        navigate('/vendor/onboarding');
-        return;
-      }
-    }
-  }, [isAuthenticated, user, authLoading, vendorLoading, navigate, vendorId]);
+  const { user } = useAuth();
+  const { isComplete: profileComplete } = useVendorProfile();
   
-  // Fetch real data in parallel using optimized hook (only if profile is complete)
+  // Fetch real data in parallel using optimized hook
   const { stats, profile, upcomingOrders, leads, listings, loading: dataLoading } = useVendorDashboardData();
   const statsData = stats.data;
   const statsLoading = stats.loading || dataLoading;
@@ -178,22 +150,7 @@ export default function VendorDashboard() {
   const isActive = profileComplete ? (profileData?.isActive !== false) : false;
   const hasListings = profileComplete && listingsData && Array.isArray(listingsData) && listingsData.length > 0;
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </VendorLayout>
-    );
-  }
-
-  // Don't render if not authenticated (will redirect)
-  if (!isAuthenticated || user?.role !== 'VENDOR') {
-    return null;
-  }
-
+  // Show loading while fetching dashboard data
   if (statsLoading || profileLoading) {
     return (
       <VendorLayout>
@@ -308,7 +265,7 @@ export default function VendorDashboard() {
               <Button 
                 onClick={() => navigate('/vendor/calendar')} 
                 variant="outline" 
-                className="border-border hover:bg-muted transition-all w-full justify-center"
+                className="border border-primary/20 bg-primary/5 hover:bg-primary/15 hover:border-primary/30 hover:text-foreground hover:shadow-md transition-all w-full justify-center shadow-sm"
                 size="sm"
               >
                 <Calendar className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
@@ -317,7 +274,7 @@ export default function VendorDashboard() {
               <Button 
                 onClick={() => navigate('/vendor/leads')} 
                 variant="outline" 
-                className="border-border hover:bg-muted transition-all w-full justify-center sm:col-span-2 lg:col-span-1"
+                className="border border-primary/20 bg-primary/5 hover:bg-primary/15 hover:border-primary/30 hover:text-foreground hover:shadow-md transition-all w-full justify-center sm:col-span-2 lg:col-span-1 shadow-sm"
                 size="sm"
               >
                 <MessageSquare className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> 
@@ -397,9 +354,10 @@ export default function VendorDashboard() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-primary hover:text-primary/80"
+                className="text-primary hover:text-primary hover:bg-primary/10 gap-1.5 font-medium"
                 onClick={() => navigate('/vendor/calendar')}
               >
+                <Calendar className="h-3.5 w-3.5" />
                 View Calendar
               </Button>
             </CardHeader>
@@ -442,9 +400,10 @@ export default function VendorDashboard() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-primary hover:text-primary/80" 
+                className="text-primary hover:text-primary hover:bg-primary/10 gap-1.5 font-medium" 
                 onClick={() => navigate('/vendor/leads')}
               >
+                <MessageSquare className="h-3.5 w-3.5" />
                 View All
               </Button>
             </CardHeader>

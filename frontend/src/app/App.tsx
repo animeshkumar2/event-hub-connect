@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/shared/contexts/CartContext";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { PreLaunchProvider, PreLaunchGuard } from "@/shared/contexts/PreLaunchContext";
+import { ProtectedRoute } from "@/shared/components/ProtectedRoute";
 import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
 import { SessionExpiryWarning } from "@/shared/components/SessionExpiryWarning";
 import { useEffect } from "react";
@@ -44,6 +45,7 @@ const VendorListings = lazy(() => import("@/features/vendor/pages/VendorListings
 const VendorListingsDrafts = lazy(() => import("@/features/vendor/pages/VendorListingsDrafts"));
 const VendorListingsPackages = lazy(() => import("@/features/vendor/pages/VendorListingsPackages"));
 const VendorListingsItems = lazy(() => import("@/features/vendor/pages/VendorListingsItems"));
+const ListingPreview = lazy(() => import("@/features/vendor/pages/ListingPreview"));
 const VendorOrders = lazy(() => import("@/features/vendor/pages/VendorOrders"));
 const VendorBookings = lazy(() => import("@/features/vendor/pages/VendorBookings"));
 const VendorChat = lazy(() => import("@/features/vendor/pages/VendorChat"));
@@ -157,7 +159,7 @@ const App = () => (
             {/* Customer Routes - Protected by PreLaunchGuard */}
             <Route path="/search" element={<PreLaunchGuard><Search /></PreLaunchGuard>} />
             <Route path="/listing/:listingId" element={<PreLaunchGuard><ListingDetail /></PreLaunchGuard>} />
-            <Route path="/vendor/:vendorId" element={<PreLaunchGuard><VendorDetails /></PreLaunchGuard>} />
+            <Route path="/vendors/:vendorId" element={<PreLaunchGuard><VendorDetails /></PreLaunchGuard>} />
             <Route path="/cart" element={<PreLaunchGuard><Cart /></PreLaunchGuard>} />
             <Route path="/checkout" element={<PreLaunchGuard><Checkout /></PreLaunchGuard>} />
             <Route path="/event-planner" element={<PreLaunchGuard><EventPlanner /></PreLaunchGuard>} />
@@ -195,97 +197,140 @@ const App = () => (
             <Route path="/profile" element={<PreLaunchGuard><UserProfile /></PreLaunchGuard>} />
             <Route path="/orders/:orderId" element={<PreLaunchGuard><OrderDetails /></PreLaunchGuard>} />
             
-            {/* Vendor Routes - Lazy loaded with Suspense */}
+            {/* Vendor Routes - Lazy loaded with Suspense and Protected */}
             <Route path="/vendor/onboarding" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorOnboarding />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorOnboarding />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/dashboard" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorDashboard />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorDashboard />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/profile" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorProfile />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorProfile />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/calendar" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorCalendar />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorCalendar />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/leads" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorLeads />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorLeads />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/listings" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorListings />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorListings />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/listings/drafts" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorListingsDrafts />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorListingsDrafts />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/listings/packages" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorListingsPackages />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorListingsPackages />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/listings/items" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorListingsItems />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorListingsItems />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/vendor/listings/preview/:listingId" element={
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ListingPreview />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/bookings" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorBookings />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorBookings />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/orders" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorOrders />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorOrders />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/chat" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorChat />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorChat />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/wallet" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorWallet />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorWallet />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/analytics" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorAnalytics />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorAnalytics />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/reviews" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorReviews />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorReviews />
+                </Suspense>
+              </ProtectedRoute>
             } />
             <Route path="/vendor/faqs" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorFAQs />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorFAQs />
+                </Suspense>
+              </ProtectedRoute>
             } />
             {/* PHASE 1: Settings route removed - not needed for initial release */}
             {/* <Route path="/vendor/settings" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorSettings />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorSettings />
+                </Suspense>
+              </ProtectedRoute>
             } /> */}
             <Route path="/vendor/help" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <VendorHelp />
-              </Suspense>
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorHelp />
+                </Suspense>
+              </ProtectedRoute>
             } />
             
             {/* Admin Routes */}

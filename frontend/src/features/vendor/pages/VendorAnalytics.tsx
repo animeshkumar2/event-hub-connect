@@ -187,11 +187,9 @@ export default function VendorAnalytics() {
   if (!FEATURE_FLAGS.ANALYTICS_ENABLED) {
     return (
       <VendorLayout>
-        <div className="p-4 space-y-4">
-          {/* Locked Content Container */}
-          <div className="relative min-h-[600px]">
-            {/* Blurred Background Content */}
-            <div className="pointer-events-none select-none" style={{ filter: 'blur(8px)' }}>
+        <div className="relative min-h-screen overflow-hidden">
+          {/* Blurred Background Content */}
+          <div className="absolute inset-0 pointer-events-none select-none p-4 space-y-4" style={{ filter: 'blur(10px)' }}>
               {/* Header */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                 <div>
@@ -200,7 +198,7 @@ export default function VendorAnalytics() {
                 </div>
                 <div className="flex gap-2">
                   <Select defaultValue="last30">
-                    <SelectTrigger className="w-32 h-8 text-xs bg-muted/50 border-border text-foreground">
+                    <SelectTrigger className="w-32 h-8 text-xs bg-muted/50 border-0 text-foreground">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -210,7 +208,7 @@ export default function VendorAnalytics() {
                       <SelectItem value="thisyear">This Year</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-muted h-8">
+                  <Button variant="outline" size="sm" className="border-0 text-foreground hover:bg-muted h-8">
                     <Download className="mr-1.5 h-3.5 w-3.5" /> Export
                   </Button>
                 </div>
@@ -219,7 +217,7 @@ export default function VendorAnalytics() {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                 {displayStats.map((stat, i) => (
-                  <Card key={i} className="border-border">
+                  <Card key={i} className="border-0 shadow-none bg-card/50">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className={`p-2 rounded-lg ${stat.bg}`}>
@@ -235,7 +233,7 @@ export default function VendorAnalytics() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Revenue Chart */}
-                <Card className="border-border">
+                <Card className="border-0 shadow-none bg-card/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-foreground text-base flex items-center gap-2">
                       <BarChart3 className="h-4 w-4 text-secondary" />
@@ -258,7 +256,7 @@ export default function VendorAnalytics() {
                 </Card>
 
                 {/* Bookings Chart */}
-                <Card className="border-border">
+                <Card className="border-0 shadow-none bg-card/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-foreground text-base flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-primary" />
@@ -286,8 +284,8 @@ export default function VendorAnalytics() {
             </div>
 
             {/* Overlay with Lock Message */}
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6 min-h-screen">
-              <Card className="max-w-md w-full border-2 border-primary/20 shadow-2xl bg-gradient-to-br from-background via-background to-primary/5">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/85 p-6">
+              <Card className="max-w-md w-full border-0 shadow-2xl bg-card">
                 <CardContent className="p-8 text-center">
                   {/* Animated Lock Icon */}
                   <div className="relative inline-block mb-6">
@@ -329,14 +327,13 @@ export default function VendorAnalytics() {
                   </div>
 
                   {/* Badge */}
-                  <Badge className="bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30 px-4 py-2">
+                  <Badge className="bg-gradient-to-r from-primary to-primary/90 text-primary-foreground border-0 px-4 py-2 font-semibold">
                     <Sparkles className="h-3 w-3 mr-1.5" />
-                    Available in Phase 2
+                    Coming Soon
                   </Badge>
                 </CardContent>
               </Card>
             </div>
-          </div>
         </div>
       </VendorLayout>
     );

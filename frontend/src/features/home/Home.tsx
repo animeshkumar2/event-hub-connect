@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { MinimalNavbar } from '@/features/home/MinimalNavbar';
@@ -17,19 +17,8 @@ const Home = () => {
   const { user, isAuthenticated } = useAuth();
   const [openSection, setOpenSection] = useState<string | null>(null);
   
-  // Redirect authenticated vendors/admins to their dashboards
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const userRole = localStorage.getItem('user_role') || user.role;
-      
-      if (userRole === 'ADMIN') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (userRole === 'VENDOR' || user.role === 'VENDOR') {
-        // Always redirect vendors to dashboard (vendorId will be fetched there if needed)
-        navigate('/vendor/dashboard', { replace: true });
-      }
-    }
-  }, [isAuthenticated, user, navigate]);
+  // No automatic redirects - vendors and admins can view the home page
+  // They can navigate to their dashboards via sidebar or buttons
   
   // How It Works steps for floating card
   const howItWorksSteps = [

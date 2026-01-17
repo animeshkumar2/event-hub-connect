@@ -1,34 +1,62 @@
 package com.eventhub.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class EmailService {
+    
+    private final JavaMailSender mailSender;
     
     @Value("${app.frontend.url:http://localhost:8080}")
     private String frontendUrl;
     
-    @Value("${app.email.enabled:false}")
-    private boolean emailEnabled;
+    @Value("${app.email.from}")
+    private String fromEmail;
     
     /**
      * Send password reset email
-     * For now, logs to console. Can be extended to use SMTP later.
      */
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
         
-        if (emailEnabled) {
-            // TODO: Implement actual email sending with SMTP
-            log.info("Email sending is enabled but not yet implemented");
-            logPasswordResetEmail(toEmail, resetLink);
-        } else {
-            // Log to console for development
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(toEmail);
+            message.setSubject("Reset Your Password - CartEvent");
+            message.setText(buildPasswordResetEmailBody(resetLink));
+            
+            mailSender.send(message);
+            log.info("Password reset email sent successfully to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to: {}", toEmail, e);
+            // Still log to console as fallback for development
             logPasswordResetEmail(toEmail, resetLink);
         }
+    }
+    
+    private String buildPasswordResetEmailBody(String resetLink) {
+        return """
+                Hi,
+                
+                You requested to reset your password. Click the link below to reset it:
+                
+                %s
+                
+                This link will expire in 1 hour.
+                
+                If you didn't request this, please ignore this email.
+                
+                Thanks,
+                CartEvent Team
+                """.formatted(resetLink);
     }
     
     private void logPasswordResetEmail(String toEmail, String resetLink) {
