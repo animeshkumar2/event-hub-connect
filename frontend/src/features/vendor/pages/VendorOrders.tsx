@@ -63,7 +63,6 @@ export default function VendorOrders() {
     const statusLower = status?.toLowerCase() || '';
     switch (statusLower) {
       case 'confirmed':
-      case 'confirmed':
         return 'bg-blue-500/20 text-blue-400';
       case 'in_progress':
       case 'in-progress':

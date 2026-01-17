@@ -177,6 +177,8 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
   const [submittingOffer, setSubmittingOffer] = useState(false);
   const [offerFormExpanded, setOfferFormExpanded] = useState(true);
   const [enableCustomization, setEnableCustomization] = useState(false);
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [customizationData, setCustomizationData] = useState<{ customizedPrice?: number; customization?: string } | null>(null);
   
   // Token payment modal state
   const [showTokenPaymentModal, setShowTokenPaymentModal] = useState(false);
@@ -914,6 +916,15 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
     setInputValue('');
     setSending(true);
 
+    // Create optimistic message before try block so it's available in catch
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      sender: 'user',
+      text: messageText,
+      timestamp: new Date(),
+      read: false,
+    };
+
     try {
       console.log('🔍 [handleSend] Starting to send message', {
         messageLength: messageText.length,
@@ -937,13 +948,6 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
       }
 
       // Optimistic update
-      const optimisticMessage: Message = {
-        id: `temp-${Date.now()}`,
-        sender: 'user',
-        text: messageText,
-        timestamp: new Date(),
-        read: false,
-      };
       setMessages(prev => [...prev, optimisticMessage]);
 
       // Send message
@@ -1215,7 +1219,7 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
                       {message.sender === 'user' && (
                         <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-background">
                           <AvatarFallback className="bg-gradient-to-br from-muted to-muted/80 text-foreground text-sm font-semibold">
-                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                            {user?.fullName?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                       )}

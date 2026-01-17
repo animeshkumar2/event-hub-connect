@@ -86,7 +86,7 @@ export default function ListingDetail() {
     // 3. Check via stored vendorId in localStorage (set during vendor login)
     const storedVendorId = localStorage.getItem('vendor_id');
     return (
-      user.vendorId === vendorId || 
+      (user as any).vendorId === vendorId || 
       user.id === listing.vendor?.userId ||
       storedVendorId === vendorId
     );
@@ -98,11 +98,11 @@ export default function ListingDetail() {
   // Fetch vendor listings for similar listings
   const { data: vendorListingsData } = useVendorListings(vendorId || null);
   // vendorListingsData is already the unwrapped array from useVendorListings
-  const vendorListings = Array.isArray(vendorListingsData) ? vendorListingsData : (vendorListingsData?.data || vendorListingsData || []);
+  const vendorListings = Array.isArray(vendorListingsData) ? vendorListingsData : ((vendorListingsData as any)?.data || vendorListingsData || []);
 
   // Fetch reviews
   const { data: reviewsData } = useVendorReviews(vendorId || null, 0, 5);
-  const reviews = reviewsData?.data?.content || [];
+  const reviews = (reviewsData as any)?.data?.content || [];
 
   // Similar listings (same vendor, different listing)
   const similarListings = useMemo(() => {
@@ -692,15 +692,16 @@ export default function ListingDetail() {
                         packageId: similarListing.id,
                         name: similarListing.name,
                         packageName: similarListing.name,
+                        description: similarListing.description || '',
                         price: similarListing.price,
                         images: similarListing.images || [],
                         vendorId: similarListing.vendorId,
                         vendorName: similarListing.vendorName || listing.vendorName,
                         vendorCity: listing.vendorCity,
+                        vendorCoverageRadius: listing.vendorCoverageRadius || 0,
                         vendorRating: listing.vendorRating,
                         vendorReviewCount: listing.vendorReviewCount,
                         category: similarListing.customCategoryName || similarListing.categoryName || listing.categoryName,
-                        customCategoryName: similarListing.customCategoryName,
                         type: similarListing.type?.toLowerCase() || 'item',
                         deliveryTime: similarListing.deliveryTime,
                         isPopular: similarListing.isPopular,
