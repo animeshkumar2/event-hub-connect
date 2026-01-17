@@ -137,11 +137,11 @@ export default function VendorListingsItems() {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            size="icon"
             onClick={() => navigate('/vendor/listings')}
-            className="shrink-0"
+            className="text-muted-foreground hover:text-foreground -ml-2"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
           <div className="flex items-center gap-3 flex-1">
             <Box className="h-7 w-7 text-secondary" />

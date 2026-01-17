@@ -782,19 +782,6 @@ export default function VendorListings() {
   return (
     <VendorLayout>
       <div className="p-6 space-y-6">
-        {/* Back Button */}
-        <div className="mb-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/vendor/dashboard')}
-            className="border-primary/20 text-primary hover:bg-primary/10 hover:text-primary"
-            size="sm"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
-        
         {/* Header */}
         <div className="flex flex-col gap-4 mb-6">
           {/* Title Row */}
@@ -1395,6 +1382,8 @@ export default function VendorListings() {
                       >
                         Cancel
                       </Button>
+                      {/* Only show Save as Draft for NEW listings, not when editing existing ones */}
+                      {!editingListing && (
                       <Button
                         variant="outline"
                         className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
@@ -1406,8 +1395,9 @@ export default function VendorListings() {
                         ) : (
                           <Save className="h-4 w-4 mr-2" />
                         )}
-                        Save & Exit
+                        Save as Draft
                       </Button>
+                      )}
                     </div>
                     <Button
                       className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1566,7 +1556,7 @@ export default function VendorListings() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}?view=customer`, '_blank'); }}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/vendor/listings/preview/${listing.id}`); }}>
                           <Eye className="mr-2 h-4 w-4" /> Preview as Customer
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => {
@@ -1736,7 +1726,7 @@ export default function VendorListings() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/listing/${listing.id}?view=customer`, '_blank'); }}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/vendor/listings/preview/${listing.id}`); }}>
                           <Eye className="mr-2 h-4 w-4" /> Preview as Customer
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => {

@@ -716,11 +716,12 @@ export default function ListingDetail() {
             )}
           </div>
 
-          {/* Right Column - Booking Widget */}
+          {/* Right Column - Booking Widget - Hidden for vendor preview */}
+          {!isOwner && (
           <div className="lg:col-span-1 order-first lg:order-last">
             <div className="sticky top-20 lg:top-24 z-10 space-y-4">
               {/* Chat/Offer Button - Only show if not owner and negotiation enabled (defaults to true) */}
-              {!isOwner && listing && (listing.openForNegotiation !== false) && (() => {
+              {listing && (listing.openForNegotiation !== false) && (() => {
                 // Ensure we always have a valid listingId - try listing.id first, then fallback to listingId from params
                 const finalListingId = listing?.id 
                   ? String(listing.id).trim() 
@@ -771,7 +772,7 @@ export default function ListingDetail() {
               })()}
               
               {/* Regular Chat Button - If negotiation not enabled, but still pass listingId for context */}
-              {!isOwner && listing && !listing.openForNegotiation && (() => {
+              {listing && !listing.openForNegotiation && (() => {
                 // Even when negotiation is disabled, pass listingId for context
                 const finalListingId = listing?.id 
                   ? String(listing.id).trim() 
@@ -818,10 +819,11 @@ export default function ListingDetail() {
                   vendorName: listing.vendorName || '',
                   addOns: [], // TODO: Fetch add-ons from API
                 }}
-                isVendorPreview={isOwner}
+                isVendorPreview={false}
               />
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

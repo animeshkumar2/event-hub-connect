@@ -225,11 +225,9 @@ export default function VendorReviews() {
   if (!FEATURE_FLAGS.REVIEW_REQUESTS_ENABLED) {
     return (
       <VendorLayout>
-        <div className="p-4 space-y-4">
-          {/* Locked Content Container */}
-          <div className="relative min-h-[600px]">
-            {/* Blurred Background Content */}
-            <div className="pointer-events-none select-none" style={{ filter: 'blur(8px)' }}>
+        <div className="relative min-h-screen overflow-hidden">
+          {/* Blurred Background Content */}
+          <div className="absolute inset-0 pointer-events-none select-none p-4 space-y-4" style={{ filter: 'blur(10px)' }}>
               {/* Header */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                 <div>
@@ -244,7 +242,7 @@ export default function VendorReviews() {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Rating Overview */}
-                <Card className="border-border">
+                <Card className="border-0 shadow-none bg-card/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-foreground text-base">Rating Overview</CardTitle>
                   </CardHeader>
@@ -276,7 +274,7 @@ export default function VendorReviews() {
                 {/* Reviews List */}
                 <div className="lg:col-span-2 space-y-3">
                   {[1, 2].map((i) => (
-                    <Card key={i} className="border-border">
+                    <Card key={i} className="border-0 shadow-none bg-card/50">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
@@ -313,8 +311,8 @@ export default function VendorReviews() {
             </div>
 
             {/* Overlay with Lock Message */}
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6 min-h-screen">
-              <Card className="max-w-md w-full border-2 border-primary/20 shadow-2xl bg-gradient-to-br from-background via-background to-primary/5">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/85 p-6">
+              <Card className="max-w-md w-full border-0 shadow-2xl bg-card">
                 <CardContent className="p-8 text-center">
                   {/* Animated Lock Icon */}
                   <div className="relative inline-block mb-6">
@@ -356,14 +354,13 @@ export default function VendorReviews() {
                   </div>
 
                   {/* Badge */}
-                  <Badge className="bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30 px-4 py-2">
+                  <Badge className="bg-gradient-to-r from-primary to-primary/90 text-primary-foreground border-0 px-4 py-2 font-semibold">
                     <Sparkles className="h-3 w-3 mr-1.5" />
-                    Available in Phase 2
+                    Coming Soon
                   </Badge>
                 </CardContent>
               </Card>
             </div>
-          </div>
         </div>
       </VendorLayout>
     );
