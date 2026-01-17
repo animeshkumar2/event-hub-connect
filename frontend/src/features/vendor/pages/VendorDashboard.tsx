@@ -2,6 +2,8 @@ import { VendorLayout } from '@/features/vendor/components/VendorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
+import { InlineError } from '@/shared/components/InlineError';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { 
   Calendar, 
   MessageSquare, 
@@ -15,8 +17,8 @@ import {
   TrendingUp,
   Star,
   Bell,
-  Loader2,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVendorDashboardData } from '@/shared/hooks/useApi';
@@ -154,8 +156,8 @@ export default function VendorDashboard() {
   if (statsLoading || profileLoading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading dashboard" />
         </div>
       </VendorLayout>
     );
@@ -165,27 +167,13 @@ export default function VendorDashboard() {
     // Only show error if profile is complete (otherwise it's expected to fail)
     return (
       <VendorLayout>
-        <div className="p-6">
-          <Card className="border-destructive">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="h-5 w-5 text-destructive" />
-                <div>
-                  <p className="font-semibold text-destructive">Failed to load dashboard</p>
-                  <p className="text-sm text-muted-foreground">{statsError}</p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                >
-                  Retry
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <InlineError
+          title="Failed to load dashboard"
+          message="We couldn't load your dashboard data. Please try again."
+          error={statsError}
+          onRetry={() => window.location.reload()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }

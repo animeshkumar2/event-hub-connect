@@ -5,7 +5,8 @@ import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { ArrowLeft, Search, Package, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Package } from 'lucide-react';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { ListingCard } from '@/features/vendor/components/ListingCard';
 import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
 import { useVendorListingsData } from '@/shared/hooks/useApi';
@@ -124,7 +125,7 @@ export default function VendorListingsPackages() {
     return (
       <VendorLayout>
         <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <BrandedLoader fullScreen={false} message="Loading packages" />
         </div>
       </VendorLayout>
     );

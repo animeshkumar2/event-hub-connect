@@ -5,6 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
+import { InlineError } from '@/shared/components/InlineError';
 import { 
   Star, 
   MessageSquare, 
@@ -25,6 +26,7 @@ import { useMyVendorReviews, useVendorReviewStatistics } from '@/shared/hooks/us
 import { format } from 'date-fns';
 import { vendorApi } from '@/shared/services/api';
 import { FEATURE_FLAGS } from '@/shared/config/featureFlags';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 
 interface Review {
   id: string;
@@ -66,8 +68,11 @@ export default function VendorReviews() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [sendingRequest, setSendingRequest] = useState(false);
   
-  const { data: reviewsData, loading: reviewsLoading, error: reviewsError } = useMyVendorReviews(page, 10);
-  const { data: statsData, loading: statsLoading } = useVendorReviewStatistics();
+  // PHASE 1: Skip API calls if review requests is disabled
+  const shouldFetchData = FEATURE_FLAGS.REVIEW_REQUESTS_ENABLED;
+  
+  const { data: reviewsData, loading: reviewsLoading, error: reviewsError } = useMyVendorReviews(page, 10, { enabled: shouldFetchData });
+  const { data: statsData, loading: statsLoading } = useVendorReviewStatistics({ enabled: shouldFetchData });
 
   const reviews: Review[] = reviewsData?.content || reviewsData || [];
   const stats = statsData || {
@@ -195,8 +200,8 @@ export default function VendorReviews() {
   if (reviewsLoading || statsLoading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading reviews" />
         </div>
       </VendorLayout>
     );
@@ -205,18 +210,13 @@ export default function VendorReviews() {
   if (reviewsError) {
     return (
       <VendorLayout>
-        <div className="p-6">
-          <Card className="border-border">
-            <CardContent className="p-12 text-center">
-              <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">Failed to Load Reviews</h3>
-              <p className="text-foreground/60 mb-4">{reviewsError}</p>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <InlineError
+          title="Failed to load reviews"
+          message="We couldn't load your reviews data. Please try again."
+          error={reviewsError}
+          onRetry={() => window.location.reload()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }

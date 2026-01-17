@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/compo
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Separator } from '@/shared/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
+import { InlineError } from '@/shared/components/InlineError';
 import { 
   Search, 
   Filter, 
@@ -749,8 +751,8 @@ export default function VendorLeads() {
   if (loading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading leads" />
         </div>
       </VendorLayout>
     );
@@ -759,16 +761,13 @@ export default function VendorLeads() {
   if (error) {
     return (
       <VendorLayout>
-        <div className="p-6">
-          <Card className="border-border">
-            <CardContent className="p-6 text-center">
-              <p className="text-destructive mb-4">{error}</p>
-              <Button onClick={() => refetch()} variant="outline">
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <InlineError
+          title="Failed to load leads"
+          message="We couldn't load your leads data. Please try again."
+          error={error}
+          onRetry={() => refetch()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }

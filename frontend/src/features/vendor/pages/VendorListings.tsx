@@ -49,6 +49,8 @@ import { ListingCard } from '@/features/vendor/components/ListingCard';
 import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
 import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
+import { InlineError } from '@/shared/components/InlineError';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -748,9 +750,24 @@ export default function VendorListings() {
   if (listingsLoading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading listings" />
         </div>
+      </VendorLayout>
+    );
+  }
+
+  // Show error state
+  if (listingsError) {
+    return (
+      <VendorLayout>
+        <InlineError
+          title="Failed to load listings"
+          message="We couldn't load your listings data. Please try again."
+          error={listingsError}
+          onRetry={() => refetch()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }
@@ -759,8 +776,8 @@ export default function VendorListings() {
   if (profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading profile" />
         </div>
       </VendorLayout>
     );

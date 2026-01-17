@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,11 +13,7 @@ export function ProtectedRoute({ children, requireVendor = false }: ProtectedRou
 
   // Show loading spinner while checking authentication
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <BrandedLoader message="Loading" />;
   }
 
   // Not authenticated - redirect to login

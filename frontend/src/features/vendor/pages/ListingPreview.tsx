@@ -4,6 +4,7 @@ import { PhotoGallery } from '@/features/listing/PhotoGallery';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { 
   Star, 
   MapPin, 
@@ -14,7 +15,6 @@ import {
   User,
   Package,
   AlertCircle,
-  Loader2,
   ExternalLink,
   IndianRupee,
   Edit,
@@ -82,7 +82,7 @@ export default function ListingPreview() {
           </div>
         </div>
         <div className="container mx-auto px-4 py-20 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <BrandedLoader fullScreen={false} message="Loading preview" />
         </div>
       </div>
     );

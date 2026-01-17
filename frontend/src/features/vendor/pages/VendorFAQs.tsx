@@ -6,6 +6,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
+import { InlineError } from '@/shared/components/InlineError';
 import { 
   Plus, 
   Edit, 
@@ -120,9 +122,23 @@ export default function VendorFAQs() {
   if (loading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <BrandedLoader fullScreen={false} message="Loading FAQs" />
         </div>
+      </VendorLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <VendorLayout>
+        <InlineError
+          title="Failed to load FAQs"
+          message="We couldn't load your FAQs data. Please try again."
+          error={error}
+          onRetry={() => refetch()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }

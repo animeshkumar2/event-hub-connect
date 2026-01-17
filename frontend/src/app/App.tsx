@@ -12,8 +12,8 @@ import { ErrorBoundary } from "@/shared/components/ErrorBoundary";
 import { SessionExpiryWarning } from "@/shared/components/SessionExpiryWarning";
 import { useEffect } from "react";
 import { publicApi } from "@/shared/services/api";
-import { Loader2 } from "lucide-react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 
 // Google OAuth Client ID - Replace with your actual client ID from Google Cloud Console
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
@@ -69,11 +69,7 @@ const AdminVendorDetail = lazy(() => import("@/features/admin/pages/AdminVendorD
 const AdminListingsList = lazy(() => import("@/features/admin/pages/AdminListingsList"));
 
 // Loading fallback component
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
+const LoadingFallback = () => <BrandedLoader message="Loading" />;
 
 // Configure QueryClient with optimal caching for performance
 const queryClient = new QueryClient({

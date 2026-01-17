@@ -1,7 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { RefreshCw, Home, AlertTriangle } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -34,27 +33,93 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <Card className="w-full max-w-md border-destructive">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-                <h2 className="text-lg font-semibold text-destructive">Something went wrong</h2>
+        <div className="fixed inset-0 bg-gradient-to-br from-background via-primary/5 to-secondary/10 flex items-center justify-center p-4 overflow-hidden">
+          {/* Animated background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }} />
+          </div>
+
+          {/* Main content */}
+          <div className="relative z-10 max-w-2xl w-full text-center space-y-8">
+            {/* Animated error icon */}
+            <div className="flex justify-center mb-8">
+              <div className="relative">
+                {/* Pulsing rings */}
+                <div className="absolute inset-0 w-32 h-32 -left-16 -top-16 rounded-full border-4 border-destructive/20 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-0 w-24 h-24 -left-12 -top-12 rounded-full border-4 border-destructive/30 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                
+                {/* Center icon */}
+                <div className="relative w-20 h-20 bg-gradient-to-br from-destructive to-destructive/80 rounded-full flex items-center justify-center shadow-2xl animate-bounce" style={{ animationDuration: '2s' }}>
+                  <AlertTriangle className="w-10 h-10 text-white" />
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground mb-4 break-words overflow-wrap-anywhere">
-                {this.state.error?.message || 'An unexpected error occurred'}
+            </div>
+
+            {/* Error message */}
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-5xl font-bold">
+                <span className="text-primary">Oops!</span>
+                <span className="text-foreground"> Something went wrong</span>
+              </h1>
+              
+              <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                We encountered an unexpected error. Don't worry, our team has been notified and we're working on it.
               </p>
+
+              {/* Error details (collapsed by default in production) */}
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <details className="mt-6 text-left">
+                  <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Technical details (dev only)
+                  </summary>
+                  <div className="mt-2 p-4 bg-muted/50 rounded-lg border border-border">
+                    <code className="text-xs text-destructive break-all">
+                      {this.state.error.message}
+                    </code>
+                  </div>
+                </details>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
               <Button
+                size="lg"
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
                   window.location.reload();
                 }}
-                className="w-full"
+                className="min-w-[200px] bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
               >
+                <RefreshCw className="mr-2 h-5 w-5" />
                 Reload Page
               </Button>
-            </CardContent>
-          </Card>
+              
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.href = '/';
+                }}
+                className="min-w-[200px] border-2 hover:bg-primary/5 shadow-lg hover:shadow-xl transition-all"
+              >
+                <Home className="mr-2 h-5 w-5" />
+                Go Home
+              </Button>
+            </div>
+
+            {/* Brand footer */}
+            <div className="pt-8 text-sm text-muted-foreground">
+              <p>
+                Need help? Contact us at{' '}
+                <a href="mailto:support@cartevent.com" className="text-primary hover:underline">
+                  support@cartevent.com
+                </a>
+              </p>
+            </div>
+          </div>
         </div>
       );
     }
