@@ -471,4 +471,25 @@ public class TokenPaymentService {
             "eventDate", order.getEventDate() != null ? order.getEventDate().toString() : "Not set"
         );
     }
+    
+    /**
+     * Mock complete payment for testing purposes
+     * This simulates a successful payment webhook callback
+     */
+    @Transactional
+    public void mockCompletePayment(UUID orderId) {
+        logger.info("Mock completing payment for order: {}", orderId);
+        
+        // Find the pending payment for this order
+        Payment payment = paymentRepository.findByOrderIdAndPaymentType(orderId, PaymentType.TOKEN)
+            .stream()
+            .filter(Payment::isPending)
+            .findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("No pending token payment found for order: " + orderId));
+        
+        // Use the existing webhook handler to complete the payment
+        handlePaymentWebhook(payment.getTransactionId(), "success", "Mock payment completed");
+        
+        logger.info("Mock payment completed successfully for order: {}", orderId);
+    }
 }

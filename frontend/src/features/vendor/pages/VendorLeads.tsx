@@ -112,6 +112,7 @@ export default function VendorLeads() {
   const navigate = useNavigate();
   const { data: leadsData, loading, error, refetch } = useVendorLeads();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [showMobileModal, setShowMobileModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('pending');
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loadingOffers, setLoadingOffers] = useState(false);
@@ -123,6 +124,22 @@ export default function VendorLeads() {
   const [counterMessage, setCounterMessage] = useState('');
 
   const leads: Lead[] = leadsData || [];
+
+  // Auto-select first lead when data loads or filter changes
+  useEffect(() => {
+    if (filteredLeads.length > 0 && !selectedLead) {
+      setSelectedLead(filteredLeads[0]);
+    }
+  }, [leadsData]);
+
+  // Auto-select first lead when filter changes
+  useEffect(() => {
+    if (filteredLeads.length > 0) {
+      setSelectedLead(filteredLeads[0]);
+    } else {
+      setSelectedLead(null);
+    }
+  }, [activeFilter]);
 
   useEffect(() => {
     if (selectedLead) {
@@ -774,194 +791,256 @@ export default function VendorLeads() {
 
   return (
     <VendorLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Leads & Offers</h1>
-            <p className="text-muted-foreground">
-              {leads.length} total leads
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Leads & Offers</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your incoming leads and offers
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search leads..." className="pl-10 bg-background border-border text-foreground w-64" />
+              <Input 
+                placeholder="Search leads..." 
+                className="pl-10 bg-background border-border text-foreground w-full sm:w-56 h-9" 
+              />
             </div>
-            <Button variant="outline" className="border-border hover:bg-muted">
-              <Filter className="mr-2 h-4 w-4" /> Filter
-            </Button>
           </div>
         </div>
 
-        {/* Filters */}
-        <Tabs value={activeFilter} onValueChange={setActiveFilter}>
-          <TabsList className="bg-muted/50 border border-border">
-            <TabsTrigger value="pending" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Pending ({pendingCount})
-            </TabsTrigger>
-            <TabsTrigger value="closed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Closed ({closedCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <Card 
+            className={`border cursor-pointer transition-all ${activeFilter === 'pending' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/50'}`}
+            onClick={() => setActiveFilter('pending')}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">Pending</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{pendingCount}</p>
+                </div>
+                <div className={`p-2 sm:p-3 rounded-full ${activeFilter === 'pending' ? 'bg-primary/20' : 'bg-yellow-500/10'}`}>
+                  <Clock className={`h-4 w-4 sm:h-5 sm:w-5 ${activeFilter === 'pending' ? 'text-primary' : 'text-yellow-500'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card 
+            className={`border cursor-pointer transition-all ${activeFilter === 'closed' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/50'}`}
+            onClick={() => setActiveFilter('closed')}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">Closed</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{closedCount}</p>
+                </div>
+                <div className={`p-2 sm:p-3 rounded-full ${activeFilter === 'closed' ? 'bg-primary/20' : 'bg-green-500/10'}`}>
+                  <CheckCircle className={`h-4 w-4 sm:h-5 sm:w-5 ${activeFilter === 'closed' ? 'text-primary' : 'text-green-500'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
+        {/* Main Content */}
         {filteredLeads.length === 0 ? (
           <Card className="border-border">
-            <CardContent className="p-12 text-center">
-              <MessageSquare className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
-              <p className="text-foreground/60">No {activeFilter} leads found</p>
+            <CardContent className="p-8 sm:p-16 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">No {activeFilter} leads</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                {activeFilter === 'pending' 
+                  ? "You don't have any pending leads at the moment. New leads will appear here."
+                  : "No closed leads yet. Leads that are converted, declined, or withdrawn will appear here."}
+              </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Leads List */}
-            <div className="lg:col-span-1 space-y-4">
-              {filteredLeads.map((lead) => (
-                <Card 
-                  key={lead.id}
-                  onClick={() => setSelectedLead(lead)}
-                  className={`border-border shadow-card cursor-pointer transition-all hover:shadow-elegant ${
-                    selectedLead?.id === lead.id ? 'border-primary ring-2 ring-primary/20' : ''
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="text-primary font-semibold">{lead.name?.[0]?.toUpperCase() || '?'}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+            {/* Leads List - Left Panel */}
+            <div className="lg:col-span-4 xl:col-span-4">
+              <Card className="border-border">
+                <CardHeader className="p-3 sm:p-4 border-b">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      {activeFilter === 'pending' ? 'Pending Leads' : 'Closed Leads'}
+                    </h2>
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredLeads.length}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <div className="max-h-[60vh] lg:max-h-[calc(100vh-380px)] overflow-y-auto">
+                  {filteredLeads.map((lead, index) => (
+                    <div
+                      key={lead.id}
+                      onClick={() => {
+                        setSelectedLead(lead);
+                        // Open mobile modal on small screens
+                        if (window.innerWidth < 1024) {
+                          setShowMobileModal(true);
+                        }
+                      }}
+                      className={`p-3 sm:p-4 cursor-pointer transition-all border-b border-border/50 last:border-b-0 hover:bg-muted/50 ${
+                        selectedLead?.id === lead.id ? 'bg-primary/5 border-l-2 border-l-primary' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-primary font-semibold text-sm">{lead.name?.[0]?.toUpperCase() || '?'}</span>
                         </div>
-                        <div>
-                          <p className="text-foreground font-medium">{lead.name}</p>
-                          <p className="text-sm text-foreground/60">{lead.eventType || 'Event Inquiry'}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
+                            <Badge className={`${getCurrentLifecycleStatus(lead, []).color} text-[10px] px-1.5 py-0.5 flex-shrink-0`}>
+                              {getCurrentLifecycleStatus(lead, []).label.split(' ')[0]}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mb-2">{lead.eventType || 'Event Inquiry'}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {lead.eventDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(lead.eventDate)}
+                              </span>
+                            )}
+                            {lead.listing?.price && (
+                              <span className="flex items-center gap-1 text-foreground/70">
+                                <IndianRupee className="h-3 w-3" />
+                                {lead.listing.price.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <Badge className={getCurrentLifecycleStatus(lead, []).color}>
-                        {getCurrentLifecycleStatus(lead, []).label}
-                      </Badge>
                     </div>
-                    <div className="space-y-2 text-sm text-foreground/60">
-                      {lead.eventDate && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(lead.eventDate)}
-                        </div>
-                      )}
-                      {lead.listing && (
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4" />
-                          <span className="truncate">{lead.listing.name}</span>
-                        </div>
-                      )}
-                      {lead.listing?.price && (
-                        <div className="flex items-center gap-2 text-foreground/80">
-                          <IndianRupee className="h-4 w-4" />
-                          <span>Listing: ₹{lead.listing.price.toLocaleString('en-IN')}</span>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-foreground/40 mt-3">{formatDateTime(lead.createdAt)}</p>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </div>
+              </Card>
             </div>
 
-            {/* Lead Details */}
-            <div className="lg:col-span-2">
+            {/* Lead Details - Right Panel (Desktop Only) */}
+            <div className="hidden lg:block lg:col-span-8 xl:col-span-8">
               {selectedLead ? (
-                <Card className="border-border shadow-card">
-                  <CardHeader className="flex flex-row items-start justify-between border-b pb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="text-primary font-semibold text-lg">{selectedLead.name?.[0]?.toUpperCase() || '?'}</span>
+                <Card className="border-border">
+                  {/* Detail Header */}
+                  <CardHeader className="p-4 sm:p-5 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                          <span className="text-primary font-bold text-lg">{selectedLead.name?.[0]?.toUpperCase() || '?'}</span>
                         </div>
                         <div>
-                          <CardTitle className="text-foreground text-xl">{selectedLead.name}</CardTitle>
-                          <p className="text-foreground/60 text-sm">{selectedLead.eventType || 'Event Inquiry'}</p>
+                          <h2 className="text-base sm:text-lg font-semibold text-foreground">{selectedLead.name}</h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground">{selectedLead.eventType || 'Event Inquiry'}</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getCurrentLifecycleStatus(selectedLead, offers).color}>
-                        {getCurrentLifecycleStatus(selectedLead, offers).label}
-                      </Badge>
-                      <Button variant="ghost" size="icon" onClick={() => setSelectedLead(null)} className="text-foreground/60">
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Badge className={`${getCurrentLifecycleStatus(selectedLead, offers).color} text-xs`}>
+                          {getCurrentLifecycleStatus(selectedLead, offers).label}
+                        </Badge>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setSelectedLead(null)} 
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground lg:hidden"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="space-y-6 pt-6">
+                  <CardContent className="p-4 sm:p-5 space-y-4 sm:space-y-5 max-h-[50vh] lg:max-h-[calc(100vh-380px)] overflow-y-auto">
+                    {/* Quick Info Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {selectedLead.eventDate && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Event Date</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">{formatDate(selectedLead.eventDate)}</p>
+                        </div>
+                      )}
+                      {selectedLead.guestCount && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Users className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Guests</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">{selectedLead.guestCount}</p>
+                        </div>
+                      )}
+                      {selectedLead.budget && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <IndianRupee className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Budget</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">{selectedLead.budget}</p>
+                        </div>
+                      )}
+                      {selectedLead.listing?.price && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Package className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Listing Price</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">₹{selectedLead.listing.price.toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Collapsible Sections */}
-                    <Accordion type="multiple" defaultValue={[]} className="w-full">
+                    <Accordion type="multiple" defaultValue={['event']} className="w-full space-y-2">
                       {/* Event Details Section */}
-                      <AccordionItem value="event" className="border-border/50">
-                        <AccordionTrigger className="hover:no-underline">
+                      <AccordionItem value="event" className="border border-border/50 rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline py-3">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-500/10">
-                              <Calendar className="h-5 w-5 text-blue-400" />
+                            <div className="p-1.5 rounded-md bg-blue-500/10">
+                              <Calendar className="h-4 w-4 text-blue-500" />
                             </div>
-                            <div className="text-left">
-                              <h3 className="text-base font-semibold text-foreground">Event Details</h3>
-                              <p className="text-xs text-foreground/60">Date, venue, and event information</p>
-                            </div>
+                            <span className="text-sm font-medium text-foreground">Event Details</span>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="pt-4">
-                          <div className="space-y-4">
+                        <AccordionContent className="pb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                             {selectedLead.eventDate && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <Calendar className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Event Date</span>
-                                </div>
-                                <p className="text-foreground font-medium">{formatDate(selectedLead.eventDate)}</p>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Event Date</p>
+                                <p className="text-sm font-medium text-foreground">{formatDate(selectedLead.eventDate)}</p>
                               </div>
                             )}
                             {selectedLead.eventType && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <Sparkles className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Event Type</span>
-                                </div>
-                                <p className="text-foreground font-medium">{selectedLead.eventType}</p>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Event Type</p>
+                                <p className="text-sm font-medium text-foreground">{selectedLead.eventType}</p>
                               </div>
                             )}
                             {selectedLead.venueAddress && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <MapPin className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Venue Address</span>
-                                </div>
-                                <p className="text-foreground font-medium">{selectedLead.venueAddress}</p>
+                              <div className="sm:col-span-2">
+                                <p className="text-xs text-muted-foreground mb-1">Venue Address</p>
+                                <p className="text-sm font-medium text-foreground">{selectedLead.venueAddress}</p>
                               </div>
                             )}
                             {selectedLead.guestCount && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <Users className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Guest Count</span>
-                                </div>
-                                <p className="text-foreground font-medium">{selectedLead.guestCount} people</p>
-                              </div>
-                            )}
-                            {selectedLead.budget && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <IndianRupee className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Budget</span>
-                                </div>
-                                <p className="text-foreground font-medium">{selectedLead.budget}</p>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Guest Count</p>
+                                <p className="text-sm font-medium text-foreground">{selectedLead.guestCount} people</p>
                               </div>
                             )}
                             {selectedLead.message && (
-                              <div className="space-y-2 pt-2 border-t">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <FileText className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Customer Message</span>
-                                </div>
-                                <p className="text-foreground/80 text-sm leading-relaxed">{selectedLead.message}</p>
+                              <div className="sm:col-span-2 pt-2 border-t border-border/50">
+                                <p className="text-xs text-muted-foreground mb-1">Customer Message</p>
+                                <p className="text-sm text-foreground/80">{selectedLead.message}</p>
                               </div>
                             )}
                           </div>
@@ -969,45 +1048,33 @@ export default function VendorLeads() {
                       </AccordionItem>
 
                       {/* Customer Details Section */}
-                      <AccordionItem value="customer" className="border-border/50">
-                        <AccordionTrigger className="hover:no-underline">
+                      <AccordionItem value="customer" className="border border-border/50 rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline py-3">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-green-500/10">
-                              <User className="h-5 w-5 text-green-400" />
+                            <div className="p-1.5 rounded-md bg-green-500/10">
+                              <User className="h-4 w-4 text-green-500" />
                             </div>
-                            <div className="text-left">
-                              <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
-                              <p className="text-xs text-foreground/60">Contact and customer information</p>
-                            </div>
+                            <span className="text-sm font-medium text-foreground">Customer Details</span>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="pt-4">
-                          <div className="space-y-4">
+                        <AccordionContent className="pb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                             {selectedLead.name && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <User className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Name</span>
-                                </div>
-                                <p className="text-foreground font-medium">{selectedLead.name}</p>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Name</p>
+                                <p className="text-sm font-medium text-foreground">{selectedLead.name}</p>
                               </div>
                             )}
                             {selectedLead.email && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <Mail className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Email</span>
-                                </div>
-                                <p className="text-foreground font-medium text-sm break-all">{selectedLead.email}</p>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Email</p>
+                                <p className="text-sm font-medium text-foreground break-all">{selectedLead.email}</p>
                               </div>
                             )}
                             {selectedLead.phone && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-foreground/60">
-                                  <Phone className="h-4 w-4" />
-                                  <span className="text-sm font-medium">Phone</span>
-                                </div>
-                                <p className="text-foreground font-medium">{selectedLead.phone}</p>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                                <p className="text-sm font-medium text-foreground">{selectedLead.phone}</p>
                               </div>
                             )}
                           </div>
@@ -1016,21 +1083,18 @@ export default function VendorLeads() {
 
                       {/* Listing Details Section (for DIRECT_ORDER) */}
                       {selectedLead.source === 'DIRECT_ORDER' && selectedLead.listing && (
-                        <AccordionItem value="listing" className="border-border/50">
-                          <AccordionTrigger className="hover:no-underline">
+                        <AccordionItem value="listing" className="border border-border/50 rounded-lg px-4">
+                          <AccordionTrigger className="hover:no-underline py-3">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-purple-500/10">
-                                <Package className="h-5 w-5 text-purple-400" />
+                              <div className="p-1.5 rounded-md bg-purple-500/10">
+                                <Package className="h-4 w-4 text-purple-500" />
                               </div>
-                              <div className="text-left">
-                                <h3 className="text-base font-semibold text-foreground">Listing Details</h3>
-                                <p className="text-xs text-foreground/60">Service or package information</p>
-                              </div>
+                              <span className="text-sm font-medium text-foreground">Listing Details</span>
                             </div>
                           </AccordionTrigger>
-                          <AccordionContent className="pt-4">
-                            <div className="flex items-start gap-4">
-                              <div className="w-24 h-24 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
+                          <AccordionContent className="pb-4">
+                            <div className="flex items-start gap-3 pt-2">
+                              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
                                 {selectedLead.listing.images && selectedLead.listing.images.length > 0 ? (
                                   <img 
                                     src={selectedLead.listing.images[0]} 
@@ -1039,21 +1103,15 @@ export default function VendorLeads() {
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <Package className="h-8 w-8 text-foreground/40" />
+                                    <Package className="h-6 w-6 text-muted-foreground" />
                                   </div>
                                 )}
                               </div>
-                              <div className="flex-1 space-y-3">
-                                <div>
-                                  <h4 className="text-lg font-semibold text-foreground mb-1">{selectedLead.listing.name}</h4>
-                                  <div className="flex items-center gap-3 text-sm">
-                                    <span className="text-foreground/60">Original Price:</span>
-                                    <span className="font-semibold text-foreground">
-                                      <IndianRupee className="inline h-3.5 w-3.5" />
-                                      {selectedLead.listing.price?.toLocaleString() || selectedLead.order?.totalAmount?.toLocaleString()}
-                                    </span>
-                                  </div>
-                                </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-semibold text-foreground mb-1 truncate">{selectedLead.listing.name}</h4>
+                                <p className="text-lg font-bold text-foreground">
+                                  ₹{(selectedLead.listing.price || selectedLead.order?.totalAmount || 0).toLocaleString('en-IN')}
+                                </p>
                               </div>
                             </div>
                           </AccordionContent>
@@ -1136,9 +1194,9 @@ export default function VendorLeads() {
                               </div>
 
                               {/* Payment Breakdown */}
-                              <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-4 border border-green-500/20">
+                              <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-3 sm:p-4 border border-green-500/20">
                                 <h4 className="text-sm font-semibold text-foreground mb-3">Payment Status</h4>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <div className="bg-green-500/20 rounded-lg p-3 text-center">
                                     <div className="flex items-center justify-center gap-1 mb-1">
                                       <CheckCircle className="h-4 w-4 text-green-400" />
@@ -1173,7 +1231,7 @@ export default function VendorLeads() {
                               </div>
 
                               {/* Earnings */}
-                              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-blue-500/20">
+                              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 sm:p-4 border border-blue-500/20">
                                 <h4 className="text-sm font-semibold text-foreground mb-3">Your Earnings</h4>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex justify-between">
@@ -1495,7 +1553,7 @@ export default function VendorLeads() {
 
                     {/* Action Buttons for DIRECT_ORDER */}
                     {selectedLead.source === 'DIRECT_ORDER' && selectedLead.status === 'NEW' && (
-                      <div className="flex gap-3 pt-4 border-t">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t">
                         <Button
                           onClick={handleAcceptLead}
                           disabled={processingLead}
@@ -1512,7 +1570,7 @@ export default function VendorLeads() {
                           variant="outline"
                           onClick={handleRejectLead}
                           disabled={processingLead}
-                          className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                          className="flex-1 sm:flex-none border-red-500/50 text-red-400 hover:bg-red-500/10"
                         >
                           {processingLead ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1525,10 +1583,10 @@ export default function VendorLeads() {
                     )}
 
                     {/* Actions */}
-                    <div className="flex flex-wrap gap-3 pt-2 border-t">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t">
                       <Button 
                         onClick={() => navigate('/vendor/chat')}
-                        className="bg-primary hover:bg-primary/90"
+                        className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
                       >
                         <MessageSquare className="mr-2 h-4 w-4" /> Reply in Chat
                       </Button>
@@ -1536,10 +1594,13 @@ export default function VendorLeads() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="border-border shadow-card h-full flex items-center justify-center min-h-[400px]">
-                  <div className="text-center py-12">
-                    <MessageSquare className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
-                    <p className="text-foreground/40">Select a lead to view details</p>
+                <Card className="border-border shadow-card h-full flex items-center justify-center min-h-[200px] lg:min-h-[400px]">
+                  <div className="text-center py-8 sm:py-12 px-4">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                      <MessageSquare className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-medium text-foreground mb-1">No lead selected</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Select a lead from the list to view details</p>
                   </div>
                 </Card>
               )}
@@ -1547,18 +1608,330 @@ export default function VendorLeads() {
           </div>
         )}
 
+        {/* Mobile Lead Detail Modal */}
+        <Dialog open={showMobileModal} onOpenChange={setShowMobileModal}>
+          <DialogContent className="lg:hidden bg-card border-border max-w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0">
+            {selectedLead && (
+              <>
+                {/* Modal Header */}
+                <DialogHeader className="p-4 border-b sticky top-0 bg-card z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                        <span className="text-primary font-bold">{selectedLead.name?.[0]?.toUpperCase() || '?'}</span>
+                      </div>
+                      <div>
+                        <DialogTitle className="text-base font-semibold text-foreground">{selectedLead.name}</DialogTitle>
+                        <p className="text-xs text-muted-foreground">{selectedLead.eventType || 'Event Inquiry'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${getCurrentLifecycleStatus(selectedLead, offers).color} text-xs`}>
+                        {getCurrentLifecycleStatus(selectedLead, offers).label.split(' ')[0]}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowMobileModal(false)}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* Modal Content */}
+                <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+                  {/* Quick Info Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedLead.eventDate && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Event Date</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{formatDate(selectedLead.eventDate)}</p>
+                      </div>
+                    )}
+                    {selectedLead.guestCount && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Users className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Guests</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{selectedLead.guestCount}</p>
+                      </div>
+                    )}
+                    {selectedLead.budget && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <IndianRupee className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Budget</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{selectedLead.budget}</p>
+                      </div>
+                    )}
+                    {selectedLead.listing?.price && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Package className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Listing Price</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">₹{selectedLead.listing.price.toLocaleString('en-IN')}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion Sections */}
+                  <Accordion type="multiple" defaultValue={['event']} className="w-full space-y-2">
+                    {/* Event Details */}
+                    <AccordionItem value="event" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-blue-500/10">
+                            <Calendar className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Event Details</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                          {selectedLead.eventDate && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Event Date</p>
+                              <p className="text-sm font-medium text-foreground">{formatDate(selectedLead.eventDate)}</p>
+                            </div>
+                          )}
+                          {selectedLead.eventType && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Event Type</p>
+                              <p className="text-sm font-medium text-foreground">{selectedLead.eventType}</p>
+                            </div>
+                          )}
+                          {selectedLead.venueAddress && (
+                            <div className="col-span-2">
+                              <p className="text-xs text-muted-foreground mb-1">Venue</p>
+                              <p className="text-sm font-medium text-foreground">{selectedLead.venueAddress}</p>
+                            </div>
+                          )}
+                          {selectedLead.message && (
+                            <div className="col-span-2 pt-2 border-t border-border/50">
+                              <p className="text-xs text-muted-foreground mb-1">Message</p>
+                              <p className="text-sm text-foreground/80">{selectedLead.message}</p>
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Customer Details */}
+                    <AccordionItem value="customer" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-green-500/10">
+                            <User className="h-4 w-4 text-green-500" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Customer Details</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="grid grid-cols-1 gap-3 pt-2">
+                          {selectedLead.name && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Name</p>
+                              <p className="text-sm font-medium text-foreground">{selectedLead.name}</p>
+                            </div>
+                          )}
+                          {selectedLead.email && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Email</p>
+                              <p className="text-sm font-medium text-foreground break-all">{selectedLead.email}</p>
+                            </div>
+                          )}
+                          {selectedLead.phone && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                              <p className="text-sm font-medium text-foreground">{selectedLead.phone}</p>
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Offers Section (for non-DIRECT_ORDER leads) */}
+                    {selectedLead.source !== 'DIRECT_ORDER' && offers.length > 0 && (
+                      <AccordionItem value="offers" className="border border-border/50 rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 rounded-md bg-yellow-500/10">
+                              <HandCoins className="h-4 w-4 text-yellow-500" />
+                            </div>
+                            <span className="text-sm font-medium text-foreground">Offers ({offers.length})</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <div className="space-y-3 pt-2">
+                            {offers.map((offer) => (
+                              <div key={offer.id} className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium text-foreground truncate">{offer.listingName}</span>
+                                  <Badge className={getOfferStatusColor(offer.status)} variant="outline">
+                                    {offer.status}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Original</span>
+                                    <span>₹{offer.originalPrice.toLocaleString('en-IN')}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-yellow-500">Offered</span>
+                                    <span className="text-yellow-500">₹{offer.offeredPrice.toLocaleString('en-IN')}</span>
+                                  </div>
+                                  {offer.counterPrice && offer.counterPrice !== offer.offeredPrice && (
+                                    <div className="flex justify-between">
+                                      <span className="text-blue-500">Counter</span>
+                                      <span className="text-blue-500">₹{offer.counterPrice.toLocaleString('en-IN')}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {offer.status === 'PENDING' && (
+                                  <div className="flex gap-2 mt-3 pt-2 border-t border-border/50">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleAcceptOffer(offer.id)}
+                                      disabled={processingOffer === offer.id}
+                                      className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700"
+                                    >
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openCounterModal(offer.id, offer)}
+                                      disabled={processingOffer === offer.id}
+                                      className="flex-1 h-8 text-xs"
+                                    >
+                                      Counter
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleRejectOffer(offer.id)}
+                                      disabled={processingOffer === offer.id}
+                                      className="h-8 text-xs border-red-500/50 text-red-400 hover:bg-red-500/10"
+                                    >
+                                      <XCircle className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    )}
+
+                    {/* Lead Lifecycle */}
+                    <AccordionItem value="lifecycle" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-primary/10">
+                            <History className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Lead Lifecycle</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="relative pt-2">
+                          {buildLeadLifecycle(selectedLead, offers).map((item, index) => {
+                            const timeline = buildLeadLifecycle(selectedLead, offers);
+                            const Icon = item.icon;
+                            const isLast = index === timeline.length - 1;
+                            const isCompleted = item.status === 'completed';
+                            const isPending = item.status === 'pending';
+                            
+                            return (
+                              <div key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
+                                {!isLast && (
+                                  <div className="absolute left-4 top-8 w-0.5 h-full bg-border" />
+                                )}
+                                <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                                  isCompleted 
+                                    ? 'bg-green-500/20 border-2 border-green-500' 
+                                    : isPending
+                                    ? 'bg-gray-500/20 border-2 border-gray-500'
+                                    : 'bg-yellow-500/20 border-2 border-yellow-500'
+                                }`}>
+                                  <Icon className={`h-4 w-4 ${
+                                    isCompleted ? 'text-green-400' : isPending ? 'text-gray-400' : 'text-yellow-400'
+                                  }`} />
+                                </div>
+                                <div className="flex-1 min-w-0 pt-0.5">
+                                  <h4 className={`text-xs font-semibold ${isCompleted ? 'text-foreground' : 'text-foreground/70'}`}>
+                                    {item.label}
+                                  </h4>
+                                  {item.description && (
+                                    <p className="text-xs text-foreground/60 mt-0.5 line-clamp-2">{item.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 border-t bg-card sticky bottom-0 space-y-2">
+                  {/* Action Buttons for DIRECT_ORDER */}
+                  {selectedLead.source === 'DIRECT_ORDER' && selectedLead.status === 'NEW' && (
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        onClick={handleAcceptLead}
+                        disabled={processingLead}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                      >
+                        {processingLead ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                        Accept
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleRejectLead}
+                        disabled={processingLead}
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  <Button 
+                    onClick={() => navigate('/vendor/chat')}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" /> Reply in Chat
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Counter Offer Modal */}
         <Dialog open={showCounterModal} onOpenChange={setShowCounterModal}>
-          <DialogContent className="bg-card border-border max-w-md">
+          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-md mx-auto">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Make Counter Offer</DialogTitle>
+              <DialogTitle className="text-foreground text-base sm:text-lg">Make Counter Offer</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               {selectedOfferId && (() => {
                 const offer = offers.find(o => o.id === selectedOfferId);
                 if (!offer) return null;
                 return (
-                  <div className="p-3 bg-muted/50 rounded-lg space-y-1 text-sm">
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-1 text-xs sm:text-sm">
                     <p className="text-foreground/60">Original Price: ₹{offer.originalPrice.toLocaleString()}</p>
                     <p className="text-foreground/60">Customer Offered: ₹{offer.offeredPrice.toLocaleString()}</p>
                   </div>
@@ -1566,7 +1939,7 @@ export default function VendorLeads() {
               })()}
               
               <div className="space-y-2">
-                <Label className="text-foreground">Counter Price (₹) *</Label>
+                <Label className="text-foreground text-sm">Counter Price (₹) *</Label>
                 <Input 
                   type="number"
                   value={counterPrice}
@@ -1579,26 +1952,26 @@ export default function VendorLeads() {
                   if (!offer) return null;
                   const price = parseFloat(counterPrice);
                   if (price && price <= offer.offeredPrice) {
-                    return <p className="text-sm text-red-400">Must be greater than ₹{offer.offeredPrice.toLocaleString()}</p>;
+                    return <p className="text-xs sm:text-sm text-red-400">Must be greater than ₹{offer.offeredPrice.toLocaleString()}</p>;
                   }
                   if (price && price >= offer.originalPrice) {
-                    return <p className="text-sm text-red-400">Must be less than ₹{offer.originalPrice.toLocaleString()}</p>;
+                    return <p className="text-xs sm:text-sm text-red-400">Must be less than ₹{offer.originalPrice.toLocaleString()}</p>;
                   }
                   return null;
                 })()}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-foreground">Message (Optional)</Label>
+                <Label className="text-foreground text-sm">Message (Optional)</Label>
                 <Textarea 
                   value={counterMessage}
                   onChange={(e) => setCounterMessage(e.target.value)}
                   placeholder="Add a message to your counter offer..."
-                  className="bg-muted/50 border-border text-foreground min-h-[100px]"
+                  className="bg-muted/50 border-border text-foreground min-h-[80px] sm:min-h-[100px]"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
                 <Button 
                   variant="outline" 
                   onClick={() => {
@@ -1607,14 +1980,14 @@ export default function VendorLeads() {
                     setCounterMessage('');
                     setSelectedOfferId(null);
                   }}
-                  className="flex-1 border-border text-foreground hover:bg-muted"
+                  className="flex-1 border-border text-foreground hover:bg-muted order-2 sm:order-1"
                 >
                   Cancel
                 </Button>
                 <Button 
                   onClick={handleCounterOffer} 
                   disabled={processingOffer !== null || !counterPrice}
-                  className="flex-1"
+                  className="flex-1 order-1 sm:order-2"
                 >
                   {processingOffer ? (
                     <>

@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -35,11 +35,20 @@ public class TokenPaymentController {
     @PostMapping("/orders/{orderId}")
     public ResponseEntity<?> initiateTokenPayment(
             @PathVariable UUID orderId,
-            @Valid @RequestBody TokenPaymentRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @Valid @RequestBody TokenPaymentRequest request) {
         
         try {
-            UUID userId = UUID.fromString(userDetails.getUsername());
+            // Get user ID from security context (set by JwtAuthenticationFilter)
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || authentication.getPrincipal() == null) {
+                logger.error("User not authenticated for token payment request");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Authentication required",
+                    "code", "UNAUTHORIZED"
+                ));
+            }
+            
+            UUID userId = UUID.fromString(authentication.getPrincipal().toString());
             logger.info("Initiating token payment for order: {} by user: {}", orderId, userId);
             
             PaymentInitiationResponse response = tokenPaymentService.processTokenPayment(orderId, userId, request);
@@ -158,11 +167,20 @@ public class TokenPaymentController {
     @PostMapping("/offers/{offerId}")
     public ResponseEntity<?> initiateTokenPaymentForOffer(
             @PathVariable UUID offerId,
-            @Valid @RequestBody TokenPaymentRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @Valid @RequestBody TokenPaymentRequest request) {
         
         try {
-            UUID userId = UUID.fromString(userDetails.getUsername());
+            // Get user ID from security context (set by JwtAuthenticationFilter)
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || authentication.getPrincipal() == null) {
+                logger.error("User not authenticated for token payment request");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Authentication required",
+                    "code", "UNAUTHORIZED"
+                ));
+            }
+            
+            UUID userId = UUID.fromString(authentication.getPrincipal().toString());
             logger.info("Initiating token payment for offer: {} by user: {}", offerId, userId);
             
             PaymentInitiationResponse response = tokenPaymentService.processTokenPaymentForOffer(offerId, userId, request);
@@ -182,6 +200,54 @@ public class TokenPaymentController {
             ));
         } catch (Exception e) {
             logger.error("Unexpected error processing token payment for offer {}: {}", offerId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "An unexpected error occurred",
+                "code", "INTERNAL_ERROR"
+            ));
+        }
+    }
+    
+    /**
+     * Mock complete payment for testing purposes
+     * This simulates a successful payment webhook callback
+     */
+    @PostMapping("/mock-complete/{orderId}")
+    public ResponseEntity<?> mockCompletePayment(@PathVariable UUID orderId) {
+        try {
+            logger.info("Mock completing payment for order: {}", orderId);
+            
+            // Get user ID from security context for validation
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || authentication.getPrincipal() == null) {
+                logger.error("User not authenticated for mock payment completion");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Authentication required",
+                    "code", "UNAUTHORIZED"
+                ));
+            }
+            
+            tokenPaymentService.mockCompletePayment(orderId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Payment completed successfully (mock)",
+                "orderId", orderId
+            ));
+            
+        } catch (ResourceNotFoundException e) {
+            logger.error("Order or payment not found: {}", orderId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "error", e.getMessage(),
+                "code", "NOT_FOUND"
+            ));
+        } catch (PaymentException e) {
+            logger.error("Payment error for mock completion: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", e.getMessage(),
+                "code", "PAYMENT_ERROR"
+            ));
+        } catch (Exception e) {
+            logger.error("Unexpected error in mock payment completion: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                 "error", "An unexpected error occurred",
                 "code", "INTERNAL_ERROR"

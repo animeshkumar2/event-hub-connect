@@ -54,24 +54,58 @@ export const TokenPaymentModal: React.FC<TokenPaymentModalProps> = ({
     setPaymentState({ status: 'processing', message: 'Processing payment...' });
 
     try {
-      // Always call backend API to process the token payment
-      // This updates the order status and lead status
+      // Step 1: Initiate the token payment (creates pending payment record)
       const response = await customerApi.initiateTokenPayment(orderId, {
         paymentMethod: selectedMethod,
         paymentGateway: TEST_MODE ? 'mock' : 'razorpay',
       });
 
       if (response.success && response.data) {
-        // Payment processed successfully
-        setPaymentState({
-          status: 'success',
-          message: TEST_MODE ? 'Payment successful! (Test Mode)' : 'Payment successful!',
-          paymentId: response.data.paymentId || 'test-payment-' + Date.now(),
-        });
-        
-        setTimeout(() => {
-          onPaymentSuccess(response.data.paymentId || 'test-payment-' + Date.now());
-        }, 1500);
+        // Step 2: In TEST_MODE, call mock-complete to simulate successful payment
+        if (TEST_MODE) {
+          setPaymentState({ status: 'processing', message: 'Completing payment...' });
+          
+          try {
+            // Call the mock-complete endpoint to update order/lead status
+            const completeResponse = await customerApi.mockCompletePayment(orderId);
+            
+            if (completeResponse.success) {
+              setPaymentState({
+                status: 'success',
+                message: 'Payment successful! (Test Mode)',
+                paymentId: response.data.paymentId || 'test-payment-' + Date.now(),
+              });
+              
+              setTimeout(() => {
+                onPaymentSuccess(response.data.paymentId || 'test-payment-' + Date.now());
+              }, 1500);
+            } else {
+              throw new Error(completeResponse.message || 'Failed to complete payment');
+            }
+          } catch (completeError: any) {
+            console.error('Mock complete error:', completeError);
+            setPaymentState({
+              status: 'failed',
+              message: completeError.message || 'Failed to complete payment.',
+            });
+            onPaymentFailure?.(completeError.message || 'Failed to complete payment');
+          }
+        } else {
+          // In production, redirect to payment gateway
+          if (response.data.paymentUrl) {
+            window.location.href = response.data.paymentUrl;
+          } else {
+            setPaymentState({
+              status: 'success',
+              message: 'Payment successful!',
+              paymentId: response.data.paymentId,
+            });
+            
+            setTimeout(() => {
+              onPaymentSuccess(response.data.paymentId);
+            }, 1500);
+          }
+        }
       } else {
         setPaymentState({
           status: 'failed',

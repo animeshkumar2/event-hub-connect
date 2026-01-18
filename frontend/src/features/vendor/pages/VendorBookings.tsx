@@ -109,6 +109,7 @@ export default function VendorBookings() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showMobileModal, setShowMobileModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -124,10 +125,14 @@ export default function VendorBookings() {
   // Fetch timeline for selected booking
   const { data: timelineData } = useBookingTimeline(selectedBooking?.id || null);
 
-  // Clear selected booking when switching tabs
+  // Auto-select first booking when data loads or tab changes
   useEffect(() => {
-    setSelectedBooking(null);
-  }, [activeTab]);
+    if (filteredBookings.length > 0) {
+      setSelectedBooking(filteredBookings[0]);
+    } else {
+      setSelectedBooking(null);
+    }
+  }, [activeTab, allBookingsData, upcomingBookingsData, pastBookingsData]);
 
   // Get bookings based on active tab and map them
   const bookings = useMemo(() => {
@@ -353,9 +358,15 @@ export default function VendorBookings() {
       date?: string;
       status: 'completed' | 'pending' | 'in_progress';
       icon: any;
+      sortOrder: number; // For proper ordering
     }> = [];
 
-    // 1. Order Created
+    const tokenIsPaid = booking.tokenPaid && booking.tokenPaid > 0;
+    const isConfirmed = booking.status?.toUpperCase() === 'CONFIRMED' || 
+                       booking.status?.toUpperCase() === 'IN_PROGRESS' || 
+                       booking.status?.toUpperCase() === 'COMPLETED';
+
+    // 1. Order Created (first event)
     if (booking.createdAt) {
       timelineItems.push({
         id: 'order-created',
@@ -363,35 +374,38 @@ export default function VendorBookings() {
         description: `Order #${booking.orderNumber} was created`,
         date: booking.createdAt,
         status: 'completed',
-        icon: FileText
+        icon: FileText,
+        sortOrder: 1
       });
     }
 
-    // 2. Order Accepted by Vendor (when status changed to CONFIRMED)
-    if (booking.status?.toUpperCase() === 'CONFIRMED' || booking.status?.toUpperCase() === 'IN_PROGRESS' || booking.status?.toUpperCase() === 'COMPLETED') {
-      timelineItems.push({
-        id: 'order-accepted',
-        label: 'Order Accepted',
-        description: 'Vendor accepted the booking',
-        date: booking.updatedAt || booking.createdAt,
-        status: 'completed',
-        icon: CheckCircle2
-      });
-    }
-
-    // 3. Token Payment Received
-    if (booking.tokenPaid && booking.tokenPaid > 0) {
+    // 2. Token Payment Received (after order creation)
+    if (tokenIsPaid) {
       timelineItems.push({
         id: 'token-paid',
         label: 'Token Payment Received',
-        description: `₹${booking.tokenPaid.toLocaleString('en-IN')} received (25% of total)`,
-        date: booking.updatedAt,
+        description: `₹${booking.tokenPaid?.toLocaleString('en-IN')} received (25% of total)`,
+        date: booking.updatedAt || booking.createdAt,
         status: 'completed',
-        icon: CreditCard
+        icon: CreditCard,
+        sortOrder: 2
       });
     }
 
-    // 4. Event Date
+    // 3. Booking Confirmed (after payment)
+    if (isConfirmed) {
+      timelineItems.push({
+        id: 'booking-confirmed',
+        label: 'Booking Confirmed',
+        description: 'Booking is confirmed and scheduled',
+        date: booking.updatedAt || booking.createdAt,
+        status: 'completed',
+        icon: CheckCircle2,
+        sortOrder: 3
+      });
+    }
+
+    // 4. Event Scheduled (future date)
     if (booking.eventDate) {
       const isEventPast = new Date(booking.eventDate) < new Date();
       timelineItems.push({
@@ -400,38 +414,31 @@ export default function VendorBookings() {
         description: `Event date: ${formatDate(booking.eventDate)}${booking.eventTime ? ` at ${booking.eventTime}` : ''}`,
         date: booking.eventDate,
         status: isEventPast ? 'completed' : 'pending',
-        icon: Calendar
+        icon: Calendar,
+        sortOrder: isEventPast ? 5 : 4
       });
     }
 
-    // 5. Order Completed
+    // 5. Order Completed (final status)
     if (booking.status?.toUpperCase() === 'COMPLETED') {
       timelineItems.push({
         id: 'order-completed',
         label: 'Order Completed',
-        description: 'Event completed and order marked as done',
+        description: 'Event completed successfully',
         date: booking.updatedAt,
         status: 'completed',
-        icon: CheckCircle
+        icon: CheckCircle,
+        sortOrder: 6
       });
     }
 
-    // 6. Add timeline entries from database
-    if (timeline && Array.isArray(timeline)) {
-      timeline.forEach((item: any) => {
-        timelineItems.push({
-          id: item.id || `timeline-${timelineItems.length}`,
-          label: item.stage || 'Timeline Event',
-          description: item.notes || '',
-          date: item.completedAt || item.createdAt,
-          status: item.status === 'COMPLETED' ? 'completed' : (item.status === 'PENDING' ? 'pending' : 'in_progress'),
-          icon: item.status === 'COMPLETED' ? CheckCircle2 : Clock
-        });
-      });
-    }
-
-    // Sort by date
+    // Sort by sortOrder first, then by date for same sortOrder
     return timelineItems.sort((a, b) => {
+      // Primary sort by sortOrder
+      if (a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      // Secondary sort by date
       if (!a.date) return 1;
       if (!b.date) return -1;
       return new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -441,7 +448,7 @@ export default function VendorBookings() {
   if (loading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </VendorLayout>
@@ -450,326 +457,387 @@ export default function VendorBookings() {
 
   return (
     <VendorLayout>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Bookings</h1>
-            <p className="text-foreground/60">
-              {activeTab === 'all' && `${filteredBookings.length} total bookings`}
-              {activeTab === 'upcoming' && `${filteredBookings.length} upcoming bookings`}
-              {activeTab === 'past' && `${filteredBookings.length} past bookings`}
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Bookings</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your confirmed bookings
             </p>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/40" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search bookings..."
-              className="pl-10 bg-background border-border text-foreground w-full md:w-64"
+              className="pl-10 bg-background border-border text-foreground w-full sm:w-56 h-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-muted/50 border border-border">
-            <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              All Bookings ({allBookingsData?.content?.length || allBookingsData?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="upcoming" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Upcoming ({upcomingBookingsData?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="past" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Past ({pastBookingsData?.length || 0})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <Card 
+            className={`border cursor-pointer transition-all ${activeTab === 'all' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/50'}`}
+            onClick={() => setActiveTab('all')}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">All</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{allBookingsData?.content?.length || allBookingsData?.length || 0}</p>
+                </div>
+                <div className={`p-2 sm:p-3 rounded-full hidden sm:flex ${activeTab === 'all' ? 'bg-primary/20' : 'bg-muted/50'}`}>
+                  <FileText className={`h-4 w-4 sm:h-5 sm:w-5 ${activeTab === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card 
+            className={`border cursor-pointer transition-all ${activeTab === 'upcoming' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/50'}`}
+            onClick={() => setActiveTab('upcoming')}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">Upcoming</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{upcomingBookingsData?.length || 0}</p>
+                </div>
+                <div className={`p-2 sm:p-3 rounded-full hidden sm:flex ${activeTab === 'upcoming' ? 'bg-primary/20' : 'bg-blue-500/10'}`}>
+                  <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${activeTab === 'upcoming' ? 'text-primary' : 'text-blue-500'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card 
+            className={`border cursor-pointer transition-all ${activeTab === 'past' ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/50'}`}
+            onClick={() => setActiveTab('past')}
+          >
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">Past</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{pastBookingsData?.length || 0}</p>
+                </div>
+                <div className={`p-2 sm:p-3 rounded-full hidden sm:flex ${activeTab === 'past' ? 'bg-primary/20' : 'bg-green-500/10'}`}>
+                  <CheckCircle className={`h-4 w-4 sm:h-5 sm:w-5 ${activeTab === 'past' ? 'text-primary' : 'text-green-500'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Bookings List */}
-          <div className="lg:col-span-1 space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-            {filteredBookings.length === 0 ? (
+        {/* Main Content */}
+        {filteredBookings.length === 0 ? (
+          <Card className="border-border">
+            <CardContent className="p-8 sm:p-16 text-center">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">No bookings found</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                {activeTab === 'upcoming' 
+                  ? "You don't have any upcoming bookings. New confirmed bookings will appear here."
+                  : activeTab === 'past'
+                  ? "No past bookings yet. Completed bookings will appear here."
+                  : "No bookings found. Bookings will appear here once customers confirm their orders."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+            {/* Bookings List - Full width on mobile, left panel on desktop */}
+            <div className="lg:col-span-4 xl:col-span-4">
               <Card className="border-border">
-                <CardContent className="p-8 text-center">
-                  <FileText className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
-                  <p className="text-foreground/60">No bookings found</p>
-                </CardContent>
-              </Card>
-            ) : (
-              filteredBookings.map((booking: Booking) => (
-                <Card
-                  key={booking.id}
-                  onClick={() => setSelectedBooking(booking)}
-                  className={`border-border shadow-card cursor-pointer transition-all hover:shadow-elegant ${
-                    selectedBooking?.id === booking.id ? 'border-primary ring-2 ring-primary/20' : ''
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-foreground font-medium">{booking.customerName || 'Customer'}</p>
-                        <p className="text-sm text-foreground/60">{booking.eventType || 'Event'}</p>
-                      </div>
-                      <Badge className={getStatusColor(booking.status)}>
-                        {getBookingStatusDisplay(booking.status)}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2 text-sm text-foreground/60">
-                      {booking.eventDate && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(booking.eventDate)}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <IndianRupee className="h-4 w-4" />
-                        ₹{Number(booking.totalAmount || 0).toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                    <p className="text-xs text-foreground/40 mt-3">#{booking.orderNumber}</p>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Booking Details */}
-          <div className="lg:col-span-2">
-            {selectedBooking ? (
-              <Card className="border-border shadow-card">
-                <CardHeader className="flex flex-row items-start justify-between border-b pb-4">
-                  <div>
-                    <CardTitle className="text-foreground text-xl">
-                      {selectedBooking.customerName || 'Customer'}
-                    </CardTitle>
-                    <p className="text-foreground/60 mt-1">#{selectedBooking.orderNumber}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(selectedBooking.status)}>
-                      {getBookingStatusDisplay(selectedBooking.status)}
+                <CardHeader className="p-3 sm:p-4 border-b">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      {activeTab === 'all' ? 'All Bookings' : activeTab === 'upcoming' ? 'Upcoming' : 'Past Bookings'}
+                    </h2>
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredBookings.length}
                     </Badge>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(null)} className="text-foreground/60">
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
                 </CardHeader>
-                
-                <CardContent className="space-y-6 pt-6">
-                  {/* Collapsible Sections */}
-                  <Accordion type="multiple" defaultValue={[]} className="w-full">
-                    {/* Event Details Section */}
-                    <AccordionItem value="event" className="border-border/50">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-blue-500/10">
-                            <Calendar className="h-5 w-5 text-blue-400" />
+                <div className="max-h-[60vh] lg:max-h-[calc(100vh-420px)] overflow-y-auto">
+                  {filteredBookings.map((booking: Booking) => (
+                    <div
+                      key={booking.id}
+                      onClick={() => {
+                        setSelectedBooking(booking);
+                        // Open mobile modal on small screens
+                        if (window.innerWidth < 1024) {
+                          setShowMobileModal(true);
+                        }
+                      }}
+                      className={`p-3 sm:p-4 cursor-pointer transition-all border-b border-border/50 last:border-b-0 hover:bg-muted/50 ${
+                        selectedBooking?.id === booking.id ? 'bg-primary/5 border-l-2 border-l-primary' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-primary font-semibold text-sm">{(booking.customerName || 'C')[0].toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className="text-sm font-medium text-foreground truncate">{booking.customerName || 'Customer'}</p>
+                            <Badge className={`${getStatusColor(booking.status)} text-[10px] px-1.5 py-0.5 flex-shrink-0`}>
+                              {getBookingStatusDisplay(booking.status).split(' ')[0]}
+                            </Badge>
                           </div>
-                          <div className="text-left">
-                            <h3 className="text-base font-semibold text-foreground">Event Details</h3>
-                            <p className="text-xs text-foreground/60">Date, venue, and event information</p>
+                          <p className="text-xs text-muted-foreground truncate mb-2">{booking.eventType || 'Event'}</p>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {booking.eventDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(booking.eventDate)}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 text-foreground/70">
+                              <IndianRupee className="h-3 w-3" />
+                              {Number(booking.totalAmount || 0).toLocaleString('en-IN')}
+                            </span>
                           </div>
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {selectedBooking.eventDate && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <Calendar className="h-4 w-4" />
-                                <span className="text-sm font-medium">Event Date</span>
-                              </div>
-                              <p className="text-foreground font-medium">{formatDate(selectedBooking.eventDate)}</p>
-                              {selectedBooking.eventTime && (
-                                <p className="text-sm text-foreground/60">{selectedBooking.eventTime}</p>
-                              )}
-                            </div>
-                          )}
-                          {selectedBooking.venueAddress && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <MapPin className="h-4 w-4" />
-                                <span className="text-sm font-medium">Venue Address</span>
-                              </div>
-                              <p className="text-foreground font-medium">{selectedBooking.venueAddress}</p>
-                            </div>
-                          )}
-                          {selectedBooking.eventType && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <Sparkles className="h-4 w-4" />
-                                <span className="text-sm font-medium">Event Type</span>
-                              </div>
-                              <p className="text-foreground font-medium">{selectedBooking.eventType}</p>
-                            </div>
-                          )}
-                          {selectedBooking.guestCount && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <User className="h-4 w-4" />
-                                <span className="text-sm font-medium">Guest Count</span>
-                              </div>
-                              <p className="text-foreground font-medium">{selectedBooking.guestCount} people</p>
-                            </div>
-                          )}
-                          {selectedBooking.notes && (
-                            <div className="space-y-2 md:col-span-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <FileText className="h-4 w-4" />
-                                <span className="text-sm font-medium">Notes</span>
-                              </div>
-                              <p className="text-foreground/80 text-sm">{selectedBooking.notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
 
-                    {/* Listing Details Section */}
-                    {selectedBooking.listingName && (
-                      <AccordionItem value="listing" className="border-border/50">
-                        <AccordionTrigger className="hover:no-underline">
+            {/* Booking Details - Right Panel (Desktop Only) */}
+            <div className="hidden lg:block lg:col-span-8 xl:col-span-8">
+              {selectedBooking ? (
+                <Card className="border-border">
+                  {/* Detail Header */}
+                  <CardHeader className="p-4 sm:p-5 border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                          <span className="text-primary font-bold text-lg">{(selectedBooking.customerName || 'C')[0].toUpperCase()}</span>
+                        </div>
+                        <div>
+                          <h2 className="text-base sm:text-lg font-semibold text-foreground">{selectedBooking.customerName || 'Customer'}</h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground">#{selectedBooking.orderNumber}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={`${getStatusColor(selectedBooking.status)} text-xs`}>
+                          {getBookingStatusDisplay(selectedBooking.status)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="p-4 sm:p-5 space-y-4 sm:space-y-5 max-h-[calc(100vh-420px)] overflow-y-auto">
+                    {/* Quick Info Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {selectedBooking.eventDate && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Event Date</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">{formatDate(selectedBooking.eventDate)}</p>
+                        </div>
+                      )}
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <IndianRupee className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Total</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</p>
+                      </div>
+                      {selectedBooking.tokenPaid && (
+                        <div className="bg-green-500/10 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-green-600 mb-1">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Token Paid</span>
+                          </div>
+                          <p className="text-sm font-semibold text-green-600">₹{Number(selectedBooking.tokenPaid).toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
+                      {selectedBooking.guestCount && (
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <User className="h-3.5 w-3.5" />
+                            <span className="text-xs font-medium">Guests</span>
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">{selectedBooking.guestCount}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Collapsible Sections */}
+                    <Accordion type="multiple" defaultValue={['event']} className="w-full space-y-2">
+                      {/* Event Details Section */}
+                      <AccordionItem value="event" className="border border-border/50 rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline py-3">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-purple-500/10">
-                              <Package className="h-5 w-5 text-purple-400" />
+                            <div className="p-1.5 rounded-md bg-blue-500/10">
+                              <Calendar className="h-4 w-4 text-blue-500" />
                             </div>
-                            <div className="text-left">
-                              <h3 className="text-base font-semibold text-foreground">Listing Details</h3>
-                              <p className="text-xs text-foreground/60">Service or package information</p>
-                            </div>
+                            <span className="text-sm font-medium text-foreground">Event Details</span>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="pt-4">
-                          <div className="flex items-start gap-4">
-                            {selectedBooking.listingImage && (
-                              <div className="w-24 h-24 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
-                                <img 
-                                  src={selectedBooking.listingImage} 
-                                  alt={selectedBooking.listingName}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 space-y-3">
+                        <AccordionContent className="pb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            {selectedBooking.eventDate && (
                               <div>
-                                <h4 className="text-lg font-semibold text-foreground mb-1">{selectedBooking.listingName}</h4>
-                                {selectedBooking.listingId && (
-                                  <p className="text-xs text-foreground/50 font-mono">ID: {selectedBooking.listingId}</p>
+                                <p className="text-xs text-muted-foreground mb-1">Event Date</p>
+                                <p className="text-sm font-medium text-foreground">{formatDate(selectedBooking.eventDate)}</p>
+                                {selectedBooking.eventTime && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{selectedBooking.eventTime}</p>
                                 )}
                               </div>
-                            </div>
+                            )}
+                            {selectedBooking.eventType && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Event Type</p>
+                                <p className="text-sm font-medium text-foreground">{selectedBooking.eventType}</p>
+                              </div>
+                            )}
+                            {selectedBooking.venueAddress && (
+                              <div className="sm:col-span-2">
+                                <p className="text-xs text-muted-foreground mb-1">Venue Address</p>
+                                <p className="text-sm font-medium text-foreground">{selectedBooking.venueAddress}</p>
+                              </div>
+                            )}
+                            {selectedBooking.notes && (
+                              <div className="sm:col-span-2 pt-2 border-t border-border/50">
+                                <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                                <p className="text-sm text-foreground/80">{selectedBooking.notes}</p>
+                              </div>
+                            )}
                           </div>
                         </AccordionContent>
                       </AccordionItem>
-                    )}
 
-                    {/* Customer Details Section */}
-                    <AccordionItem value="customer" className="border-border/50">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-green-500/10">
-                            <User className="h-5 w-5 text-green-400" />
-                          </div>
-                          <div className="text-left">
-                            <h3 className="text-base font-semibold text-foreground">Customer Details</h3>
-                            <p className="text-xs text-foreground/60">Contact and customer information</p>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-4">
-                        <div className="space-y-4">
-                          {selectedBooking.customerName && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <User className="h-4 w-4" />
-                                <span className="text-sm font-medium">Name</span>
+                      {/* Listing Details Section */}
+                      {selectedBooking.listingName && (
+                        <AccordionItem value="listing" className="border border-border/50 rounded-lg px-4">
+                          <AccordionTrigger className="hover:no-underline py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="p-1.5 rounded-md bg-purple-500/10">
+                                <Package className="h-4 w-4 text-purple-500" />
                               </div>
-                              <p className="text-foreground font-medium">{selectedBooking.customerName}</p>
+                              <span className="text-sm font-medium text-foreground">Listing Details</span>
                             </div>
-                          )}
-                          {selectedBooking.customerEmail && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <Mail className="h-4 w-4" />
-                                <span className="text-sm font-medium">Email</span>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-4">
+                            <div className="flex items-start gap-3 pt-2">
+                              {selectedBooking.listingImage && (
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-muted/50 border border-border/50 overflow-hidden flex-shrink-0">
+                                  <img 
+                                    src={selectedBooking.listingImage} 
+                                    alt={selectedBooking.listingName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-semibold text-foreground mb-1 truncate">{selectedBooking.listingName}</h4>
+                                {selectedBooking.listingId && (
+                                  <p className="text-xs text-muted-foreground font-mono">ID: {selectedBooking.listingId}</p>
+                                )}
                               </div>
-                              <p className="text-foreground font-medium text-sm break-all">{selectedBooking.customerEmail}</p>
                             </div>
-                          )}
-                          {selectedBooking.customerPhone && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-foreground/60">
-                                <Phone className="h-4 w-4" />
-                                <span className="text-sm font-medium">Phone</span>
-                              </div>
-                              <p className="text-foreground font-medium">{selectedBooking.customerPhone}</p>
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
 
-                    {/* Payment Details Section */}
-                    <AccordionItem value="payment" className="border-border/50">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-orange-500/10">
-                            <CreditCard className="h-5 w-5 text-orange-400" />
+                      {/* Customer Details Section */}
+                      <AccordionItem value="customer" className="border border-border/50 rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 rounded-md bg-green-500/10">
+                              <User className="h-4 w-4 text-green-500" />
+                            </div>
+                            <span className="text-sm font-medium text-foreground">Customer Details</span>
                           </div>
-                          <div className="text-left">
-                            <h3 className="text-base font-semibold text-foreground">Payment Details</h3>
-                            <p className="text-xs text-foreground/60">Payment breakdown and earnings</p>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            {selectedBooking.customerName && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Name</p>
+                                <p className="text-sm font-medium text-foreground">{selectedBooking.customerName}</p>
+                              </div>
+                            )}
+                            {selectedBooking.customerEmail && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Email</p>
+                                <p className="text-sm font-medium text-foreground break-all">{selectedBooking.customerEmail}</p>
+                              </div>
+                            )}
+                            {selectedBooking.customerPhone && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                                <p className="text-sm font-medium text-foreground">{selectedBooking.customerPhone}</p>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pt-4">
-                        <div className="space-y-6">
-                          {/* Order Value Breakdown */}
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-foreground">Order Breakdown</h4>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Payment Details Section */}
+                      <AccordionItem value="payment" className="border border-border/50 rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-1.5 rounded-md bg-orange-500/10">
+                              <CreditCard className="h-4 w-4 text-orange-500" />
+                            </div>
+                            <span className="text-sm font-medium text-foreground">Payment Details</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <div className="space-y-4 pt-2">
+                            {/* Order Value Breakdown */}
                             <div className="space-y-2 text-sm">
                               {selectedBooking.baseAmount !== undefined && (
                                 <div className="flex justify-between">
-                                  <span className="text-foreground/60">Base Amount</span>
+                                  <span className="text-muted-foreground">Base Amount</span>
                                   <span className="text-foreground font-medium">₹{Number(selectedBooking.baseAmount).toLocaleString('en-IN')}</span>
                                 </div>
                               )}
                               {selectedBooking.addOnsAmount && selectedBooking.addOnsAmount > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-foreground/60">Add-ons</span>
+                                  <span className="text-muted-foreground">Add-ons</span>
                                   <span className="text-foreground font-medium">₹{Number(selectedBooking.addOnsAmount).toLocaleString('en-IN')}</span>
                                 </div>
                               )}
                               {selectedBooking.customizationsAmount && selectedBooking.customizationsAmount > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-foreground/60">Customizations</span>
+                                  <span className="text-muted-foreground">Customizations</span>
                                   <span className="text-foreground font-medium">₹{Number(selectedBooking.customizationsAmount).toLocaleString('en-IN')}</span>
                                 </div>
                               )}
                               {selectedBooking.discountAmount && selectedBooking.discountAmount > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-foreground/60">Discount</span>
-                                  <span className="text-green-400 font-medium">-₹{Number(selectedBooking.discountAmount).toLocaleString('en-IN')}</span>
+                                  <span className="text-muted-foreground">Discount</span>
+                                  <span className="text-green-500 font-medium">-₹{Number(selectedBooking.discountAmount).toLocaleString('en-IN')}</span>
                                 </div>
                               )}
                               {selectedBooking.taxAmount && selectedBooking.taxAmount > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-foreground/60">Tax (GST)</span>
+                                  <span className="text-muted-foreground">Tax (GST)</span>
                                   <span className="text-foreground font-medium">₹{Number(selectedBooking.taxAmount).toLocaleString('en-IN')}</span>
                                 </div>
                               )}
                               <div className="flex justify-between border-t border-border pt-2 mt-2">
-                                <span className="text-foreground font-semibold">Total Order Value</span>
-                                <span className="text-foreground font-bold text-lg">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</span>
+                                <span className="text-foreground font-semibold">Total</span>
+                                <span className="text-foreground font-bold">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Payment Breakdown */}
-                          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-4 border border-green-500/20">
+                          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-3 sm:p-4 border border-green-500/20">
                             <h4 className="text-sm font-semibold text-foreground mb-3">Payment Status</h4>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               <div className="bg-green-500/20 rounded-lg p-3 text-center">
                                 <div className="flex items-center justify-center gap-1 mb-1">
                                   <CheckCircle className="h-4 w-4 text-green-400" />
@@ -802,7 +870,7 @@ export default function VendorBookings() {
                           </div>
 
                           {/* Earnings */}
-                          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-4 border border-blue-500/20">
+                          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 sm:p-4 border border-blue-500/20">
                             <h4 className="text-sm font-semibold text-foreground mb-3">Your Earnings</h4>
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
@@ -819,21 +887,20 @@ export default function VendorBookings() {
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
 
-                  {/* Complete Lifecycle Timeline */}
-                  <Card className="border-border/50 bg-gradient-to-br from-slate-500/5 to-slate-700/5">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <History className="h-5 w-5 text-primary" />
+                    {/* Complete Lifecycle Timeline */}
+                    <Card className="border-border/50 bg-gradient-to-br from-slate-500/5 to-slate-700/5">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <History className="h-5 w-5 text-primary" />
+                          </div>
+                          <CardTitle className="text-lg font-semibold text-foreground">Order Lifecycle</CardTitle>
                         </div>
-                        <CardTitle className="text-lg font-semibold text-foreground">Order Lifecycle</CardTitle>
-                      </div>
-                      <p className="text-xs text-foreground/60 mt-1">Complete timeline of order milestones</p>
+                        <p className="text-xs text-foreground/60 mt-1">Complete timeline of order milestones</p>
                     </CardHeader>
                     <CardContent>
                       <div className="relative">
@@ -907,20 +974,20 @@ export default function VendorBookings() {
                    selectedBooking.eventDate && 
                    new Date(selectedBooking.eventDate) <= new Date() && (
                     <Card className="border-green-500/30 bg-green-500/5">
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between">
+                      <CardContent className="p-4 sm:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                           <div className="flex-1">
-                            <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-                              <Camera className="h-5 w-5 text-green-400" />
+                            <h3 className="text-sm sm:text-base font-semibold text-foreground mb-2 flex items-center gap-2">
+                              <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                               Complete Event
                             </h3>
-                            <p className="text-sm text-foreground/70 mb-4">
+                            <p className="text-xs sm:text-sm text-foreground/70">
                               Share photos and details from this event. This will help you get more bookings!
                             </p>
                           </div>
                           <Button
                             onClick={() => openCompleteModal(selectedBooking.id)}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                           >
                             <Camera className="mr-2 h-4 w-4" />
                             Complete Event
@@ -930,27 +997,267 @@ export default function VendorBookings() {
                     </Card>
                   )}
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-3 pt-4 border-t">
-                    <Button 
-                      onClick={() => navigate('/vendor/chat')}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <MessageSquare className="mr-2 h-4 w-4" /> Message Client
-                    </Button>
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4 border-t">
+                      <Button 
+                        onClick={() => navigate('/vendor/chat')}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" /> Message Client
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-border h-full flex items-center justify-center min-h-[400px]">
+                  <div className="text-center py-12 px-4">
+                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                      <FileText className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-base font-medium text-foreground mb-1">No booking selected</h3>
+                    <p className="text-sm text-muted-foreground">Select a booking from the list to view details</p>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-border shadow-card h-full flex items-center justify-center min-h-[400px]">
-                <div className="text-center py-12">
-                  <FileText className="h-12 w-12 text-foreground/20 mx-auto mb-4" />
-                  <p className="text-foreground/40">Select a booking to view details</p>
-                </div>
-              </Card>
-            )}
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile Booking Detail Modal */}
+        <Dialog open={showMobileModal} onOpenChange={setShowMobileModal}>
+          <DialogContent className="lg:hidden bg-card border-border max-w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0">
+            {selectedBooking && (
+              <>
+                {/* Modal Header */}
+                <DialogHeader className="p-4 border-b sticky top-0 bg-card z-10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                        <span className="text-primary font-bold">{(selectedBooking.customerName || 'C')[0].toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <DialogTitle className="text-base font-semibold text-foreground">{selectedBooking.customerName || 'Customer'}</DialogTitle>
+                        <p className="text-xs text-muted-foreground">#{selectedBooking.orderNumber}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${getStatusColor(selectedBooking.status)} text-xs`}>
+                        {getBookingStatusDisplay(selectedBooking.status)}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowMobileModal(false)}
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* Modal Content */}
+                <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+                  {/* Quick Info Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedBooking.eventDate && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Event Date</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{formatDate(selectedBooking.eventDate)}</p>
+                      </div>
+                    )}
+                    <div className="bg-muted/30 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <IndianRupee className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium">Total</span>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</p>
+                    </div>
+                    {selectedBooking.tokenPaid && (
+                      <div className="bg-green-500/10 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-green-600 mb-1">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Token Paid</span>
+                        </div>
+                        <p className="text-sm font-semibold text-green-600">₹{Number(selectedBooking.tokenPaid).toLocaleString('en-IN')}</p>
+                      </div>
+                    )}
+                    {selectedBooking.guestCount && (
+                      <div className="bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <User className="h-3.5 w-3.5" />
+                          <span className="text-xs font-medium">Guests</span>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{selectedBooking.guestCount}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Accordion Sections */}
+                  <Accordion type="multiple" defaultValue={['event']} className="w-full space-y-2">
+                    {/* Event Details */}
+                    <AccordionItem value="event" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-blue-500/10">
+                            <Calendar className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Event Details</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                          {selectedBooking.eventDate && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Event Date</p>
+                              <p className="text-sm font-medium text-foreground">{formatDate(selectedBooking.eventDate)}</p>
+                            </div>
+                          )}
+                          {selectedBooking.eventType && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Event Type</p>
+                              <p className="text-sm font-medium text-foreground">{selectedBooking.eventType}</p>
+                            </div>
+                          )}
+                          {selectedBooking.venueAddress && (
+                            <div className="col-span-2">
+                              <p className="text-xs text-muted-foreground mb-1">Venue</p>
+                              <p className="text-sm font-medium text-foreground">{selectedBooking.venueAddress}</p>
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Customer Details */}
+                    <AccordionItem value="customer" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-green-500/10">
+                            <User className="h-4 w-4 text-green-500" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Customer Details</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="grid grid-cols-1 gap-3 pt-2">
+                          {selectedBooking.customerName && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Name</p>
+                              <p className="text-sm font-medium text-foreground">{selectedBooking.customerName}</p>
+                            </div>
+                          )}
+                          {selectedBooking.customerEmail && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Email</p>
+                              <p className="text-sm font-medium text-foreground break-all">{selectedBooking.customerEmail}</p>
+                            </div>
+                          )}
+                          {selectedBooking.customerPhone && (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Phone</p>
+                              <p className="text-sm font-medium text-foreground">{selectedBooking.customerPhone}</p>
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Payment Details */}
+                    <AccordionItem value="payment" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-orange-500/10">
+                            <CreditCard className="h-4 w-4 text-orange-500" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Payment Details</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="space-y-3 pt-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Total Amount</span>
+                            <span className="font-medium">₹{Number(selectedBooking.totalAmount || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Token Paid</span>
+                            <span className="font-medium text-green-500">₹{Number(selectedBooking.tokenPaid || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex justify-between text-sm border-t pt-2">
+                            <span className="font-medium">Balance Due</span>
+                            <span className="font-bold text-orange-500">₹{Number((selectedBooking.totalAmount || 0) - (selectedBooking.tokenPaid || 0)).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Order Lifecycle */}
+                    <AccordionItem value="lifecycle" className="border border-border/50 rounded-lg px-4">
+                      <AccordionTrigger className="hover:no-underline py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-primary/10">
+                            <History className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">Order Lifecycle</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="relative pt-2">
+                          {buildLifecycleTimeline(selectedBooking, timelineData || []).map((item, index) => {
+                            const Icon = item.icon;
+                            const isLast = index === buildLifecycleTimeline(selectedBooking, timelineData || []).length - 1;
+                            const isCompleted = item.status === 'completed';
+                            const isPending = item.status === 'pending';
+                            
+                            return (
+                              <div key={item.id} className="relative flex gap-3 pb-4 last:pb-0">
+                                {!isLast && (
+                                  <div className="absolute left-4 top-8 w-0.5 h-full bg-border" />
+                                )}
+                                <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                                  isCompleted 
+                                    ? 'bg-green-500/20 border-2 border-green-500' 
+                                    : isPending
+                                    ? 'bg-gray-500/20 border-2 border-gray-500'
+                                    : 'bg-yellow-500/20 border-2 border-yellow-500'
+                                }`}>
+                                  <Icon className={`h-4 w-4 ${
+                                    isCompleted ? 'text-green-400' : isPending ? 'text-gray-400' : 'text-yellow-400'
+                                  }`} />
+                                </div>
+                                <div className="flex-1 min-w-0 pt-0.5">
+                                  <h4 className={`text-xs font-semibold ${isCompleted ? 'text-foreground' : 'text-foreground/70'}`}>
+                                    {item.label}
+                                  </h4>
+                                  {item.description && (
+                                    <p className="text-xs text-foreground/60 mt-0.5 line-clamp-2">{item.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 border-t bg-card sticky bottom-0">
+                  <Button 
+                    onClick={() => navigate('/vendor/chat')}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Client
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Pagination for All Bookings */}
         {activeTab === 'all' && totalPages > 1 && (
@@ -977,20 +1284,20 @@ export default function VendorBookings() {
 
         {/* Complete Event Modal */}
         <Dialog open={showCompleteModal} onOpenChange={setShowCompleteModal}>
-          <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto mx-auto">
             <DialogHeader>
-              <DialogTitle className="text-foreground text-xl flex items-center gap-2">
-                <Camera className="h-5 w-5" />
+              <DialogTitle className="text-foreground text-lg sm:text-xl flex items-center gap-2">
+                <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
                 Complete Event
               </DialogTitle>
-              <p className="text-sm text-foreground/60 mt-2">
+              <p className="text-xs sm:text-sm text-foreground/60 mt-2">
                 Add photos and details from this event. These will be shown in your portfolio to help you get more bookings!
               </p>
             </DialogHeader>
-            <div className="space-y-6 pt-4">
+            <div className="space-y-4 sm:space-y-6 pt-4">
               <div className="space-y-2">
-                <Label className="text-foreground font-semibold">Event Photos *</Label>
-                <p className="text-xs text-foreground/60 mb-3">
+                <Label className="text-foreground font-semibold text-sm sm:text-base">Event Photos *</Label>
+                <p className="text-xs text-foreground/60 mb-2 sm:mb-3">
                   Upload photos from the event. These will be added to your portfolio.
                 </p>
                 <ImageUpload
@@ -1001,7 +1308,7 @@ export default function VendorBookings() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-foreground font-semibold">Event Description (Optional)</Label>
+                <Label className="text-foreground font-semibold text-sm sm:text-base">Event Description (Optional)</Label>
                 <p className="text-xs text-foreground/60 mb-2">
                   Share details about this event. This helps potential customers understand your work better.
                 </p>
@@ -1009,11 +1316,11 @@ export default function VendorBookings() {
                   value={eventDescription}
                   onChange={(e) => setEventDescription(e.target.value)}
                   placeholder="Describe the event, highlights, special moments..."
-                  className="bg-muted/50 border-border text-foreground min-h-[120px]"
+                  className="bg-muted/50 border-border text-foreground min-h-[100px] sm:min-h-[120px]"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4 border-t">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1022,14 +1329,14 @@ export default function VendorBookings() {
                     setEventDescription('');
                     setCompletingBookingId(null);
                   }}
-                  className="flex-1 border-border text-foreground hover:bg-muted"
+                  className="flex-1 border-border text-foreground hover:bg-muted order-2 sm:order-1"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCompleteEvent}
                   disabled={eventImages.length === 0}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 bg-green-600 hover:bg-green-700 order-1 sm:order-2"
                 >
                   {eventImages.length === 0 ? (
                     'Add Photos to Continue'
