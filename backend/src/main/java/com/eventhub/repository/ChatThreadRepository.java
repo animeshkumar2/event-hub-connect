@@ -19,6 +19,13 @@ public interface ChatThreadRepository extends JpaRepository<ChatThread, UUID> {
     @Query("SELECT c FROM ChatThread c LEFT JOIN FETCH c.user WHERE c.vendor = :vendor ORDER BY c.lastMessageAt DESC NULLS LAST")
     List<ChatThread> findByVendorOrderByLastMessageAtDesc(@Param("vendor") Vendor vendor);
     
+    // Optimized query for vendor threads with pagination
+    @Query("SELECT c FROM ChatThread c " +
+           "LEFT JOIN FETCH c.user " +
+           "WHERE c.vendor.id = :vendorId " +
+           "ORDER BY c.lastMessageAt DESC NULLS LAST")
+    List<ChatThread> findByVendorIdOptimized(@Param("vendorId") UUID vendorId, org.springframework.data.domain.Pageable pageable);
+    
     @Query("SELECT c FROM ChatThread c WHERE c.userId = :userId AND c.vendor = :vendor")
     Optional<ChatThread> findByUserIdAndVendor(@Param("userId") UUID userId, @Param("vendor") Vendor vendor);
 }

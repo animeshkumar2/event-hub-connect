@@ -356,7 +356,7 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Admin Functions</h3>
-                <div className="grid gap-2 md:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-4">
                   <Button variant="outline" className="justify-start">
                     <Users className="mr-2 h-4 w-4" />
                     Manage Users
@@ -376,6 +376,14 @@ export default function AdminDashboard() {
                   >
                     <Package className="mr-2 h-4 w-4" />
                     Manage Listings
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => navigate('/admin/api-performance')}
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    API Performance
                   </Button>
                 </div>
               </div>

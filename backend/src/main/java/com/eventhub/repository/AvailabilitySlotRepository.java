@@ -15,6 +15,14 @@ import java.util.UUID;
 public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySlot, UUID> {
     List<AvailabilitySlot> findByVendorAndDateBetween(Vendor vendor, LocalDate startDate, LocalDate endDate);
     
+    // Optimized query using vendor ID directly to avoid loading the full Vendor entity
+    @Query("SELECT a FROM AvailabilitySlot a WHERE a.vendor.id = :vendorId AND a.date BETWEEN :startDate AND :endDate ORDER BY a.date ASC, a.timeSlot ASC")
+    List<AvailabilitySlot> findByVendorIdAndDateBetween(
+        @Param("vendorId") UUID vendorId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
+    
     @Query("SELECT a FROM AvailabilitySlot a WHERE a.vendor = :vendor AND a.date = :date AND a.timeSlot = :timeSlot")
     Optional<AvailabilitySlot> findByVendorAndDateAndTimeSlot(
         @Param("vendor") Vendor vendor,

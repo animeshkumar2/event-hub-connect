@@ -80,17 +80,17 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     
     List<Listing> findByVendorIdAndIsActiveTrue(UUID vendorId);
     
-    // Optimized query for vendor listings with JOIN FETCH to avoid N+1 queries
-    // Excludes drafts: isActive must be true, price > 0.01 (draft marker)
-    // Vendor should see ALL their listings including drafts
-    // Note: Image filtering is done in Java code since SIZE() doesn't work on PostgreSQL arrays
-    @Query("SELECT DISTINCT l FROM Listing l " +
-           "LEFT JOIN FETCH l.vendor v " +
-           "LEFT JOIN FETCH l.listingCategory c " +
-           "LEFT JOIN FETCH l.eventTypes " +
+    // Optimized query for vendor listings - no JOIN FETCH to reduce data transfer
+    @Query("SELECT l FROM Listing l " +
            "WHERE l.vendor.id = :vendorId " +
            "ORDER BY l.createdAt DESC")
     List<Listing> findByVendorIdOptimized(@Param("vendorId") UUID vendorId);
+    
+    // Separate query to batch load eventTypes when needed
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE l.vendor.id = :vendorId")
+    List<Listing> findByVendorIdWithEventTypes(@Param("vendorId") UUID vendorId);
     
     @Query("SELECT l FROM Listing l WHERE l.isActive = true " +
            "AND l.price > 0.01 " +

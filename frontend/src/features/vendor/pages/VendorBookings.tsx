@@ -487,7 +487,13 @@ export default function VendorBookings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground font-medium">All</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{allBookingsData?.content?.length || allBookingsData?.length || 0}</p>
+                  <div className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    {(upcomingBookingsLoading || pastBookingsLoading) ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      (upcomingBookingsData?.length || 0) + (pastBookingsData?.length || 0)
+                    )}
+                  </div>
                 </div>
                 <div className={`p-2 sm:p-3 rounded-full hidden sm:flex ${activeTab === 'all' ? 'bg-primary/20' : 'bg-muted/50'}`}>
                   <FileText className={`h-4 w-4 sm:h-5 sm:w-5 ${activeTab === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -503,7 +509,13 @@ export default function VendorBookings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground font-medium">Upcoming</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{upcomingBookingsData?.length || 0}</p>
+                  <div className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    {upcomingBookingsLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      upcomingBookingsData?.length || 0
+                    )}
+                  </div>
                 </div>
                 <div className={`p-2 sm:p-3 rounded-full hidden sm:flex ${activeTab === 'upcoming' ? 'bg-primary/20' : 'bg-blue-500/10'}`}>
                   <Calendar className={`h-4 w-4 sm:h-5 sm:w-5 ${activeTab === 'upcoming' ? 'text-primary' : 'text-blue-500'}`} />
@@ -519,7 +531,13 @@ export default function VendorBookings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground font-medium">Past</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{pastBookingsData?.length || 0}</p>
+                  <div className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    {pastBookingsLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      pastBookingsData?.length || 0
+                    )}
+                  </div>
                 </div>
                 <div className={`p-2 sm:p-3 rounded-full hidden sm:flex ${activeTab === 'past' ? 'bg-primary/20' : 'bg-green-500/10'}`}>
                   <CheckCircle className={`h-4 w-4 sm:h-5 sm:w-5 ${activeTab === 'past' ? 'text-primary' : 'text-green-500'}`} />
@@ -1261,24 +1279,55 @@ export default function VendorBookings() {
 
         {/* Pagination for All Bookings */}
         {activeTab === 'all' && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-start gap-1 sm:gap-2 mt-4">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
+              className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
             >
-              Previous
+              <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-180 mr-1" />
+              Prev
             </Button>
-            <span className="text-sm text-foreground/60">
-              Page {page + 1} of {totalPages}
-            </span>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i;
+                } else if (page < 3) {
+                  pageNum = i;
+                } else if (page > totalPages - 4) {
+                  pageNum = totalPages - 5 + i;
+                } else {
+                  pageNum = page - 2 + i;
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPage(pageNum)}
+                    className={`h-8 w-8 p-0 text-xs sm:text-sm ${page === pageNum ? 'bg-primary text-primary-foreground' : ''}`}
+                  >
+                    {pageNum + 1}
+                  </Button>
+                );
+              })}
+            </div>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}
+              className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
             >
               Next
+              <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
             </Button>
+            <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
+              of {totalPages} pages
+            </span>
           </div>
         )}
 

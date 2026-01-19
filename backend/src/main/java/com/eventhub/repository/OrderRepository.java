@@ -21,8 +21,21 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Query("SELECT o FROM Order o WHERE o.vendor = :vendor AND o.status = :status")
     Page<Order> findByVendorAndStatus(@Param("vendor") Vendor vendor, @Param("status") Order.OrderStatus status, Pageable pageable);
     
-    @Query("SELECT o FROM Order o WHERE o.vendor = :vendor AND o.eventDate >= :startDate AND o.eventDate <= :endDate")
+    @Query("SELECT o FROM Order o " +
+           "WHERE o.vendor = :vendor AND o.eventDate >= :startDate AND o.eventDate <= :endDate " +
+           "ORDER BY o.eventDate ASC")
     List<Order> findUpcomingOrders(@Param("vendor") Vendor vendor, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    
+    // Optimized query for upcoming orders - no JOIN FETCH, simpler query
+    @Query("SELECT o FROM Order o " +
+           "WHERE o.vendor.id = :vendorId AND o.eventDate >= :startDate AND o.eventDate <= :endDate " +
+           "ORDER BY o.eventDate ASC")
+    List<Order> findUpcomingOrdersOptimized(
+        @Param("vendorId") UUID vendorId, 
+        @Param("startDate") LocalDate startDate, 
+        @Param("endDate") LocalDate endDate,
+        Pageable pageable
+    );
     
     @Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.vendor = :vendor AND o.status = 'COMPLETED' AND o.createdAt >= :startDate AND o.createdAt <= :endDate")
     Double calculateRevenue(@Param("vendor") Vendor vendor, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
@@ -75,6 +88,34 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     
     // Find bookings by vendor and status list (for filtering confirmed bookings only)
     Page<Order> findByVendorAndStatusIn(Vendor vendor, List<Order.OrderStatus> statuses, Pageable pageable);
+    
+    // Optimized count query for upcoming bookings
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.vendor.id = :vendorId AND o.eventDate > :today AND o.status IN :statuses")
+    long countUpcomingBookings(@Param("vendorId") UUID vendorId, @Param("today") LocalDate today, @Param("statuses") List<Order.OrderStatus> statuses);
+    
+    // Optimized query for upcoming bookings - no JOIN FETCH
+    @Query("SELECT o FROM Order o " +
+           "WHERE o.vendor.id = :vendorId " +
+           "AND o.status IN :statuses " +
+           "AND (o.eventDate IS NULL OR o.eventDate >= :today) " +
+           "ORDER BY o.eventDate ASC NULLS LAST")
+    List<Order> findUpcomingBookingsOptimized(
+        @Param("vendorId") UUID vendorId, 
+        @Param("today") LocalDate today, 
+        @Param("statuses") List<Order.OrderStatus> statuses,
+        Pageable pageable
+    );
+    
+    // Optimized query for past bookings - no JOIN FETCH
+    @Query("SELECT o FROM Order o " +
+           "WHERE o.vendor.id = :vendorId " +
+           "AND (o.status = 'COMPLETED' OR (o.eventDate IS NOT NULL AND o.eventDate < :today)) " +
+           "ORDER BY o.eventDate DESC NULLS LAST")
+    List<Order> findPastBookingsOptimized(
+        @Param("vendorId") UUID vendorId, 
+        @Param("today") LocalDate today,
+        Pageable pageable
+    );
 }
 
 

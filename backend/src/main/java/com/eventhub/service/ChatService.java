@@ -78,9 +78,10 @@ public class ChatService {
     
     @Transactional(readOnly = true)
     public List<ChatThreadDTO> getVendorThreadsWithDetails(UUID vendorId) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new NotFoundException("Vendor not found"));
-        List<ChatThread> threads = chatThreadRepository.findByVendorOrderByLastMessageAtDesc(vendor);
+        // Use optimized query with pagination to limit results
+        List<ChatThread> threads = chatThreadRepository.findByVendorIdOptimized(
+            vendorId, PageRequest.of(0, 50)
+        );
         
         return threads.stream().map(thread -> {
             ChatThreadDTO dto = ChatThreadDTO.fromEntity(thread);

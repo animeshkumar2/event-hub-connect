@@ -28,15 +28,17 @@ public class Vendor {
     @Column(name = "business_name", nullable = false, length = 255)
     private String businessName;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vendor_category_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Category vendorCategory;
     
     @Column(name = "custom_category_name", length = 255)
     private String customCategoryName; // Custom category name when vendorCategory is "other"
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "city_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private City city;
     
     @Column(name = "city_name", length = 100)

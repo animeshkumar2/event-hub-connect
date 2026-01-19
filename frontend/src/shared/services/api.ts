@@ -11,6 +11,82 @@ if (typeof window !== 'undefined') {
   console.log('[API] ENV VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
 }
 
+// API Performance Metrics Tracker
+interface ApiMetric {
+  endpoint: string;
+  method: string;
+  duration: number;
+  status: 'success' | 'error';
+  timestamp: Date;
+  statusCode?: number;
+}
+
+class ApiMetricsTracker {
+  private metrics: ApiMetric[] = [];
+  private maxMetrics = 100; // Keep last 100 calls
+
+  add(metric: ApiMetric) {
+    this.metrics.push(metric);
+    if (this.metrics.length > this.maxMetrics) {
+      this.metrics.shift();
+    }
+    
+    // Log with color coding based on duration
+    const color = metric.duration < 200 ? '🟢' : metric.duration < 500 ? '🟡' : '🔴';
+    console.log(
+      `${color} [API ${metric.method}] ${metric.endpoint} - ${metric.duration}ms (${metric.status})`
+    );
+  }
+
+  getMetrics() {
+    return [...this.metrics];
+  }
+
+  getSummary() {
+    if (this.metrics.length === 0) return null;
+    
+    const durations = this.metrics.map(m => m.duration);
+    const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+    const slowest = this.metrics.reduce((a, b) => a.duration > b.duration ? a : b);
+    const errorCount = this.metrics.filter(m => m.status === 'error').length;
+    
+    return {
+      totalCalls: this.metrics.length,
+      avgDuration: Math.round(avg),
+      slowestCall: { endpoint: slowest.endpoint, duration: slowest.duration },
+      errorRate: `${((errorCount / this.metrics.length) * 100).toFixed(1)}%`,
+      slowCalls: this.metrics.filter(m => m.duration > 500).length,
+    };
+  }
+
+  printSummary() {
+    const summary = this.getSummary();
+    if (!summary) {
+      console.log('📊 No API metrics recorded yet');
+      return;
+    }
+    console.log('📊 API Performance Summary:');
+    console.table(summary);
+    console.log('🐢 Slow calls (>500ms):');
+    console.table(
+      this.metrics
+        .filter(m => m.duration > 500)
+        .map(m => ({ endpoint: m.endpoint, duration: `${m.duration}ms`, method: m.method }))
+    );
+  }
+
+  clear() {
+    this.metrics = [];
+  }
+}
+
+// Global metrics tracker - accessible via window.apiMetrics in browser console
+export const apiMetrics = new ApiMetricsTracker();
+if (typeof window !== 'undefined') {
+  (window as any).apiMetrics = apiMetrics;
+  console.log('💡 Tip: Use window.apiMetrics.printSummary() to see API performance stats');
+}
+
 interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -46,6 +122,8 @@ class ApiClient {
     isRetry: boolean = false
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
+    const method = options.method || 'GET';
+    const startTime = performance.now();
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -74,6 +152,8 @@ class ApiClient {
         ...options,
         headers,
       });
+      
+      const duration = Math.round(performance.now() - startTime);
 
       // Handle 401 Unauthorized - try to refresh token
       // Skip token refresh for auth endpoints (login, register, etc.)
@@ -163,6 +243,15 @@ class ApiClient {
         } catch {
           errorData = { message: 'Request failed' };
         }
+        // Track error metric
+        apiMetrics.add({
+          endpoint,
+          method,
+          duration,
+          status: 'error',
+          timestamp: new Date(),
+          statusCode: response.status,
+        });
         // For 404 errors, return a structured error response
         if (response.status === 404) {
           console.error('API 404 Error:', errorData);
@@ -183,6 +272,17 @@ class ApiClient {
       }
 
       const data = await response.json();
+      
+      // Track success metric
+      apiMetrics.add({
+        endpoint,
+        method,
+        duration,
+        status: 'success',
+        timestamp: new Date(),
+        statusCode: response.status,
+      });
+      
       // Only log in development to reduce console noise and improve performance
       if (import.meta.env.DEV) {
         console.log('API Response:', endpoint, data);
@@ -209,6 +309,15 @@ class ApiClient {
         message: 'Success'
       };
     } catch (error) {
+      // Track error metric for network failures
+      const duration = Math.round(performance.now() - startTime);
+      apiMetrics.add({
+        endpoint,
+        method,
+        duration,
+        status: 'error',
+        timestamp: new Date(),
+      });
       console.error('API request failed:', error);
       throw error;
     }

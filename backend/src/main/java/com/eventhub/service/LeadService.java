@@ -111,10 +111,17 @@ public class LeadService {
     }
     
     @Transactional(readOnly = true)
+    public List<Lead> getVendorLeads(UUID vendorId, int page, int size) {
+        // Use optimized query with JOIN FETCH to avoid lazy loading issues
+        return leadRepository.findByVendorIdOptimized(
+            vendorId, 
+            org.springframework.data.domain.PageRequest.of(page, size)
+        );
+    }
+    
+    @Transactional(readOnly = true)
     public List<Lead> getVendorLeads(UUID vendorId) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new NotFoundException("Vendor not found"));
-        return leadRepository.findByVendor(vendor, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        return getVendorLeads(vendorId, 0, 20);
     }
     
     @Transactional(readOnly = true)

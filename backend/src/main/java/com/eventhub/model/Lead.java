@@ -1,5 +1,6 @@
 package com.eventhub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,9 +20,13 @@ public class Lead {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @ManyToOne
-    @JoinColumn(name = "vendor_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id", nullable = false, insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Vendor vendor;
+    
+    @Column(name = "vendor_id", nullable = false)
+    private UUID vendorId;
     
     @Column(name = "user_id")
     private UUID userId; // Can be null for anonymous leads
@@ -61,13 +66,21 @@ public class Lead {
     @Column(name = "source", length = 20)
     private LeadSource source = LeadSource.INQUIRY; // Source of the lead
     
-    @ManyToOne
-    @JoinColumn(name = "order_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Order order; // Reference to order if lead was created from direct order
     
-    @ManyToOne
-    @JoinColumn(name = "listing_id")
+    @Column(name = "order_id")
+    private UUID orderId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id", insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Listing listing; // Reference to listing
+    
+    @Column(name = "listing_id")
+    private UUID listingId;
     
     @Column(name = "token_amount", precision = 10, scale = 2)
     private BigDecimal tokenAmount; // Token amount paid for this lead

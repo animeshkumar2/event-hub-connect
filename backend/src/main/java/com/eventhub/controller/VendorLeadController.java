@@ -26,9 +26,11 @@ public class VendorLeadController {
     
     @GetMapping
     public ResponseEntity<ApiResponse<List<Lead>>> getVendorLeads(
-            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId) {
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
-        List<Lead> leads = leadService.getVendorLeads(vendorId);
+        List<Lead> leads = leadService.getVendorLeads(vendorId, page, size);
         return ResponseEntity.ok(ApiResponse.success(leads));
     }
     

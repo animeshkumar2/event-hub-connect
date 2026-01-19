@@ -59,13 +59,14 @@ public class VendorOrderService {
     
     @Transactional(readOnly = true)
     public List<Order> getUpcomingOrders(UUID vendorId) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new NotFoundException("Vendor not found"));
-        
         LocalDate today = LocalDate.now();
         LocalDate threeMonthsLater = today.plusMonths(3);
         
-        return orderRepository.findUpcomingOrders(vendor, today, threeMonthsLater);
+        // Use optimized query with pagination directly in database
+        return orderRepository.findUpcomingOrdersOptimized(
+            vendorId, today, threeMonthsLater,
+            org.springframework.data.domain.PageRequest.of(0, 50)
+        );
     }
 }
 

@@ -23,9 +23,6 @@ public class VendorAvailabilityService {
     
     @Transactional(readOnly = true)
     public List<AvailabilitySlot> getAvailability(UUID vendorId, LocalDate startDate, LocalDate endDate) {
-        Vendor vendor = vendorRepository.findById(vendorId)
-                .orElseThrow(() -> new NotFoundException("Vendor not found"));
-        
         if (startDate == null) {
             startDate = LocalDate.now();
         }
@@ -33,7 +30,8 @@ public class VendorAvailabilityService {
             endDate = startDate.plusMonths(3);
         }
         
-        return availabilitySlotRepository.findByVendorAndDateBetween(vendor, startDate, endDate);
+        // Use optimized query with vendor ID directly
+        return availabilitySlotRepository.findByVendorIdAndDateBetween(vendorId, startDate, endDate);
     }
     
     public List<AvailabilitySlot> createAvailabilitySlots(UUID vendorId, LocalDate date, 

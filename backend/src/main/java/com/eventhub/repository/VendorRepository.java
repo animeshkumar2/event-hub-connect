@@ -65,6 +65,17 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
     
     java.util.Optional<Vendor> findByUserId(UUID userId);
     
+    // Optimized query for vendor profile with category pre-loaded
+    @Query("SELECT v FROM Vendor v " +
+           "LEFT JOIN FETCH v.vendorCategory " +
+           "LEFT JOIN FETCH v.city " +
+           "WHERE v.id = :vendorId")
+    java.util.Optional<Vendor> findByIdWithDetails(@Param("vendorId") UUID vendorId);
+    
+    // Get first vendor (for admin testing) - efficient single row query
+    @Query("SELECT v FROM Vendor v WHERE v.isActive = true ORDER BY v.createdAt ASC")
+    List<Vendor> findFirstActiveVendor(org.springframework.data.domain.Pageable pageable);
+    
     // Optimized stats queries
     @Query("SELECT COUNT(v) FROM Vendor v WHERE v.isVerified = true")
     long countVerifiedVendors();

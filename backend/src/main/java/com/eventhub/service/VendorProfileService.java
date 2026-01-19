@@ -25,7 +25,8 @@ public class VendorProfileService {
     
     @Transactional(readOnly = true)
     public Vendor getVendorProfile(UUID vendorId) {
-        return vendorRepository.findById(vendorId)
+        // Use optimized query with pre-loaded relationships
+        return vendorRepository.findByIdWithDetails(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
     }
     

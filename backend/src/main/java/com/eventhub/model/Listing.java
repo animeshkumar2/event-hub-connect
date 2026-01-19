@@ -1,5 +1,7 @@
 package com.eventhub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,9 +23,13 @@ public class Listing {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @ManyToOne
-    @JoinColumn(name = "vendor_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id", nullable = false, insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Vendor vendor;
+    
+    @Column(name = "vendor_id", nullable = false)
+    private UUID vendorId;
     
     @Convert(converter = ListingTypeConverter.class)
     @Column(nullable = false, length = 20)
@@ -38,9 +44,13 @@ public class Listing {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
-    @ManyToOne
-    @JoinColumn(name = "listing_category_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_category_id", nullable = false, insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Category listingCategory;
+    
+    @Column(name = "listing_category_id", nullable = false)
+    private String listingCategoryId;
     
     @Column(name = "custom_category_name", length = 255)
     private String customCategoryName; // Custom category name when listingCategory is "other"
@@ -105,6 +115,7 @@ public class Listing {
         joinColumns = @JoinColumn(name = "listing_id"),
         inverseJoinColumns = @JoinColumn(name = "event_type_id")
     )
+    @JsonIgnore
     private List<EventType> eventTypes;
     
     @PrePersist

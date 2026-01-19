@@ -46,10 +46,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/vendors/by-user/**").authenticated()
                 // Vendor onboarding - accessible to authenticated users (they become vendors after onboarding)
                 .requestMatchers("/api/vendors/onboarding/**").authenticated()
-                // Customer endpoints - require authentication
-                .requestMatchers("/api/customers/**").authenticated()
-                // Vendor endpoints - require vendor role (more specific patterns must come first)
-                .requestMatchers("/api/vendors/**").hasRole("VENDOR")
+                // Customer endpoints - require CUSTOMER role, VENDOR role, or ADMIN role
+                // (Vendors may also want to book other vendors' services)
+                .requestMatchers("/api/customers/**").hasAnyRole("CUSTOMER", "VENDOR", "ADMIN")
+                // Vendor endpoints - require VENDOR role or ADMIN role (admin can test all APIs)
+                .requestMatchers("/api/vendors/**").hasAnyRole("VENDOR", "ADMIN")
                 // Admin endpoints - require admin role
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

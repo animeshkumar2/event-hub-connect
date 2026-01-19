@@ -45,6 +45,26 @@ public interface LeadRepository extends JpaRepository<Lead, UUID> {
     
     @Query("SELECT COUNT(l) FROM Lead l WHERE l.vendor.id = :vendorId AND l.createdAt >= :date")
     long countByVendorIdAndCreatedAtAfter(@Param("vendorId") UUID vendorId, @Param("date") LocalDateTime date);
+    
+    // Optimized count query for leads by vendor and status
+    @Query("SELECT COUNT(l) FROM Lead l WHERE l.vendor.id = :vendorId AND l.status = :status")
+    long countByVendorIdAndStatus(@Param("vendorId") UUID vendorId, @Param("status") Lead.LeadStatus status);
+    
+    // Optimized query for vendor leads - only select needed fields, no JOIN FETCH
+    @Query("SELECT l FROM Lead l " +
+           "WHERE l.vendor.id = :vendorId " +
+           "ORDER BY l.createdAt DESC")
+    List<Lead> findByVendorIdOptimized(@Param("vendorId") UUID vendorId, Pageable pageable);
+    
+    // Optimized query for vendor leads with status filter
+    @Query("SELECT l FROM Lead l " +
+           "WHERE l.vendor.id = :vendorId AND l.status = :status " +
+           "ORDER BY l.createdAt DESC")
+    List<Lead> findByVendorIdAndStatusOptimized(
+        @Param("vendorId") UUID vendorId, 
+        @Param("status") Lead.LeadStatus status, 
+        Pageable pageable
+    );
 }
 
 

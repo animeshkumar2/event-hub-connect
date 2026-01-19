@@ -1,5 +1,6 @@
 package com.eventhub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,13 +29,21 @@ public class Order {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
     
-    @ManyToOne
-    @JoinColumn(name = "vendor_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id", nullable = false, insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Vendor vendor;
     
-    @ManyToOne
-    @JoinColumn(name = "listing_id", nullable = false)
+    @Column(name = "vendor_id", nullable = false)
+    private UUID vendorId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id", nullable = false, insertable = false, updatable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Listing listing;
+    
+    @Column(name = "listing_id", nullable = false)
+    private UUID listingId;
     
     @Convert(converter = ListingTypeConverter.class)
     @Column(name = "item_type", nullable = false, length = 20)
