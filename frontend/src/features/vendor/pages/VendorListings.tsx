@@ -51,6 +51,8 @@ import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { InlineError } from '@/shared/components/InlineError';
+import { CategoryFieldRenderer } from '@/features/vendor/components/CategoryFields';
+import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInput';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -184,6 +186,19 @@ export default function VendorListings() {
 
   // Form state
   const [formData, setFormData] = useState(initialFormData);
+  
+  // Category-specific fields state
+  const [categorySpecificData, setCategorySpecificData] = useState<Record<string, any>>({});
+
+  // Draft states for inline editing
+  const [draftIncludedItem, setDraftIncludedItem] = useState('');
+  const [showIncludedItemInput, setShowIncludedItemInput] = useState(false);
+  const [draftExcludedItem, setDraftExcludedItem] = useState('');
+  const [showExcludedItemInput, setShowExcludedItemInput] = useState(false);
+  const [draftExtraCharge, setDraftExtraCharge] = useState({ name: '', price: '' });
+  const [showExtraChargeInput, setShowExtraChargeInput] = useState(false);
+  const [draftHighlight, setDraftHighlight] = useState('');
+  const [showHighlightInput, setShowHighlightInput] = useState(false);
 
   // Get vendor category
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
@@ -570,24 +585,46 @@ export default function VendorListings() {
     setFormData({ ...formData, images: newImages });
   };
 
-  // Highlight helpers - inline input (no prompt)
+  // Highlight helpers - with draft state
   const addHighlight = () => {
-    setFormData({ ...formData, highlights: [...formData.highlights, ''] });
+    setShowHighlightInput(true);
+    setDraftHighlight('');
   };
 
-  const updateHighlight = (index: number, value: string) => {
-    const updated = [...formData.highlights];
-    updated[index] = value;
-    setFormData({ ...formData, highlights: updated });
+  const saveHighlight = () => {
+    if (draftHighlight.trim()) {
+      setFormData({ ...formData, highlights: [...formData.highlights, draftHighlight.trim()] });
+      setDraftHighlight('');
+      setShowHighlightInput(false);
+    }
+  };
+
+  const cancelHighlight = () => {
+    setDraftHighlight('');
+    setShowHighlightInput(false);
   };
 
   const removeHighlight = (index: number) => {
     setFormData({ ...formData, highlights: formData.highlights.filter((_, i) => i !== index) });
   };
 
-  // Included item text helpers - inline input (no prompt)
+  // Included item text helpers - with draft state
   const addIncludedItem = () => {
-    setFormData({ ...formData, includedItemsText: [...formData.includedItemsText, ''] });
+    setShowIncludedItemInput(true);
+    setDraftIncludedItem('');
+  };
+
+  const saveIncludedItem = () => {
+    if (draftIncludedItem.trim()) {
+      setFormData({ ...formData, includedItemsText: [...formData.includedItemsText, draftIncludedItem.trim()] });
+      setDraftIncludedItem('');
+      setShowIncludedItemInput(false);
+    }
+  };
+
+  const cancelIncludedItem = () => {
+    setDraftIncludedItem('');
+    setShowIncludedItemInput(false);
   };
 
   const updateIncludedItem = (index: number, value: string) => {
@@ -600,9 +637,23 @@ export default function VendorListings() {
     setFormData({ ...formData, includedItemsText: formData.includedItemsText.filter((_, i) => i !== index) });
   };
 
-  // Excluded item helpers - inline input (no prompt)
+  // Excluded item helpers - with draft state
   const addExcludedItem = () => {
-    setFormData({ ...formData, excludedItemsText: [...formData.excludedItemsText, ''] });
+    setShowExcludedItemInput(true);
+    setDraftExcludedItem('');
+  };
+
+  const saveExcludedItem = () => {
+    if (draftExcludedItem.trim()) {
+      setFormData({ ...formData, excludedItemsText: [...formData.excludedItemsText, draftExcludedItem.trim()] });
+      setDraftExcludedItem('');
+      setShowExcludedItemInput(false);
+    }
+  };
+
+  const cancelExcludedItem = () => {
+    setDraftExcludedItem('');
+    setShowExcludedItemInput(false);
   };
 
   const updateExcludedItem = (index: number, value: string) => {
@@ -624,12 +675,29 @@ export default function VendorListings() {
     }
   };
 
-  // Extra charge helpers - inline input (no prompt)
+  // Extra charge helpers - with draft state
   const addExtraCharge = () => {
-    setFormData({ 
-      ...formData, 
-      extraChargesDetailed: [...formData.extraChargesDetailed, { name: '', price: '' }] 
-    });
+    setShowExtraChargeInput(true);
+    setDraftExtraCharge({ name: '', price: '' });
+  };
+
+  const saveExtraCharge = () => {
+    if (draftExtraCharge.name.trim() && draftExtraCharge.price) {
+      setFormData({ 
+        ...formData, 
+        extraChargesDetailed: [...formData.extraChargesDetailed, {
+          name: draftExtraCharge.name.trim(),
+          price: draftExtraCharge.price
+        }] 
+      });
+      setDraftExtraCharge({ name: '', price: '' });
+      setShowExtraChargeInput(false);
+    }
+  };
+
+  const cancelExtraCharge = () => {
+    setDraftExtraCharge({ name: '', price: '' });
+    setShowExtraChargeInput(false);
   };
 
   const removeExtraCharge = (index: number) => {
@@ -1049,38 +1117,123 @@ export default function VendorListings() {
                     <Label className="text-foreground flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
                       Listing Highlights
+                      {formData.highlights.length > 0 && (
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-500/30">
+                          {formData.highlights.length}
+                        </Badge>
+                      )}
                     </Label>
                     <p className="text-xs text-muted-foreground">Key features shown at the top of your listing (e.g., "Mandap decoration", "Stage decoration")</p>
-                    <div className="space-y-2 p-3 border border-border rounded-lg bg-muted/30">
-                      {formData.highlights.length === 0 ? (
-                        <p className="text-sm text-muted-foreground italic">No highlights added yet</p>
+                    <div className="space-y-2 p-3 border border-green-500/20 rounded-lg bg-green-500/5">
+                      {/* Show saved highlights */}
+                      {formData.highlights.length === 0 && !showHighlightInput ? (
+                        <p className="text-sm text-muted-foreground italic text-center py-2">No highlights added yet</p>
                       ) : (
-                        formData.highlights.map((highlight, i) => (
-                          <div key={i} className="flex items-center gap-2 group">
-                            <span className="text-green-500 font-bold">•</span>
-                            <Input 
-                              value={highlight} 
-                              onChange={(e) => updateHighlight(i, e.target.value)}
-                              className="flex-1 bg-background border-border text-foreground h-9" 
-                              placeholder="e.g., Mandap decoration"
-                              autoFocus={highlight === ''}
-                            />
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => removeHighlight(i)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))
+                        <>
+                          {formData.highlights.map((highlight, i) => (
+                            <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border border-green-500/30">
+                              <span className="text-green-500 font-bold">•</span>
+                              <span className="flex-1 text-sm text-foreground">{highlight}</span>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => removeHighlight(i)}
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                title="Remove"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ))}
+                          {/* Draft input */}
+                          {showHighlightInput && (
+                            <div className="flex items-center gap-2 p-2 rounded bg-background border-2 border-primary">
+                              <span className="text-muted-foreground font-bold">•</span>
+                              <Input 
+                                value={draftHighlight} 
+                                onChange={(e) => setDraftHighlight(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && draftHighlight.trim()) {
+                                    e.preventDefault();
+                                    saveHighlight();
+                                  } else if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    cancelHighlight();
+                                  }
+                                }}
+                                className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                placeholder="e.g., Mandap decoration, Stage lighting"
+                                autoFocus
+                              />
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={saveHighlight}
+                                disabled={!draftHighlight.trim()}
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
+                                title="Save (Enter)"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={cancelHighlight}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                title="Cancel (Esc)"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </>
                       )}
-                      <Button size="sm" variant="outline" onClick={addHighlight} className="mt-2">
-                        <Plus className="h-4 w-4 mr-2" /> Add Highlight
-                      </Button>
+                      {!showHighlightInput && (
+                        <Button size="sm" variant="outline" onClick={addHighlight} className="w-full border-dashed">
+                          <Plus className="h-4 w-4 mr-2" /> Add Highlight
+                        </Button>
+                      )}
                     </div>
                   </div>
+
+                  {/* Category-Specific Fields - MOVED HERE */}
+                  {formData.categoryId && formData.categoryId !== 'other' && (
+                    <>
+                      {/* Divider */}
+                      <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-border"></div>
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-card px-3 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                            Category-Specific Details
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-1 w-1 rounded-full bg-primary"></div>
+                          <h3 className="font-semibold text-foreground">
+                            {getCategoryName(formData.categoryId)} Details
+                          </h3>
+                        </div>
+                        
+                        <CategoryFieldRenderer
+                          categoryId={formData.categoryId}
+                          values={categorySpecificData}
+                          onChange={setCategorySpecificData}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Delivery Time - New Smart Component */}
+                  <DeliveryTimeInput
+                    value={formData.deliveryTime}
+                    onChange={(value) => setFormData({ ...formData, deliveryTime: value })}
+                    categoryId={formData.categoryId}
+                  />
 
                   {listingType === 'PACKAGE' && (
                     <>
@@ -1205,41 +1358,82 @@ export default function VendorListings() {
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
                           <Label className="text-foreground">What's Included</Label>
-                          {formData.includedItemsText.filter(i => i.trim()).length > 0 && (
+                          {formData.includedItemsText.length > 0 && (
                             <Badge variant="outline" className="text-xs text-green-600 border-green-500/30">
-                              {formData.includedItemsText.filter(i => i.trim()).length} custom
+                              {formData.includedItemsText.length}
                             </Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">Add services or items not listed as separate items</p>
                         <div className="space-y-2 p-3 border border-green-500/20 rounded-lg bg-green-500/5">
-                          {formData.includedItemsText.length === 0 ? (
+                          {/* Show saved items */}
+                          {formData.includedItemsText.length === 0 && !showIncludedItemInput ? (
                             <p className="text-sm text-muted-foreground italic text-center py-2">No custom inclusions added</p>
                           ) : (
-                            formData.includedItemsText.map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 group">
-                                <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                <Input 
-                                  value={item} 
-                                  onChange={(e) => updateIncludedItem(i, e.target.value)}
-                                  className="flex-1 bg-background border-border text-foreground h-9" 
-                                  placeholder="e.g., Flower arrangements, Stage lighting"
-                                  autoFocus={item === ''}
-                                />
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  onClick={() => removeIncludedItem(i)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                                >
-                                  <X className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            ))
+                            <>
+                              {formData.includedItemsText.map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border border-green-500/30">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                  <span className="flex-1 text-sm text-foreground">{item}</span>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => removeIncludedItem(i)}
+                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    title="Remove"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))}
+                              {/* Draft input */}
+                              {showIncludedItemInput && (
+                                <div className="flex items-center gap-2 p-2 rounded bg-background border-2 border-primary">
+                                  <CheckCircle2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <Input 
+                                    value={draftIncludedItem} 
+                                    onChange={(e) => setDraftIncludedItem(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && draftIncludedItem.trim()) {
+                                        e.preventDefault();
+                                        saveIncludedItem();
+                                      } else if (e.key === 'Escape') {
+                                        e.preventDefault();
+                                        cancelIncludedItem();
+                                      }
+                                    }}
+                                    className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                    placeholder="e.g., Flower arrangements, Stage lighting"
+                                    autoFocus
+                                  />
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={saveIncludedItem}
+                                    disabled={!draftIncludedItem.trim()}
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
+                                    title="Save (Enter)"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={cancelIncludedItem}
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    title="Cancel (Esc)"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </>
                           )}
-                          <Button size="sm" variant="outline" onClick={addIncludedItem} className="w-full border-dashed">
-                            <Plus className="h-4 w-4 mr-2" /> Add Custom Inclusion
-                          </Button>
+                          {!showIncludedItemInput && (
+                            <Button size="sm" variant="outline" onClick={addIncludedItem} className="w-full border-dashed">
+                              <Plus className="h-4 w-4 mr-2" /> Add Custom Inclusion
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -1248,41 +1442,82 @@ export default function VendorListings() {
                         <div className="flex items-center gap-2">
                           <X className="h-4 w-4 text-red-500" />
                           <Label className="text-foreground">What's Not Included</Label>
-                          {formData.excludedItemsText.filter(i => i.trim()).length > 0 && (
+                          {formData.excludedItemsText.length > 0 && (
                             <Badge variant="outline" className="text-xs text-red-600 border-red-500/30">
-                              {formData.excludedItemsText.filter(i => i.trim()).length}
+                              {formData.excludedItemsText.length}
                             </Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">Clarify what's NOT part of this package</p>
                         <div className="space-y-2 p-3 border border-red-500/20 rounded-lg bg-red-500/5">
-                          {formData.excludedItemsText.length === 0 ? (
+                          {/* Show saved items */}
+                          {formData.excludedItemsText.length === 0 && !showExcludedItemInput ? (
                             <p className="text-sm text-muted-foreground italic text-center py-2">No exclusions added</p>
                           ) : (
-                            formData.excludedItemsText.map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 group">
-                                <X className="h-4 w-4 text-red-500 flex-shrink-0" />
-                                <Input 
-                                  value={item} 
-                                  onChange={(e) => updateExcludedItem(i, e.target.value)}
-                                  className="flex-1 bg-background border-border text-foreground h-9" 
-                                  placeholder="e.g., Transportation, Food"
-                                  autoFocus={item === ''}
-                                />
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  onClick={() => removeExcludedItem(i)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                                >
-                                  <X className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            ))
+                            <>
+                              {formData.excludedItemsText.map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border border-red-500/30">
+                                  <X className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <span className="flex-1 text-sm text-foreground">{item}</span>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => removeExcludedItem(i)}
+                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    title="Remove"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))}
+                              {/* Draft input */}
+                              {showExcludedItemInput && (
+                                <div className="flex items-center gap-2 p-2 rounded bg-background border-2 border-primary">
+                                  <X className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <Input 
+                                    value={draftExcludedItem} 
+                                    onChange={(e) => setDraftExcludedItem(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && draftExcludedItem.trim()) {
+                                        e.preventDefault();
+                                        saveExcludedItem();
+                                      } else if (e.key === 'Escape') {
+                                        e.preventDefault();
+                                        cancelExcludedItem();
+                                      }
+                                    }}
+                                    className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                    placeholder="e.g., Transportation, Food"
+                                    autoFocus
+                                  />
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={saveExcludedItem}
+                                    disabled={!draftExcludedItem.trim()}
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
+                                    title="Save (Enter)"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={cancelExcludedItem}
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    title="Cancel (Esc)"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </>
                           )}
-                          <Button size="sm" variant="outline" onClick={addExcludedItem} className="w-full border-dashed">
-                            <Plus className="h-4 w-4 mr-2" /> Add Exclusion
-                          </Button>
+                          {!showExcludedItemInput && (
+                            <Button size="sm" variant="outline" onClick={addExcludedItem} className="w-full border-dashed">
+                              <Plus className="h-4 w-4 mr-2" /> Add Exclusion
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </>
@@ -1313,17 +1548,6 @@ export default function VendorListings() {
                     </>
                   )}
 
-                  {/* Delivery Time */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Delivery / Service Time</Label>
-                    <Input
-                      value={formData.deliveryTime}
-                      onChange={(e) => setFormData({ ...formData, deliveryTime: e.target.value })}
-                      className="bg-background border-border text-foreground"
-                      placeholder="e.g., 1 day before event, 2-3 weeks"
-                    />
-                  </div>
-
                   {/* Extra Charges with Pricing */}
                   <div className="space-y-2">
                     <Label className="text-foreground flex items-center gap-2">
@@ -1332,43 +1556,98 @@ export default function VendorListings() {
                     </Label>
                     <p className="text-xs text-muted-foreground">Optional add-ons with pricing that customers can select</p>
                     <div className="space-y-2 p-3 border border-border rounded-lg bg-orange-500/5">
-                      {formData.extraChargesDetailed.length === 0 ? (
+                      {/* Show saved charges */}
+                      {formData.extraChargesDetailed.length === 0 && !showExtraChargeInput ? (
                         <p className="text-sm text-muted-foreground italic">No extra charges added yet</p>
                       ) : (
-                        formData.extraChargesDetailed.map((charge, i) => (
-                          <div key={i} className="flex items-center gap-2 group p-2 rounded-lg bg-background border border-border">
-                            <span className="text-orange-500 font-bold">+</span>
-                            <Input 
-                              value={charge.name} 
-                              onChange={(e) => updateExtraCharge(i, 'name', e.target.value)}
-                              className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                              placeholder="e.g., Additional lighting"
-                              autoFocus={charge.name === ''}
-                            />
-                            <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted">
-                              <span className="text-muted-foreground text-sm">₹</span>
-                              <Input 
-                                type="number"
-                                value={charge.price} 
-                                onChange={(e) => updateExtraCharge(i, 'price', e.target.value)}
-                                className="w-24 bg-transparent border-0 h-7 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-medium" 
-                                placeholder="10000"
-                              />
+                        <>
+                          {formData.extraChargesDetailed.map((charge, i) => (
+                            <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-background border border-orange-500/30">
+                              <span className="text-orange-500 font-bold">+</span>
+                              <span className="flex-1 text-sm text-foreground">{charge.name}</span>
+                              <span className="text-sm font-semibold text-foreground">₹{Number(charge.price).toLocaleString('en-IN')}</span>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => removeExtraCharge(i)}
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                title="Remove"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => removeExtraCharge(i)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))
+                          ))}
+                          {/* Draft input */}
+                          {showExtraChargeInput && (
+                            <div className="flex items-center gap-2 p-2 rounded-lg bg-background border-2 border-primary">
+                              <span className="text-muted-foreground font-bold">+</span>
+                              <Input 
+                                value={draftExtraCharge.name} 
+                                onChange={(e) => setDraftExtraCharge({ ...draftExtraCharge, name: e.target.value })}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    // Move to price input
+                                    const priceInput = e.currentTarget.parentElement?.querySelector('input[type="number"]');
+                                    if (priceInput) {
+                                      (priceInput as HTMLInputElement).focus();
+                                    }
+                                  } else if (e.key === 'Escape') {
+                                    e.preventDefault();
+                                    cancelExtraCharge();
+                                  }
+                                }}
+                                className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                placeholder="e.g., Additional lighting"
+                                autoFocus
+                              />
+                              <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted">
+                                <span className="text-muted-foreground text-sm">₹</span>
+                                <Input 
+                                  type="number"
+                                  value={draftExtraCharge.price} 
+                                  onChange={(e) => setDraftExtraCharge({ ...draftExtraCharge, price: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && draftExtraCharge.name.trim() && draftExtraCharge.price) {
+                                      e.preventDefault();
+                                      saveExtraCharge();
+                                    } else if (e.key === 'Escape') {
+                                      e.preventDefault();
+                                      cancelExtraCharge();
+                                    }
+                                  }}
+                                  className="w-24 bg-transparent border-0 h-7 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-medium" 
+                                  placeholder="10000"
+                                />
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={saveExtraCharge}
+                                disabled={!draftExtraCharge.name.trim() || !draftExtraCharge.price}
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
+                                title="Save (Enter)"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={cancelExtraCharge}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                title="Cancel (Esc)"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </>
                       )}
-                      <Button size="sm" variant="outline" onClick={addExtraCharge} className="mt-2">
-                        <Plus className="h-4 w-4 mr-2" /> Add Extra Charge
-                      </Button>
+                      {!showExtraChargeInput && (
+                        <Button size="sm" variant="outline" onClick={addExtraCharge} className="mt-2 w-full border-dashed">
+                          <Plus className="h-4 w-4 mr-2" /> Add Extra Charge
+                        </Button>
+                      )}
                     </div>
                   </div>
 
