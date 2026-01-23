@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight } from 'lucide-react';
+import { ArrowRight, Building2, MapPin, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
@@ -10,33 +10,57 @@ interface CompleteProfilePromptProps {
 }
 
 export default function CompleteProfilePrompt({ 
-  title = "Complete Your Profile First",
-  description = "You need to complete your vendor profile to access this feature.",
+  title = "Complete Your Profile to Get Started",
+  description,
   featureName = "this feature"
 }: CompleteProfilePromptProps) {
   const navigate = useNavigate();
+  
+  const defaultDescription = `Set up your vendor profile to access ${featureName}.`;
 
   return (
     <div className="flex items-center justify-center min-h-[400px] p-6">
-      <Card className="max-w-md w-full border-yellow-500/50 bg-yellow-500/5">
-        <CardContent className="p-8 text-center space-y-6">
-          <div className="w-16 h-16 mx-auto rounded-full bg-yellow-500/20 flex items-center justify-center">
-            <AlertCircle className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-foreground">
-              {title}
-            </h3>
-            <p className="text-muted-foreground">
-              {description}
-            </p>
+      <Card className="max-w-md w-full border-primary/20 shadow-elegant overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#5950b3] to-[#7867dc] px-6 py-5 text-center">
+          <h3 className="text-xl font-bold text-white">
+            {title}
+          </h3>
+          <p className="text-white/80 text-sm mt-1">
+            {description || defaultDescription}
+          </p>
+        </div>
+        
+        <CardContent className="p-6 space-y-6">
+          {/* Required Steps */}
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-muted-foreground">You need to complete:</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Business Name</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <MapPin className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm font-medium">City</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Briefcase className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm font-medium">Service Category</span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">
             <Button
-              onClick={() => navigate('/vendor/onboarding')}
-              className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
+              onClick={() => navigate('/vendor/profile')}
+              className="w-full h-12 bg-gradient-to-r from-[#5950b3] to-[#7867dc] hover:from-[#4a42a0] hover:to-[#6858c8] text-white font-semibold"
               size="lg"
             >
               Complete Profile Now
@@ -52,8 +76,8 @@ export default function CompleteProfilePrompt({
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            It only takes 2 minutes to set up your profile
+          <p className="text-center text-xs text-muted-foreground">
+            Takes less than a minute to complete
           </p>
         </CardContent>
       </Card>

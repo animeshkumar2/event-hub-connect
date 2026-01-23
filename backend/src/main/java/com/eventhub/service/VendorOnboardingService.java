@@ -69,6 +69,20 @@ public class VendorOnboardingService {
         vendor.setRating(java.math.BigDecimal.ZERO);
         vendor.setReviewCount(0);
         
+        // Set location fields
+        if (request.getLocationName() != null && !request.getLocationName().trim().isEmpty()) {
+            vendor.setLocationName(request.getLocationName());
+        }
+        if (request.getLocationLat() != null && request.getLocationLng() != null) {
+            vendor.setLocationLat(request.getLocationLat());
+            vendor.setLocationLng(request.getLocationLng());
+        }
+        if (request.getServiceRadiusKm() != null) {
+            vendor.setServiceRadiusKm(request.getServiceRadiusKm());
+        } else {
+            vendor.setServiceRadiusKm(25); // Default 25 km
+        }
+        
         // Set cover image if provided
         if (request.getImages() != null && !request.getImages().isEmpty()) {
             vendor.setCoverImage(request.getImages().get(0));

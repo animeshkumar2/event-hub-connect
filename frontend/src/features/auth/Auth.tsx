@@ -243,21 +243,14 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         // Navigate based on user type
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         const userRole = localStorage.getItem('user_role') || userData.role;
-        const vendorId = localStorage.getItem('vendor_id');
-        const onboardingSkipped = localStorage.getItem('onboarding_skipped');
         
         if (userRole === 'ADMIN') {
           setLoadingMessage("Redirecting to admin dashboard...");
           navigate('/admin/dashboard');
         } else if (isVendor || userRole === 'VENDOR' || userData.role === 'VENDOR') {
-          // Check if vendor has completed onboarding or skipped it
-          if (!vendorId && !onboardingSkipped) {
-            setLoadingMessage("Setting up your profile...");
-            navigate("/vendor/onboarding");
-          } else {
-            setLoadingMessage("Redirecting to dashboard...");
-            navigate("/vendor/dashboard");
-          }
+          // Go directly to profile page to complete mandatory fields
+          setLoadingMessage("Setting up your profile...");
+          navigate("/vendor/profile");
         } else {
           // Customer
           setLoadingMessage("Redirecting...");
@@ -292,19 +285,18 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
           const userRole = localStorage.getItem('user_role') || userData.role;
           const vendorId = localStorage.getItem('vendor_id');
-          const onboardingSkipped = localStorage.getItem('onboarding_skipped');
           
           if (userRole === 'ADMIN') {
             setLoadingMessage("Redirecting to admin dashboard...");
             navigate('/admin/dashboard');
           } else if (userRole === 'VENDOR' || userData.role === 'VENDOR') {
-            // Check if vendor has completed onboarding or skipped it
-            if (!vendorId && !onboardingSkipped) {
-              setLoadingMessage("Setting up your profile...");
-              navigate("/vendor/onboarding");
-            } else {
+            // If vendor has profile, go to dashboard; otherwise go to profile to set up
+            if (vendorId) {
               setLoadingMessage("Redirecting to dashboard...");
               navigate('/vendor/dashboard');
+            } else {
+              setLoadingMessage("Setting up your profile...");
+              navigate('/vendor/profile');
             }
           } else {
             // Customer or default
@@ -384,19 +376,18 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
         const userRole = localStorage.getItem('user_role') || userData.role;
         const vendorId = localStorage.getItem('vendor_id');
-        const onboardingSkipped = localStorage.getItem('onboarding_skipped');
         
         if (userRole === 'ADMIN') {
           setLoadingMessage("Redirecting to admin dashboard...");
           navigate('/admin/dashboard');
         } else if (isVendor || userRole === 'VENDOR' || userData.role === 'VENDOR') {
-          // Check if vendor has completed onboarding or skipped it
-          if (!vendorId && !onboardingSkipped) {
-            setLoadingMessage("Setting up your profile...");
-            navigate("/vendor/onboarding");
-          } else {
+          // If vendor has profile, go to dashboard; otherwise go to profile to set up
+          if (vendorId) {
             setLoadingMessage("Redirecting to dashboard...");
             navigate('/vendor/dashboard');
+          } else {
+            setLoadingMessage("Setting up your profile...");
+            navigate('/vendor/profile');
           }
         } else {
           // Customer

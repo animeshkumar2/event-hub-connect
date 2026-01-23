@@ -18,19 +18,27 @@ import {
   Star,
   Bell,
   AlertCircle,
-  Loader2
+  Loader2,
+  CheckCircle,
+  ArrowRight,
+  User,
+  MapPin,
+  ImagePlus,
+  Edit3,
+  Phone
 } from 'lucide-react';
+import { Progress } from '@/shared/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import { useVendorDashboardData } from '@/shared/hooks/useApi';
 import { format } from 'date-fns';
 import { useMemo } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
+import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/useVendorProfile';
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isComplete: profileComplete } = useVendorProfile();
+  const { isComplete: profileComplete, completionPercentage, missingFields, canCreateListing } = useVendorProfileCompletion();
   
   // Fetch real data in parallel using optimized hook
   const { stats, profile, upcomingOrders, leads, listings, loading: dataLoading } = useVendorDashboardData();
@@ -181,27 +189,95 @@ export default function VendorDashboard() {
   return (
     <VendorLayout>
       <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
-        {/* Profile Completion Banner - Show if vendor hasn't completed onboarding */}
+        {/* Profile Completion Banner - Show if vendor hasn't completed profile */}
         {!profileComplete && (
-          <Card className="border-yellow-500/50 bg-yellow-500/5">
+          <Card className="border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10 overflow-hidden">
             <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 space-y-2">
-                  <div>
-                    <p className="font-semibold text-yellow-800 dark:text-yellow-200">
-                      Complete Your Profile to Start Receiving Leads
-                    </p>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                      Add your business details, services, and contact information to make your profile visible to customers and start receiving bookings.
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                {/* Left: Progress Info */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-amber-500/20 flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg text-foreground">
+                        Complete Your Profile to Start Receiving Leads
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Customers can't find you until your profile is at least 50% complete. Let's get you set up!
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Profile Completion</span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">{completionPercentage}%</span>
+                    </div>
+                    <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500 rounded-full"
+                        style={{ width: `${completionPercentage}%` }}
+                      />
+                      {/* 50% marker */}
+                      <div className="absolute top-0 bottom-0 w-0.5 bg-foreground/30" style={{ left: '50%' }} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {completionPercentage < 50 
+                        ? `Need ${50 - completionPercentage}% more to unlock listings` 
+                        : '✓ You can now create listings!'}
                     </p>
                   </div>
+                </div>
+
+                {/* Right: Missing Items & CTA */}
+                <div className="lg:w-80 space-y-3">
+                  {/* What's Missing */}
+                  {missingFields.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">What's Missing:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {missingFields.slice(0, 4).map((field) => {
+                          const fieldConfig: Record<string, { icon: any; label: string }> = {
+                            businessName: { icon: User, label: 'Business Name' },
+                            profileImage: { icon: User, label: 'Profile Photo' },
+                            bio: { icon: Edit3, label: 'Bio' },
+                            portfolioImages: { icon: ImagePlus, label: 'Portfolio' },
+                            location: { icon: MapPin, label: 'Location' },
+                            contact: { icon: Phone, label: 'Contact Info' },
+                            categoryId: { icon: Package, label: 'Category' },
+                            cityName: { icon: MapPin, label: 'City' },
+                          };
+                          const config = fieldConfig[field] || { icon: AlertCircle, label: field };
+                          const Icon = config.icon;
+                          return (
+                            <span 
+                              key={field}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/80 border border-border text-xs text-muted-foreground"
+                            >
+                              <Icon className="h-3 w-3" />
+                              {config.label}
+                            </span>
+                          );
+                        })}
+                        {missingFields.length > 4 && (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-background/80 border border-border text-xs text-muted-foreground">
+                            +{missingFields.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* CTA Button */}
                   <Button
-                    onClick={() => navigate('/vendor/onboarding')}
-                    size="sm"
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    onClick={() => navigate('/vendor/profile')}
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg"
                   >
                     Complete Profile Now
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               </div>

@@ -22,7 +22,7 @@ public class PublicListingController {
     
     @GetMapping("/packages/{packageId}")
     public ResponseEntity<ApiResponse<ListingDTO>> getPackage(@PathVariable UUID packageId) {
-        Listing listing = listingRepository.findById(packageId)
+        Listing listing = listingRepository.findByIdWithRelationships(packageId)
                 .orElseThrow(() -> new NotFoundException("Package not found"));
         
         // Prevent access to drafts on customer side
@@ -39,7 +39,7 @@ public class PublicListingController {
     
     @GetMapping("/listings/{listingId}")
     public ResponseEntity<ApiResponse<ListingDTO>> getListing(@PathVariable UUID listingId) {
-        Listing listing = listingRepository.findById(listingId)
+        Listing listing = listingRepository.findByIdWithRelationships(listingId)
                 .orElseThrow(() -> new NotFoundException("Listing not found"));
         
         // Prevent access to drafts on customer side

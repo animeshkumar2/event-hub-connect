@@ -18,7 +18,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import { Search as SearchIcon, SlidersHorizontal, ChevronLeft, ChevronRight, AlertCircle, Loader2, X, Calendar } from "lucide-react";
+import { Search as SearchIcon, SlidersHorizontal, ChevronLeft, ChevronRight, AlertCircle, Loader2, X, Calendar, MapPin, Navigation } from "lucide-react";
 import { useSearchListings, useSearchVendors, useEventTypes, useCategories, useCities, useEventTypeCategories } from "@/shared/hooks/useApi";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/shared/components/ui/calendar";
@@ -27,6 +27,8 @@ import { publicApi } from "@/shared/services/api";
 import { cn } from "@/shared/lib/utils";
 import { useCart } from "@/shared/contexts/CartContext";
 import { useToast } from "@/shared/hooks/use-toast";
+import { LocationAutocomplete, LocationDTO } from "@/shared/components/LocationAutocomplete";
+import { RadiusSlider, CUSTOMER_RADIUS_OPTIONS } from "@/shared/components/RadiusSlider";
 
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,6 +57,10 @@ const Search = () => {
   const [minBudget, setMinBudget] = useState<string>(searchParams.get('minBudget') || '');
   const [maxBudget, setMaxBudget] = useState<string>(searchParams.get('maxBudget') || '');
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'relevance');
+  
+  // Location filter state
+  const [customerLocation, setCustomerLocation] = useState<LocationDTO | null>(null);
+  const [searchRadiusKm, setSearchRadiusKm] = useState<number>(20);
 
   // Sync filter changes to URL params (debounced to avoid too many updates)
   // Reset page when filters change
@@ -384,6 +390,9 @@ const Search = () => {
     minBudget: minBudget ? parseFloat(minBudget) : undefined,
     maxBudget: maxBudget ? parseFloat(maxBudget) : undefined,
     sortBy: sortBy,
+    customerLat: customerLocation?.latitude,
+    customerLng: customerLocation?.longitude,
+    searchRadiusKm: customerLocation ? searchRadiusKm : undefined,
   }, canFetchSearchData && showVendors); // Enable if we can fetch AND showing vendors
 
   const [page, setPage] = useState(0);
@@ -414,6 +423,9 @@ const Search = () => {
     sortBy: sortBy,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
+    customerLat: customerLocation?.latitude,
+    customerLng: customerLocation?.longitude,
+    searchRadiusKm: customerLocation ? searchRadiusKm : undefined,
   }, canFetchSearchData && !showVendors); // Enable if we can fetch AND showing listings
   
   // Reset switching state when data loads
@@ -896,9 +908,9 @@ const Search = () => {
           >
             <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
             Filters
-            {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget || selectedCategory !== 'all') && (
+            {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget || selectedCategory !== 'all' || customerLocation) && (
               <Badge variant="secondary" className="ml-2 h-4 px-1.5 text-[10px]">
-                {[selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget, selectedCategory !== 'all' ? selectedCategory : null].filter(Boolean).length}
+                {[selectedCity, selectedEventTypeFilter, eventDate, minBudget, maxBudget, selectedCategory !== 'all' ? selectedCategory : null, customerLocation].filter(Boolean).length}
               </Badge>
             )}
           </Button>
@@ -922,7 +934,7 @@ const Search = () => {
           </Select>
 
           {/* Clear Filters Button */}
-          {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget || selectedCategory !== 'all') && (
+          {(selectedCity || selectedEventTypeFilter || eventDate || minBudget || maxBudget || selectedCategory !== 'all' || customerLocation) && (
             <Button
               variant="ghost"
               size="sm"
@@ -933,6 +945,8 @@ const Search = () => {
                 setEventDate(undefined);
                 setMinBudget('');
                 setMaxBudget('');
+                setCustomerLocation(null);
+                setSearchRadiusKm(20);
                 // Reset page to 0 to reload from beginning
                 setPage(0);
                 setAccumulatedListings([]);
@@ -1110,6 +1124,61 @@ const Search = () => {
                     />
                   </div>
                 </div>
+              </div>
+              
+              {/* Location Filter Section */}
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Navigation className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-medium">Search by Location</Label>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <LocationAutocomplete
+                    value={customerLocation}
+                    onChange={(loc) => {
+                      setCustomerLocation(loc);
+                      // Reset pagination when location changes
+                      setPage(0);
+                      setAccumulatedListings([]);
+                    }}
+                    placeholder="Enter your event location"
+                    label="Your Location"
+                  />
+                  {customerLocation && (
+                    <RadiusSlider
+                      value={searchRadiusKm}
+                      onChange={(radius) => {
+                        setSearchRadiusKm(radius);
+                        // Reset pagination when radius changes
+                        setPage(0);
+                        setAccumulatedListings([]);
+                      }}
+                      options={CUSTOMER_RADIUS_OPTIONS}
+                      label="Search Radius"
+                    />
+                  )}
+                </div>
+                {customerLocation && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {customerLocation.name} • {searchRadiusKm} km radius
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setCustomerLocation(null);
+                        setPage(0);
+                        setAccumulatedListings([]);
+                      }}
+                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Clear location
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

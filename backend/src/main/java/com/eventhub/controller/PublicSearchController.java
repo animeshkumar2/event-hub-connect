@@ -5,6 +5,7 @@ import com.eventhub.dto.ListingDTO;
 import com.eventhub.dto.VendorDTO;
 import com.eventhub.model.Listing;
 import com.eventhub.model.Vendor;
+import com.eventhub.service.DistanceService;
 import com.eventhub.service.SearchService;
 import com.eventhub.util.ListingMapper;
 import com.eventhub.util.VendorMapper;
@@ -23,6 +24,7 @@ public class PublicSearchController {
     private final SearchService searchService;
     private final ListingMapper listingMapper;
     private final VendorMapper vendorMapper;
+    private final DistanceService distanceService;
     
     @GetMapping("/listings")
     public ResponseEntity<ApiResponse<List<ListingDTO>>> searchListings(
@@ -36,16 +38,30 @@ public class PublicSearchController {
             @RequestParam(required = false) String eventDate,
             @RequestParam(required = false, defaultValue = "relevance") String sortBy,
             @RequestParam(required = false, defaultValue = "12") Integer limit,
-            @RequestParam(required = false, defaultValue = "0") Integer offset) {
+            @RequestParam(required = false, defaultValue = "0") Integer offset,
+            // Location parameters
+            @RequestParam(required = false) BigDecimal customerLat,
+            @RequestParam(required = false) BigDecimal customerLng,
+            @RequestParam(required = false) Integer searchRadiusKm) {
         
         Listing.ListingType type = listingType != null && listingType.equals("packages") 
                 ? Listing.ListingType.PACKAGE 
                 : null;
         
-        List<Listing> listings = searchService.searchListings(
-                eventType, category, type, city, minBudget, maxBudget, q, eventDate, sortBy, limit, offset);
+        List<Listing> listings;
         
-        List<ListingDTO> listingDTOs = listingMapper.toDTOList(listings);
+        // Use location-aware search if location is provided
+        if (customerLat != null && customerLng != null) {
+            listings = searchService.searchListingsWithLocation(
+                    eventType, category, type, city, minBudget, maxBudget, q, eventDate, sortBy, limit, offset,
+                    customerLat, customerLng, searchRadiusKm);
+        } else {
+            listings = searchService.searchListings(
+                    eventType, category, type, city, minBudget, maxBudget, q, eventDate, sortBy, limit, offset);
+        }
+        
+        // Map to DTOs with distance calculation
+        List<ListingDTO> listingDTOs = listingMapper.toDTOListWithDistance(listings, customerLat, customerLng, distanceService);
         
         return ResponseEntity.ok(ApiResponse.success(listingDTOs));
     }
@@ -61,10 +77,27 @@ public class PublicSearchController {
             @RequestParam(required = false) String eventDate,
             @RequestParam(required = false, defaultValue = "relevance") String sortBy,
             @RequestParam(required = false, defaultValue = "12") Integer limit,
-            @RequestParam(required = false, defaultValue = "0") Integer offset) {
+            @RequestParam(required = false, defaultValue = "0") Integer offset,
+            // Location parameters
+            @RequestParam(required = false) BigDecimal customerLat,
+            @RequestParam(required = false) BigDecimal customerLng,
+            @RequestParam(required = false) Integer searchRadiusKm) {
         
-        List<Vendor> vendors = searchService.searchVendors(category, city, minBudget, maxBudget, q, eventType, eventDate, sortBy, limit, offset);
-        List<VendorDTO> vendorDTOs = vendorMapper.toDTOList(vendors);
+        List<Vendor> vendors;
+        
+        // Use location-aware search if location is provided
+        if (customerLat != null && customerLng != null) {
+            vendors = searchService.searchVendorsWithLocation(
+                    category, city, minBudget, maxBudget, q, eventType, eventDate, sortBy, limit, offset,
+                    customerLat, customerLng, searchRadiusKm);
+        } else {
+            vendors = searchService.searchVendors(
+                    category, city, minBudget, maxBudget, q, eventType, eventDate, sortBy, limit, offset);
+        }
+        
+        // Map to DTOs with distance calculation
+        List<VendorDTO> vendorDTOs = vendorMapper.toDTOListWithDistance(vendors, customerLat, customerLng, distanceService);
+        
         return ResponseEntity.ok(ApiResponse.success(vendorDTOs));
     }
 }

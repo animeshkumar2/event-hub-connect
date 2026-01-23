@@ -22,9 +22,17 @@ public class VendorDTO {
     private Integer reviewCount;
     private BigDecimal startingPrice;
     private String coverImage;
+    private String profileImage;
     private List<String> portfolioImages;
     private Integer coverageRadius;
     private Boolean isVerified;
+    
+    // Location System Fields
+    private String locationName;
+    private BigDecimal locationLat;
+    private BigDecimal locationLng;
+    private Integer serviceRadiusKm;
+    private Double distanceKm; // Calculated distance from customer (for search results)
 }
 
 

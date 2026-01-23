@@ -394,6 +394,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.isVendor) {
           sessionStorage.setItem('vendorSignupData', JSON.stringify({
             email: userEmail,
+            fullName: data.fullName,
+            phone: data.phone,
           }));
         }
       } else {

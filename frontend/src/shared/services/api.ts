@@ -354,6 +354,14 @@ export const publicApi = {
   // Stats
   getStats: () => apiClient.get<any>('/public/stats'),
   
+  // Geocoding
+  autocompleteLocation: (query: string, limit = 5) =>
+    apiClient.get<any[]>(`/public/geocoding/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`),
+  geocodeLocation: (query: string) =>
+    apiClient.get<any>(`/public/geocoding/geocode?q=${encodeURIComponent(query)}`),
+  reverseGeocode: (lat: number, lng: number) =>
+    apiClient.get<any>(`/public/geocoding/reverse?lat=${lat}&lng=${lng}`),
+  
   // Search
   searchListings: (params: {
     eventType?: number;
@@ -367,6 +375,9 @@ export const publicApi = {
     sortBy?: string;
     limit?: number;
     offset?: number;
+    customerLat?: number;
+    customerLng?: number;
+    searchRadiusKm?: number;
   }) => {
     const queryParams = new URLSearchParams();
     if (params.eventType) queryParams.append('eventType', params.eventType.toString());
@@ -380,6 +391,9 @@ export const publicApi = {
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.offset) queryParams.append('offset', params.offset.toString());
+    if (params.customerLat) queryParams.append('customerLat', params.customerLat.toString());
+    if (params.customerLng) queryParams.append('customerLng', params.customerLng.toString());
+    if (params.searchRadiusKm) queryParams.append('searchRadiusKm', params.searchRadiusKm.toString());
     
     return apiClient.get<any[]>(`/public/search/listings?${queryParams.toString()}`);
   },
@@ -393,6 +407,9 @@ export const publicApi = {
     eventType?: number;
     eventDate?: string;
     sortBy?: string;
+    customerLat?: number;
+    customerLng?: number;
+    searchRadiusKm?: number;
   }) => {
     const queryParams = new URLSearchParams();
     if (params.category) queryParams.append('category', params.category);
@@ -403,6 +420,9 @@ export const publicApi = {
     if (params.eventType) queryParams.append('eventType', params.eventType.toString());
     if (params.eventDate) queryParams.append('eventDate', params.eventDate);
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.customerLat) queryParams.append('customerLat', params.customerLat.toString());
+    if (params.customerLng) queryParams.append('customerLng', params.customerLng.toString());
+    if (params.searchRadiusKm) queryParams.append('searchRadiusKm', params.searchRadiusKm.toString());
     
     return apiClient.get<any[]>(`/public/search/vendors?${queryParams.toString()}`);
   },
@@ -520,6 +540,11 @@ export const vendorApi = {
   getProfile: () => apiClient.get<any>('/vendors/profile'),
   updateProfile: (data: any) => apiClient.put<any>('/vendors/profile', data),
   getVendorByUserId: (userId: string) => apiClient.get<any>(`/vendors/by-user/${userId}`),
+  
+  // Location
+  getLocation: () => apiClient.get<any>('/vendors/location'),
+  updateLocation: (data: { locationName: string; latitude: number; longitude: number; serviceRadiusKm: number }) =>
+    apiClient.put<any>('/vendors/location', data),
   
   // Listings
   getListings: () => apiClient.get<any[]>('/vendors/listings'),

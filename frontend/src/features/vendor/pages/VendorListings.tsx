@@ -35,7 +35,8 @@ import {
   Sparkles,
   Music,
   Lightbulb,
-  Tag
+  Tag,
+  Navigation
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -47,10 +48,11 @@ import { vendorApi } from '@/shared/services/api';
 import { useResponsiveCardLimit } from '@/shared/hooks/useResponsiveCardLimit';
 import { ListingCard } from '@/features/vendor/components/ListingCard';
 import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
-import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
+import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/useVendorProfile';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { InlineError } from '@/shared/components/InlineError';
+import { ServiceModeSelector, ServiceMode, getServiceModeLabel } from '@/shared/components/ServiceModeSelector';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -102,7 +104,7 @@ export default function VendorListings() {
   const { data: eventTypeCategoriesData } = useEventTypeCategories();
   
   // Check if vendor profile is complete (MUST be after all other hooks)
-  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
+  const { isComplete: profileComplete, isLoading: profileLoading, canCreateListing, completionPercentage, missingFields } = useVendorProfileCompletion();
   
   const listingsData = listings.data;
   const listingsLoading = listings.loading || dataLoading;
@@ -180,6 +182,7 @@ export default function VendorListings() {
     extraCharges: [] as string[],
     unit: '',
     minimumQuantity: 1,
+    serviceMode: 'BOTH' as ServiceMode,
   };
 
   // Form state
@@ -349,6 +352,7 @@ export default function VendorListings() {
         extraCharges: editingListing.extraCharges || [],
         unit: editingListing.unit || '',
         minimumQuantity: editingListing.minimumQuantity || 1,
+        serviceMode: editingListing.serviceMode || 'BOTH',
       });
       setListingType(editingListing.type || 'PACKAGE');
       // Expand all sections when editing
@@ -385,6 +389,7 @@ export default function VendorListings() {
         extraCharges: [],
         unit: '',
         minimumQuantity: 1,
+        serviceMode: 'BOTH',
       });
       setListingType('PACKAGE');
     }
@@ -479,6 +484,7 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
+        serviceMode: formData.serviceMode, // Location system
       };
 
       if (listingType === 'PACKAGE') {
@@ -524,6 +530,26 @@ export default function VendorListings() {
 
   const handleDelete = async (listing: any) => {
     setDeleteDialog({ open: true, listing });
+  };
+
+  // Handler to check profile completion before creating listing
+  const handleCreateListing = (type?: 'PACKAGE' | 'ITEM') => {
+    if (!canCreateListing) {
+      toast.error(
+        'Please complete your profile setup first (Business Name, Category, City)',
+        {
+          action: {
+            label: 'Complete Profile',
+            onClick: () => navigate('/vendor/profile'),
+          },
+        }
+      );
+      return;
+    }
+    if (type) {
+      setListingType(type);
+    }
+    setShowCreateModal(true);
   };
 
   const confirmDelete = async () => {
@@ -683,6 +709,7 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: false, // Drafts should NOT be visible to customers
         isDraft: true, // Mark as draft
+        serviceMode: formData.serviceMode, // Location system
       };
 
       if (listingType === 'PACKAGE') {
@@ -812,7 +839,7 @@ export default function VendorListings() {
             {/* Add Listing Button - Desktop */}
             <Button 
               className="hidden sm:flex bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => handleCreateListing()}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Listing
             </Button>
@@ -849,7 +876,7 @@ export default function VendorListings() {
             {/* Add Listing Button - Mobile */}
             <Button 
               className="sm:hidden w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => handleCreateListing()}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Listing
             </Button>
@@ -1042,6 +1069,21 @@ export default function VendorListings() {
                     )}
                   </div>
 
+                  {/* Service Mode Section */}
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Navigation className="h-4 w-4 text-primary" />
+                      <Label className="text-foreground font-medium">Service Mode</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      How do you deliver this service? This helps customers find you based on their needs.
+                    </p>
+                    <ServiceModeSelector
+                      value={formData.serviceMode}
+                      onChange={(mode) => setFormData({ ...formData, serviceMode: mode })}
+                      label=""
+                    />
+                  </div>
 
 
                   {/* Highlights Section (for both PACKAGE and ITEM) */}
@@ -1114,7 +1156,7 @@ export default function VendorListings() {
                               onClick={() => {
                                 closeModal();
                                 setListingType('ITEM');
-                                setTimeout(() => setShowCreateModal(true), 100);
+                                setTimeout(() => handleCreateListing('ITEM'), 100);
                               }}
                             >
                               <Plus className="h-3 w-3 mr-1" /> Create Service First
@@ -1534,7 +1576,7 @@ export default function VendorListings() {
                 <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <h3 className="font-medium text-foreground mb-1">No packages yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Create your first package to offer bundled services</p>
-                <Button onClick={() => { setListingType('PACKAGE'); setShowCreateModal(true); }}>
+                <Button onClick={() => handleCreateListing('PACKAGE')}>
                   <Plus className="h-4 w-4 mr-2" /> Create Package
                 </Button>
               </CardContent>
@@ -1704,7 +1746,7 @@ export default function VendorListings() {
                 <Box className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <h3 className="font-medium text-foreground mb-1">No services yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Create individual services that can be sold separately or bundled into packages</p>
-                <Button onClick={() => { setListingType('ITEM'); setShowCreateModal(true); }}>
+                <Button onClick={() => handleCreateListing('ITEM')}>
                   <Plus className="h-4 w-4 mr-2" /> Create Service
                 </Button>
               </CardContent>

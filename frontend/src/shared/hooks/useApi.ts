@@ -125,10 +125,14 @@ export function useSearchListings(params: {
   sortBy?: string;
   limit?: number;
   offset?: number;
+  // Location System
+  customerLat?: number;
+  customerLng?: number;
+  searchRadiusKm?: number;
 }, enabled: boolean = true) {
   // Use individual params instead of JSON.stringify for better caching
   const query = useQuery({
-    queryKey: ['searchListings', params.eventType, params.category, params.listingType, params.city, params.minBudget, params.maxBudget, params.q, params.eventDate, params.sortBy, params.limit, params.offset],
+    queryKey: ['searchListings', params.eventType, params.category, params.listingType, params.city, params.minBudget, params.maxBudget, params.q, params.eventDate, params.sortBy, params.limit, params.offset, params.customerLat, params.customerLng, params.searchRadiusKm],
     queryFn: async () => {
       const startTime = performance.now();
       const response = await publicApi.searchListings(params);
@@ -155,9 +159,13 @@ export function useSearchVendors(params: {
   eventType?: number;
   eventDate?: string;
   sortBy?: string;
+  // Location System
+  customerLat?: number;
+  customerLng?: number;
+  searchRadiusKm?: number;
 }, enabled: boolean = true) {
   const query = useQuery({
-    queryKey: ['searchVendors', params.category, params.city, params.minBudget, params.maxBudget, params.q, params.eventType, params.eventDate, params.sortBy],
+    queryKey: ['searchVendors', params.category, params.city, params.minBudget, params.maxBudget, params.q, params.eventType, params.eventDate, params.sortBy, params.customerLat, params.customerLng, params.searchRadiusKm],
     queryFn: async () => {
       const startTime = performance.now();
       const response = await publicApi.searchVendors(params);
