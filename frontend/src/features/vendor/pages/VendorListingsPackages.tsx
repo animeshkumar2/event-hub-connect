@@ -124,8 +124,8 @@ export default function VendorListingsPackages() {
   if (loading) {
     return (
       <VendorLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <BrandedLoader fullScreen={false} message="Loading packages" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Bundling your packages..." />
         </div>
       </VendorLayout>
     );

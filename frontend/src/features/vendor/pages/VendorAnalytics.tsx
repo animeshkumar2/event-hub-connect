@@ -324,8 +324,8 @@ export default function VendorAnalytics() {
   if (loading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading analytics" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Analyzing your performance..." />
         </div>
       </VendorLayout>
     );

@@ -608,13 +608,13 @@ export default function VendorProfile() {
   const vendorId = localStorage.getItem('vendor_id');
   const isNewVendor = !vendorId;
 
-  if (loading && !isNewVendor) return <VendorLayout><div className="flex items-center justify-center min-h-[calc(100vh-8rem)]"><BrandedLoader fullScreen={false} message="Loading profile" /></div></VendorLayout>;
+  if (loading && !isNewVendor) return <VendorLayout><div className="flex items-center justify-center min-h-[calc(100vh-12rem)]"><BrandedLoader fullScreen={false} message="Setting up your profile..." /></div></VendorLayout>;
   
   if (error && !isNewVendor) return <VendorLayout><InlineError title="Failed to load profile" message="We couldn't load your profile data." error={error} onRetry={() => refetch()} showHomeButton={false} /></VendorLayout>;
   
   // For new vendors, we show the profile UI with mandatory setup section
   // For existing vendors, we need profileData loaded
-  if (!profileData && !isNewVendor) return <VendorLayout><div className="flex items-center justify-center min-h-[calc(100vh-8rem)]"><BrandedLoader fullScreen={false} message="Loading profile" /></div></VendorLayout>;
+  if (!profileData && !isNewVendor) return <VendorLayout><div className="flex items-center justify-center min-h-[calc(100vh-12rem)]"><BrandedLoader fullScreen={false} message="Setting up your profile..." /></div></VendorLayout>;
 
   const isVerified = profileData?.isVerified || false;
   const categoryName = profileData?.customCategoryName || profileData?.vendorCategory?.name || profileData?.categoryName || 'Vendor';

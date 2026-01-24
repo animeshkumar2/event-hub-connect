@@ -164,8 +164,8 @@ export default function VendorDashboard() {
   if (statsLoading || profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading dashboard" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Preparing your command center..." />
         </div>
       </VendorLayout>
     );

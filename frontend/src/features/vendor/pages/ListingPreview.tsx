@@ -198,7 +198,7 @@ export default function ListingPreview() {
           </div>
         </div>
         <div className="container mx-auto px-4 py-20 flex items-center justify-center">
-          <BrandedLoader fullScreen={false} message="Loading preview" />
+          <BrandedLoader fullScreen={false} message="Preparing preview..." />
         </div>
       </div>
     );

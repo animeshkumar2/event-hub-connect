@@ -200,8 +200,8 @@ export default function VendorReviews() {
   if (reviewsLoading || statsLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading reviews" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Collecting your reviews..." />
         </div>
       </VendorLayout>
     );

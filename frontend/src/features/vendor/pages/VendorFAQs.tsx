@@ -138,8 +138,8 @@ export default function VendorFAQs() {
   if (loading || profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading FAQs" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Finding answers for you..." />
         </div>
       </VendorLayout>
     );

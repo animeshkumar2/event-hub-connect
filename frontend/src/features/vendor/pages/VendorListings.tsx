@@ -1108,8 +1108,8 @@ export default function VendorListings() {
   if (listingsLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading listings" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Gathering your listings..." />
         </div>
       </VendorLayout>
     );
@@ -1134,8 +1134,8 @@ export default function VendorListings() {
   if (profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading profile" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Setting up your profile..." />
         </div>
       </VendorLayout>
     );
@@ -1357,39 +1357,372 @@ export default function VendorListings() {
               <div className="p-2 rounded-lg bg-primary/10">
                 <Package className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="text-2xl font-semibold text-foreground">Packages</h2>
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">Packages</h2>
+                <p className="text-xs text-muted-foreground">Bundle services together</p>
+              </div>
               <Badge variant="secondary" className="ml-2">{packages.length}</Badge>
             </div>
-            {packages.length > cardLimit && (
+            <div className="flex items-center gap-2">
+              {packages.length > cardLimit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/vendor/listings/packages')}
+                  className="self-start sm:self-auto"
+                >
+                  See All {packages.length} <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
               <Button
-                variant="outline"
                 size="sm"
-                onClick={() => navigate('/vendor/listings/packages')}
-                className="self-start sm:self-auto"
+                onClick={() => handleCreateListing('PACKAGE')}
+                className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
               >
-                View All <ArrowRight className="h-4 w-4 ml-1" />
+                <Plus className="h-4 w-4 mr-1" /> Add Package
               </Button>
-            )}
+            </div>
           </div>
           {packages.length === 0 ? (
-            <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
+            <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group" onClick={() => handleCreateListing('PACKAGE')}>
               <CardContent className="p-8 text-center">
-                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-medium text-foreground mb-1">No packages yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">Create your first package to offer bundled services</p>
-                <Button onClick={() => handleCreateListing('PACKAGE')}>
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Package className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Create Your First Package</h3>
+                <p className="text-sm text-muted-foreground mb-4">Bundle multiple services together and offer them at a special price</p>
+                <Button onClick={(e) => { e.stopPropagation(); handleCreateListing('PACKAGE'); }} className="bg-gradient-to-r from-primary to-primary-glow">
                   <Plus className="h-4 w-4 mr-2" /> Create Package
                 </Button>
               </CardContent>
             </Card>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages.slice(0, cardLimit).map((listing: any) => (
+          <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {packages.slice(0, cardLimit).map((listing: any, index: number) => (
+                <Card 
+                  key={listing.id} 
+                  className="border-border overflow-hidden group hover:shadow-xl hover:border-primary/30 transition-all duration-300 bg-card"
+                >
+                  {/* Image Section */}
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    {listing.images && listing.images.length > 0 ? (
+                      <>
+                        <img
+                          src={listing.images[0]}
+                          alt={listing.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                        <Package className="h-12 w-12 text-primary/30" />
+                      </div>
+                    )}
+                    
+                    {/* Top Row: Status & Actions */}
+                    <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+                      <Badge className={`text-[11px] font-semibold px-2.5 py-1 shadow-md ${listing.isActive ? 'bg-emerald-500 text-white' : 'bg-gray-500/90 text-white'}`}>
+                        {listing.isActive ? '● Live' : '○ Inactive'}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/30 backdrop-blur-md hover:bg-black/50 border border-white/10">
+                            <MoreVertical className="h-4 w-4 text-white" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/vendor/listings/preview/${listing.id}`); }}>
+                            <Eye className="mr-2 h-4 w-4" /> Preview as Customer
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingListing(listing);
+                            setShowCreateModal(true);
+                          }}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleActive(listing); }}>
+                            {listing.isActive ? '○ Deactivate' : '● Activate'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
+                            className="text-red-600 focus:text-red-600"
+                            disabled={isDeleting === listing.id}
+                          >
+                            {isDeleting === listing.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    {/* Bottom Row: Price & Image Count */}
+                    <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                      {/* Image count */}
+                      {listing.images && listing.images.length > 1 && (
+                        <Badge variant="secondary" className="bg-black/40 text-white text-[11px] backdrop-blur-md border border-white/10">
+                          <Camera className="h-3 w-3 mr-1" /> {listing.images.length}
+                        </Badge>
+                      )}
+                      {/* Price */}
+                      <Badge className="bg-white/95 text-foreground font-bold text-lg px-3 py-1.5 shadow-lg ml-auto backdrop-blur-sm">
+                        ₹{getDisplayPrice(listing).toLocaleString('en-IN')}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Content Section */}
+                  <CardContent className="p-4 space-y-3">
+                    {/* Title */}
+                    <h3 className="text-foreground font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors">{listing.name}</h3>
+                    
+                    {/* Description */}
+                    <p className="text-muted-foreground text-sm line-clamp-2 min-h-[2.5rem]">{listing.description || 'No description'}</p>
+                    
+                    {/* Category Section */}
+                    <div className="pt-3 border-t border-border/50">
+                      {/* Category with icon - show multiple for packages with bundled items */}
+                      {listing.includedItemIds && listing.includedItemIds.length > 0 ? (() => {
+                        // Extract unique categories from bundled items
+                        const uniqueCategories = new Set<string>();
+                        listing.includedItemIds.forEach((itemId: string) => {
+                          const item = items.find((i: any) => i.id === itemId);
+                          if (item) {
+                            const categoryId = item.listingCategory?.id || item.categoryId;
+                            if (categoryId) {
+                              const categoryName = getCategoryName(categoryId) || 'Other';
+                              uniqueCategories.add(categoryName);
+                            }
+                          }
+                        });
+                        const categoryArray = Array.from(uniqueCategories);
+                        
+                        // If multiple categories, show as badges
+                        if (categoryArray.length > 1) {
+                          return (
+                            <div className="flex flex-wrap gap-1.5">
+                              {categoryArray.map((categoryName: string, index: number) => {
+                                const CategoryIcon = getCategoryIcon(categoryName);
+                                return (
+                                  <Badge 
+                                    key={index}
+                                    variant="outline"
+                                    className="text-[11px] px-2 py-0.5 bg-muted/50 text-muted-foreground border-border flex items-center gap-1"
+                                  >
+                                    <CategoryIcon className="h-3 w-3" />
+                                    {categoryName}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          );
+                        }
+                        
+                        // Single category - show as before
+                        if (categoryArray.length === 1) {
+                          const categoryName = categoryArray[0];
+                          const CategoryIcon = getCategoryIcon(categoryName);
+                          return (
+                            <div className="flex items-center gap-2">
+                              <CategoryIcon className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">{categoryName}</span>
+                            </div>
+                          );
+                        }
+                        
+                        // Fallback to listing's own category
+                        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                        const CategoryIcon = getCategoryIcon(categoryName);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <CategoryIcon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">{categoryName}</span>
+                          </div>
+                        );
+                      })() : (
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                            const CategoryIcon = getCategoryIcon(categoryName);
+                            return (
+                              <>
+                                <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                                <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      
+                      {/* Event Types as chips */}
+                      {listing.eventTypes && listing.eventTypes.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {listing.eventTypes.slice(0, 3).map((eventType: any, index: number) => {
+                            const displayText = typeof eventType === 'string' 
+                              ? eventType 
+                              : (eventType?.displayName || eventType?.name || 'Event');
+                            
+                            return (
+                              <Badge 
+                                key={index} 
+                                variant="secondary" 
+                                className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/20"
+                              >
+                                {displayText}
+                              </Badge>
+                            );
+                          })}
+                          {listing.eventTypes.length > 3 && (
+                            <Badge 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 h-5 bg-muted text-muted-foreground"
+                            >
+                              +{listing.eventTypes.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {/* Show "+X more" card if there are hidden items */}
+              {packages.length > cardLimit && (
+                <Card 
+                  className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 hover:border-primary/40 hover:shadow-xl transition-all cursor-pointer group overflow-hidden relative flex flex-col"
+                  onClick={() => navigate('/vendor/listings/packages')}
+                >
+                  {/* Main content area - matches other cards */}
+                  <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+                    {/* Decorative background circles */}
+                    <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl" />
+                    <div className="absolute -bottom-10 -left-10 w-24 h-24 rounded-full bg-primary/5 blur-xl" />
+                    
+                    {/* Stacked preview thumbnails */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="relative">
+                        {packages.slice(cardLimit, cardLimit + 3).reverse().map((pkg: any, idx: number) => (
+                          <div 
+                            key={pkg.id}
+                            className="absolute w-16 h-16 rounded-xl border-2 border-white dark:border-gray-700 shadow-xl overflow-hidden transition-transform group-hover:scale-105"
+                            style={{
+                              transform: `rotate(${(2 - idx - 1) * 12}deg)`,
+                              zIndex: idx,
+                              left: `${(2 - idx) * 8 - 32}px`,
+                              top: `${(2 - idx) * 4 - 32}px`
+                            }}
+                          >
+                            {pkg.images && pkg.images[0] ? (
+                              <img src={pkg.images[0]} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+                                <Package className="h-6 w-6 text-primary/50" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {/* Count badge overlay */}
+                        <div className="absolute -bottom-3 -right-3 w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg z-10 group-hover:scale-110 transition-transform border-2 border-white dark:border-gray-800">
+                          <span className="text-xl font-bold text-white">+{packages.length - cardLimit}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Content section - matches other cards */}
+                  <CardContent className="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-foreground font-semibold text-base group-hover:text-primary transition-colors">
+                        View All Packages
+                      </h3>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        {packages.length - cardLimit} more package{packages.length - cardLimit !== 1 ? 's' : ''} available
+                      </p>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-border/50 mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-primary/70" />
+                        <span className="text-sm font-medium text-muted-foreground">{packages.length} total</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-primary text-sm font-medium">
+                        Explore <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+          )}
+        </div>
+
+        {/* Items Section */}
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-secondary/10">
+                <Box className="h-6 w-6 text-secondary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">Individual Items</h2>
+                <p className="text-xs text-muted-foreground">Standalone services</p>
+              </div>
+              <Badge variant="secondary" className="ml-2">{items.length}</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              {items.length > cardLimit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/vendor/listings/items')}
+                  className="self-start sm:self-auto"
+                >
+                  See All {items.length} <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => handleCreateListing('ITEM')}
+                className="bg-gradient-to-r from-secondary to-amber-500 text-white hover:shadow-glow transition-all"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add Item
+              </Button>
+            </div>
+          </div>
+          {items.length === 0 ? (
+            <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5 hover:border-secondary/30 hover:bg-secondary/5 transition-all cursor-pointer group" onClick={() => handleCreateListing('ITEM')}>
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Box className="h-8 w-8 text-secondary" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Create Your First Service</h3>
+                <p className="text-sm text-muted-foreground mb-4">Add individual services that can be sold separately or bundled into packages</p>
+                <Button onClick={(e) => { e.stopPropagation(); handleCreateListing('ITEM'); }} className="bg-gradient-to-r from-secondary to-amber-500">
+                  <Plus className="h-4 w-4 mr-2" /> Create Service
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+          <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {items.slice(0, cardLimit).map((listing: any) => (
               <Card 
                 key={listing.id} 
-                className="border-border overflow-hidden group hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                className="border-border overflow-hidden group hover:shadow-xl hover:border-secondary/30 transition-all duration-300 bg-card"
               >
-                <div className="relative aspect-[16/10]">
+                {/* Image Section */}
+                <div className="relative aspect-[4/3] overflow-hidden">
                   {listing.images && listing.images.length > 0 ? (
                     <>
                       <img
@@ -1397,21 +1730,22 @@ export default function VendorListings() {
                         alt={listing.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     </>
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                      <Package className="h-12 w-12 text-primary/30" />
+                    <div className="w-full h-full bg-gradient-to-br from-secondary/10 to-secondary/5 flex items-center justify-center">
+                      <Box className="h-12 w-12 text-secondary/30" />
                     </div>
                   )}
-                  {/* Status & Actions Row */}
-                  <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
-                    <Badge className={`text-xs font-medium ${listing.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+                  
+                  {/* Top Row: Status & Actions */}
+                  <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+                    <Badge className={`text-[11px] font-semibold px-2.5 py-1 shadow-md ${listing.isActive ? 'bg-emerald-500 text-white' : 'bg-gray-500/90 text-white'}`}>
                       {listing.isActive ? '● Live' : '○ Inactive'}
                     </Badge>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 backdrop-blur-sm hover:bg-black/60">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/30 backdrop-blur-md hover:bg-black/50 border border-white/10">
                           <MoreVertical className="h-4 w-4 text-white" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1447,257 +1781,151 @@ export default function VendorListings() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  {/* Price Badge */}
-                  <div className="absolute bottom-2 right-2">
-                    <Badge className="bg-white text-foreground font-bold text-base px-3 py-1.5 shadow-lg">
+                  
+                  {/* Bottom Row: Image Count & Price */}
+                  <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                    {/* Image count */}
+                    {listing.images && listing.images.length > 1 && (
+                      <Badge variant="secondary" className="bg-black/40 text-white text-[11px] backdrop-blur-md border border-white/10">
+                        <Camera className="h-3 w-3 mr-1" /> {listing.images.length}
+                      </Badge>
+                    )}
+                    {/* Price */}
+                    <Badge className="bg-white/95 text-foreground font-bold text-base px-3 py-1.5 shadow-lg ml-auto backdrop-blur-sm">
                       ₹{getDisplayPrice(listing).toLocaleString('en-IN')}
+                      {listing.unit && <span className="text-xs font-normal text-muted-foreground ml-0.5">/{listing.unit}</span>}
                     </Badge>
                   </div>
-                  {/* Image count indicator */}
-                  {listing.images && listing.images.length > 1 && (
-                    <div className="absolute bottom-2 left-2">
-                      <Badge variant="secondary" className="bg-black/50 text-white text-xs backdrop-blur-sm">
-                        📷 {listing.images.length}
-                      </Badge>
-                    </div>
-                  )}
                 </div>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-foreground font-semibold text-base line-clamp-1 flex-1">{listing.name}</h3>
-                  </div>
-                  <p className="text-muted-foreground text-sm line-clamp-2 mb-3 min-h-[2.5rem]">{listing.description || 'No description'}</p>
+                
+                {/* Content Section */}
+                <CardContent className="p-4 space-y-3">
+                  {/* Title */}
+                  <h3 className="text-foreground font-semibold text-base line-clamp-1 group-hover:text-secondary transition-colors">{listing.name}</h3>
                   
-                  {/* Category & Event Types Section */}
-                  <div className="space-y-2 pt-3 border-t border-border/50">
-                    {/* Category with icon - show multiple for packages with bundled items */}
-                    {listing.includedItemIds && listing.includedItemIds.length > 0 ? (() => {
-                      // Extract unique categories from bundled items
-                      const uniqueCategories = new Set<string>();
-                      listing.includedItemIds.forEach((itemId: string) => {
-                        const item = items.find((i: any) => i.id === itemId);
-                        if (item) {
-                          const categoryId = item.listingCategory?.id || item.categoryId;
-                          if (categoryId) {
-                            const categoryName = getCategoryName(categoryId) || 'Other';
-                            uniqueCategories.add(categoryName);
-                          }
-                        }
-                      });
-                      const categoryArray = Array.from(uniqueCategories);
-                      
-                      // If multiple categories, show as badges
-                      if (categoryArray.length > 1) {
-                        return (
-                          <div className="flex flex-wrap gap-1">
-                            {categoryArray.map((categoryName: string, index: number) => {
-                              const CategoryIcon = getCategoryIcon(categoryName);
-                              return (
-                                <Badge 
-                                  key={index}
-                                  variant="outline"
-                                  className="text-[10px] px-1.5 py-0.5 h-5 bg-primary/10 text-primary border-primary/30 flex items-center gap-1"
-                                >
-                                  <CategoryIcon className="h-3 w-3" />
-                                  {categoryName}
-                                </Badge>
-                              );
-                            })}
-                          </div>
-                        );
-                      }
-                      
-                      // Single category - show as before
-                      if (categoryArray.length === 1) {
-                        const categoryName = categoryArray[0];
+                  {/* Description */}
+                  <p className="text-muted-foreground text-sm line-clamp-2 min-h-[2.5rem]">{listing.description || 'No description'}</p>
+                  
+                  {/* Footer: Category & Min Quantity */}
+                  <div className="pt-3 border-t border-border/50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
                         const CategoryIcon = getCategoryIcon(categoryName);
                         return (
-                          <div className="flex items-center gap-1.5">
-                            <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                          <>
+                            <CategoryIcon className="h-3.5 w-3.5 text-secondary/70" />
                             <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
-                          </div>
+                          </>
                         );
-                      }
-                      
-                      // Fallback to listing's own category
-                      const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
-                      const CategoryIcon = getCategoryIcon(categoryName);
-                      return (
-                        <div className="flex items-center gap-1.5">
-                          <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
-                          <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
-                        </div>
-                      );
-                    })() : (
-                      <div className="flex items-center gap-1.5">
-                        {(() => {
-                          const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
-                          const CategoryIcon = getCategoryIcon(categoryName);
-                          return (
-                            <>
-                              <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
-                              <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-                    
-                    {/* Event Types as chips */}
-                    {listing.eventTypes && listing.eventTypes.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {listing.eventTypes.slice(0, 3).map((eventType: any, index: number) => {
-                          const displayText = typeof eventType === 'string' 
-                            ? eventType 
-                            : (eventType?.displayName || eventType?.name || 'Event');
-                          
-                          return (
-                            <Badge 
-                              key={index} 
-                              variant="secondary" 
-                              className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/20"
-                            >
-                              {displayText}
-                            </Badge>
-                          );
-                        })}
-                        {listing.eventTypes.length > 3 && (
-                          <Badge 
-                            variant="secondary" 
-                            className="text-[10px] px-1.5 py-0 h-5 bg-muted text-muted-foreground"
-                          >
-                            +{listing.eventTypes.length - 3}
-                          </Badge>
-                        )}
-                      </div>
+                      })()}
+                    </div>
+                    {listing.minimumQuantity > 1 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground">
+                        Min: {listing.minimumQuantity}
+                      </Badge>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          )}
-        </div>
-
-        {/* Items Section */}
-        <div className="mb-10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-secondary/10">
-                <Box className="h-6 w-6 text-secondary" />
-              </div>
-              <h2 className="text-2xl font-semibold text-foreground">Individual Items</h2>
-              <Badge variant="secondary" className="ml-2">{items.length}</Badge>
-            </div>
-            {items.length > cardLimit && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/vendor/listings/items')}
-                className="self-start sm:self-auto"
-              >
-                View All <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            )}
-          </div>
-          {items.length === 0 ? (
-            <Card className="border-dashed border-2 border-muted-foreground/20 bg-muted/5">
-              <CardContent className="p-8 text-center">
-                <Box className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-medium text-foreground mb-1">No services yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">Create individual services that can be sold separately or bundled into packages</p>
-                <Button onClick={() => handleCreateListing('ITEM')}>
-                  <Plus className="h-4 w-4 mr-2" /> Create Service
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {items.slice(0, cardLimit).map((listing: any) => (
-              <Card 
-                key={listing.id} 
-                className="border-border overflow-hidden group hover:shadow-lg hover:border-secondary/30 transition-all duration-300"
-              >
-                <div className="relative aspect-square">
-                  {listing.images && listing.images.length > 0 ? (
-                    <>
-                      <img
-                        src={listing.images[0]}
-                        alt={listing.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                    </>
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-secondary/10 to-secondary/5 flex items-center justify-center">
-                      <Box className="h-10 w-10 text-secondary/30" />
+                  
+                  {/* Event Types as chips */}
+                  {listing.eventTypes && listing.eventTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {listing.eventTypes.slice(0, 3).map((eventType: any, index: number) => {
+                        const displayText = typeof eventType === 'string' 
+                          ? eventType 
+                          : (eventType?.displayName || eventType?.name || 'Event');
+                        
+                        return (
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            className="text-[10px] px-1.5 py-0 h-5 bg-secondary/10 text-secondary border-secondary/20"
+                          >
+                            {displayText}
+                          </Badge>
+                        );
+                      })}
+                      {listing.eventTypes.length > 3 && (
+                        <Badge 
+                          variant="secondary" 
+                          className="text-[10px] px-1.5 py-0 h-5 bg-muted text-muted-foreground"
+                        >
+                          +{listing.eventTypes.length - 3}
+                        </Badge>
+                      )}
                     </div>
                   )}
-                  {/* Status & Actions Row */}
-                  <div className="absolute top-2 left-2 right-2 flex justify-between items-start">
-                    <Badge className={`text-xs font-medium ${listing.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
-                      {listing.isActive ? '● Live' : '○ Inactive'}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/40 backdrop-blur-sm hover:bg-black/60">
-                          <MoreVertical className="h-3.5 w-3.5 text-white" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/vendor/listings/preview/${listing.id}`); }}>
-                          <Eye className="mr-2 h-4 w-4" /> Preview as Customer
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingListing(listing);
-                          setShowCreateModal(true);
-                        }}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleActive(listing); }}>
-                          {listing.isActive ? '○ Deactivate' : '● Activate'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(listing); }} 
-                          className="text-red-600 focus:text-red-600"
-                          disabled={isDeleting === listing.id}
-                        >
-                          {isDeleting === listing.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
-                            </>
-                          ) : (
-                            <>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  {/* Price Badge */}
-                  <div className="absolute bottom-2 right-2">
-                    <Badge className="bg-white text-foreground font-bold text-sm px-2 py-1 shadow-lg">
-                      ₹{getDisplayPrice(listing).toLocaleString('en-IN')}
-                      {listing.unit && <span className="text-xs font-normal text-muted-foreground">/{listing.unit}</span>}
-                    </Badge>
-                  </div>
-                </div>
-                <CardContent className="p-3">
-                  <h3 className="text-foreground font-semibold text-sm line-clamp-1 mb-1">{listing.name}</h3>
-                  <p className="text-muted-foreground text-xs line-clamp-2 mb-2 min-h-[2rem]">{listing.description || 'No description'}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other'}
-                    </Badge>
-                    {listing.minimumQuantity > 1 && (
-                      <span className="text-xs text-muted-foreground">Min: {listing.minimumQuantity}</span>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             ))}
+            
+            {/* Show "+X more" card if there are hidden items */}
+            {items.length > cardLimit && (
+              <Card 
+                className="border-2 border-secondary/20 bg-gradient-to-br from-secondary/5 via-amber-500/5 to-secondary/5 hover:border-secondary/40 hover:shadow-xl transition-all cursor-pointer group overflow-hidden relative flex flex-col"
+                onClick={() => navigate('/vendor/listings/items')}
+              >
+                {/* Main content area - matches other cards */}
+                <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-secondary/10 via-amber-500/5 to-transparent">
+                  {/* Decorative background circles */}
+                  <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-secondary/10 blur-2xl" />
+                  <div className="absolute -bottom-10 -left-10 w-24 h-24 rounded-full bg-amber-500/5 blur-xl" />
+                  
+                  {/* Stacked preview thumbnails */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative">
+                      {items.slice(cardLimit, cardLimit + 3).reverse().map((item: any, idx: number) => (
+                        <div 
+                          key={item.id}
+                          className="absolute w-14 h-14 rounded-xl border-2 border-white dark:border-gray-700 shadow-xl overflow-hidden transition-transform group-hover:scale-105"
+                          style={{
+                            transform: `rotate(${(2 - idx - 1) * 12}deg)`,
+                            zIndex: idx,
+                            left: `${(2 - idx) * 6 - 28}px`,
+                            top: `${(2 - idx) * 3 - 28}px`
+                          }}
+                        >
+                          {item.images && item.images[0] ? (
+                            <img src={item.images[0]} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-secondary/30 to-secondary/10 flex items-center justify-center">
+                              <Box className="h-5 w-5 text-secondary/50" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {/* Count badge overlay */}
+                      <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br from-secondary to-amber-500 flex items-center justify-center shadow-lg z-10 group-hover:scale-110 transition-transform border-2 border-white dark:border-gray-800">
+                        <span className="text-lg font-bold text-white">+{items.length - cardLimit}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Content section - matches other cards */}
+                <CardContent className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-foreground font-semibold text-base group-hover:text-secondary transition-colors">
+                      View All Items
+                    </h3>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      {items.length - cardLimit} more item{items.length - cardLimit !== 1 ? 's' : ''} available
+                    </p>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-border/50 mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Box className="h-4 w-4 text-secondary/70" />
+                      <span className="text-sm font-medium text-muted-foreground">{items.length} total</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-secondary text-sm font-medium">
+                      Explore <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
           </div>
           )}
         </div>
