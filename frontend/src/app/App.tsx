@@ -77,7 +77,7 @@ const AdminListingsList = lazy(() => import("@/features/admin/pages/AdminListing
 const AdminApiPerformance = lazy(() => import("@/features/admin/pages/AdminApiPerformance"));
 
 // Loading fallback component
-const LoadingFallback = () => <BrandedLoader message="Loading" />;
+const LoadingFallback = () => <BrandedLoader message="Getting things ready..." />;
 
 // Configure QueryClient with optimal caching for performance
 const queryClient = new QueryClient({

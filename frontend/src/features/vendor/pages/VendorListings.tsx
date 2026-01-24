@@ -1108,8 +1108,8 @@ export default function VendorListings() {
   if (listingsLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading listings" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Gathering your listings..." />
         </div>
       </VendorLayout>
     );
@@ -1134,8 +1134,8 @@ export default function VendorListings() {
   if (profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading profile" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Setting up your profile..." />
         </div>
       </VendorLayout>
     );

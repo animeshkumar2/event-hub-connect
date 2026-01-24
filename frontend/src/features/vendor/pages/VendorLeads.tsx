@@ -789,8 +789,8 @@ export default function VendorLeads() {
   if (loading || profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-          <BrandedLoader fullScreen={false} message="Loading leads" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Fetching your leads..." />
         </div>
       </VendorLayout>
     );

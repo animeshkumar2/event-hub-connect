@@ -107,9 +107,26 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
+        <div className="text-center space-y-4">
+          {/* Enhanced spinner with gradient */}
+          <div className="relative w-16 h-16 mx-auto">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-secondary animate-spin" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
+          </div>
+          {/* Enhanced text */}
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-foreground bg-gradient-to-r from-primary via-foreground to-secondary bg-clip-text text-transparent">
+              Crunching the numbers...
+            </p>
+            {/* Progress bar */}
+            <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mx-auto">
+              <div className="h-full bg-gradient-to-r from-primary via-secondary to-primary animate-shimmer" 
+                   style={{
+                     backgroundSize: '200% 100%'
+                   }} />
+            </div>
+          </div>
         </div>
       </div>
     );

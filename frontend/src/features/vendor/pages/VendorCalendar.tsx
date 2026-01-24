@@ -373,8 +373,8 @@ export default function VendorCalendar() {
   if (profileLoading) {
     return (
       <VendorLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <BrandedLoader fullScreen={false} message="Loading calendar" />
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <BrandedLoader fullScreen={false} message="Syncing your schedule..." />
         </div>
       </VendorLayout>
     );

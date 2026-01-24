@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, requireVendor = false }: ProtectedRou
 
   // Show loading spinner while checking authentication
   if (isLoading) {
-    return <BrandedLoader message="Loading" />;
+    return <BrandedLoader message="Verifying access..." />;
   }
 
   // Not authenticated - redirect to login
