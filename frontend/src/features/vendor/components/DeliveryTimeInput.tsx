@@ -67,7 +67,8 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
       : `${minValue} ${unit}`;
     
     onChange(`${timing}:${timeString}`);
-  }, [timing, minValue, maxValue, unit, isRange, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timing, minValue, maxValue, unit, isRange]);
 
   // Get default unit based on category
   const getDefaultUnit = () => {
@@ -79,7 +80,9 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
 
   return (
     <div className="space-y-3">
-      <Label className="text-foreground">Delivery / Service Time *</Label>
+      <Label className="text-foreground">
+        Delivery / Service Time <span className="text-red-500">*</span>
+      </Label>
       <p className="text-xs text-muted-foreground">
         How long before/after the event do you need, or when will you deliver?
       </p>
@@ -126,7 +129,7 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
             </Label>
             <Input
               type="number"
-              min="1"
+              min="0"
               value={minValue}
               onChange={(e) => setMinValue(e.target.value)}
               placeholder="2"
@@ -145,7 +148,7 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
               <Label className="text-xs text-muted-foreground">To</Label>
               <Input
                 type="number"
-                min={minValue || '1'}
+                min="0"
                 value={maxValue}
                 onChange={(e) => setMaxValue(e.target.value)}
                 placeholder="3"

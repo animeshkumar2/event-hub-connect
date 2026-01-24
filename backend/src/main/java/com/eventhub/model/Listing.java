@@ -24,12 +24,15 @@ public class Listing {
     private UUID id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vendor_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "vendor_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Vendor vendor;
     
-    @Column(name = "vendor_id", nullable = false)
-    private UUID vendorId;
+    // Expose vendor ID for JSON serialization
+    @com.fasterxml.jackson.annotation.JsonProperty("vendorId")
+    public UUID getVendorId() {
+        return vendor != null ? vendor.getId() : null;
+    }
     
     @Convert(converter = ListingTypeConverter.class)
     @Column(nullable = false, length = 20)
@@ -45,12 +48,15 @@ public class Listing {
     private BigDecimal price;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "listing_category_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "listing_category_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Category listingCategory;
     
-    @Column(name = "listing_category_id", nullable = false)
-    private String listingCategoryId;
+    // Expose category ID for JSON serialization
+    @com.fasterxml.jackson.annotation.JsonProperty("categoryId")
+    public String getCategoryId() {
+        return listingCategory != null ? listingCategory.getId() : null;
+    }
     
     @Column(name = "custom_category_name", length = 255)
     private String customCategoryName; // Custom category name when listingCategory is "other"
@@ -81,6 +87,11 @@ public class Listing {
     @Column(name = "extra_charges", columnDefinition = "TEXT[]")
     private List<String> extraCharges;  // Legacy text format
     
+    // Category-specific data (stored as JSON for flexibility)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "category_specific_data", columnDefinition = "JSONB")
+    private String categorySpecificData;  // JSON format: category-specific fields like serviceType, pricingType, etc.
+    
     // Item-specific fields
     @Column(length = 50)
     private String unit; // e.g., "per piece", "per set"
@@ -103,6 +114,9 @@ public class Listing {
     @Column(name = "open_for_negotiation")
     private Boolean openForNegotiation = true;
     
+    @Column(name = "custom_notes", columnDefinition = "TEXT")
+    private String customNotes;  // Additional notes, terms, customization options, etc.
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -117,6 +131,35 @@ public class Listing {
     )
     @JsonIgnore
     private List<EventType> eventTypes;
+    
+    // Transient field to hold event type IDs for JSON serialization
+    @Transient
+    private List<Integer> eventTypeIds;
+    
+    // Expose event type IDs for JSON serialization
+    @com.fasterxml.jackson.annotation.JsonProperty("eventTypeIds")
+    public List<Integer> getEventTypeIds() {
+        // If already set (by service layer), return it
+        if (eventTypeIds != null) {
+            return eventTypeIds;
+        }
+        // Otherwise, try to get from eventTypes if available
+        if (eventTypes != null) {
+            try {
+                return eventTypes.stream()
+                        .map(EventType::getId)
+                        .toList();
+            } catch (Exception e) {
+                // If lazy loading fails, return empty list
+                return List.of();
+            }
+        }
+        return List.of();
+    }
+    
+    public void setEventTypeIds(List<Integer> eventTypeIds) {
+        this.eventTypeIds = eventTypeIds;
+    }
     
     @PrePersist
     protected void onCreate() {

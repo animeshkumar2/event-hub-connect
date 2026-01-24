@@ -32,15 +32,18 @@ public class ListingDTO {
     private String unit;
     private Integer minimumQuantity;
     private List<Integer> eventTypeIds;
+    private List<Object> eventTypes; // For backward compatibility with frontend
     private Boolean isActive;
     private Boolean isDraft;
     private Boolean isPopular;
     private Boolean isTrending;
     private Boolean openForNegotiation;    // If true, customers can make offers on this listing
+    private String customNotes;            // Additional notes, terms, customization options
     
     // New fields for enhanced package features
     private List<String> highlights;        // Key features shown at top of listing
     private List<UUID> includedItemIds;     // UUIDs of item listings included in package
     private String extraChargesJson;        // JSON array: [{"name": "...", "price": 10000}]
+    private String categorySpecificData;    // JSON object with category-specific fields
 }
 

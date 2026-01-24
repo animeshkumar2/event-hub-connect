@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { PhotoGallery } from '@/features/listing/PhotoGallery';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
@@ -18,12 +19,16 @@ import {
   ExternalLink,
   IndianRupee,
   Edit,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
-import { useListingDetails, useVendorListings, useVendorReviews } from '@/shared/hooks/useApi';
+import { useVendorListingDetails, useVendorReviews } from '@/shared/hooks/useApi';
+import { publicApi } from '@/shared/services/api';
 import { cn } from '@/shared/lib/utils';
 import { format } from 'date-fns';
 import { ScrollReveal } from '@/shared/components/ScrollReveal';
+
+import { CategorySpecificDisplay } from '@/features/listing/CategorySpecificDisplay';
 
 interface ExtraCharge {
   name: string;
@@ -33,14 +38,64 @@ interface ExtraCharge {
 export default function ListingPreview() {
   const { listingId } = useParams<{ listingId: string }>();
   const navigate = useNavigate();
-  const { data: listing, loading, error } = useListingDetails(listingId || null);
+  const { data: listing, loading, error } = useVendorListingDetails(listingId || null);
   
-  const vendorId = listing?.vendorId;
-  const { data: vendorListingsData } = useVendorListings(vendorId || null);
-  const vendorListings = Array.isArray(vendorListingsData) ? vendorListingsData : (vendorListingsData?.data || vendorListingsData || []);
+  console.log('📦 ListingPreview - listing data:', {
+    listing,
+    hasVendorId: !!listing?.vendorId,
+    hasVendor: !!listing?.vendor,
+    vendorId: listing?.vendorId,
+    vendorFromObject: listing?.vendor?.id,
+    includedItemIds: listing?.includedItemIds
+  });
+  
+  // Try to get vendorId from multiple possible locations
+  const vendorId = listing?.vendorId || listing?.vendor?.id || null;
+  console.log('📦 Resolved vendorId:', vendorId);
+  
+  // Fetch bundled items directly by IDs instead of fetching all vendor listings
+  const { data: bundledItemsData, isLoading: bundledItemsLoading } = useQuery({
+    queryKey: ['bundledItems', listing?.includedItemIds],
+    queryFn: async () => {
+      if (!listing?.includedItemIds || listing.includedItemIds.length === 0) {
+        return [];
+      }
+      const response = await publicApi.getListingsByIds(listing.includedItemIds);
+      // Extract data from response
+      if (response && typeof response === 'object' && 'data' in response) {
+        return (response as any).data;
+      }
+      return response;
+    },
+    enabled: !!(listing?.includedItemIds && listing.includedItemIds.length > 0),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  
+  const linkedItems = useMemo(() => {
+    if (!bundledItemsData) return [];
+    if (Array.isArray(bundledItemsData)) return bundledItemsData;
+    return [];
+  }, [bundledItemsData]);
+  
+  console.log('📦 Bundled items:', {
+    loading: bundledItemsLoading,
+    count: linkedItems.length,
+    items: linkedItems
+  });
 
   const { data: reviewsData } = useVendorReviews(vendorId || null, 0, 5);
-  const reviews = reviewsData?.data?.content || [];
+  const reviews = useMemo(() => {
+    if (!reviewsData) return [];
+    // reviewsData should be the paginated response with content array
+    if (Array.isArray(reviewsData)) return reviewsData;
+    if (reviewsData && typeof reviewsData === 'object') {
+      const dataObj = reviewsData as any;
+      if ('content' in dataObj && Array.isArray(dataObj.content)) {
+        return dataObj.content;
+      }
+    }
+    return [];
+  }, [reviewsData]);
 
   const isPackage = listing?.type?.toLowerCase() === 'package' || listing?.type === 'PACKAGE';
   const isItem = listing?.type?.toLowerCase() === 'item' || listing?.type === 'ITEM';
@@ -56,15 +111,76 @@ export default function ListingPreview() {
     return [];
   }, [listing?.extraChargesJson]);
 
-  const linkedItems = useMemo(() => {
-    if (!listing?.includedItemIds || !listing.includedItemIds.length) return [];
-    if (!vendorListings || !vendorListings.length) return [];
-    return vendorListings.filter((l: any) => listing.includedItemIds.includes(l.id));
-  }, [listing?.includedItemIds, vendorListings]);
-
   const displayHighlights = listing?.highlights?.length > 0 
     ? listing.highlights 
     : listing?.includedItemsText?.slice(0, 4) || [];
+
+  // Extract display price - prioritize category-specific price over main price
+  const displayPrice = useMemo(() => {
+    if (!listing) return 0;
+    
+    // If main price is valid (not draft marker), use it
+    if (listing.price && Number(listing.price) > 0.01) {
+      return Number(listing.price);
+    }
+
+    // Otherwise, try to extract from category-specific data
+    if (listing.categorySpecificData) {
+      try {
+        const categoryData = JSON.parse(listing.categorySpecificData);
+        
+        // Extract based on category
+        switch (listing.categoryId) {
+          case 'caterer':
+            return categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+          case 'photographer':
+          case 'cinematographer':
+          case 'videographer':
+            return categoryData.photographyPrice || categoryData.videographyPrice || categoryData.price || 0;
+          case 'decorator':
+          case 'venue':
+          case 'dj':
+          case 'live-music':
+          case 'sound-lights':
+            return categoryData.price || 0;
+          case 'mua':
+            return categoryData.bridalPrice || categoryData.nonBridalPrice || 0;
+          default:
+            return categoryData.price || 0;
+        }
+      } catch {
+        return Number(listing.price) || 0;
+      }
+    }
+
+    return Number(listing.price) || 0;
+  }, [listing]);
+
+  // Get price label based on category
+  const priceLabel = useMemo(() => {
+    if (!listing?.categorySpecificData) return null;
+    
+    try {
+      const categoryData = JSON.parse(listing.categorySpecificData);
+      
+      switch (listing.categoryId) {
+        case 'caterer':
+          return displayPrice === categoryData.pricePerPlateVeg ? 'per plate (Veg)' : 'per plate (Non-Veg)';
+        case 'photographer':
+        case 'cinematographer':
+        case 'videographer':
+          if (displayPrice === categoryData.photographyPrice) return 'for Photography';
+          if (displayPrice === categoryData.videographyPrice) return 'for Videography';
+          return null;
+        case 'mua':
+          return displayPrice === categoryData.bridalPrice ? 'for Bridal' : 'for Non-Bridal';
+        default:
+          return null;
+      }
+    } catch {
+      return null;
+    }
+  }, [listing?.categorySpecificData, listing?.categoryId, displayPrice]);
 
   if (loading) {
     return (
@@ -223,10 +339,15 @@ export default function ListingPreview() {
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-primary flex items-center">
                         <IndianRupee className="h-6 w-6" />
-                        {Number(listing.price).toLocaleString('en-IN')}
+                        {displayPrice.toLocaleString('en-IN')}
                       </span>
-                      {isItem && listing.unit && (
-                        <span className="text-sm text-muted-foreground">per {listing.unit}</span>
+                      {priceLabel && (
+                        <span className="text-sm text-muted-foreground">{priceLabel}</span>
+                      )}
+                      {!priceLabel && isItem && listing.unit && (
+                        <span className="text-sm text-muted-foreground">
+                          {listing.unit.toLowerCase().startsWith('per') ? listing.unit : `per ${listing.unit}`}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -269,7 +390,7 @@ export default function ListingPreview() {
           </ScrollReveal>
 
           {/* Included Items */}
-          {isPackage && linkedItems.length > 0 && (
+          {isPackage && (listing.includedItemIds && listing.includedItemIds.length > 0) && (
             <ScrollReveal animation="fadeInUp" delay={350}>
               <Card className="overflow-hidden">
                 <CardContent className="p-0">
@@ -279,52 +400,73 @@ export default function ListingPreview() {
                         <Package className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold">Bundled Items ({linkedItems.length})</h2>
+                        <h2 className="text-xl font-bold">
+                          Bundled Items ({linkedItems.length > 0 ? linkedItems.length : listing.includedItemIds.length})
+                        </h2>
                         <p className="text-sm text-muted-foreground">This package includes the following items</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {linkedItems.map((item: any) => (
-                        <div key={item.id} className="rounded-xl border-2 border-border overflow-hidden">
-                          <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                            {item.images?.[0] ? (
-                              <>
-                                <img 
-                                  src={item.images[0]} 
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                              </>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Package className="h-10 w-10 text-muted-foreground/40" />
+                    {linkedItems.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        {linkedItems.map((item: any) => (
+                          <div key={item.id} className="rounded-xl border-2 border-border overflow-hidden">
+                            <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                              {item.images?.[0] ? (
+                                <>
+                                  <img 
+                                    src={item.images[0]} 
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="h-10 w-10 text-muted-foreground/40" />
+                                </div>
+                              )}
+                              <div className="absolute bottom-2 right-2">
+                                <Badge className="bg-white text-foreground font-bold shadow-lg">
+                                  ₹{Number(item.price).toLocaleString('en-IN')}
+                                </Badge>
                               </div>
-                            )}
-                            <div className="absolute bottom-2 right-2">
-                              <Badge className="bg-white text-foreground font-bold shadow-lg">
-                                ₹{Number(item.price).toLocaleString('en-IN')}
-                              </Badge>
+                            </div>
+                            
+                            <div className="p-4 bg-card">
+                              <h3 className="font-semibold text-foreground line-clamp-1 mb-1">
+                                {item.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {item.description || 'Individual item included in this package'}
+                              </p>
+                              {item.unit && (
+                                <p className="text-xs text-primary mt-2">Per {item.unit}</p>
+                              )}
                             </div>
                           </div>
-                          
-                          <div className="p-4 bg-card">
-                            <h3 className="font-semibold text-foreground line-clamp-1 mb-1">
-                              {item.name}
-                            </h3>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {item.description || 'Individual item included in this package'}
-                            </p>
-                            {item.unit && (
-                              <p className="text-xs text-primary mt-2">Per {item.unit}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : bundledItemsLoading ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="h-12 w-12 text-primary/40 mx-auto mb-3 animate-spin" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Loading bundled items...
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-12 w-12 text-orange-500/40 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-foreground mb-2">
+                          {listing.includedItemIds.length} item{listing.includedItemIds.length > 1 ? 's' : ''} included in this package
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Item details are not available at the moment
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -396,39 +538,151 @@ export default function ListingPreview() {
             </ScrollReveal>
           )}
 
-          {/* Service Details */}
-          <ScrollReveal animation="fadeInUp" delay={650}>
-            <Card>
+          {/* Service Details - Only for Items */}
+          {isItem && (
+            <ScrollReveal animation="fadeInUp" delay={650}>
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold mb-4">Service Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {listing.deliveryTime && (
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">Delivery Time</p>
+                          <p className="text-sm text-muted-foreground">{listing.deliveryTime}</p>
+                        </div>
+                      </div>
+                    )}
+                    {listing.unit && (
+                      <div className="flex items-center gap-3">
+                        <Package className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">Unit</p>
+                          <p className="text-sm text-muted-foreground">{listing.unit}</p>
+                        </div>
+                      </div>
+                    )}
+                    {listing.minimumQuantity && (
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">Minimum Quantity</p>
+                          <p className="text-sm text-muted-foreground">{listing.minimumQuantity}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+          )}
+          
+          {/* Delivery Time for Packages - Simplified */}
+          {isPackage && listing.deliveryTime && (
+            <ScrollReveal animation="fadeInUp" delay={650}>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Delivery Time</p>
+                      <p className="text-sm text-muted-foreground">{listing.deliveryTime}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+          )}
+
+          {/* Category-Specific Details */}
+          {listing.categorySpecificData && (
+            <ScrollReveal animation="fadeInUp" delay={675}>
+              <CategorySpecificDisplay 
+                categoryId={listing.categoryId} 
+                categorySpecificData={listing.categorySpecificData}
+              />
+            </ScrollReveal>
+          )}
+
+          {/* Custom Notes / Terms & Conditions */}
+          {listing.customNotes && (
+            <ScrollReveal animation="fadeInUp" delay={700}>
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold mb-4">Additional Information</h2>
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {listing.customNotes}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+          )}
+
+          {/* Event Types */}
+          {listing.eventTypeIds && listing.eventTypeIds.length > 0 && (
+            <ScrollReveal animation="fadeInUp" delay={725}>
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold mb-4">Suitable For Events</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {listing.eventTypeIds.map((eventTypeId: number) => {
+                      const eventTypeNames: Record<number, string> = {
+                        1: 'Wedding',
+                        2: 'Birthday',
+                        3: 'Corporate Event',
+                        4: 'Anniversary',
+                        5: 'Engagement',
+                        6: 'Baby Shower',
+                        7: 'Housewarming',
+                        8: 'Festival',
+                        9: 'Concert',
+                        10: 'Conference',
+                        11: 'Other'
+                      };
+                      return (
+                        <Badge key={eventTypeId} variant="secondary" className="text-sm">
+                          {eventTypeNames[eventTypeId] || `Event Type ${eventTypeId}`}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+          )}
+
+          {/* Listing Status & Metadata */}
+          <ScrollReveal animation="fadeInUp" delay={750}>
+            <Card className="border-dashed">
               <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-4">Service Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {listing.deliveryTime && (
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">Delivery Time</p>
-                        <p className="text-sm text-muted-foreground">{listing.deliveryTime}</p>
-                      </div>
+                <h2 className="text-xl font-bold mb-4">Listing Information</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <div className="flex items-center gap-2">
+                      {listing.isActive ? (
+                        <Badge className="bg-green-500 text-white">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Inactive
+                        </Badge>
+                      )}
                     </div>
-                  )}
-                  {isItem && listing.unit && (
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">Unit</p>
-                        <p className="text-sm text-muted-foreground">{listing.unit}</p>
-                      </div>
-                    </div>
-                  )}
-                  {isItem && listing.minimumQuantity && (
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">Minimum Quantity</p>
-                        <p className="text-sm text-muted-foreground">{listing.minimumQuantity}</p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Listing Type</p>
+                    <p className="text-sm font-medium capitalize">
+                      {listing.type?.toLowerCase() || 'N/A'}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

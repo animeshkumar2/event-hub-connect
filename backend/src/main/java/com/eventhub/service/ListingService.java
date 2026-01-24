@@ -52,7 +52,7 @@ public class ListingService {
     }
     
     public ListingDTO getListingById(UUID id) {
-        Listing listing = listingRepository.findById(id)
+        Listing listing = listingRepository.findByIdWithVendorAndCategory(id)
             .orElseThrow(() -> new RuntimeException("Listing not found: " + id));
         
         // Prevent access to drafts on customer side

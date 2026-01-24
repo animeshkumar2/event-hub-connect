@@ -76,6 +76,12 @@ export const NumberFieldInput: React.FC<FieldInputProps> = ({
   const isCurrency = field.unit === '₹';
   const unitPosition = isCurrency ? 'left' : 'right';
   
+  // Use value if it exists, otherwise use defaultValue, but don't call onChange
+  // This prevents infinite loops from onChange being called during render
+  const displayValue = value !== undefined ? value : (field.defaultValue !== undefined ? field.defaultValue : '');
+  
+  console.log(`🔵 NumberFieldInput render: ${field.name}`, { value, defaultValue: field.defaultValue, displayValue });
+  
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-sm font-medium">
@@ -91,9 +97,12 @@ export const NumberFieldInput: React.FC<FieldInputProps> = ({
         <Input
           id={field.name}
           type="number"
-          value={value || ''}
-          onChange={(e) => onChange(field.name, e.target.value ? parseFloat(e.target.value) : '')}
-          min={field.min}
+          value={displayValue}
+          onChange={(e) => {
+            console.log(`🟢 NumberFieldInput onChange: ${field.name}`, e.target.value);
+            onChange(field.name, e.target.value ? parseFloat(e.target.value) : '');
+          }}
+          min={field.min !== undefined ? field.min : 0}
           max={field.max}
           className={`${field.unit && unitPosition === 'left' ? 'pl-10' : ''} ${field.unit && unitPosition === 'right' ? 'pr-16' : ''} ${error ? 'border-red-500' : ''}`}
         />
@@ -292,15 +301,27 @@ export const MultiSelectFieldInput: React.FC<FieldInputProps> = ({
 export const CheckboxFieldInput: React.FC<FieldInputProps> = ({
   field, value, onChange, error
 }) => {
+  // Use value if it exists, otherwise use defaultValue, but don't call onChange
+  // This prevents infinite loops from onChange being called during render
+  const displayValue = value !== undefined ? value : (field.defaultValue || false);
+
+  console.log(`🔵 CheckboxFieldInput render: ${field.name}`, { value, defaultValue: field.defaultValue, displayValue });
+
   return (
     <div 
       className="flex items-center space-x-3 p-3 rounded-md border bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer"
-      onClick={() => onChange(field.name, !value)}
+      onClick={() => {
+        console.log(`🟢 CheckboxFieldInput onClick: ${field.name}`, !displayValue);
+        onChange(field.name, !displayValue);
+      }}
     >
       <Checkbox
         id={field.name}
-        checked={value || false}
-        onCheckedChange={(checked) => onChange(field.name, checked)}
+        checked={displayValue}
+        onCheckedChange={(checked) => {
+          console.log(`🟢 CheckboxFieldInput onCheckedChange: ${field.name}`, checked);
+          onChange(field.name, checked);
+        }}
         className="flex-shrink-0"
         onClick={(e) => e.stopPropagation()} // Prevent double toggle
       />
@@ -324,6 +345,12 @@ export const CheckboxFieldInput: React.FC<FieldInputProps> = ({
 export const RadioFieldInput: React.FC<FieldInputProps> = ({
   field, value, onChange, error
 }) => {
+  // Use value if it exists, otherwise use defaultValue, but don't call onChange
+  // This prevents infinite loops from onChange being called during render
+  const displayValue = value !== undefined ? value : (field.defaultValue || '');
+
+  console.log(`🔵 RadioFieldInput render: ${field.name}`, { value, defaultValue: field.defaultValue, displayValue });
+
   return (
     <div className="space-y-2">
       <Label className="text-sm font-medium">
@@ -331,8 +358,11 @@ export const RadioFieldInput: React.FC<FieldInputProps> = ({
         {field.required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <RadioGroup
-        value={value || field.defaultValue || ''}
-        onValueChange={(v) => onChange(field.name, v)}
+        value={displayValue}
+        onValueChange={(v) => {
+          console.log(`🟢 RadioFieldInput onChange: ${field.name}`, v);
+          onChange(field.name, v);
+        }}
         className="flex gap-4"
       >
         {field.options?.map((option) => (

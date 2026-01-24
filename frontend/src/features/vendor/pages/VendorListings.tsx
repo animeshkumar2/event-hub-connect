@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import * as React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -53,6 +54,7 @@ import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { InlineError } from '@/shared/components/InlineError';
 import { CategoryFieldRenderer } from '@/features/vendor/components/CategoryFields';
 import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInput';
+import { ListingFormWizard } from '@/features/vendor/components/ListingFormWizard';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -67,9 +69,83 @@ const getCategoryIcon = (categoryName: string) => {
   return Tag;
 };
 
+// Core category mapping for Phase 1
+// Maps display categories to their underlying DB category IDs
+const CORE_CATEGORY_MAP = {
+  'photography-videography': ['photographer', 'cinematographer', 'videographer'],
+  'decorator': ['decorator'],
+  'caterer': ['caterer'],
+  'venue': ['venue'],
+  'mua': ['mua'],
+  'dj-entertainment': ['dj', 'live-music'],
+  'sound-lights': ['sound-lights'],
+  'other': ['other', 'return-gifts', 'invitations', 'anchors', 'event-coordinator'],
+};
+
+// Helper: Get core category ID from DB category ID
+const getCoreCategoryId = (dbCategoryId: string): string => {
+  for (const [coreId, dbIds] of Object.entries(CORE_CATEGORY_MAP)) {
+    if (dbIds.includes(dbCategoryId)) {
+      return coreId;
+    }
+  }
+  return 'other'; // Default to other if not found
+};
+
+// Helper: Get primary DB category ID from core category ID
+const getDbCategoryId = (coreCategoryId: string): string => {
+  const dbIds = CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP];
+  return dbIds ? dbIds[0] : 'other';
+};
+
+// Helper: Get all DB category IDs for a core category
+const getAllDbCategoryIds = (coreCategoryId: string): string[] => {
+  return CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP] || ['other'];
+};
+
+// Build core categories list for dropdowns
+const coreCategories = [
+  { id: 'photography-videography', name: 'Photography & Videography', icon: '📸' },
+  { id: 'decorator', name: 'Décor', icon: '🎨' },
+  { id: 'caterer', name: 'Catering', icon: '🍽️' },
+  { id: 'venue', name: 'Venue', icon: '🏛️' },
+  { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
+  { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
+  { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
+  { id: 'other', name: 'Other', icon: '📦' },
+];
+
+// Extra charge with pricing type
+type ExtraCharge = { name: string; price: string };
+
+// Initial form state
+const initialFormData = {
+  name: '',
+  description: '',
+  price: '',
+  categoryId: '',
+  customCategoryName: '',
+  eventTypeIds: [] as number[],
+  images: [] as string[],
+  highlights: [] as string[],
+  includedItemsText: [] as string[],
+  includedItemIds: [] as string[],
+  excludedItemsText: [] as string[],
+  deliveryTime: '',
+  extraChargesDetailed: [] as ExtraCharge[],
+  extraCharges: [] as string[],
+  unit: '',
+  minimumQuantity: 1,
+  customNotes: '', // New field for "Anything Else to Add"
+};
+
 export default function VendorListings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Render counter for debugging
+  const renderCount = React.useRef(0);
+  renderCount.current += 1;
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [listingType, setListingType] = useState<'PACKAGE' | 'ITEM'>('PACKAGE');
@@ -101,94 +177,82 @@ export default function VendorListings() {
   
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
+  
+  // Debug: Track what's changing
+  const prevListingsData = React.useRef(listings.data);
+  const prevProfileData = React.useRef(profile.data);
+  if (prevListingsData.current !== listings.data) {
+    console.log('⚠️ listings.data reference changed', {
+      prevLength: prevListingsData.current?.length,
+      newLength: listings.data?.length,
+      same: prevListingsData.current === listings.data
+    });
+    prevListingsData.current = listings.data;
+  }
+  if (prevProfileData.current !== profile.data) {
+    console.log('⚠️ profile.data reference changed');
+    prevProfileData.current = profile.data;
+  }
+  
+  console.log('🟡 After useVendorListingsData', {
+    listingsDataLength: listings.data?.length,
+    listingsLoading: listings.loading,
+    listingsFetching: listings.isFetching,
+    profileFetching: profile.isFetching,
+    eventTypesFetching: eventTypes.isFetching,
+    categoriesFetching: categories.isFetching
+  });
   const { data: eventTypeCategoriesData } = useEventTypeCategories();
   
   // Check if vendor profile is complete (MUST be after all other hooks)
   const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
   
-  const listingsData = listings.data;
+  // Memoize listingsData to prevent re-renders when reference changes but data is the same
+  const listingsData = React.useMemo(() => listings.data, [listings.data]);
   const listingsLoading = listings.loading || dataLoading;
   const listingsError = listings.error;
   const refetch = listings.refetch;
   const profileData = profile.data;
   const eventTypesData = eventTypes.data;
   const categoriesData = categories.data;
-  const eventTypeCategories = eventTypeCategoriesData || [];
-
-  // Core category mapping for Phase 1
-  // Maps display categories to their underlying DB category IDs
-  const CORE_CATEGORY_MAP = {
-    'photography-videography': ['photographer', 'cinematographer', 'videographer'],
-    'decorator': ['decorator'],
-    'caterer': ['caterer'],
-    'venue': ['venue'],
-    'mua': ['mua'],
-    'dj-entertainment': ['dj', 'live-music'],
-    'sound-lights': ['sound-lights'],
-    'other': ['other', 'return-gifts', 'invitations', 'anchors', 'event-coordinator'],
-  };
-
-  // Helper: Get core category ID from DB category ID
-  const getCoreCategoryId = (dbCategoryId: string): string => {
-    for (const [coreId, dbIds] of Object.entries(CORE_CATEGORY_MAP)) {
-      if (dbIds.includes(dbCategoryId)) {
-        return coreId;
-      }
-    }
-    return 'other'; // Default to other if not found
-  };
-
-  // Helper: Get primary DB category ID from core category ID
-  const getDbCategoryId = (coreCategoryId: string): string => {
-    const dbIds = CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP];
-    return dbIds ? dbIds[0] : 'other';
-  };
-
-  // Helper: Get all DB category IDs for a core category
-  const getAllDbCategoryIds = (coreCategoryId: string): string[] => {
-    return CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP] || ['other'];
-  };
-
-  // Build core categories list for dropdowns
-  const coreCategories = [
-    { id: 'photography-videography', name: 'Photography & Videography', icon: '📸' },
-    { id: 'decorator', name: 'Décor', icon: '🎨' },
-    { id: 'caterer', name: 'Catering', icon: '🍽️' },
-    { id: 'venue', name: 'Venue', icon: '🏛️' },
-    { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
-    { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
-    { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-    { id: 'other', name: 'Other', icon: '📦' },
-  ];
-
-  // Extra charge with pricing type
-  type ExtraCharge = { name: string; price: string };
-
-  // Initial form state
-  const initialFormData = {
-    name: '',
-    description: '',
-    price: '',
-    categoryId: '',
-    customCategoryName: '',
-    eventTypeIds: [] as number[],
-    images: [] as string[],
-    highlights: [] as string[],
-    includedItemsText: [] as string[],
-    includedItemIds: [] as string[],
-    excludedItemsText: [] as string[],
-    deliveryTime: '',
-    extraChargesDetailed: [] as ExtraCharge[],
-    extraCharges: [] as string[],
-    unit: '',
-    minimumQuantity: 1,
-  };
+  const eventTypeCategories = React.useMemo(() => eventTypeCategoriesData || [], [eventTypeCategoriesData]);
+  
+  // Debug: Check if listingsData reference is changing
+  const listingsDataRef = React.useRef(listingsData);
+  if (listingsDataRef.current !== listingsData) {
+    console.log('⚠️ listingsData reference changed!', {
+      old: listingsDataRef.current,
+      new: listingsData,
+      same: listingsDataRef.current === listingsData
+    });
+    listingsDataRef.current = listingsData;
+  }
 
   // Form state
   const [formData, setFormData] = useState(initialFormData);
   
+  // Wrap setFormData to log when it's called
+  const setFormDataWithLog = React.useCallback((data: any) => {
+    console.log('🟢 setFormData called', typeof data === 'function' ? 'with function' : 'with data');
+    console.trace('Stack trace:');
+    setFormData(data);
+  }, []);
+  
+  console.log('🔴 VendorListings render #', renderCount.current, {
+    showCreateModal,
+    editingListingId: editingListing?.id,
+    formDataCategoryId: formData.categoryId,
+    listingsDataLength: listingsData?.length
+  });
+  
   // Category-specific fields state
   const [categorySpecificData, setCategorySpecificData] = useState<Record<string, any>>({});
+  
+  // Wrap setCategorySpecificData to log when it's called
+  const setCategorySpecificDataWithLog = React.useCallback((data: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => {
+    console.log('🔵 setCategorySpecificData called', typeof data === 'function' ? 'with function' : data);
+    setCategorySpecificData(data);
+  }, []);
 
   // Draft states for inline editing
   const [draftIncludedItem, setDraftIncludedItem] = useState('');
@@ -200,13 +264,63 @@ export default function VendorListings() {
   const [draftHighlight, setDraftHighlight] = useState('');
   const [showHighlightInput, setShowHighlightInput] = useState(false);
 
+  // Helper function to extract display price from listing
+  const getDisplayPrice = React.useCallback((listing: any): number => {
+    if (!listing) return 0;
+    
+    // Try to extract from category-specific data first
+    if (listing.categorySpecificData) {
+      try {
+        const categoryData = typeof listing.categorySpecificData === 'string' 
+          ? JSON.parse(listing.categorySpecificData)
+          : listing.categorySpecificData;
+        
+        const categoryId = listing.listingCategory?.id || listing.categoryId;
+        
+        // Extract based on category
+        let extractedPrice = 0;
+        switch (categoryId) {
+          case 'caterer':
+            extractedPrice = categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+            break;
+          case 'photographer':
+          case 'cinematographer':
+          case 'videographer':
+            extractedPrice = categoryData.photographyPrice || categoryData.videographyPrice || categoryData.price || 0;
+            break;
+          case 'decorator':
+          case 'venue':
+          case 'dj':
+          case 'live-music':
+          case 'sound-lights':
+            extractedPrice = categoryData.price || 0;
+            break;
+          case 'mua':
+            extractedPrice = categoryData.bridalPrice || categoryData.nonBridalPrice || 0;
+            break;
+          default:
+            extractedPrice = categoryData.price || 0;
+        }
+        
+        if (extractedPrice > 0) {
+          return extractedPrice;
+        }
+      } catch (e) {
+        console.error('Error parsing category data:', e);
+      }
+    }
+
+    // Fallback to main price
+    return Number(listing.price) || 0;
+  }, []);
+
   // Get vendor category
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
   const vendorCategoryName = profileData?.vendorCategory?.name || profileData?.categoryName || '';
   const vendorCoreCategoryId = getCoreCategoryId(vendorCategoryId);
 
   // Get category name helper - converts DB category to core category name
-  const getCategoryName = (categoryId: string) => {
+  const getCategoryName = React.useCallback((categoryId: string) => {
     // Check if it's already a core category ID
     const coreCategory = coreCategories.find(cat => cat.id === categoryId);
     if (coreCategory) return coreCategory.name;
@@ -215,11 +329,12 @@ export default function VendorListings() {
     const coreCategoryId = getCoreCategoryId(categoryId);
     const coreCat = coreCategories.find(cat => cat.id === coreCategoryId);
     return coreCat?.name || 'Other';
-  };
+  }, [coreCategories]);
 
   // Filter event types based on selected category
+  // TEMPORARILY DISABLED FOR DEBUGGING
   // Show only event types that are valid for the selected category
-  const availableEventTypes = useMemo(() => {
+  const availableEventTypes = React.useMemo(() => {
     if (!eventTypesData || !Array.isArray(eventTypesData)) return [];
     if (!eventTypeCategories || eventTypeCategories.length === 0) return eventTypesData;
     
@@ -269,51 +384,33 @@ export default function VendorListings() {
     return filtered.length > 0 ? filtered : eventTypesData;
   }, [eventTypesData, eventTypeCategories, formData.categoryId]);
 
-  // Filter listings with enhanced search (name, description, category)
-  const filteredListings = useMemo(() => {
-    if (!listingsData || !Array.isArray(listingsData)) return [];
-    
-    let filtered = listingsData;
-    
-    // Filter by category
-    if (selectedCategoryFilter !== 'all') {
-      filtered = filtered.filter((listing: any) => {
-        const listingDbCategoryId = listing.listingCategory?.id || listing.categoryId || '';
-        const listingCoreCategoryId = getCoreCategoryId(listingDbCategoryId);
-        return listingCoreCategoryId === selectedCategoryFilter;
-      });
-    }
-    
-    // Filter by search query (name, description, category name)
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((listing: any) => {
-        const dbCategoryId = listing.listingCategory?.id || listing.categoryId || '';
-        const categoryName = getCategoryName(dbCategoryId).toLowerCase();
-        return (
-          listing.name?.toLowerCase().includes(query) ||
-          listing.description?.toLowerCase().includes(query) ||
-          categoryName.includes(query)
-        );
-      });
-    }
-    
-    return filtered;
-  }, [listingsData, searchQuery, selectedCategoryFilter]);
-
-  // Exclude drafts from main listings
-  const completedListings = useMemo(() => 
-    filteredListings.filter((l: any) => !isDraftListing(l)), 
-    [filteredListings]
+  // Use useMemo to prevent creating new array references on every render
+  const draftListings = React.useMemo(() => 
+    (listingsData || []).filter((l: any) => l.isDraft === true), 
+    [listingsData]
   );
-  const packages = useMemo(() => completedListings.filter((l: any) => l.type === 'PACKAGE'), [completedListings]);
-  const items = useMemo(() => completedListings.filter((l: any) => l.type === 'ITEM'), [completedListings]);
   
-  // Helper function to check if draft - needs to be defined before useMemo calls
-  function isDraftListing(listing: any) {
-    // A listing is a draft if it has the isDraft flag set to true
+  const completedListings = React.useMemo(() => 
+    (listingsData || []).filter((l: any) => !l.isDraft), 
+    [listingsData]
+  );
+  
+  const packages = React.useMemo(() => 
+    completedListings.filter((l: any) => l.type === 'PACKAGE'), 
+    [completedListings]
+  );
+  
+  const items = React.useMemo(() => 
+    completedListings.filter((l: any) => l.type === 'ITEM'), 
+    [completedListings]
+  );
+  
+  const filteredListings = completedListings;
+  
+  // Helper function to check if draft
+  const isDraftListing = React.useCallback((listing: any) => {
     return listing.isDraft === true;
-  }
+  }, []);
 
   // Handle edit query parameter (from preview page)
   useEffect(() => {
@@ -328,11 +425,26 @@ export default function VendorListings() {
         setSearchParams(searchParams, { replace: true });
       }
     }
-  }, [searchParams, listingsData, editingListing, setSearchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, listingsData, editingListing]);
 
-  // Initialize form when editing
+  // Initialize form when editing - use ref to prevent infinite loops
+  const loadedListingIdRef = React.useRef<string | null>(null);
+  
   useEffect(() => {
-    if (editingListing) {
+    console.log('🟢 useEffect running:', {
+      showCreateModal,
+      editingListingId: editingListing?.id,
+      loadedListingId: loadedListingIdRef.current
+    });
+    
+    // Only load if modal is open and we have a new listing to edit
+    if (showCreateModal && editingListing && editingListing.id !== loadedListingIdRef.current) {
+      console.log('✅ Loading listing data');
+      
+      // Mark as loaded FIRST to prevent re-running
+      loadedListingIdRef.current = editingListing.id;
+      
       // Parse extra charges JSON if available
       let extraChargesDetailed: ExtraCharge[] = [];
       if (editingListing.extraChargesJson) {
@@ -343,17 +455,42 @@ export default function VendorListings() {
         }
       }
       
+      // Parse category-specific data if available
+      let parsedCategorySpecificData: Record<string, any> = {};
+      if (editingListing.categorySpecificData) {
+        try {
+          parsedCategorySpecificData = JSON.parse(editingListing.categorySpecificData);
+        } catch (e) {
+          console.error('Failed to parse categorySpecificData:', e);
+          parsedCategorySpecificData = {};
+        }
+      }
+      
       // Convert DB category ID to core category ID
       const dbCategoryId = editingListing.listingCategory?.id || editingListing.categoryId || vendorCategoryId;
       const coreCategoryId = getCoreCategoryId(dbCategoryId);
       
-      setFormData({
+      // Extract event type IDs - handle both array of objects and array of IDs
+      let eventTypeIds: number[] = [];
+      if (editingListing.eventTypeIds && Array.isArray(editingListing.eventTypeIds)) {
+        eventTypeIds = editingListing.eventTypeIds;
+      } else if (editingListing.eventTypes && Array.isArray(editingListing.eventTypes)) {
+        eventTypeIds = editingListing.eventTypes.map((et: any) => {
+          const id = typeof et === 'object' ? (et.id || et.eventTypeId) : et;
+          return id;
+        }).filter((id: any) => id != null);
+      }
+      
+      console.log('� Setting form data with eventTypeIds:', eventTypeIds);
+      
+      // Set all state at once to minimize re-renders
+      setFormDataWithLog({
         name: editingListing.name || '',
         description: editingListing.description || '',
         price: editingListing.price?.toString() || '',
-        categoryId: coreCategoryId, // Use core category ID
+        categoryId: coreCategoryId,
         customCategoryName: editingListing.customCategoryName || '',
-        eventTypeIds: editingListing.eventTypes?.map((et: any) => et.id || et) || [],
+        eventTypeIds: eventTypeIds,
         images: editingListing.images || [],
         highlights: editingListing.highlights || [],
         includedItemsText: editingListing.includedItemsText || [],
@@ -364,9 +501,14 @@ export default function VendorListings() {
         extraCharges: editingListing.extraCharges || [],
         unit: editingListing.unit || '',
         minimumQuantity: editingListing.minimumQuantity || 1,
+        customNotes: editingListing.customNotes || '',
       });
+      console.log('📋 DEBUG - includedItemsText:', editingListing.includedItemsText);
+      console.log('📋 DEBUG - excludedItemsText:', editingListing.excludedItemsText);
+      console.log('📋 DEBUG - customNotes:', editingListing.customNotes);
+      console.log('✅ setFormData called');
+      setCategorySpecificData(parsedCategorySpecificData);
       setListingType(editingListing.type || 'PACKAGE');
-      // Expand all sections when editing
       setExpandedSections({
         basic: true,
         pricing: true,
@@ -374,36 +516,11 @@ export default function VendorListings() {
         highlights: true,
         photos: true,
       });
-    } else {
-      // Reset form - use core category ID
-      setExpandedSections({
-        basic: true,
-        pricing: true,
-        included: true,
-        highlights: false,
-        photos: true,
-      });
-      setFormData({
-        name: '',
-        description: '',
-        price: '',
-        categoryId: vendorCoreCategoryId, // Use core category ID
-        customCategoryName: '',
-        eventTypeIds: [],
-        images: [],
-        highlights: [],
-        includedItemsText: [],
-        includedItemIds: [],
-        excludedItemsText: [],
-        deliveryTime: '',
-        extraChargesDetailed: [],
-        extraCharges: [],
-        unit: '',
-        minimumQuantity: 1,
-      });
-      setListingType('PACKAGE');
+    } else if (!showCreateModal && loadedListingIdRef.current) {
+      // Only reset when modal is actually closed
+      loadedListingIdRef.current = null;
     }
-  }, [editingListing, vendorCategoryId, vendorCoreCategoryId]);
+  }, [editingListing?.id, showCreateModal]); // Only depend on ID and modal state
 
   const handleSubmit = async () => {
     // Prevent multiple clicks
@@ -411,9 +528,69 @@ export default function VendorListings() {
       return;
     }
 
-    if (!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0) {
-      toast.error('Please fill in all required fields');
+    // Check if vendor_id exists in localStorage
+    const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') : null;
+    if (!vendorId) {
+      toast.error('Vendor profile not found. Please complete vendor onboarding first.');
+      console.error('vendor_id not found in localStorage. Available keys:', Object.keys(localStorage));
       return;
+    }
+
+    // Extract price from category-specific data for non-"Other" categories (ITEMS only)
+    let finalPrice = formData.price;
+    if (listingType === 'ITEM' && formData.categoryId && formData.categoryId !== 'other') {
+      console.log('🔍 Extracting price from category data:', {
+        categoryId: formData.categoryId,
+        categorySpecificData
+      });
+      
+      switch (formData.categoryId) {
+        case 'caterer':
+          finalPrice = categorySpecificData.pricePerPlateVeg || '';
+          break;
+        case 'photographer':
+        case 'cinematographer':
+        case 'videographer':
+          // For photography, the price field is just 'price' regardless of pricing type
+          finalPrice = categorySpecificData.price || categorySpecificData.photographyPrice || categorySpecificData.videographyPrice || '';
+          break;
+        case 'venue':
+        case 'decorator':
+        case 'dj-entertainment':
+        case 'sound-lights':
+          finalPrice = categorySpecificData.price || '';
+          break;
+        case 'mua':
+          finalPrice = categorySpecificData.bridalPrice || '';
+          break;
+      }
+      
+      console.log('💰 Extracted final price:', finalPrice);
+    }
+
+    // Validation differs for ITEMS vs PACKAGES
+    if (listingType === 'ITEM') {
+      if (!formData.name || !finalPrice || !formData.categoryId || formData.eventTypeIds.length === 0) {
+        toast.error('Please fill in all required fields including pricing');
+        return;
+      }
+      
+      // Validate custom category name if "Other" is selected
+      if (formData.categoryId === 'other' && (!formData.customCategoryName || formData.customCategoryName.trim().length === 0)) {
+        toast.error('Please enter a custom category name');
+        return;
+      }
+    } else {
+      // PACKAGE validation
+      if (!formData.name || !finalPrice) {
+        toast.error('Please fill in all required fields including pricing');
+        return;
+      }
+      
+      if (formData.includedItemIds.length < 2) {
+        toast.error('Please select at least 2 items to create a package');
+        return;
+      }
     }
     
     // Validate images are required for publishing
@@ -421,15 +598,9 @@ export default function VendorListings() {
       // This shouldn't happen as button is disabled, but keep as safety check
       return;
     }
-    
-    // Validate custom category name if "Other" is selected
-    if (formData.categoryId === 'other' && (!formData.customCategoryName || formData.customCategoryName.trim().length === 0)) {
-      toast.error('Please enter a custom category name');
-      return;
-    }
 
-    // Validate event types are valid for selected category
-    if (formData.categoryId && formData.categoryId !== 'other' && eventTypeCategories.length > 0) {
+    // Validate event types are valid for selected category (ITEMS only)
+    if (listingType === 'ITEM' && formData.categoryId && formData.categoryId !== 'other' && eventTypeCategories.length > 0) {
       const validEventTypeIds = new Set<number>();
       
       // Get all DB category IDs for the selected core category
@@ -471,19 +642,54 @@ export default function VendorListings() {
 
     setIsPublishing(true);
     try {
-      // Convert core category ID to DB category ID for API
-      const dbCategoryId = getDbCategoryId(formData.categoryId);
+      // For packages, derive category from first bundled item or use placeholder
+      const dbCategoryId = listingType === 'PACKAGE' && formData.includedItemIds.length > 0
+        ? items.find(item => item.id === formData.includedItemIds[0])?.categoryId || 'other'
+        : getDbCategoryId(formData.categoryId);
+      
+      // For packages, derive event types from bundled items
+      let eventTypeIds = formData.eventTypeIds;
+      if (listingType === 'PACKAGE' && formData.includedItemIds.length > 0) {
+        const uniqueEventTypeIds = new Set<number>();
+        formData.includedItemIds.forEach((itemId: string) => {
+          const item = items.find(i => i.id === itemId);
+          if (item) {
+            // Check both eventTypeIds (from API) and eventTypes (if populated)
+            if (item.eventTypeIds && Array.isArray(item.eventTypeIds)) {
+              item.eventTypeIds.forEach((etId: number) => {
+                uniqueEventTypeIds.add(etId);
+              });
+            } else if (item.eventTypes && Array.isArray(item.eventTypes)) {
+              item.eventTypes.forEach((et: any) => {
+                uniqueEventTypeIds.add(et.id || et);
+              });
+            }
+          }
+        });
+        eventTypeIds = Array.from(uniqueEventTypeIds);
+        console.log('📦 Package event types derived from bundle items:', {
+          includedItemIds: formData.includedItemIds,
+          derivedEventTypeIds: eventTypeIds
+        });
+        
+        // Validate that we have at least one event type
+        if (eventTypeIds.length === 0) {
+          toast.error('Unable to determine event types from selected items. Please ensure your items have event types assigned.');
+          return;
+        }
+      }
       
       const payload: any = {
         name: formData.name,
         description: formData.description,
-        price: parseFloat(formData.price),
+        price: parseFloat(finalPrice), // Use extracted price
         categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
-        eventTypeIds: formData.eventTypeIds,
+        eventTypeIds: eventTypeIds,
         images: formData.images,
         highlights: formData.highlights.filter(h => h.trim()), // Remove empty highlights
         deliveryTime: formData.deliveryTime,
+        customNotes: formData.customNotes || undefined,
         // Include both formats for extra charges, filter empty ones
         extraChargesDetailed: formData.extraChargesDetailed
           .filter(ec => ec.name.trim() && ec.price)
@@ -494,12 +700,18 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
+        // Store category-specific data as JSON string (ITEMS only)
+        categorySpecificData: listingType === 'ITEM' && formData.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0
+          ? JSON.stringify(categorySpecificData)
+          : undefined,
       };
 
+      // Include/exclude items are available for both packages and items
+      payload.includedItemsText = formData.includedItemsText.filter((i: string) => i.trim());
+      payload.excludedItemsText = formData.excludedItemsText.filter((i: string) => i.trim());
+
       if (listingType === 'PACKAGE') {
-        payload.includedItemsText = formData.includedItemsText.filter(i => i.trim());
         payload.includedItemIds = formData.includedItemIds;
-        payload.excludedItemsText = formData.excludedItemsText.filter(i => i.trim());
       } else {
         payload.unit = formData.unit;
         payload.minimumQuantity = formData.minimumQuantity;
@@ -581,169 +793,220 @@ export default function VendorListings() {
     }
   };
 
-  const handleImagesChange = (newImages: string[]) => {
-    setFormData({ ...formData, images: newImages });
-  };
+  const handleImagesChange = React.useCallback((newImages: string[]) => {
+    setFormData(prev => ({ ...prev, images: newImages }));
+  }, []);
 
   // Highlight helpers - with draft state
-  const addHighlight = () => {
+  const addHighlight = React.useCallback(() => {
     setShowHighlightInput(true);
     setDraftHighlight('');
-  };
+  }, []);
 
-  const saveHighlight = () => {
+  const saveHighlight = React.useCallback(() => {
     if (draftHighlight.trim()) {
-      setFormData({ ...formData, highlights: [...formData.highlights, draftHighlight.trim()] });
+      setFormData(prev => ({ ...prev, highlights: [...prev.highlights, draftHighlight.trim()] }));
       setDraftHighlight('');
       setShowHighlightInput(false);
     }
-  };
+  }, [draftHighlight]);
 
-  const cancelHighlight = () => {
+  const cancelHighlight = React.useCallback(() => {
     setDraftHighlight('');
     setShowHighlightInput(false);
-  };
+  }, []);
 
-  const removeHighlight = (index: number) => {
-    setFormData({ ...formData, highlights: formData.highlights.filter((_, i) => i !== index) });
-  };
+  const removeHighlight = React.useCallback((index: number) => {
+    setFormData(prev => ({ ...prev, highlights: prev.highlights.filter((_, i) => i !== index) }));
+  }, []);
 
   // Included item text helpers - with draft state
-  const addIncludedItem = () => {
+  const addIncludedItem = React.useCallback(() => {
     setShowIncludedItemInput(true);
     setDraftIncludedItem('');
-  };
+  }, []);
 
-  const saveIncludedItem = () => {
+  const saveIncludedItem = React.useCallback(() => {
     if (draftIncludedItem.trim()) {
-      setFormData({ ...formData, includedItemsText: [...formData.includedItemsText, draftIncludedItem.trim()] });
+      setFormData(prev => ({ ...prev, includedItemsText: [...prev.includedItemsText, draftIncludedItem.trim()] }));
       setDraftIncludedItem('');
       setShowIncludedItemInput(false);
     }
-  };
+  }, [draftIncludedItem]);
 
-  const cancelIncludedItem = () => {
+  const cancelIncludedItem = React.useCallback(() => {
     setDraftIncludedItem('');
     setShowIncludedItemInput(false);
-  };
+  }, []);
 
-  const updateIncludedItem = (index: number, value: string) => {
-    const updated = [...formData.includedItemsText];
-    updated[index] = value;
-    setFormData({ ...formData, includedItemsText: updated });
-  };
+  const updateIncludedItem = React.useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const updated = [...prev.includedItemsText];
+      updated[index] = value;
+      return { ...prev, includedItemsText: updated };
+    });
+  }, []);
 
-  const removeIncludedItem = (index: number) => {
-    setFormData({ ...formData, includedItemsText: formData.includedItemsText.filter((_, i) => i !== index) });
-  };
+  const removeIncludedItem = React.useCallback((index: number) => {
+    setFormData(prev => ({ ...prev, includedItemsText: prev.includedItemsText.filter((_, i) => i !== index) }));
+  }, []);
 
   // Excluded item helpers - with draft state
-  const addExcludedItem = () => {
+  const addExcludedItem = React.useCallback(() => {
     setShowExcludedItemInput(true);
     setDraftExcludedItem('');
-  };
+  }, []);
 
-  const saveExcludedItem = () => {
+  const saveExcludedItem = React.useCallback(() => {
     if (draftExcludedItem.trim()) {
-      setFormData({ ...formData, excludedItemsText: [...formData.excludedItemsText, draftExcludedItem.trim()] });
+      setFormData(prev => ({ ...prev, excludedItemsText: [...prev.excludedItemsText, draftExcludedItem.trim()] }));
       setDraftExcludedItem('');
       setShowExcludedItemInput(false);
     }
-  };
+  }, [draftExcludedItem]);
 
-  const cancelExcludedItem = () => {
+  const cancelExcludedItem = React.useCallback(() => {
     setDraftExcludedItem('');
     setShowExcludedItemInput(false);
-  };
+  }, []);
 
-  const updateExcludedItem = (index: number, value: string) => {
-    const updated = [...formData.excludedItemsText];
-    updated[index] = value;
-    setFormData({ ...formData, excludedItemsText: updated });
-  };
+  const updateExcludedItem = React.useCallback((index: number, value: string) => {
+    setFormData(prev => {
+      const updated = [...prev.excludedItemsText];
+      updated[index] = value;
+      return { ...prev, excludedItemsText: updated };
+    });
+  }, []);
 
-  const removeExcludedItem = (index: number) => {
-    setFormData({ ...formData, excludedItemsText: formData.excludedItemsText.filter((_, i) => i !== index) });
-  };
+  const removeExcludedItem = React.useCallback((index: number) => {
+    setFormData(prev => ({ ...prev, excludedItemsText: prev.excludedItemsText.filter((_, i) => i !== index) }));
+  }, []);
 
   // Linked item helpers (actual items from vendor's inventory)
-  const toggleLinkedItem = (itemId: string) => {
-    if (formData.includedItemIds.includes(itemId)) {
-      setFormData({ ...formData, includedItemIds: formData.includedItemIds.filter(id => id !== itemId) });
-    } else {
-      setFormData({ ...formData, includedItemIds: [...formData.includedItemIds, itemId] });
-    }
-  };
+  const toggleLinkedItem = React.useCallback((itemId: string) => {
+    setFormData(prev => {
+      if (prev.includedItemIds.includes(itemId)) {
+        return { ...prev, includedItemIds: prev.includedItemIds.filter(id => id !== itemId) };
+      } else {
+        return { ...prev, includedItemIds: [...prev.includedItemIds, itemId] };
+      }
+    });
+  }, []);
 
   // Extra charge helpers - with draft state
-  const addExtraCharge = () => {
+  const addExtraCharge = React.useCallback(() => {
     setShowExtraChargeInput(true);
     setDraftExtraCharge({ name: '', price: '' });
-  };
+  }, []);
 
-  const saveExtraCharge = () => {
+  const saveExtraCharge = React.useCallback(() => {
     if (draftExtraCharge.name.trim() && draftExtraCharge.price) {
-      setFormData({ 
-        ...formData, 
-        extraChargesDetailed: [...formData.extraChargesDetailed, {
+      setFormData(prev => ({ 
+        ...prev, 
+        extraChargesDetailed: [...prev.extraChargesDetailed, {
           name: draftExtraCharge.name.trim(),
           price: draftExtraCharge.price
         }] 
-      });
+      }));
       setDraftExtraCharge({ name: '', price: '' });
       setShowExtraChargeInput(false);
     }
-  };
+  }, [draftExtraCharge]);
 
-  const cancelExtraCharge = () => {
+  const cancelExtraCharge = React.useCallback(() => {
     setDraftExtraCharge({ name: '', price: '' });
     setShowExtraChargeInput(false);
-  };
+  }, []);
 
-  const removeExtraCharge = (index: number) => {
-    setFormData({ 
-      ...formData, 
-      extraChargesDetailed: formData.extraChargesDetailed.filter((_, i) => i !== index) 
+  const removeExtraCharge = React.useCallback((index: number) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      extraChargesDetailed: prev.extraChargesDetailed.filter((_, i) => i !== index) 
+    }));
+  }, []);
+
+  const updateExtraCharge = React.useCallback((index: number, field: 'name' | 'price', value: string) => {
+    setFormData(prev => {
+      const updated = [...prev.extraChargesDetailed];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, extraChargesDetailed: updated };
     });
-  };
-
-  const updateExtraCharge = (index: number, field: 'name' | 'price', value: string) => {
-    const updated = [...formData.extraChargesDetailed];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, extraChargesDetailed: updated });
-  };
+  }, []);
 
   // Save as draft functionality (saves with price=0.01 to mark as incomplete)
   const handleSaveAsDraft = async () => {
+    // Check if vendor_id exists in localStorage
+    const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') : null;
+    console.log('🔍 Checking vendor_id:', vendorId);
+    console.log('📦 All localStorage keys:', Object.keys(localStorage));
+    console.log('👤 User ID:', localStorage.getItem('user_id'));
+    console.log('🎭 User Role:', localStorage.getItem('user_role'));
+    
+    if (!vendorId) {
+      toast.error('Vendor profile not found. Please complete vendor onboarding first.');
+      console.error('❌ vendor_id not found in localStorage');
+      return;
+    }
+
     if (!formData.name) {
       toast.error('Please add at least a name to save as draft');
       return;
     }
-    if (!formData.categoryId) {
-      toast.error('Please select a category to save as draft');
-      return;
-    }
-    if (formData.eventTypeIds.length === 0) {
-      toast.error('Please select at least one event type to save as draft');
-      return;
+    
+    // For ITEMS, require category and event types
+    // For PACKAGES, these will be derived from bundled items
+    if (listingType === 'ITEM') {
+      if (!formData.categoryId) {
+        toast.error('Please select a category to save as draft');
+        return;
+      }
+      if (formData.eventTypeIds.length === 0) {
+        toast.error('Please select at least one event type to save as draft');
+        return;
+      }
     }
 
     setIsSaving(true);
     try {
-      // Convert core category ID to DB category ID for API
-      const dbCategoryId = getDbCategoryId(formData.categoryId);
+      // For packages, use a placeholder category if no items selected yet
+      const dbCategoryId = listingType === 'PACKAGE' && !formData.categoryId 
+        ? 'other' // Placeholder for packages without items
+        : getDbCategoryId(formData.categoryId);
+      
+      // Extract price from category-specific data for non-"Other" categories
+      let finalPrice = formData.price;
+      if (formData.categoryId && formData.categoryId !== 'other') {
+        switch (formData.categoryId) {
+          case 'caterer':
+            finalPrice = categorySpecificData.pricePerPlateVeg || '';
+            break;
+          case 'photographer':
+          case 'venue':
+          case 'decorator':
+          case 'dj-entertainment':
+          case 'sound-lights':
+            finalPrice = categorySpecificData.price || '';
+            break;
+          case 'mua':
+            finalPrice = categorySpecificData.bridalPrice || '';
+            break;
+        }
+      }
       
       // Save as draft - keep isActive true so vendor can still see it, but mark as draft
       const payload: any = {
         name: formData.name,
         description: formData.description || 'Draft - description pending',
-        price: formData.price ? parseFloat(formData.price) : 0.01, // 0.01 marks draft
+        price: finalPrice ? parseFloat(finalPrice) : 0.01, // 0.01 marks draft if no price
         categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
-        eventTypeIds: formData.eventTypeIds,
+        // For packages without items, send a dummy event type to pass backend validation
+        // This will be replaced when items are added
+        eventTypeIds: formData.eventTypeIds.length > 0 ? formData.eventTypeIds : (listingType === 'PACKAGE' ? [1] : []), // Use event type ID 1 as placeholder for packages
         images: formData.images,
         highlights: formData.highlights.filter(h => h.trim()),
         deliveryTime: formData.deliveryTime,
+        customNotes: formData.customNotes || undefined,
         extraChargesDetailed: formData.extraChargesDetailed.filter(ec => ec.name.trim()).map(ec => ({
           name: ec.name,
           price: parseFloat(ec.price) || 0
@@ -751,12 +1014,20 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: false, // Drafts should NOT be visible to customers
         isDraft: true, // Mark as draft
+        // Store category-specific data as JSON
+        categorySpecificData: formData.categoryId !== 'other' ? categorySpecificData : undefined,
       };
 
+      // Include/exclude items are available for both packages and items
+      payload.includedItemsText = formData.includedItemsText.filter((i: string) => i.trim());
+      payload.excludedItemsText = formData.excludedItemsText.filter((i: string) => i.trim());
+      
+      console.log('📤 DRAFT SAVE - includedItemsText:', payload.includedItemsText);
+      console.log('📤 DRAFT SAVE - excludedItemsText:', payload.excludedItemsText);
+      console.log('📤 DRAFT SAVE - Full payload:', JSON.stringify(payload, null, 2));
+
       if (listingType === 'PACKAGE') {
-        payload.includedItemsText = formData.includedItemsText.filter(i => i.trim());
         payload.includedItemIds = formData.includedItemIds;
-        payload.excludedItemsText = formData.excludedItemsText.filter(i => i.trim());
       } else {
         payload.unit = formData.unit;
         payload.minimumQuantity = formData.minimumQuantity;
@@ -797,6 +1068,7 @@ export default function VendorListings() {
     setShowCreateModal(false);
     setEditingListing(null);
     setFormData(initialFormData); // Reset form to initial state
+    setCategorySpecificData({}); // Reset category-specific data
     setExpandedSections({
       basic: true,
       pricing: true,
@@ -806,14 +1078,6 @@ export default function VendorListings() {
     });
   };
 
-  // Separate drafts from active listings - use listingsData directly, not filtered
-  const draftListings = useMemo(() => {
-    if (!listingsData || !Array.isArray(listingsData)) {
-      return [];
-    }
-    const drafts = listingsData.filter((l: any) => isDraftListing(l));
-    return drafts;
-  }, [listingsData]);
 
   if (listingsLoading) {
     return (
@@ -925,805 +1189,77 @@ export default function VendorListings() {
         </div>
 
         {/* Create/Edit Listing Dialog */}
-        <Dialog open={showCreateModal} onOpenChange={(open) => {
-          if (!open) closeModal();
-          else setShowCreateModal(open);
-        }}>
-          <DialogContent className="bg-card border-border max-w-2xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-foreground text-lg sm:text-xl">
-                {editingListing ? 'Edit Listing' : 'Create New Listing'}
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-sm mt-2">
-                <span className="inline-flex items-center gap-1">
-                  <span className="text-red-500">*</span> Required fields must be completed to publish
-                </span>
-              </DialogDescription>
-            </DialogHeader>
+        {showCreateModal && (
+          <Dialog open={showCreateModal} onOpenChange={(open) => {
+            if (!open) closeModal();
+            else setShowCreateModal(open);
+          }}>
+            <DialogContent className="bg-card border-border max-w-3xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl p-6">
+              <DialogHeader>
+                <DialogTitle className="text-foreground text-lg sm:text-xl">
+                  {editingListing ? 'Edit Listing' : 'Create New Listing'}
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground text-sm mt-2">
+                  Complete the 3-step wizard to create your listing
+                </DialogDescription>
+              </DialogHeader>
 
-                {/* Single Scrollable Form */}
-                <div className="space-y-3 pt-4">
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Listing Type</Label>
-                    <Select value={listingType} onValueChange={(value: 'PACKAGE' | 'ITEM') => setListingType(value)}>
-                      <SelectTrigger className="bg-background border-border text-foreground">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PACKAGE">Package</SelectItem>
-                        <SelectItem value="ITEM">Item</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <ListingFormWizard
+                formData={formData}
+                setFormData={setFormDataWithLog}
+                listingType={listingType}
+                setListingType={setListingType}
+                categorySpecificData={categorySpecificData}
+                setCategorySpecificData={setCategorySpecificDataWithLog}
+                editingListing={editingListing}
+                onSubmit={handleSubmit}
+                onSaveAsDraft={handleSaveAsDraft}
+                onCancel={closeModal}
+                isPublishing={isPublishing}
+                isSaving={isSaving}
+                eventTypesData={eventTypesData}
+                categoriesData={categoriesData}
+                items={items}
+                availableEventTypes={availableEventTypes}
+                coreCategories={coreCategories}
+                eventTypeCategories={eventTypeCategories}
+                getCategoryName={getCategoryName}
+                getAllDbCategoryIds={getAllDbCategoryIds}
+                toggleLinkedItem={toggleLinkedItem}
+                draftIncludedItem={draftIncludedItem}
+                setDraftIncludedItem={setDraftIncludedItem}
+                showIncludedItemInput={showIncludedItemInput}
+                setShowIncludedItemInput={setShowIncludedItemInput}
+                saveIncludedItem={saveIncludedItem}
+                cancelIncludedItem={cancelIncludedItem}
+                removeIncludedItem={removeIncludedItem}
+                draftExcludedItem={draftExcludedItem}
+                setDraftExcludedItem={setDraftExcludedItem}
+                showExcludedItemInput={showExcludedItemInput}
+                setShowExcludedItemInput={setShowExcludedItemInput}
+                saveExcludedItem={saveExcludedItem}
+                cancelExcludedItem={cancelExcludedItem}
+                removeExcludedItem={removeExcludedItem}
+                draftExtraCharge={draftExtraCharge}
+                setDraftExtraCharge={setDraftExtraCharge}
+                showExtraChargeInput={showExtraChargeInput}
+                setShowExtraChargeInput={setShowExtraChargeInput}
+                saveExtraCharge={saveExtraCharge}
+                cancelExtraCharge={cancelExtraCharge}
+                removeExtraCharge={removeExtraCharge}
+                draftHighlight={draftHighlight}
+                setDraftHighlight={setDraftHighlight}
+                showHighlightInput={showHighlightInput}
+                setShowHighlightInput={setShowHighlightInput}
+                saveHighlight={saveHighlight}
+                cancelHighlight={cancelHighlight}
+                removeHighlight={removeHighlight}
+                handleImagesChange={handleImagesChange}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
 
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Name *</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="bg-background border-border text-foreground"
-                      placeholder="e.g., Wedding Photography Package"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Description</Label>
-                    <Textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="bg-background border-border text-foreground min-h-[100px]"
-                      placeholder="Describe your listing..."
-                    />
-                  </div>
-
-                  {/* Pricing & Category */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Price (₹) *</Label>
-                      <Input
-                        type="number"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="bg-background border-border text-foreground"
-                        placeholder="25000"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-foreground">Category *</Label>
-                      <Select
-                        value={formData.categoryId}
-                        onValueChange={(value) => {
-                          // When category changes, filter event types and clear invalid selections
-                          let newEventTypeIds = formData.eventTypeIds;
-                          
-                          if (value && value !== 'other' && eventTypeCategories.length > 0) {
-                            // Get valid event type IDs for this category
-                            const validEventTypeIds = new Set<number>();
-                            eventTypeCategories.forEach((etc: any) => {
-                              const etcEventTypeId = etc.eventTypeId || etc.eventType?.id;
-                              const etcCategoryId = etc.categoryId || etc.category?.id;
-                              if (etcCategoryId === value && etcEventTypeId) {
-                                validEventTypeIds.add(etcEventTypeId);
-                              }
-                            });
-                            
-                            // Add Corporate to DJ
-                            if (value === 'dj') {
-                              const corporateEventType = eventTypesData?.find((et: any) => 
-                                et.name === 'Corporate' || et.name === 'Corporate Event' || et.displayName === 'Corporate Event'
-                              );
-                              if (corporateEventType) {
-                                validEventTypeIds.add(corporateEventType.id);
-                              }
-                            }
-                            
-                            // Remove invalid event types
-                            newEventTypeIds = formData.eventTypeIds.filter(id => validEventTypeIds.has(id));
-                          }
-                          
-                          setFormData({ 
-                            ...formData, 
-                            categoryId: value,
-                            eventTypeIds: newEventTypeIds,
-                            customCategoryName: value !== 'other' ? '' : formData.customCategoryName
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="bg-background border-border text-foreground">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {coreCategories.map((cat: any) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {/* Custom Category Name Input - shown when "Other" is selected */}
-                      {formData.categoryId === 'other' && (
-                        <div className="mt-2">
-                          <Input
-                            value={formData.customCategoryName}
-                            onChange={(e) => setFormData({ ...formData, customCategoryName: e.target.value })}
-                            placeholder="e.g., Balloon Artist, Event Planner, etc."
-                            className="bg-background border-border text-foreground"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Please specify your category name
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Event Types *</Label>
-                    {!formData.categoryId ? (
-                      <div className="p-3 border border-border rounded-lg bg-muted/30">
-                        <p className="text-sm text-muted-foreground">
-                          ⚠️ Please select a category first to see available event types
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-40 overflow-y-auto">
-                          {availableEventTypes && Array.isArray(availableEventTypes) && availableEventTypes.length > 0 ? (
-                            availableEventTypes.map((et: any) => (
-                              <div key={et.id} className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.eventTypeIds.includes(et.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setFormData({ ...formData, eventTypeIds: [...formData.eventTypeIds, et.id] });
-                                    } else {
-                                      setFormData({ ...formData, eventTypeIds: formData.eventTypeIds.filter(id => id !== et.id) });
-                                    }
-                                  }}
-                                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                                />
-                                <Label className="text-sm font-normal text-foreground cursor-pointer">
-                                  {et.name || et.displayName}
-                                </Label>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="col-span-2 p-2 text-sm text-muted-foreground">
-                              No event types available for this category
-                            </div>
-                          )}
-                        </div>
-                        {formData.eventTypeIds.length === 0 && (
-                          <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                            ⚠️ Please select at least one event type
-                          </p>
-                        )}
-                        {formData.eventTypeIds.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            💡 {formData.categoryId === 'other' 
-                              ? 'All event types available for custom categories' 
-                              : 'Event types shown are valid for the selected category'}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-
-
-                  {/* Highlights Section (for both PACKAGE and ITEM) */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      Listing Highlights
-                      {formData.highlights.length > 0 && (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-500/30">
-                          {formData.highlights.length}
-                        </Badge>
-                      )}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">Key features shown at the top of your listing (e.g., "Mandap decoration", "Stage decoration")</p>
-                    <div className="space-y-2 p-3 border border-green-500/20 rounded-lg bg-green-500/5">
-                      {/* Show saved highlights */}
-                      {formData.highlights.length === 0 && !showHighlightInput ? (
-                        <p className="text-sm text-muted-foreground italic text-center py-2">No highlights added yet</p>
-                      ) : (
-                        <>
-                          {formData.highlights.map((highlight, i) => (
-                            <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border border-green-500/30">
-                              <span className="text-green-500 font-bold">•</span>
-                              <span className="flex-1 text-sm text-foreground">{highlight}</span>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => removeHighlight(i)}
-                                className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                title="Remove"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          ))}
-                          {/* Draft input */}
-                          {showHighlightInput && (
-                            <div className="flex items-center gap-2 p-2 rounded bg-background border-2 border-primary">
-                              <span className="text-muted-foreground font-bold">•</span>
-                              <Input 
-                                value={draftHighlight} 
-                                onChange={(e) => setDraftHighlight(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && draftHighlight.trim()) {
-                                    e.preventDefault();
-                                    saveHighlight();
-                                  } else if (e.key === 'Escape') {
-                                    e.preventDefault();
-                                    cancelHighlight();
-                                  }
-                                }}
-                                className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                                placeholder="e.g., Mandap decoration, Stage lighting"
-                                autoFocus
-                              />
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={saveHighlight}
-                                disabled={!draftHighlight.trim()}
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
-                                title="Save (Enter)"
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={cancelHighlight}
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                title="Cancel (Esc)"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {!showHighlightInput && (
-                        <Button size="sm" variant="outline" onClick={addHighlight} className="w-full border-dashed">
-                          <Plus className="h-4 w-4 mr-2" /> Add Highlight
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Category-Specific Fields - MOVED HERE */}
-                  {formData.categoryId && formData.categoryId !== 'other' && (
-                    <>
-                      {/* Divider */}
-                      <div className="relative py-2">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-border"></div>
-                        </div>
-                        <div className="relative flex justify-center">
-                          <span className="bg-card px-3 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                            Category-Specific Details
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4 p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="h-1 w-1 rounded-full bg-primary"></div>
-                          <h3 className="font-semibold text-foreground">
-                            {getCategoryName(formData.categoryId)} Details
-                          </h3>
-                        </div>
-                        
-                        <CategoryFieldRenderer
-                          categoryId={formData.categoryId}
-                          values={categorySpecificData}
-                          onChange={setCategorySpecificData}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Delivery Time - New Smart Component */}
-                  <DeliveryTimeInput
-                    value={formData.deliveryTime}
-                    onChange={(value) => setFormData({ ...formData, deliveryTime: value })}
-                    categoryId={formData.categoryId}
-                  />
-
-                  {listingType === 'PACKAGE' && (
-                    <>
-                      {/* ===== BUNDLE EXISTING ITEMS SECTION ===== */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-primary/10">
-                              <Package className="h-4 w-4 text-primary" />
-                            </div>
-                            <Label className="text-foreground font-semibold">Bundle Your Items</Label>
-                          </div>
-                          {formData.includedItemIds.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {formData.includedItemIds.length} selected
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Select items from your inventory to bundle into this package. Customers can click each item to see details.
-                        </p>
-                        
-                        {items.length === 0 ? (
-                          <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-6 text-center bg-muted/5">
-                            <Box className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
-                            <p className="text-sm font-medium text-muted-foreground mb-1">No items to bundle yet</p>
-                            <p className="text-xs text-muted-foreground mb-3">Create individual items first, then bundle them into packages</p>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => {
-                                closeModal();
-                                setListingType('ITEM');
-                                setTimeout(() => setShowCreateModal(true), 100);
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" /> Create Service First
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="border border-border rounded-lg overflow-hidden">
-                            <div className="max-h-48 overflow-y-auto">
-                              {items.map((item: any) => {
-                                const isSelected = formData.includedItemIds.includes(item.id);
-                                return (
-                                  <div 
-                                    key={item.id} 
-                                    className={`flex items-center gap-3 p-3 cursor-pointer transition-all hover:bg-muted/50 border-b border-border last:border-b-0 ${isSelected ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
-                                    onClick={() => toggleLinkedItem(item.id)}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => {}}
-                                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary flex-shrink-0"
-                                    />
-                                    {item.images && item.images.length > 0 ? (
-                                      <img 
-                                        src={item.images[0]} 
-                                        alt={item.name}
-                                        className="w-12 h-12 rounded-md object-cover flex-shrink-0"
-                                      />
-                                    ) : (
-                                      <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                                        <Box className="h-5 w-5 text-muted-foreground" />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                                        {item.name}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground truncate">
-                                        {getCategoryName(item.listingCategory?.id || item.categoryId || '') || 'Uncategorized'}
-                                      </p>
-                                    </div>
-                                    <div className="text-right flex-shrink-0">
-                                      <p className={`text-sm font-bold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                                        ₹{Number(item.price).toLocaleString('en-IN')}
-                                      </p>
-                                      {item.unit && (
-                                        <p className="text-xs text-muted-foreground">/{item.unit}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {/* Summary Footer */}
-                            {formData.includedItemIds.length > 0 && (
-                              <div className="bg-primary/5 border-t border-primary/20 p-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">
-                                    Bundling {formData.includedItemIds.length} item{formData.includedItemIds.length > 1 ? 's' : ''}
-                                  </span>
-                                  <span className="text-sm font-semibold text-primary">
-                                    Items total: ₹{items
-                                      .filter((i: any) => formData.includedItemIds.includes(i.id))
-                                      .reduce((sum: number, i: any) => sum + Number(i.price), 0)
-                                      .toLocaleString('en-IN')}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Divider */}
-                      <div className="relative py-2">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-border"></div>
-                        </div>
-                        <div className="relative flex justify-center">
-                          <span className="bg-card px-3 text-xs text-muted-foreground uppercase tracking-wider">
-                            {items.length > 0 ? 'Plus Custom Inclusions' : 'Or Add Custom Inclusions'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* ===== CUSTOM INCLUSIONS SECTION ===== */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          <Label className="text-foreground">What's Included</Label>
-                          {formData.includedItemsText.length > 0 && (
-                            <Badge variant="outline" className="text-xs text-green-600 border-green-500/30">
-                              {formData.includedItemsText.length}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Add services or items not listed as separate items</p>
-                        <div className="space-y-2 p-3 border border-green-500/20 rounded-lg bg-green-500/5">
-                          {/* Show saved items */}
-                          {formData.includedItemsText.length === 0 && !showIncludedItemInput ? (
-                            <p className="text-sm text-muted-foreground italic text-center py-2">No custom inclusions added</p>
-                          ) : (
-                            <>
-                              {formData.includedItemsText.map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border border-green-500/30">
-                                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                  <span className="flex-1 text-sm text-foreground">{item}</span>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    onClick={() => removeIncludedItem(i)}
-                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                    title="Remove"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              ))}
-                              {/* Draft input */}
-                              {showIncludedItemInput && (
-                                <div className="flex items-center gap-2 p-2 rounded bg-background border-2 border-primary">
-                                  <CheckCircle2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                  <Input 
-                                    value={draftIncludedItem} 
-                                    onChange={(e) => setDraftIncludedItem(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && draftIncludedItem.trim()) {
-                                        e.preventDefault();
-                                        saveIncludedItem();
-                                      } else if (e.key === 'Escape') {
-                                        e.preventDefault();
-                                        cancelIncludedItem();
-                                      }
-                                    }}
-                                    className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                                    placeholder="e.g., Flower arrangements, Stage lighting"
-                                    autoFocus
-                                  />
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    onClick={saveIncludedItem}
-                                    disabled={!draftIncludedItem.trim()}
-                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
-                                    title="Save (Enter)"
-                                  >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    onClick={cancelIncludedItem}
-                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                    title="Cancel (Esc)"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          {!showIncludedItemInput && (
-                            <Button size="sm" variant="outline" onClick={addIncludedItem} className="w-full border-dashed">
-                              <Plus className="h-4 w-4 mr-2" /> Add Custom Inclusion
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* ===== EXCLUSIONS SECTION ===== */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <X className="h-4 w-4 text-red-500" />
-                          <Label className="text-foreground">What's Not Included</Label>
-                          {formData.excludedItemsText.length > 0 && (
-                            <Badge variant="outline" className="text-xs text-red-600 border-red-500/30">
-                              {formData.excludedItemsText.length}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Clarify what's NOT part of this package</p>
-                        <div className="space-y-2 p-3 border border-red-500/20 rounded-lg bg-red-500/5">
-                          {/* Show saved items */}
-                          {formData.excludedItemsText.length === 0 && !showExcludedItemInput ? (
-                            <p className="text-sm text-muted-foreground italic text-center py-2">No exclusions added</p>
-                          ) : (
-                            <>
-                              {formData.excludedItemsText.map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 p-2 rounded bg-background border border-red-500/30">
-                                  <X className="h-4 w-4 text-red-500 flex-shrink-0" />
-                                  <span className="flex-1 text-sm text-foreground">{item}</span>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost" 
-                                    onClick={() => removeExcludedItem(i)}
-                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                    title="Remove"
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              ))}
-                              {/* Draft input */}
-                              {showExcludedItemInput && (
-                                <div className="flex items-center gap-2 p-2 rounded bg-background border-2 border-primary">
-                                  <X className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                  <Input 
-                                    value={draftExcludedItem} 
-                                    onChange={(e) => setDraftExcludedItem(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && draftExcludedItem.trim()) {
-                                        e.preventDefault();
-                                        saveExcludedItem();
-                                      } else if (e.key === 'Escape') {
-                                        e.preventDefault();
-                                        cancelExcludedItem();
-                                      }
-                                    }}
-                                    className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                                    placeholder="e.g., Transportation, Food"
-                                    autoFocus
-                                  />
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    onClick={saveExcludedItem}
-                                    disabled={!draftExcludedItem.trim()}
-                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
-                                    title="Save (Enter)"
-                                  >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    onClick={cancelExcludedItem}
-                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                    title="Cancel (Esc)"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          {!showExcludedItemInput && (
-                            <Button size="sm" variant="outline" onClick={addExcludedItem} className="w-full border-dashed">
-                              <Plus className="h-4 w-4 mr-2" /> Add Exclusion
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {listingType === 'ITEM' && (
-                    <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-foreground">Unit</Label>
-                          <Input
-                            value={formData.unit}
-                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                            className="bg-background border-border text-foreground"
-                            placeholder="e.g., per piece"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-foreground">Minimum Quantity</Label>
-                          <Input
-                            type="number"
-                            value={formData.minimumQuantity}
-                            onChange={(e) => setFormData({ ...formData, minimumQuantity: parseInt(e.target.value) || 1 })}
-                            className="bg-background border-border text-foreground"
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Extra Charges with Pricing */}
-                  <div className="space-y-2">
-                    <Label className="text-foreground flex items-center gap-2">
-                      <Plus className="h-4 w-4 text-orange-500" />
-                      Extra Charges
-                    </Label>
-                    <p className="text-xs text-muted-foreground">Optional add-ons with pricing that customers can select</p>
-                    <div className="space-y-2 p-3 border border-border rounded-lg bg-orange-500/5">
-                      {/* Show saved charges */}
-                      {formData.extraChargesDetailed.length === 0 && !showExtraChargeInput ? (
-                        <p className="text-sm text-muted-foreground italic">No extra charges added yet</p>
-                      ) : (
-                        <>
-                          {formData.extraChargesDetailed.map((charge, i) => (
-                            <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-background border border-orange-500/30">
-                              <span className="text-orange-500 font-bold">+</span>
-                              <span className="flex-1 text-sm text-foreground">{charge.name}</span>
-                              <span className="text-sm font-semibold text-foreground">₹{Number(charge.price).toLocaleString('en-IN')}</span>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => removeExtraCharge(i)}
-                                className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                title="Remove"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          ))}
-                          {/* Draft input */}
-                          {showExtraChargeInput && (
-                            <div className="flex items-center gap-2 p-2 rounded-lg bg-background border-2 border-primary">
-                              <span className="text-muted-foreground font-bold">+</span>
-                              <Input 
-                                value={draftExtraCharge.name} 
-                                onChange={(e) => setDraftExtraCharge({ ...draftExtraCharge, name: e.target.value })}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    // Move to price input
-                                    const priceInput = e.currentTarget.parentElement?.querySelector('input[type="number"]');
-                                    if (priceInput) {
-                                      (priceInput as HTMLInputElement).focus();
-                                    }
-                                  } else if (e.key === 'Escape') {
-                                    e.preventDefault();
-                                    cancelExtraCharge();
-                                  }
-                                }}
-                                className="flex-1 bg-transparent border-0 h-8 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                                placeholder="e.g., Additional lighting"
-                                autoFocus
-                              />
-                              <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted">
-                                <span className="text-muted-foreground text-sm">₹</span>
-                                <Input 
-                                  type="number"
-                                  value={draftExtraCharge.price} 
-                                  onChange={(e) => setDraftExtraCharge({ ...draftExtraCharge, price: e.target.value })}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && draftExtraCharge.name.trim() && draftExtraCharge.price) {
-                                      e.preventDefault();
-                                      saveExtraCharge();
-                                    } else if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelExtraCharge();
-                                    }
-                                  }}
-                                  className="w-24 bg-transparent border-0 h-7 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-right font-medium" 
-                                  placeholder="10000"
-                                />
-                              </div>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={saveExtraCharge}
-                                disabled={!draftExtraCharge.name.trim() || !draftExtraCharge.price}
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 disabled:opacity-30"
-                                title="Save (Enter)"
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={cancelExtraCharge}
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                title="Cancel (Esc)"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {!showExtraChargeInput && (
-                        <Button size="sm" variant="outline" onClick={addExtraCharge} className="mt-2 w-full border-dashed">
-                          <Plus className="h-4 w-4 mr-2" /> Add Extra Charge
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Images *</Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Upload multiple photos to showcase your listing. Drag to reorder.
-                    </p>
-                    <ImageUpload
-                      images={formData.images}
-                      onChange={handleImagesChange}
-                      maxImages={20}
-                    />
-                    {formData.images.length === 0 && (
-                      <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
-                        ⚠️ At least one image is recommended
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        variant="outline"
-                        className="flex-1 border-border hover:bg-muted"
-                        onClick={closeModal}
-                      >
-                        Cancel
-                      </Button>
-                      {/* Only show Save as Draft for NEW listings, not when editing existing ones */}
-                      {!editingListing && (
-                      <Button
-                        variant="outline"
-                        className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
-                        onClick={handleSaveAsDraft}
-                        disabled={isSaving}
-                      >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
-                        Save as Draft
-                      </Button>
-                      )}
-                    </div>
-                    <Button
-                      className="w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={handleSubmit}
-                      disabled={!formData.name || !formData.price || !formData.categoryId || formData.eventTypeIds.length === 0 || formData.images.length === 0 || isPublishing || isSaving}
-                    >
-                      {isPublishing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {editingListing ? 'Updating...' : 'Publishing...'}
-                        </>
-                      ) : (
-                        <>
-                          {editingListing ? 'Update' : 'Publish'} Listing
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-center text-muted-foreground">
-                      {!formData.name || !formData.categoryId || formData.eventTypeIds.length === 0
-                        ? '⚠️ Complete all required fields to publish' 
-                        : !formData.price 
-                          ? '⚠️ Set a price to publish' 
-                          : formData.images.length === 0 
-                            ? '⚠️ Add at least one image to publish'
-                            : '✓ Ready to publish'}
-                    </p>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
 
         {listingsError && (
           <Alert className="border-destructive">
@@ -1778,6 +1314,8 @@ export default function VendorListings() {
                       }}
                       onDelete={handleDelete}
                       isDeleting={isDeleting === listing.id}
+                      getCategoryName={getCategoryName}
+                      allItems={items}
                     />
                   ))}
                 </div>
@@ -1886,7 +1424,7 @@ export default function VendorListings() {
                   {/* Price Badge */}
                   <div className="absolute bottom-2 right-2">
                     <Badge className="bg-white text-foreground font-bold text-base px-3 py-1.5 shadow-lg">
-                      ₹{Number(listing.price).toLocaleString('en-IN')}
+                      ₹{getDisplayPrice(listing).toLocaleString('en-IN')}
                     </Badge>
                   </div>
                   {/* Image count indicator */}
@@ -1906,19 +1444,78 @@ export default function VendorListings() {
                   
                   {/* Category & Event Types Section */}
                   <div className="space-y-2 pt-3 border-t border-border/50">
-                    {/* Category with icon */}
-                    <div className="flex items-center gap-1.5">
-                      {(() => {
-                        const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                    {/* Category with icon - show multiple for packages with bundled items */}
+                    {listing.includedItemIds && listing.includedItemIds.length > 0 ? (() => {
+                      // Extract unique categories from bundled items
+                      const uniqueCategories = new Set<string>();
+                      listing.includedItemIds.forEach((itemId: string) => {
+                        const item = items.find((i: any) => i.id === itemId);
+                        if (item) {
+                          const categoryId = item.listingCategory?.id || item.categoryId;
+                          if (categoryId) {
+                            const categoryName = getCategoryName(categoryId) || 'Other';
+                            uniqueCategories.add(categoryName);
+                          }
+                        }
+                      });
+                      const categoryArray = Array.from(uniqueCategories);
+                      
+                      // If multiple categories, show as badges
+                      if (categoryArray.length > 1) {
+                        return (
+                          <div className="flex flex-wrap gap-1">
+                            {categoryArray.map((categoryName: string, index: number) => {
+                              const CategoryIcon = getCategoryIcon(categoryName);
+                              return (
+                                <Badge 
+                                  key={index}
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0.5 h-5 bg-primary/10 text-primary border-primary/30 flex items-center gap-1"
+                                >
+                                  <CategoryIcon className="h-3 w-3" />
+                                  {categoryName}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+                      
+                      // Single category - show as before
+                      if (categoryArray.length === 1) {
+                        const categoryName = categoryArray[0];
                         const CategoryIcon = getCategoryIcon(categoryName);
                         return (
-                          <>
+                          <div className="flex items-center gap-1.5">
                             <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
                             <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
-                          </>
+                          </div>
                         );
-                      })()}
-                    </div>
+                      }
+                      
+                      // Fallback to listing's own category
+                      const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                      const CategoryIcon = getCategoryIcon(categoryName);
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                          <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                        </div>
+                      );
+                    })() : (
+                      <div className="flex items-center gap-1.5">
+                        {(() => {
+                          const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '') || 'Other';
+                          const CategoryIcon = getCategoryIcon(categoryName);
+                          return (
+                            <>
+                              <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                              <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
                     
                     {/* Event Types as chips */}
                     {listing.eventTypes && listing.eventTypes.length > 0 && (
@@ -2056,7 +1653,7 @@ export default function VendorListings() {
                   {/* Price Badge */}
                   <div className="absolute bottom-2 right-2">
                     <Badge className="bg-white text-foreground font-bold text-sm px-2 py-1 shadow-lg">
-                      ₹{Number(listing.price).toLocaleString('en-IN')}
+                      ₹{getDisplayPrice(listing).toLocaleString('en-IN')}
                       {listing.unit && <span className="text-xs font-normal text-muted-foreground">/{listing.unit}</span>}
                     </Badge>
                   </div>

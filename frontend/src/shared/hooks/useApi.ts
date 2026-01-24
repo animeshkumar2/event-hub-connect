@@ -2,6 +2,7 @@
  * React hooks for API calls - Optimized with React Query for caching and performance
  */
 
+import { useMemo } from 'react';
 import { useQuery, useQueries, UseQueryResult } from '@tanstack/react-query';
 import { publicApi, customerApi, vendorApi, authApi } from '../services/api';
 
@@ -548,6 +549,21 @@ export function useListingDetails(listingId: string | null) {
   return convertQueryResult(query);
 }
 
+// Vendor-specific listing details (includes drafts and inactive listings)
+export function useVendorListingDetails(listingId: string | null) {
+  const query = useQuery({
+    queryKey: ['vendorListingDetails', listingId],
+    queryFn: async () => {
+      if (!listingId) return null;
+      const response = await vendorApi.getListing(listingId);
+      return unwrapResponse(response);
+    },
+    enabled: !!listingId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+  return convertQueryResult(query);
+}
+
 export function usePackageDetails(packageId: string | null) {
   const query = useQuery({
     queryKey: ['packageDetails', packageId],
@@ -573,6 +589,9 @@ export function useVendorListingsData() {
           return unwrapResponse(response);
         },
         staleTime: 30 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
       },
       {
         queryKey: ['vendorProfile'],
@@ -581,6 +600,9 @@ export function useVendorListingsData() {
           return unwrapResponse(response);
         },
         staleTime: 1 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
       },
       {
         queryKey: ['eventTypes'],
@@ -589,6 +611,9 @@ export function useVendorListingsData() {
           return unwrapResponse(response);
         },
         staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
       },
       {
         queryKey: ['categories'],
@@ -597,17 +622,44 @@ export function useVendorListingsData() {
           return unwrapResponse(response);
         },
         staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
       },
     ],
   });
 
-  return {
-    listings: convertQueryResult(queries[0]),
-    profile: convertQueryResult(queries[1]),
-    eventTypes: convertQueryResult(queries[2]),
-    categories: convertQueryResult(queries[3]),
-    loading: queries.some(q => q.isLoading),
-  };
+  // Memoize each converted result individually
+  const listings = useMemo(
+    () => convertQueryResult(queries[0]),
+    [queries[0].data, queries[0].isLoading, queries[0].error, queries[0].isFetching]
+  );
+  
+  const profile = useMemo(
+    () => convertQueryResult(queries[1]),
+    [queries[1].data, queries[1].isLoading, queries[1].error, queries[1].isFetching]
+  );
+  
+  const eventTypes = useMemo(
+    () => convertQueryResult(queries[2]),
+    [queries[2].data, queries[2].isLoading, queries[2].error, queries[2].isFetching]
+  );
+  
+  const categories = useMemo(
+    () => convertQueryResult(queries[3]),
+    [queries[3].data, queries[3].isLoading, queries[3].error, queries[3].isFetching]
+  );
+  
+  const loading = queries.some(q => q.isLoading);
+
+  // Memoize the final return object
+  return useMemo(() => ({
+    listings,
+    profile,
+    eventTypes,
+    categories,
+    loading,
+  }), [listings, profile, eventTypes, categories, loading]);
 }
 
 export function useVendorDashboardData() {

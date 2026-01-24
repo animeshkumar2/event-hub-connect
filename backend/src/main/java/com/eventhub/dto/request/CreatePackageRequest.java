@@ -52,6 +52,9 @@ public class CreatePackageRequest {
     
     private Boolean openForNegotiation = true; // Allow customers to make offers on this listing
     
+    // Category-specific data (stored as JSON)
+    private Object categorySpecificData; // Flexible object to store category-specific fields
+    
     // Control whether listing is active/visible to customers
     private Boolean isActive;
     

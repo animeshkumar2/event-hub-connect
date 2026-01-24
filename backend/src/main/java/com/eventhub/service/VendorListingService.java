@@ -114,6 +114,16 @@ public class VendorListingService {
         listing.setIsDraft(request.getIsDraft() != null ? request.getIsDraft() : false);
         listing.setOpenForNegotiation(request.getOpenForNegotiation() != null ? request.getOpenForNegotiation() : true);
         
+        // Store category-specific data as JSON
+        if (request.getCategorySpecificData() != null) {
+            try {
+                listing.setCategorySpecificData(objectMapper.writeValueAsString(request.getCategorySpecificData()));
+            } catch (JsonProcessingException e) {
+                // Log error but don't fail the request
+                System.err.println("Failed to serialize category-specific data: " + e.getMessage());
+            }
+        }
+        
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
                 .map(id -> eventTypeRepository.findById(id)
@@ -130,8 +140,10 @@ public class VendorListingService {
      * Create individual item listing
      */
     public Listing createItem(UUID vendorId, CreateItemRequest request) {
+        System.out.println("📝 VendorListingService.createItem - vendorId parameter: " + vendorId);
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
+        System.out.println("📝 VendorListingService.createItem - Found vendor: " + vendor.getId() + ", user_id: " + vendor.getUserId());
         
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
@@ -166,6 +178,7 @@ public class VendorListingService {
         // Create listing
         Listing listing = new Listing();
         listing.setVendor(vendor);
+        System.out.println("📝 VendorListingService.createItem - Set vendor on listing. Vendor: " + (listing.getVendor() != null ? listing.getVendor().getId() : "NULL"));
         listing.setType(Listing.ListingType.ITEM);
         listing.setName(request.getName());
         listing.setDescription(request.getDescription());
@@ -173,9 +186,12 @@ public class VendorListingService {
         listing.setListingCategory(category);
         listing.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
         listing.setHighlights(request.getHighlights());
+        listing.setIncludedItemsText(request.getIncludedItemsText());
+        listing.setExcludedItemsText(request.getExcludedItemsText());
         listing.setUnit(request.getUnit());
         listing.setMinimumQuantity(request.getMinimumQuantity() != null ? request.getMinimumQuantity() : 1);
         listing.setDeliveryTime(request.getDeliveryTime());
+        listing.setCustomNotes(request.getCustomNotes());
         listing.setExtraCharges(request.getExtraCharges());
         
         // Convert detailed extra charges to JSON
@@ -194,6 +210,16 @@ public class VendorListingService {
         listing.setIsDraft(request.getIsDraft() != null ? request.getIsDraft() : false);
         listing.setOpenForNegotiation(request.getOpenForNegotiation() != null ? request.getOpenForNegotiation() : true);
         
+        // Store category-specific data as JSON
+        if (request.getCategorySpecificData() != null) {
+            try {
+                listing.setCategorySpecificData(objectMapper.writeValueAsString(request.getCategorySpecificData()));
+            } catch (JsonProcessingException e) {
+                // Log error but don't fail the request
+                System.err.println("Failed to serialize category-specific data: " + e.getMessage());
+            }
+        }
+        
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
                 .map(id -> eventTypeRepository.findById(id)
@@ -201,7 +227,9 @@ public class VendorListingService {
                 .collect(Collectors.toList());
         listing.setEventTypes(eventTypes);
         
+        System.out.println("📝 VendorListingService.createItem - About to save. Vendor on listing: " + (listing.getVendor() != null ? listing.getVendor().getId() : "NULL"));
         listing = listingRepository.save(listing);
+        System.out.println("📝 VendorListingService.createItem - Saved listing. ID: " + listing.getId() + ", Vendor: " + (listing.getVendor() != null ? listing.getVendor().getId() : "NULL"));
         
         return listing;
     }
@@ -262,6 +290,9 @@ public class VendorListingService {
         if (updatedListing.getDeliveryTime() != null) {
             listing.setDeliveryTime(updatedListing.getDeliveryTime());
         }
+        if (updatedListing.getCustomNotes() != null) {
+            listing.setCustomNotes(updatedListing.getCustomNotes());
+        }
         if (updatedListing.getExtraCharges() != null) {
             listing.setExtraCharges(updatedListing.getExtraCharges());
         }
@@ -286,6 +317,11 @@ public class VendorListingService {
         }
         if (updatedListing.getOpenForNegotiation() != null) {
             listing.setOpenForNegotiation(updatedListing.getOpenForNegotiation());
+        }
+        
+        // Category-specific data
+        if (updatedListing.getCategorySpecificData() != null) {
+            listing.setCategorySpecificData(updatedListing.getCategorySpecificData());
         }
         
         return listingRepository.save(listing);
@@ -313,8 +349,20 @@ public class VendorListingService {
     
     @Transactional(readOnly = true)
     public List<Listing> getVendorListings(UUID vendorId) {
-        // Use optimized query with JOIN FETCH to avoid N+1 queries
-        return listingRepository.findByVendorIdOptimized(vendorId);
+        // Use query with JOIN FETCH to load event types
+        List<Listing> listings = listingRepository.findByVendorIdWithEventTypes(vendorId);
+        
+        // Populate eventTypeIds for JSON serialization
+        listings.forEach(listing -> {
+            if (listing.getEventTypes() != null) {
+                List<Integer> eventTypeIds = listing.getEventTypes().stream()
+                        .map(EventType::getId)
+                        .toList();
+                listing.setEventTypeIds(eventTypeIds);
+            }
+        });
+        
+        return listings;
     }
 }
 

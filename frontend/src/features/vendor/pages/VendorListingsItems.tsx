@@ -68,9 +68,12 @@ export default function VendorListingsItems() {
 
   // Filter items (exclude drafts)
   const items = useMemo(() => {
-    return listingsData?.filter((l: any) => 
-      l.type === 'ITEM' && l.isDraft !== true
-    ) || [];
+    const filtered = listingsData?.filter((l: any) => {
+      console.log('🔍 Filtering item:', l.name, 'type:', l.type, 'isDraft:', l.isDraft);
+      return l.type === 'ITEM' && l.isDraft !== true;
+    }) || [];
+    console.log('✅ Filtered items count:', filtered.length);
+    return filtered;
   }, [listingsData]);
   
   // Apply filters

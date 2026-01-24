@@ -21,13 +21,33 @@ export interface CategoryConfig {
   categoryId: string;
   pricingModel: string;
   fields: FieldSchema[];
+  showPackageDetails?: boolean; // Whether to show inclusions/exclusions section
 }
 
 export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'caterer': {
     categoryId: 'caterer',
     pricingModel: 'per_plate',
+    showPackageDetails: true, // Enable package details section
     fields: [
+      {
+        name: 'pricePerPlateVeg',
+        label: 'Price per Plate (Vegetarian)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        min: 100,
+        helpText: 'This is your base price - price per vegetarian plate'
+      },
+      {
+        name: 'pricePerPlateNonVeg',
+        label: 'Price per Plate (Non-Vegetarian)',
+        type: 'number',
+        required: false,
+        unit: '₹',
+        min: 100,
+        helpText: "Leave empty if you don't offer non-veg"
+      },
       {
         name: 'cuisineType',
         label: 'Cuisine Types',
@@ -44,24 +64,6 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         type: 'select',
         required: true,
         options: ['Buffet', 'Plated Service', 'Family Style', 'Cocktail Style', 'Food Stations']
-      },
-      {
-        name: 'pricePerPlateVeg',
-        label: 'Price per Plate (Vegetarian)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 100,
-        helpText: 'Price per vegetarian plate'
-      },
-      {
-        name: 'pricePerPlateNonVeg',
-        label: 'Price per Plate (Non-Vegetarian)',
-        type: 'number',
-        required: false,
-        unit: '₹',
-        min: 100,
-        helpText: "Leave empty if you don't offer non-veg"
       },
       {
         name: 'minGuests',
@@ -121,6 +123,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'photographer': {
     categoryId: 'photographer',
     pricingModel: 'per_event',
+    showPackageDetails: true,
     fields: [
       {
         name: 'serviceType',
@@ -137,6 +140,16 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         options: ['Per Hour', 'Per Event'],
         defaultValue: 'Per Event',
         helpText: 'How do you charge for this service?'
+      },
+      {
+        name: 'price',
+        label: 'Price (₹)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        min: 1000,
+        helpText: 'Your base price for this listing',
+        fullWidth: false
       },
       {
         name: 'durationHours',
@@ -233,6 +246,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'venue': {
     categoryId: 'venue',
     pricingModel: 'per_day',
+    showPackageDetails: true,
     fields: [
       {
         name: 'venueType',
@@ -248,6 +262,16 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         required: true,
         options: ['Per Day', 'Per Hour'],
         defaultValue: 'Per Day'
+      },
+      {
+        name: 'price',
+        label: 'Price (₹)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        min: 1000,
+        helpText: 'Your base price for this listing',
+        fullWidth: false
       },
       {
         name: 'capacitySeating',
@@ -341,7 +365,18 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'decorator': {
     categoryId: 'decorator',
     pricingModel: 'per_setup',
+    showPackageDetails: true,
     fields: [
+      {
+        name: 'price',
+        label: 'Price (₹)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        min: 1000,
+        helpText: 'Your base price for this décor setup',
+        fullWidth: false
+      },
       {
         name: 'decorType',
         label: 'Décor Type',
@@ -427,7 +462,32 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'mua': {
     categoryId: 'mua',
     pricingModel: 'per_person',
+    showPackageDetails: true,
     fields: [
+      {
+        name: 'bridalPrice',
+        label: 'Bridal Makeup Price (₹)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        helpText: 'This is your base/starting price for bridal makeup'
+      },
+      {
+        name: 'familyPrice',
+        label: 'Family Makeup Price (₹ per person)',
+        type: 'number',
+        required: false,
+        unit: '₹',
+        helpText: 'Price for family members makeup'
+      },
+      {
+        name: 'guestPrice',
+        label: 'Guest Makeup Price (₹ per person)',
+        type: 'number',
+        required: false,
+        unit: '₹',
+        helpText: 'Price for guest makeup'
+      },
       {
         name: 'serviceFor',
         label: 'Service For',
@@ -508,27 +568,6 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         required: false,
         min: 0,
         unit: '₹/km'
-      },
-      {
-        name: 'bridalPrice',
-        label: 'Bridal Makeup Price',
-        type: 'number',
-        required: true,
-        unit: '₹'
-      },
-      {
-        name: 'familyPrice',
-        label: 'Family Makeup Price (per person)',
-        type: 'number',
-        required: false,
-        unit: '₹'
-      },
-      {
-        name: 'guestPrice',
-        label: 'Guest Makeup Price (per person)',
-        type: 'number',
-        required: false,
-        unit: '₹'
       }
     ]
   },
@@ -536,6 +575,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'dj': {
     categoryId: 'dj',
     pricingModel: 'per_hour',
+    showPackageDetails: true,
     fields: [
       {
         name: 'serviceType',
@@ -551,6 +591,16 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         required: true,
         options: ['Per Hour', 'Per Event'],
         defaultValue: 'Per Event'
+      },
+      {
+        name: 'price',
+        label: 'Price (₹)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        min: 1000,
+        helpText: 'Your base price for this listing',
+        fullWidth: false
       },
       {
         name: 'durationHours',
@@ -615,7 +665,18 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'sound-lights': {
     categoryId: 'sound-lights',
     pricingModel: 'per_day',
+    showPackageDetails: true,
     fields: [
+      {
+        name: 'price',
+        label: 'Price per Day (₹)',
+        type: 'number',
+        required: true,
+        unit: '₹',
+        min: 1000,
+        helpText: 'Your base price per day for this equipment',
+        fullWidth: false
+      },
       {
         name: 'equipmentType',
         label: 'Equipment Type',

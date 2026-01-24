@@ -40,6 +40,8 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
 import { PremiumChatWindow } from '@/features/vendor/PremiumChatWindow';
 
+import { CategorySpecificDisplay } from './CategorySpecificDisplay';
+
 // Type for extra charges
 interface ExtraCharge {
   name: string;
@@ -115,6 +117,47 @@ export default function ListingDetail() {
   // Backend returns lowercase 'package' or 'item', but also handle uppercase
   const isPackage = listing?.type?.toLowerCase() === 'package' || listing?.type === 'PACKAGE';
   const isItem = listing?.type?.toLowerCase() === 'item' || listing?.type === 'ITEM';
+
+  // Extract display price - prioritize category-specific price over main price
+  const displayPrice = useMemo(() => {
+    if (!listing) return 0;
+    
+    // If main price is valid (not draft marker), use it
+    if (listing.price && Number(listing.price) > 0.01) {
+      return Number(listing.price);
+    }
+
+    // Otherwise, try to extract from category-specific data
+    if (listing.categorySpecificData) {
+      try {
+        const categoryData = JSON.parse(listing.categorySpecificData);
+        
+        // Extract based on category
+        switch (listing.categoryId) {
+          case 'caterer':
+            return categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+          case 'photographer':
+          case 'cinematographer':
+          case 'videographer':
+            return categoryData.photographyPrice || categoryData.videographyPrice || categoryData.price || 0;
+          case 'decorator':
+          case 'venue':
+          case 'dj':
+          case 'live-music':
+          case 'sound-lights':
+            return categoryData.price || 0;
+          case 'mua':
+            return categoryData.bridalPrice || categoryData.nonBridalPrice || 0;
+          default:
+            return categoryData.price || 0;
+        }
+      } catch {
+        return Number(listing.price) || 0;
+      }
+    }
+
+    return Number(listing.price) || 0;
+  }, [listing]);
 
   // Parse extra charges JSON if available
   const parsedExtraCharges: ExtraCharge[] = useMemo(() => {
@@ -580,6 +623,18 @@ export default function ListingDetail() {
               </section>
             </ScrollReveal>
 
+            {/* Category-Specific Details */}
+            {listing.categorySpecificData && (
+              <ScrollReveal animation="fadeInUp" delay={675}>
+                <section>
+                  <CategorySpecificDisplay 
+                    categoryId={listing.categoryId} 
+                    categorySpecificData={listing.categorySpecificData}
+                  />
+                </section>
+              </ScrollReveal>
+            )}
+
             {/* Reviews Section */}
             {reviews.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={700}>
@@ -812,7 +867,7 @@ export default function ListingDetail() {
                 listing={{
                   id: listing.id || listingId || '',
                   name: listing.name || '',
-                  price: typeof listing.price === 'number' ? listing.price : parseFloat(listing.price || '0'),
+                  price: displayPrice,
                   type: listing.type || 'ITEM',
                   unit: listing.unit,
                   minimumQuantity: listing.minimumQuantity,

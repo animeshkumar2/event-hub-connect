@@ -33,6 +33,8 @@ public class VendorIdResolver {
         }
         
         UUID userId = UUID.fromString(auth.getName());
+        System.out.println("🔍 VendorIdResolver - User ID from JWT: " + userId);
+        System.out.println("🔍 VendorIdResolver - Header Vendor ID: " + headerVendorId);
         
         // Check if user is admin - allow them to use any vendor ID from header
         boolean isAdmin = auth.getAuthorities().stream()
@@ -57,17 +59,31 @@ public class VendorIdResolver {
         
         // If header vendor ID is provided, verify it belongs to the authenticated user
         if (headerVendorId != null) {
+            System.out.println("🔍 VendorIdResolver - Checking header vendor ID: " + headerVendorId);
             Vendor vendor = vendorRepository.findById(headerVendorId)
                     .orElse(null);
-            if (vendor != null && vendor.getUserId().equals(userId)) {
-                return headerVendorId;
+            if (vendor != null) {
+                System.out.println("🔍 VendorIdResolver - Found vendor. Vendor user_id: " + vendor.getUserId() + ", JWT user_id: " + userId);
+                if (vendor.getUserId().equals(userId)) {
+                    System.out.println("✅ VendorIdResolver - Match! Returning vendor ID: " + headerVendorId);
+                    return headerVendorId;
+                } else {
+                    System.out.println("❌ VendorIdResolver - Mismatch! Vendor user_id doesn't match JWT user_id");
+                }
+            } else {
+                System.out.println("❌ VendorIdResolver - Vendor not found with ID: " + headerVendorId);
             }
         }
         
         // Otherwise, get vendor ID from authenticated user
+        System.out.println("🔍 VendorIdResolver - Looking up vendor by user_id: " + userId);
         Vendor vendor = vendorRepository.findByUserId(userId)
-                .orElseThrow(() -> new VendorProfileNotFoundException("Vendor profile not found. Please complete vendor onboarding first."));
+                .orElseThrow(() -> {
+                    System.out.println("❌ VendorIdResolver - No vendor found for user_id: " + userId);
+                    return new VendorProfileNotFoundException("Vendor profile not found. Please complete vendor onboarding first.");
+                });
         
+        System.out.println("✅ VendorIdResolver - Found vendor ID: " + vendor.getId());
         return vendor.getId();
     }
     

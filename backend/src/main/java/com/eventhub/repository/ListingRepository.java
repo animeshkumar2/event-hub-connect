@@ -78,7 +78,8 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
            "WHERE l IN :listings")
     List<Listing> fetchEventTypes(@Param("listings") List<Listing> listings);
     
-    List<Listing> findByVendorIdAndIsActiveTrue(UUID vendorId);
+    @Query("SELECT l FROM Listing l WHERE l.vendor.id = :vendorId AND l.isActive = true")
+    List<Listing> findByVendorIdAndIsActiveTrue(@Param("vendorId") UUID vendorId);
     
     // Optimized query for vendor listings - no JOIN FETCH to reduce data transfer
     @Query("SELECT l FROM Listing l " +
@@ -86,11 +87,21 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
            "ORDER BY l.createdAt DESC")
     List<Listing> findByVendorIdOptimized(@Param("vendorId") UUID vendorId);
     
-    // Separate query to batch load eventTypes when needed
+    // Query to load listings with vendor, category, and event types for vendor dashboard
     @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH l.listingCategory c " +
            "LEFT JOIN FETCH l.eventTypes " +
            "WHERE l.vendor.id = :vendorId")
     List<Listing> findByVendorIdWithEventTypes(@Param("vendorId") UUID vendorId);
+    
+    // Find listing by ID with vendor and category eagerly loaded
+    @Query("SELECT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "LEFT JOIN FETCH l.eventTypes et " +
+           "WHERE l.id = :id")
+    java.util.Optional<Listing> findByIdWithVendorAndCategory(@Param("id") UUID id);
     
     @Query("SELECT l FROM Listing l WHERE l.isActive = true " +
            "AND l.price > 0.01 " +
@@ -102,7 +113,16 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
            "AND l.isTrending = true")
     List<Listing> findTrendingListings();
     
-    List<Listing> findByVendorIdAndTypeAndIsActiveTrue(UUID vendorId, Listing.ListingType type);
+    @Query("SELECT l FROM Listing l WHERE l.vendor.id = :vendorId AND l.type = :type AND l.isActive = true")
+    List<Listing> findByVendorIdAndTypeAndIsActiveTrue(@Param("vendorId") UUID vendorId, @Param("type") Listing.ListingType type);
+    
+    // Batch fetch listings by IDs with relations eagerly loaded
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE l.id IN :ids")
+    List<Listing> findByIdInWithRelations(@Param("ids") List<UUID> ids);
     
     @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId")
     long countByVendorId(@Param("vendorId") UUID vendorId);

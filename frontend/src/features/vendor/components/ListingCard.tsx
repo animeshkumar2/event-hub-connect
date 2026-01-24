@@ -22,6 +22,7 @@ import {
   Tag
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
+import { useMemo } from 'react';
 
 interface ListingCardProps {
   listing: any;
@@ -31,6 +32,7 @@ interface ListingCardProps {
   onToggleActive?: (listing: any) => void;
   isDeleting?: boolean;
   getCategoryName?: (categoryId: string) => string;
+  allItems?: any[]; // All items for looking up bundled items in packages
 }
 
 // Category icon mapping
@@ -53,10 +55,124 @@ export function ListingCard({
   onDelete, 
   onToggleActive,
   isDeleting = false,
-  getCategoryName 
+  getCategoryName,
+  allItems = []
 }: ListingCardProps) {
-  console.log('🔥 NEW ListingCard loaded - v2.0');
+  console.log('🎯 ListingCard RENDERED for:', listing?.name, 'Price:', listing?.price, 'TIMESTAMP:', Date.now());
   
+  // For packages, extract unique categories from bundled items
+  const packageCategories = useMemo(() => {
+    if (listing?.type !== 'PACKAGE' || !listing?.includedItemIds || listing.includedItemIds.length === 0) {
+      return [];
+    }
+    
+    const uniqueCategories = new Set<string>();
+    listing.includedItemIds.forEach((itemId: string) => {
+      const item = allItems.find((i: any) => i.id === itemId);
+      if (item) {
+        const categoryId = item.listingCategory?.id || item.categoryId;
+        if (categoryId) {
+          const categoryName = getCategoryName ? getCategoryName(categoryId) : categoryId;
+          uniqueCategories.add(categoryName);
+        }
+      }
+    });
+    
+    return Array.from(uniqueCategories);
+  }, [listing, allItems, getCategoryName]);
+  
+  // Extract display price - prioritize category-specific price over main price
+  const displayPrice = useMemo(() => {
+    if (!listing) return 0;
+    
+    console.log('🔍 ListingCard - Extracting price for:', listing.name, {
+      mainPrice: listing.price,
+      categoryId: listing.listingCategory?.id || listing.categoryId,
+      categorySpecificData: listing.categorySpecificData
+    });
+    
+    // Try to extract from category-specific data first
+    if (listing.categorySpecificData) {
+      try {
+        const categoryData = typeof listing.categorySpecificData === 'string' 
+          ? JSON.parse(listing.categorySpecificData)
+          : listing.categorySpecificData;
+        
+        console.log('📊 Parsed category data:', categoryData);
+        
+        const categoryId = listing.listingCategory?.id || listing.categoryId;
+        
+        // Extract based on category
+        let extractedPrice = 0;
+        switch (categoryId) {
+          case 'caterer':
+            extractedPrice = categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+            break;
+          case 'photographer':
+          case 'cinematographer':
+          case 'videographer':
+            extractedPrice = categoryData.photographyPrice || categoryData.videographyPrice || categoryData.price || 0;
+            break;
+          case 'decorator':
+          case 'venue':
+          case 'dj':
+          case 'live-music':
+          case 'sound-lights':
+            extractedPrice = categoryData.price || 0;
+            break;
+          case 'mua':
+            extractedPrice = categoryData.bridalPrice || categoryData.nonBridalPrice || 0;
+            break;
+          default:
+            extractedPrice = categoryData.price || 0;
+        }
+        
+        console.log('💰 Extracted price from category data:', extractedPrice);
+        if (extractedPrice > 0) {
+          return extractedPrice;
+        }
+      } catch (e) {
+        console.error('❌ Error parsing category data:', e);
+      }
+    }
+
+    // Fallback to main price if valid (not draft marker)
+    if (listing.price && Number(listing.price) > 0.01) {
+      console.log('✅ Using main price:', listing.price);
+      return Number(listing.price);
+    }
+
+    console.log('⚠️ No valid price found');
+    return 0;
+  }, [listing]);
+
+  // Extract display unit based on pricing type
+  const displayUnit = useMemo(() => {
+    if (!listing?.categorySpecificData) return listing?.unit || 'Per unit';
+    
+    try {
+      const categoryData = typeof listing.categorySpecificData === 'string' 
+        ? JSON.parse(listing.categorySpecificData)
+        : listing.categorySpecificData;
+      
+      // For photography/videography, check pricing type
+      if (['photographer', 'cinematographer', 'videographer'].includes(listing.categoryId)) {
+        if (categoryData.pricingType === 'hourly') return 'Per Hour';
+        if (categoryData.pricingType === 'per_event') return 'Per Event';
+      }
+      
+      // For catering
+      if (listing.categoryId === 'caterer') {
+        return 'Per Plate';
+      }
+      
+      // Fallback to listing unit or default
+      return listing.unit || 'Per unit';
+    } catch {
+      return listing?.unit || 'Per unit';
+    }
+  }, [listing]);
+
   if (isDraft) {
     return (
       <Card className="border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 overflow-hidden hover:border-yellow-500/50 transition-all">
@@ -76,7 +192,7 @@ export function ListingCard({
           <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-1">{listing.name || 'Untitled'}</h3>
           <div className="space-y-1 mb-3">
             <p className="text-xs flex items-center gap-1 text-muted-foreground">
-              {listing.price && listing.price > 0.01 ? (
+              {displayPrice > 0 ? (
                 <><CheckCircle2 className="h-3 w-3 text-green-500" /> Price set</>
               ) : (
                 <><X className="h-3 w-3 text-red-400" /> No price</>
@@ -100,19 +216,37 @@ export function ListingCard({
           
           {/* Category & Event Types Section */}
           <div className="space-y-2 pt-3 pb-3 border-t border-yellow-500/20">
-            {/* Category with icon */}
-            <div className="flex items-center gap-1.5">
-              {(() => {
-                const categoryName = getCategoryName ? getCategoryName(listing.listingCategory?.id || listing.categoryId || '') : 'Other';
-                const CategoryIcon = getCategoryIcon(categoryName);
-                return (
-                  <>
-                    <CategoryIcon className="h-3.5 w-3.5 text-yellow-600/70" />
-                    <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
-                  </>
-                );
-              })()}
-            </div>
+            {/* Category with icon - show multiple for packages */}
+            {listing.type === 'PACKAGE' && packageCategories.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {packageCategories.map((categoryName: string, index: number) => {
+                  const CategoryIcon = getCategoryIcon(categoryName);
+                  return (
+                    <Badge 
+                      key={index}
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0.5 h-5 bg-yellow-500/10 text-yellow-700 border-yellow-500/30 flex items-center gap-1"
+                    >
+                      <CategoryIcon className="h-3 w-3" />
+                      {categoryName}
+                    </Badge>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                {(() => {
+                  const categoryName = getCategoryName ? getCategoryName(listing.listingCategory?.id || listing.categoryId || '') : 'Other';
+                  const CategoryIcon = getCategoryIcon(categoryName);
+                  return (
+                    <>
+                      <CategoryIcon className="h-3.5 w-3.5 text-yellow-600/70" />
+                      <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
             
             {/* Event Types as chips */}
             {listing.eventTypes && listing.eventTypes.length > 0 && (
@@ -207,7 +341,7 @@ export function ListingCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-card border-border" align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/vendor/listings/preview/${listing.id}`); }}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.location.href = `/vendor/listings/preview/${listing.id}`; }}>
                 <Eye className="mr-2 h-4 w-4" /> Preview as Customer
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => {
@@ -242,7 +376,7 @@ export function ListingCard({
         {/* Price Badge */}
         <div className="absolute bottom-2 right-2">
           <Badge className="bg-white text-foreground font-bold text-base px-3 py-1.5 shadow-lg">
-            ₹{Number(listing.price).toLocaleString('en-IN')}
+            ₹{displayPrice.toLocaleString('en-IN')}/{displayUnit}
           </Badge>
         </div>
         {/* Image count indicator */}
@@ -262,19 +396,37 @@ export function ListingCard({
         
         {/* Redesigned Category & Event Types Section */}
         <div className="space-y-2 pt-3 border-t border-border/50">
-          {/* Category with icon */}
-          <div className="flex items-center gap-1.5">
-            {(() => {
-              const categoryName = getCategoryName ? getCategoryName(listing.listingCategory?.id || listing.categoryId || '') : 'Other';
-              const CategoryIcon = getCategoryIcon(categoryName);
-              return (
-                <>
-                  <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
-                  <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
-                </>
-              );
-            })()}
-          </div>
+          {/* Category with icon - show multiple for packages */}
+          {listing.type === 'PACKAGE' && packageCategories.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {packageCategories.map((categoryName: string, index: number) => {
+                const CategoryIcon = getCategoryIcon(categoryName);
+                return (
+                  <Badge 
+                    key={index}
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0.5 h-5 bg-primary/10 text-primary border-primary/30 flex items-center gap-1"
+                  >
+                    <CategoryIcon className="h-3 w-3" />
+                    {categoryName}
+                  </Badge>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              {(() => {
+                const categoryName = getCategoryName ? getCategoryName(listing.listingCategory?.id || listing.categoryId || '') : 'Other';
+                const CategoryIcon = getCategoryIcon(categoryName);
+                return (
+                  <>
+                    <CategoryIcon className="h-3.5 w-3.5 text-primary/70" />
+                    <span className="text-xs text-muted-foreground font-medium">{categoryName}</span>
+                  </>
+                );
+              })()}
+            </div>
+          )}
           
           {/* Event Types as chips */}
           {listing.eventTypes && listing.eventTypes.length > 0 && (
