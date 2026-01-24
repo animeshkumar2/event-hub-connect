@@ -45,5 +45,13 @@ public class ListingDTO {
     private List<UUID> includedItemIds;     // UUIDs of item listings included in package
     private String extraChargesJson;        // JSON array: [{"name": "...", "price": 10000}]
     private String categorySpecificData;    // JSON object with category-specific fields
+    
+    // Location System - Service Mode
+    private String serviceMode;             // CUSTOMER_VISITS, VENDOR_TRAVELS, BOTH
+    private String serviceModeLabel;        // Human-readable label
+    
+    // Location System - Vendor location info for display
+    private String vendorLocationName;      // Vendor's base area
+    private Double distanceKm;              // Distance from customer (for search results)
 }
 

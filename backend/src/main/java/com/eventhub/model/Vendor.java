@@ -59,11 +59,27 @@ public class Vendor {
     @Column(name = "cover_image", columnDefinition = "TEXT")
     private String coverImage;
     
+    @Column(name = "profile_image", columnDefinition = "TEXT")
+    private String profileImage;
+    
     @Column(name = "portfolio_images", columnDefinition = "TEXT[]")
     private List<String> portfolioImages;
     
     @Column(name = "coverage_radius")
     private Integer coverageRadius = 0;
+    
+    // Location System Fields
+    @Column(name = "location_name", length = 255)
+    private String locationName;
+    
+    @Column(name = "location_lat", precision = 10, scale = 8)
+    private java.math.BigDecimal locationLat;
+    
+    @Column(name = "location_lng", precision = 11, scale = 8)
+    private java.math.BigDecimal locationLng;
+    
+    @Column(name = "service_radius_km")
+    private Integer serviceRadiusKm = 25;
     
     @Column(name = "is_verified")
     private Boolean isVerified = false;

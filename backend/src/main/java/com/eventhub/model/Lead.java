@@ -85,6 +85,19 @@ public class Lead {
     @Column(name = "token_amount", precision = 10, scale = 2)
     private BigDecimal tokenAmount; // Token amount paid for this lead
     
+    // Location System - Customer location fields
+    @Column(name = "customer_location_name", length = 255)
+    private String customerLocationName;
+    
+    @Column(name = "customer_location_lat", precision = 10, scale = 8)
+    private BigDecimal customerLocationLat;
+    
+    @Column(name = "customer_location_lng", precision = 11, scale = 8)
+    private BigDecimal customerLocationLng;
+    
+    @Column(name = "distance_km", precision = 6, scale = 2)
+    private BigDecimal distanceKm;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

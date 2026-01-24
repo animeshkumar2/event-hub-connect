@@ -1,13 +1,16 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.VendorDTO;
+import com.eventhub.dto.request.VendorLocationUpdateRequest;
 import com.eventhub.service.VendorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -37,6 +40,34 @@ public class VendorController {
     public ResponseEntity<com.eventhub.dto.ApiResponse<com.eventhub.dto.VendorDTO>> getVendorByUserId(@PathVariable UUID userId) {
         com.eventhub.dto.VendorDTO vendor = vendorService.getVendorByUserId(userId);
         return ResponseEntity.ok(com.eventhub.dto.ApiResponse.success(vendor));
+    }
+    
+    /**
+     * Get current vendor's location settings.
+     */
+    @GetMapping("/location")
+    public ResponseEntity<?> getVendorLocation() {
+        VendorDTO vendor = vendorService.getCurrentVendorLocation();
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", Map.of(
+                "locationName", vendor.getLocationName() != null ? vendor.getLocationName() : "",
+                "serviceRadiusKm", vendor.getServiceRadiusKm() != null ? vendor.getServiceRadiusKm() : 25
+            )
+        ));
+    }
+    
+    /**
+     * Update current vendor's location settings.
+     */
+    @PutMapping("/location")
+    public ResponseEntity<?> updateVendorLocation(@Valid @RequestBody VendorLocationUpdateRequest request) {
+        VendorDTO vendor = vendorService.updateVendorLocation(request);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "data", vendor,
+            "message", "Location updated successfully"
+        ));
     }
 }
 

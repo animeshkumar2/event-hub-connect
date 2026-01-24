@@ -12,6 +12,8 @@ import { Separator } from '@/shared/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { InlineError } from '@/shared/components/InlineError';
+import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 import { 
   Search, 
   Filter, 
@@ -63,6 +65,11 @@ interface Lead {
   createdAt: string;
   updatedAt?: string;
   vendor?: any;
+  // Customer location fields
+  customerLocationName?: string;
+  customerLocationLat?: number;
+  customerLocationLng?: number;
+  distanceKm?: number;
   order?: {
     id: string;
     orderNumber?: string;
@@ -111,6 +118,7 @@ interface Offer {
 export default function VendorLeads() {
   const navigate = useNavigate();
   const { data: leadsData, loading, error, refetch } = useVendorLeads();
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showMobileModal, setShowMobileModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('pending');
@@ -765,7 +773,20 @@ export default function VendorLeads() {
     return lifecycle;
   };
 
-  if (loading) {
+  // Show profile completion prompt if profile is not complete
+  if (!profileLoading && !profileComplete) {
+    return (
+      <VendorLayout>
+        <CompleteProfilePrompt 
+          title="Complete Your Profile to View Leads"
+          description="You need to set up your vendor profile before you can view and manage leads."
+          featureName="leads"
+        />
+      </VendorLayout>
+    );
+  }
+
+  if (loading || profileLoading) {
     return (
       <VendorLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -904,7 +925,7 @@ export default function VendorLeads() {
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground truncate mb-2">{lead.eventType || 'Event Inquiry'}</p>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <div className="flex items-center flex-wrap gap-2 text-xs text-muted-foreground">
                             {lead.eventDate && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
@@ -915,6 +936,12 @@ export default function VendorLeads() {
                               <span className="flex items-center gap-1 text-foreground/70">
                                 <IndianRupee className="h-3 w-3" />
                                 {lead.listing.price.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                            {lead.distanceKm !== undefined && lead.distanceKm !== null && (
+                              <span className="flex items-center gap-1 text-primary">
+                                <MapPin className="h-3 w-3" />
+                                {lead.distanceKm.toFixed(1)} km
                               </span>
                             )}
                           </div>
@@ -1075,6 +1102,19 @@ export default function VendorLeads() {
                               <div>
                                 <p className="text-xs text-muted-foreground mb-1">Phone</p>
                                 <p className="text-sm font-medium text-foreground">{selectedLead.phone}</p>
+                              </div>
+                            )}
+                            {selectedLead.customerLocationName && (
+                              <div className="sm:col-span-2 pt-2 border-t border-border/50">
+                                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" /> Customer Location
+                                </p>
+                                <p className="text-sm font-medium text-foreground">{selectedLead.customerLocationName}</p>
+                                {selectedLead.distanceKm !== undefined && selectedLead.distanceKm !== null && (
+                                  <p className="text-xs text-primary mt-1">
+                                    📍 {selectedLead.distanceKm.toFixed(1)} km from your location
+                                  </p>
+                                )}
                               </div>
                             )}
                           </div>

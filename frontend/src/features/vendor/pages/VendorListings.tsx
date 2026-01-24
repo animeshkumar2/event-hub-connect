@@ -36,7 +36,8 @@ import {
   Sparkles,
   Music,
   Lightbulb,
-  Tag
+  Tag,
+  Navigation
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -48,13 +49,14 @@ import { vendorApi } from '@/shared/services/api';
 import { useResponsiveCardLimit } from '@/shared/hooks/useResponsiveCardLimit';
 import { ListingCard } from '@/features/vendor/components/ListingCard';
 import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
-import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
+import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/useVendorProfile';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { InlineError } from '@/shared/components/InlineError';
 import { CategoryFieldRenderer } from '@/features/vendor/components/CategoryFields';
 import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInput';
 import { ListingFormWizard } from '@/features/vendor/components/ListingFormWizard';
+import { ServiceModeSelector, ServiceMode, getServiceModeLabel } from '@/shared/components/ServiceModeSelector';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -137,6 +139,7 @@ const initialFormData = {
   unit: '',
   minimumQuantity: 1,
   customNotes: '', // New field for "Anything Else to Add"
+  serviceMode: 'BOTH' as ServiceMode, // Location system
 };
 
 export default function VendorListings() {
@@ -205,7 +208,7 @@ export default function VendorListings() {
   const { data: eventTypeCategoriesData } = useEventTypeCategories();
   
   // Check if vendor profile is complete (MUST be after all other hooks)
-  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
+  const { isComplete: profileComplete, isLoading: profileLoading, canCreateListing, completionPercentage, missingFields } = useVendorProfileCompletion();
   
   // Memoize listingsData to prevent re-renders when reference changes but data is the same
   const listingsData = React.useMemo(() => listings.data, [listings.data]);
@@ -502,6 +505,7 @@ export default function VendorListings() {
         unit: editingListing.unit || '',
         minimumQuantity: editingListing.minimumQuantity || 1,
         customNotes: editingListing.customNotes || '',
+        serviceMode: editingListing.serviceMode || 'BOTH',
       });
       console.log('📋 DEBUG - includedItemsText:', editingListing.includedItemsText);
       console.log('📋 DEBUG - excludedItemsText:', editingListing.excludedItemsText);
@@ -704,6 +708,7 @@ export default function VendorListings() {
         categorySpecificData: listingType === 'ITEM' && formData.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0
           ? JSON.stringify(categorySpecificData)
           : undefined,
+        serviceMode: formData.serviceMode, // Location system
       };
 
       // Include/exclude items are available for both packages and items
@@ -751,6 +756,26 @@ export default function VendorListings() {
 
   const handleDelete = async (listing: any) => {
     setDeleteDialog({ open: true, listing });
+  };
+
+  // Handler to check profile completion before creating listing
+  const handleCreateListing = (type?: 'PACKAGE' | 'ITEM') => {
+    if (!canCreateListing) {
+      toast.error(
+        'Please complete your profile setup first (Business Name, Category, City)',
+        {
+          action: {
+            label: 'Complete Profile',
+            onClick: () => navigate('/vendor/profile'),
+          },
+        }
+      );
+      return;
+    }
+    if (type) {
+      setListingType(type);
+    }
+    setShowCreateModal(true);
   };
 
   const confirmDelete = async () => {
@@ -1016,6 +1041,7 @@ export default function VendorListings() {
         isDraft: true, // Mark as draft
         // Store category-specific data as JSON
         categorySpecificData: formData.categoryId !== 'other' ? categorySpecificData : undefined,
+        serviceMode: formData.serviceMode, // Location system
       };
 
       // Include/exclude items are available for both packages and items
@@ -1144,7 +1170,7 @@ export default function VendorListings() {
             {/* Add Listing Button - Desktop */}
             <Button 
               className="hidden sm:flex bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => handleCreateListing()}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Listing
             </Button>
@@ -1181,7 +1207,7 @@ export default function VendorListings() {
             {/* Add Listing Button - Mobile */}
             <Button 
               className="sm:hidden w-full bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow transition-all"
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => handleCreateListing()}
             >
               <Plus className="mr-2 h-4 w-4" /> Add Listing
             </Button>
@@ -1351,7 +1377,7 @@ export default function VendorListings() {
                 <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <h3 className="font-medium text-foreground mb-1">No packages yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Create your first package to offer bundled services</p>
-                <Button onClick={() => { setListingType('PACKAGE'); setShowCreateModal(true); }}>
+                <Button onClick={() => handleCreateListing('PACKAGE')}>
                   <Plus className="h-4 w-4 mr-2" /> Create Package
                 </Button>
               </CardContent>
@@ -1580,7 +1606,7 @@ export default function VendorListings() {
                 <Box className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                 <h3 className="font-medium text-foreground mb-1">No services yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Create individual services that can be sold separately or bundled into packages</p>
-                <Button onClick={() => { setListingType('ITEM'); setShowCreateModal(true); }}>
+                <Button onClick={() => handleCreateListing('ITEM')}>
                   <Plus className="h-4 w-4 mr-2" /> Create Service
                 </Button>
               </CardContent>

@@ -24,6 +24,7 @@ public class SearchService {
     private final EventTypeCategoryRepository eventTypeCategoryRepository;
     private final CategoryRepository categoryRepository;
     private final BookableSetupRepository bookableSetupRepository;
+    private final DistanceService distanceService;
     
     /**
      * Search listings with optimized JPQL queries (JOIN FETCH to avoid N+1)
@@ -271,6 +272,118 @@ public class SearchService {
                 .filter(BookableSetup::getIsActive)
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Search listings with location-based filtering.
+     * Implements bidirectional matching: both customer and vendor must be within each other's radius.
+     */
+    public List<Listing> searchListingsWithLocation(
+            Integer eventTypeId,
+            String categoryId,
+            Listing.ListingType listingType,
+            String cityName,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String searchQuery,
+            String eventDate,
+            String sortBy,
+            Integer limit,
+            Integer offset,
+            BigDecimal customerLat,
+            BigDecimal customerLng,
+            Integer searchRadiusKm) {
+        
+        // First get listings without location filter
+        List<Listing> listings = searchListings(
+                eventTypeId, categoryId, listingType, cityName,
+                minPrice, maxPrice, searchQuery, eventDate, sortBy,
+                limit != null ? limit * 3 : 36, // Fetch more to account for location filtering
+                offset);
+        
+        // If no location provided, return as-is
+        if (customerLat == null || customerLng == null) {
+            return listings.stream().limit(limit != null ? limit : 12).collect(Collectors.toList());
+        }
+        
+        int effectiveSearchRadius = searchRadiusKm != null ? searchRadiusKm : 20;
+        
+        // Filter by bidirectional location matching
+        return listings.stream()
+                .filter(listing -> {
+                    Vendor vendor = listing.getVendor();
+                    if (vendor == null || vendor.getLocationLat() == null || vendor.getLocationLng() == null) {
+                        return false; // Exclude vendors without location
+                    }
+                    
+                    return distanceService.isBidirectionalMatch(
+                            vendor.getLocationLat(), vendor.getLocationLng(), vendor.getServiceRadiusKm(),
+                            customerLat, customerLng, effectiveSearchRadius);
+                })
+                .limit(limit != null ? limit : 12)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Search vendors with location-based filtering.
+     * Implements bidirectional matching: both customer and vendor must be within each other's radius.
+     */
+    public List<Vendor> searchVendorsWithLocation(
+            String categoryId,
+            String cityName,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String searchQuery,
+            Integer eventType,
+            String eventDate,
+            String sortBy,
+            Integer limit,
+            Integer offset,
+            BigDecimal customerLat,
+            BigDecimal customerLng,
+            Integer searchRadiusKm) {
+        
+        // First get vendors without location filter
+        List<Vendor> vendors = searchVendors(
+                categoryId, cityName, minPrice, maxPrice, searchQuery,
+                eventType, eventDate, sortBy,
+                limit != null ? limit * 3 : 36, // Fetch more to account for location filtering
+                offset);
+        
+        // If no location provided, return as-is
+        if (customerLat == null || customerLng == null) {
+            return vendors.stream().limit(limit != null ? limit : 12).collect(Collectors.toList());
+        }
+        
+        int effectiveSearchRadius = searchRadiusKm != null ? searchRadiusKm : 20;
+        
+        // Filter by bidirectional location matching
+        return vendors.stream()
+                .filter(vendor -> {
+                    if (vendor.getLocationLat() == null || vendor.getLocationLng() == null) {
+                        return false; // Exclude vendors without location
+                    }
+                    
+                    return distanceService.isBidirectionalMatch(
+                            vendor.getLocationLat(), vendor.getLocationLng(), vendor.getServiceRadiusKm(),
+                            customerLat, customerLng, effectiveSearchRadius);
+                })
+                .limit(limit != null ? limit : 12)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Calculate distance from customer to vendor.
+     */
+    public double calculateDistanceToVendor(Vendor vendor, BigDecimal customerLat, BigDecimal customerLng) {
+        if (vendor.getLocationLat() == null || vendor.getLocationLng() == null ||
+            customerLat == null || customerLng == null) {
+            return -1; // Unknown distance
+        }
+        
+        return distanceService.calculateDistance(
+                vendor.getLocationLat(), vendor.getLocationLng(),
+                customerLat, customerLng);
     }
 }
 

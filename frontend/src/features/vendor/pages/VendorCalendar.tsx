@@ -24,7 +24,7 @@ import { useMyVendorAvailability, useVendorUpcomingOrders } from '@/shared/hooks
 import { vendorApi } from '@/shared/services/api';
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameDay, parseISO, isToday } from 'date-fns';
 import { cn } from '@/shared/lib/utils';
-import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
+import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/useVendorProfile';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 
 type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BUSY' | 'BLOCKED';
@@ -62,7 +62,7 @@ export default function VendorCalendar() {
   const { data: upcomingOrders } = useVendorUpcomingOrders();
   
   // Check if vendor profile is complete (MUST be after all other hooks)
-  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfileCompletion();
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

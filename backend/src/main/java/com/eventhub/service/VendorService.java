@@ -1,9 +1,14 @@
 package com.eventhub.service;
 
 import com.eventhub.dto.VendorDTO;
+import com.eventhub.dto.request.VendorLocationUpdateRequest;
+import com.eventhub.exception.NotFoundException;
+import com.eventhub.exception.ValidationException;
 import com.eventhub.model.Vendor;
 import com.eventhub.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,7 +73,60 @@ public class VendorService {
         dto.setPortfolioImages(vendor.getPortfolioImages());
         dto.setCoverageRadius(vendor.getCoverageRadius());
         dto.setIsVerified(vendor.getIsVerified());
+        
+        // Location fields
+        dto.setLocationName(vendor.getLocationName());
+        dto.setServiceRadiusKm(vendor.getServiceRadiusKm());
+        
         return dto;
+    }
+    
+    /**
+     * Get current vendor's location settings.
+     */
+    public VendorDTO getCurrentVendorLocation() {
+        UUID userId = getCurrentUserId();
+        Vendor vendor = vendorRepository.findByUserId(userId)
+            .orElseThrow(() -> new NotFoundException("Vendor not found for current user"));
+        return toDTO(vendor);
+    }
+    
+    /**
+     * Update current vendor's location settings.
+     */
+    @Transactional
+    public VendorDTO updateVendorLocation(VendorLocationUpdateRequest request) {
+        UUID userId = getCurrentUserId();
+        Vendor vendor = vendorRepository.findByUserId(userId)
+            .orElseThrow(() -> new NotFoundException("Vendor not found for current user"));
+        
+        // Validate coordinates
+        if (request.getLatitude().doubleValue() < -90 || request.getLatitude().doubleValue() > 90) {
+            throw new ValidationException("Invalid latitude. Must be between -90 and 90.");
+        }
+        if (request.getLongitude().doubleValue() < -180 || request.getLongitude().doubleValue() > 180) {
+            throw new ValidationException("Invalid longitude. Must be between -180 and 180.");
+        }
+        
+        // Update location fields
+        vendor.setLocationName(request.getLocationName());
+        vendor.setLocationLat(request.getLatitude());
+        vendor.setLocationLng(request.getLongitude());
+        vendor.setServiceRadiusKm(request.getServiceRadiusKm());
+        
+        vendor = vendorRepository.save(vendor);
+        return toDTO(vendor);
+    }
+    
+    /**
+     * Get current authenticated user ID.
+     */
+    private UUID getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ValidationException("User not authenticated");
+        }
+        return UUID.fromString(auth.getName());
     }
 }
 

@@ -7,6 +7,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Badge } from '@/shared/components/ui/badge';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
+import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 import { 
   Search, 
   Send, 
@@ -57,6 +59,7 @@ const QUICK_REPLIES = [
 
 export default function VendorChat() {
   const { user } = useAuth();
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: threadsData, loading: threadsLoading, refetch: refetchThreads } = useVendorChatThreads();
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
@@ -378,6 +381,29 @@ export default function VendorChat() {
     setSelectedThread(null);
     setSearchParams({});
   };
+
+  // Show profile completion prompt if profile is not complete
+  if (!profileLoading && !profileComplete) {
+    return (
+      <VendorLayout>
+        <CompleteProfilePrompt 
+          title="Complete Your Profile to Use Chat"
+          description="You need to set up your vendor profile before you can chat with customers."
+          featureName="chat"
+        />
+      </VendorLayout>
+    );
+  }
+
+  if (profileLoading) {
+    return (
+      <VendorLayout>
+        <div className="p-4 md:p-6 flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </VendorLayout>
+    );
+  }
 
   return (
     <VendorLayout>

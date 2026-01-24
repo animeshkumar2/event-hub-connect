@@ -117,6 +117,11 @@ public class Listing {
     @Column(name = "custom_notes", columnDefinition = "TEXT")
     private String customNotes;  // Additional notes, terms, customization options, etc.
     
+    // Location System - Service Mode
+    @Enumerated(EnumType.STRING)
+    @Column(name = "service_mode", length = 20)
+    private ServiceMode serviceMode = ServiceMode.BOTH;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -174,6 +179,25 @@ public class Listing {
     
     public enum ListingType {
         PACKAGE, ITEM
+    }
+    
+    public enum ServiceMode {
+        CUSTOMER_VISITS,
+        VENDOR_TRAVELS,
+        BOTH;
+        
+        public String getLabel() {
+            switch (this) {
+                case CUSTOMER_VISITS:
+                    return "Visit their studio";
+                case VENDOR_TRAVELS:
+                    return "Travels to your venue";
+                case BOTH:
+                    return "Both options available";
+                default:
+                    return "Both options available";
+            }
+        }
     }
 }
 

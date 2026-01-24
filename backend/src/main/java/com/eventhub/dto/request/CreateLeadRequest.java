@@ -3,6 +3,7 @@ package com.eventhub.dto.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -25,6 +26,11 @@ public class CreateLeadRequest {
     private Integer guestCount;
     private String budget;
     private String message;
+    
+    // Location System - Customer location fields
+    private String customerLocationName;
+    private BigDecimal customerLocationLat;
+    private BigDecimal customerLocationLng;
 }
 
 

@@ -8,6 +8,8 @@ import { Label } from '@/shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { InlineError } from '@/shared/components/InlineError';
+import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 import { 
   Plus, 
   Edit, 
@@ -28,6 +30,7 @@ interface FAQ {
 
 export default function VendorFAQs() {
   const { data: faqsData, loading, error, refetch } = useMyVendorFAQs();
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
   const [question, setQuestion] = useState('');
@@ -119,7 +122,20 @@ export default function VendorFAQs() {
     }
   };
 
-  if (loading) {
+  // Show profile completion prompt if profile is not complete
+  if (!profileLoading && !profileComplete) {
+    return (
+      <VendorLayout>
+        <CompleteProfilePrompt 
+          title="Complete Your Profile to Manage FAQs"
+          description="You need to set up your vendor profile before you can add and manage FAQs."
+          featureName="FAQs"
+        />
+      </VendorLayout>
+    );
+  }
+
+  if (loading || profileLoading) {
     return (
       <VendorLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">

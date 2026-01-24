@@ -3,7 +3,7 @@ import { Toaster } from "@/shared/components/ui/toaster";
 import { Toaster as Sonner } from "@/shared/components/ui/sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { CartProvider } from "@/shared/contexts/CartContext";
 import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { PreLaunchProvider, PreLaunchGuard } from "@/shared/contexts/PreLaunchContext";
@@ -17,6 +17,13 @@ import { BrandedLoader } from '@/shared/components/BrandedLoader';
 
 // Google OAuth Client ID - Replace with your actual client ID from Google Cloud Console
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+// Redirect component for /vendor/:id to /vendors/:id
+const VendorRedirect = () => {
+  const { vendorId } = useParams();
+  const location = useLocation();
+  return <Navigate to={`/vendors/${vendorId}${location.search}`} replace />;
+};
 
 // Eagerly loaded pages (critical path)
 import Home from "@/features/home/Home";
@@ -157,6 +164,8 @@ const App = () => (
             <Route path="/search" element={<PreLaunchGuard><Search /></PreLaunchGuard>} />
             <Route path="/listing/:listingId" element={<PreLaunchGuard><ListingDetail /></PreLaunchGuard>} />
             <Route path="/vendors/:vendorId" element={<PreLaunchGuard><VendorDetails /></PreLaunchGuard>} />
+            {/* Redirect singular /vendor/:id to plural /vendors/:id for backwards compatibility */}
+            <Route path="/vendor/:vendorId" element={<VendorRedirect />} />
             <Route path="/cart" element={<PreLaunchGuard><Cart /></PreLaunchGuard>} />
             <Route path="/checkout" element={<PreLaunchGuard><Checkout /></PreLaunchGuard>} />
             <Route path="/event-planner" element={<PreLaunchGuard><EventPlanner /></PreLaunchGuard>} />

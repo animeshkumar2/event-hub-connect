@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ public class LeadService {
     private final OrderRepository orderRepository;
     private final TokenPaymentService tokenPaymentService;
     private final NotificationService notificationService;
+    private final DistanceService distanceService;
     
     public Lead createLead(CreateLeadRequest request) {
         Vendor vendor = vendorRepository.findById(request.getVendorId())
@@ -49,6 +51,23 @@ public class LeadService {
         lead.setBudget(request.getBudget());
         lead.setMessage(request.getMessage());
         lead.setStatus(Lead.LeadStatus.NEW);
+        
+        // Set customer location if provided
+        if (request.getCustomerLocationName() != null) {
+            lead.setCustomerLocationName(request.getCustomerLocationName());
+        }
+        if (request.getCustomerLocationLat() != null && request.getCustomerLocationLng() != null) {
+            lead.setCustomerLocationLat(request.getCustomerLocationLat());
+            lead.setCustomerLocationLng(request.getCustomerLocationLng());
+            
+            // Calculate distance from vendor
+            if (vendor.getLocationLat() != null && vendor.getLocationLng() != null) {
+                double distance = distanceService.calculateDistance(
+                        vendor.getLocationLat(), vendor.getLocationLng(),
+                        request.getCustomerLocationLat(), request.getCustomerLocationLng());
+                lead.setDistanceKm(BigDecimal.valueOf(Math.round(distance * 10.0) / 10.0));
+            }
+        }
         
         return leadRepository.save(lead);
     }

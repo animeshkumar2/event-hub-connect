@@ -10,6 +10,8 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
+import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
+import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
 import { 
   Search, 
   Calendar, 
@@ -107,6 +109,7 @@ const mapOrderToBooking = (order: any): Booking => {
 
 export default function VendorBookings() {
   const navigate = useNavigate();
+  const { isComplete: profileComplete, isLoading: profileLoading } = useVendorProfile();
   const [activeTab, setActiveTab] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showMobileModal, setShowMobileModal] = useState(false);
@@ -445,7 +448,20 @@ export default function VendorBookings() {
     });
   };
 
-  if (loading) {
+  // Show profile completion prompt if profile is not complete
+  if (!profileLoading && !profileComplete) {
+    return (
+      <VendorLayout>
+        <CompleteProfilePrompt 
+          title="Complete Your Profile to View Bookings"
+          description="You need to set up your vendor profile before you can view and manage bookings."
+          featureName="bookings"
+        />
+      </VendorLayout>
+    );
+  }
+
+  if (loading || profileLoading) {
     return (
       <VendorLayout>
         <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">

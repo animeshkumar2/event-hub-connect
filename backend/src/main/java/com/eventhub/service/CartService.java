@@ -132,7 +132,7 @@ public class CartService {
      */
     @Transactional(readOnly = true)
     public List<CartItem> getCartItems(UUID userId) {
-        return cartItemRepository.findByUserId(userId);
+        return cartItemRepository.findByUserIdWithRelationships(userId);
     }
     
     /**

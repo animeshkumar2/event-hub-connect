@@ -13,6 +13,16 @@ import java.util.UUID;
 public interface CartItemRepository extends JpaRepository<CartItem, UUID> {
     List<CartItem> findByUserId(UUID userId);
     
+    // Fetch cart items with all relationships to avoid LazyInitializationException
+    @Query("SELECT DISTINCT c FROM CartItem c " +
+           "LEFT JOIN FETCH c.vendor v " +
+           "LEFT JOIN FETCH v.city " +
+           "LEFT JOIN FETCH c.listing l " +
+           "LEFT JOIN FETCH l.listingCategory " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE c.userId = :userId")
+    List<CartItem> findByUserIdWithRelationships(@Param("userId") UUID userId);
+    
     @Query("SELECT SUM(c.finalPrice * c.quantity) FROM CartItem c WHERE c.userId = :userId")
     BigDecimal calculateCartTotal(@Param("userId") UUID userId);
     

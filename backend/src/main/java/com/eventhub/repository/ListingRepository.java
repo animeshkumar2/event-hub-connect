@@ -32,6 +32,7 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     // Note: Image filtering is done in Java code since SIZE() doesn't work on PostgreSQL arrays
     @Query("SELECT DISTINCT l FROM Listing l " +
            "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH v.city " +
            "LEFT JOIN FETCH l.listingCategory c " +
            "WHERE l.isActive = true " +
            "AND l.price > 0.01 " +
@@ -53,6 +54,7 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     // Note: Image filtering is done in Java code since SIZE() doesn't work on PostgreSQL arrays
     @Query("SELECT DISTINCT l FROM Listing l " +
            "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH v.city " +
            "LEFT JOIN FETCH l.listingCategory c " +
            "JOIN l.eventTypes et " +
            "WHERE l.isActive = true " +
@@ -73,7 +75,11 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     );
     
     // Fetch eventTypes for a list of listings (batch load to avoid N+1)
+    // Also re-fetches vendor and city to ensure they're available after this call
     @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH v.city " +
+           "LEFT JOIN FETCH l.listingCategory " +
            "LEFT JOIN FETCH l.eventTypes " +
            "WHERE l IN :listings")
     List<Listing> fetchEventTypes(@Param("listings") List<Listing> listings);
@@ -90,7 +96,8 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     // Query to load listings with vendor, category, and event types for vendor dashboard
     @Query("SELECT DISTINCT l FROM Listing l " +
            "LEFT JOIN FETCH l.vendor v " +
-           "LEFT JOIN FETCH l.listingCategory c " +
+           "LEFT JOIN FETCH v.city " +
+           "LEFT JOIN FETCH l.listingCategory " +
            "LEFT JOIN FETCH l.eventTypes " +
            "WHERE l.vendor.id = :vendorId")
     List<Listing> findByVendorIdWithEventTypes(@Param("vendorId") UUID vendorId);
@@ -124,6 +131,17 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
            "WHERE l.id IN :ids")
     List<Listing> findByIdInWithRelations(@Param("ids") List<UUID> ids);
     
+    // Fetch vendor listings with relationships for public API (avoids LazyInitializationException)
+    @Query("SELECT DISTINCT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH v.city " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE l.vendor.id = :vendorId " +
+           "AND l.type = :type " +
+           "AND l.isActive = true")
+    List<Listing> findByVendorIdAndTypeWithRelationships(@Param("vendorId") UUID vendorId, @Param("type") Listing.ListingType type);
+    
     @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId")
     long countByVendorId(@Param("vendorId") UUID vendorId);
     
@@ -135,6 +153,15 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     
     @Query("SELECT COUNT(l) FROM Listing l WHERE l.createdAt >= :date")
     long countByCreatedAtAfter(@Param("date") java.time.LocalDateTime date);
+    
+    // Fetch single listing with all relationships for public detail view
+    @Query("SELECT l FROM Listing l " +
+           "LEFT JOIN FETCH l.vendor v " +
+           "LEFT JOIN FETCH v.city " +
+           "LEFT JOIN FETCH l.listingCategory c " +
+           "LEFT JOIN FETCH l.eventTypes " +
+           "WHERE l.id = :listingId")
+    java.util.Optional<Listing> findByIdWithRelationships(@Param("listingId") UUID listingId);
     
     // Native query for category distribution - much faster than loading all listings
     @Query(value = "SELECT " +
