@@ -90,7 +90,7 @@ const ForgotPassword = () => {
           </Link>
           <CardTitle className="text-2xl">Forgot Password?</CardTitle>
           <CardDescription>
-            Enter your email and we'll send you a link to reset your password
+            Enter your email (if you provided one during signup) and we'll send you a link to reset your password
           </CardDescription>
         </CardHeader>
         <CardContent>

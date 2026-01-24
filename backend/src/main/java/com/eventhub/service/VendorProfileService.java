@@ -51,6 +51,19 @@ public class VendorProfileService {
         if (updatedVendor.getCoverageRadius() != null) {
             vendor.setCoverageRadius(updatedVendor.getCoverageRadius());
         }
+        // Contact Info Fields
+        if (updatedVendor.getPhone() != null) {
+            vendor.setPhone(updatedVendor.getPhone());
+        }
+        if (updatedVendor.getEmail() != null) {
+            vendor.setEmail(updatedVendor.getEmail());
+        }
+        if (updatedVendor.getInstagram() != null) {
+            vendor.setInstagram(updatedVendor.getInstagram());
+        }
+        if (updatedVendor.getWebsite() != null) {
+            vendor.setWebsite(updatedVendor.getWebsite());
+        }
         
         return vendorRepository.save(vendor);
     }

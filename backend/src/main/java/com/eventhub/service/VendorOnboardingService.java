@@ -69,6 +69,17 @@ public class VendorOnboardingService {
         vendor.setRating(java.math.BigDecimal.ZERO);
         vendor.setReviewCount(0);
         
+        // Set contact info if provided
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+            vendor.setPhone(request.getPhone().trim());
+        }
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            vendor.setEmail(request.getEmail().trim());
+        }
+        if (request.getInstagram() != null && !request.getInstagram().trim().isEmpty()) {
+            vendor.setInstagram(request.getInstagram().trim());
+        }
+        
         // Set location fields
         if (request.getLocationName() != null && !request.getLocationName().trim().isEmpty()) {
             vendor.setLocationName(request.getLocationName());

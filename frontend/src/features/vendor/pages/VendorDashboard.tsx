@@ -38,7 +38,7 @@ import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/u
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isComplete: profileComplete, completionPercentage, missingFields, canCreateListing } = useVendorProfileCompletion();
+  const { isComplete: profileComplete, isLoading: profileCompletionLoading, completionPercentage, missingFields, canCreateListing } = useVendorProfileCompletion();
   
   // Fetch real data in parallel using optimized hook
   const { stats, profile, upcomingOrders, leads, listings, loading: dataLoading } = useVendorDashboardData();
@@ -161,7 +161,7 @@ export default function VendorDashboard() {
   const hasListings = profileComplete && listingsData && Array.isArray(listingsData) && listingsData.length > 0;
 
   // Show loading while fetching dashboard data
-  if (statsLoading || profileLoading) {
+  if (statsLoading || profileLoading || profileCompletionLoading) {
     return (
       <VendorLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
@@ -189,8 +189,8 @@ export default function VendorDashboard() {
   return (
     <VendorLayout>
       <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
-        {/* Profile Completion Banner - Show if vendor hasn't completed profile */}
-        {!profileComplete && (
+        {/* Profile Completion Banner - Show if vendor hasn't completed profile (and not loading) */}
+        {!profileCompletionLoading && !profileComplete && (
           <Card className="border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10 overflow-hidden">
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">

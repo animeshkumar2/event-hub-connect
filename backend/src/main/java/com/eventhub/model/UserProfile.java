@@ -17,14 +17,14 @@ public class UserProfile {
     @Column(name = "id")
     private UUID id; // References auth.users(id)
     
-    @Column(nullable = false, unique = true, length = 255)
-    private String email;
+    @Column(unique = true, length = 255)
+    private String email; // Optional - can be null for phone-only users
     
     @Column(name = "full_name", length = 255)
     private String fullName;
     
-    @Column(length = 20)
-    private String phone;
+    @Column(nullable = false, unique = true, length = 20)
+    private String phone; // Required - primary identifier for login
     
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;

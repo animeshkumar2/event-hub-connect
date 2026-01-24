@@ -12,7 +12,9 @@ import java.util.UUID;
 @Repository
 public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
     Optional<UserProfile> findByEmail(String email);
+    Optional<UserProfile> findByPhone(String phone);
     boolean existsByEmail(String email);
+    boolean existsByPhone(String phone);
     
     @Query("SELECT COUNT(u) FROM UserProfile u WHERE u.role = :role")
     long countByRole(@Param("role") UserProfile.Role role);

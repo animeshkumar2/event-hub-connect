@@ -40,6 +40,12 @@ public class VendorMapper {
         dto.setLocationLng(vendor.getLocationLng());
         dto.setServiceRadiusKm(vendor.getServiceRadiusKm());
         
+        // Contact Info Fields
+        dto.setPhone(vendor.getPhone());
+        dto.setEmail(vendor.getEmail());
+        dto.setInstagram(vendor.getInstagram());
+        dto.setWebsite(vendor.getWebsite());
+        
         return dto;
     }
     

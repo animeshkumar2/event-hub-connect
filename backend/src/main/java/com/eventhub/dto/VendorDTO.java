@@ -33,6 +33,12 @@ public class VendorDTO {
     private BigDecimal locationLng;
     private Integer serviceRadiusKm;
     private Double distanceKm; // Calculated distance from customer (for search results)
+    
+    // Contact Info Fields
+    private String phone;
+    private String email;
+    private String instagram;
+    private String website;
 }
 
 

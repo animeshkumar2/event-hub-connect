@@ -28,7 +28,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   loginWithGoogle: (credentialResponse: GoogleCredentialResponse, isVendor?: boolean) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (identifier: string, password: string) => {
     try {
       const response = await apiClient.post<{
         token: string;
@@ -281,7 +281,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         role: string;
         vendorId?: string;
         expiresIn: number;
-      }>('/auth/login', { email, password });
+      }>('/auth/login', { identifier, password });
 
       if (response.success && response.data) {
         const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, vendorId } = response.data;

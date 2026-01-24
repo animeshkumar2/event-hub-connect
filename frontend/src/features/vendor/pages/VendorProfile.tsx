@@ -13,7 +13,7 @@ import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { 
   Camera, CheckCircle, MapPin, Phone, Mail, Instagram, Save, Loader2, X, ImagePlus,
   Sparkles, Eye, Star, Edit3, ChevronRight, Globe, Building2, Navigation, Zap,
-  MessageCircle, Wallet, CalendarCheck, User, Plus, AlertCircle, TrendingUp, ArrowRight
+  MessageCircle, CalendarCheck, User, Plus, AlertCircle, TrendingUp, ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useVendorProfile, useVendorDashboardStats } from '@/shared/hooks/useApi';
@@ -160,7 +160,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load data from signup
+  // Load data from signup or user context
   useEffect(() => {
     const signupData = sessionStorage.getItem('vendorSignupData');
     if (signupData) {
@@ -171,10 +171,16 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
         if (data.phone) setPhone(data.phone);
       } catch (e) {}
       sessionStorage.removeItem('vendorSignupData');
-    } else if (user?.email) {
+    }
+    // Always set email from user context if not already set
+    if (!email && user?.email) {
       setEmail(user.email);
     }
-  }, [user]);
+    // Set phone from user context if available
+    if (!phone && user?.phone) {
+      setPhone(user.phone);
+    }
+  }, [user, email, phone]);
 
   const isFormValid = businessName.trim() !== '' && category !== '' && 
     (category !== 'other' || customCategoryName.trim() !== '') && city !== '';
@@ -638,7 +644,6 @@ export default function VendorProfile() {
   const stats = {
     pendingLeads: dashboardStats?.pendingLeads || 0,
     upcomingBookings: dashboardStats?.upcomingBookings || 0,
-    walletBalance: dashboardStats?.walletBalance || 0,
     rating: profileData?.rating || 0,
     reviewCount: profileData?.reviewCount || 0,
   };
@@ -816,11 +821,10 @@ export default function VendorProfile() {
 
           {/* Stats Grid - Only show for existing vendors */}
           {!isNewVendor && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-3 gap-4 mb-8">
               <StatCard icon={MessageCircle} label="Pending Leads" value={stats.pendingLeads} color="bg-gradient-to-br from-blue-500 to-blue-600" />
               <StatCard icon={CalendarCheck} label="Upcoming Bookings" value={stats.upcomingBookings} color="bg-gradient-to-br from-emerald-500 to-emerald-600" />
               <StatCard icon={Star} label="Rating" value={stats.rating > 0 ? `${Number(stats.rating).toFixed(1)} (${stats.reviewCount})` : '—'} color="bg-gradient-to-br from-amber-500 to-orange-500" />
-              <StatCard icon={Wallet} label="Wallet Balance" value={`₹${Number(stats.walletBalance).toLocaleString()}`} color="bg-gradient-to-br from-violet-500 to-purple-500" />
             </div>
           )}
 

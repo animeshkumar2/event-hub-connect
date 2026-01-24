@@ -47,6 +47,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     name?: string;
     confirmPassword?: string;
     phone?: string;
+    identifier?: string;
   }>({});
   const [formData, setFormData] = useState({
     name: "",
@@ -54,13 +55,14 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     password: "",
     confirmPassword: "",
     phone: "",
+    identifier: "", // For login - can be email or phone
   });
 
-  // Load remembered email on mount
+  // Load remembered identifier on mount
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem('remembered_email');
-    if (rememberedEmail && mode === 'login') {
-      setFormData(prev => ({ ...prev, email: rememberedEmail }));
+    const rememberedIdentifier = localStorage.getItem('remembered_identifier');
+    if (rememberedIdentifier && mode === 'login') {
+      setFormData(prev => ({ ...prev, identifier: rememberedIdentifier }));
       setRememberMe(true);
     }
   }, [mode]);
@@ -108,19 +110,99 @@ const Auth = ({ mode: propMode }: AuthProps) => {
 
   const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
   
-  // Phone number validation
+  // Phone number validation for Indian mobile numbers
+  const validatePhone = (phoneNumber: string): { isValid: boolean; error?: string; normalized?: string } => {
+    if (!phoneNumber) return { isValid: false, error: "Phone number is required" };
+    
+    // Normalize: remove spaces, dashes, parentheses, dots
+    let normalized = phoneNumber.replace(/[\s\-\(\)\.]/g, '');
+    
+    // Remove +91 or 91 prefix if present
+    if (normalized.startsWith('+91')) {
+      normalized = normalized.substring(3);
+    } else if (normalized.startsWith('91') && normalized.length === 12) {
+      normalized = normalized.substring(2);
+    }
+    
+    // Must be exactly 10 digits
+    if (normalized.length !== 10) {
+      return { isValid: false, error: "Phone number must be 10 digits" };
+    }
+    
+    // Must start with 6, 7, 8, or 9 (Indian mobile)
+    if (!/^[6-9]\d{9}$/.test(normalized)) {
+      return { isValid: false, error: "Please enter a valid Indian mobile number" };
+    }
+    
+    // Check for obvious fake patterns
+    const fakeError = checkForFakeNumber(normalized);
+    if (fakeError) {
+      return { isValid: false, error: fakeError };
+    }
+    
+    return { isValid: true, normalized };
+  };
+  
+  // Check for obvious fake/test number patterns
+  const checkForFakeNumber = (phone: string): string | null => {
+    // All same digit
+    if (new Set(phone).size === 1) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Fully sequential (ascending or descending)
+    const isSequential = (str: string, ascending: boolean): boolean => {
+      for (let i = 1; i < str.length; i++) {
+        const diff = str.charCodeAt(i) - str.charCodeAt(i - 1);
+        if (ascending ? diff !== 1 : diff !== -1) return false;
+      }
+      return true;
+    };
+    
+    if (isSequential(phone, true) || isSequential(phone, false)) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Common test patterns
+    const obviousFakes = [
+      '1234567890', '0123456789', '9876543210',
+      '1234567891', '1234567892', '1234567893', '1234567894',
+      '1234567895', '1234567896', '1234567897', '1234567898', '1234567899',
+      '9999999999', '8888888888', '7777777777', '6666666666',
+    ];
+    
+    if (obviousFakes.includes(phone)) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Repeating pairs (1212121212, 9898989898)
+    const pair = phone.substring(0, 2);
+    if (pair[0] !== pair[1] && phone === pair.repeat(5)) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Too many repeated digits (7+ same digit)
+    const digitCounts: Record<string, number> = {};
+    for (const digit of phone) {
+      digitCounts[digit] = (digitCounts[digit] || 0) + 1;
+    }
+    if (Object.values(digitCounts).some(count => count >= 7)) {
+      return "Please enter a valid phone number";
+    }
+    
+    return null;
+  };
+  
+  // Simple validity check for form validation
   const isValidPhone = (phoneNumber: string): boolean => {
-    if (!phoneNumber) return false;
-    // Remove all spaces, dashes, and parentheses
-    const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
-    
-    // Check if it's a valid format:
-    // - Starts with + or digit
-    // - Has 10-15 digits (international format)
-    // - Indian format: +91 followed by 10 digits OR just 10 digits
-    const phoneRegex = /^(\+?\d{1,3})?[\s\-]?\d{10}$/;
-    
-    return phoneRegex.test(cleaned) && cleaned.length >= 10;
+    return validatePhone(phoneNumber).isValid;
+  };
+  
+  // Get phone validation error message
+  const getPhoneError = (phoneNumber: string): string | undefined => {
+    if (!phoneNumber) return undefined;
+    const result = validatePhone(phoneNumber);
+    return result.isValid ? undefined : result.error;
   };
   
   // Check if form is valid for signup
@@ -129,6 +211,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     return (
       formData.name.trim() !== '' &&
       formData.email.trim() !== '' &&
+      isValidEmail(formData.email) &&
       formData.password.length >= 8 &&
       formData.confirmPassword === formData.password &&
       formData.phone.trim() !== '' &&
@@ -136,24 +219,38 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     );
   }, [mode, formData]);
 
-  // Reset form when mode changes and load remembered email for login
+  // Check if form is valid for login
+  const isLoginFormValid = useMemo(() => {
+    if (mode !== 'login') return true;
+    const identifier = formData.identifier.trim();
+    // Valid if it's a valid email OR a valid phone
+    const isValidIdentifier = isValidEmail(identifier) || isValidPhone(identifier);
+    return (
+      identifier !== '' &&
+      isValidIdentifier &&
+      formData.password.trim() !== ''
+    );
+  }, [mode, formData]);
+
+  // Reset form when mode changes and load remembered identifier for login
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem('remembered_email');
+    const rememberedIdentifier = localStorage.getItem('remembered_identifier');
     const shouldRemember = localStorage.getItem('remember_me') === 'true';
     
     setFormData({
       name: "",
-      email: (mode === 'login' && shouldRemember && rememberedEmail) ? rememberedEmail : "",
+      email: "",
       password: "",
       confirmPassword: "",
       phone: "",
+      identifier: (mode === 'login' && shouldRemember && rememberedIdentifier) ? rememberedIdentifier : "",
     });
     setFieldErrors({});
     setShowPassword(false);
     setShowConfirmPassword(false);
     
-    // Set remember me checkbox if email was remembered
-    if (mode === 'login' && shouldRemember && rememberedEmail) {
+    // Set remember me checkbox if identifier was remembered
+    if (mode === 'login' && shouldRemember && rememberedIdentifier) {
       setRememberMe(true);
     } else {
       setRememberMe(false);
@@ -257,16 +354,43 @@ const Auth = ({ mode: propMode }: AuthProps) => {
           navigate("/");
         }
       } else {
+        // Login - validate identifier (email or phone)
+        const identifier = formData.identifier.trim();
+        if (!identifier) {
+          setFieldErrors({ identifier: "Please enter your email or phone number" });
+          toast({
+            title: "Validation Error",
+            description: "Please enter your email or phone number",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          setLoadingMessage("");
+          return;
+        }
+        
+        // Check if it's a valid email or phone
+        if (!isValidEmail(identifier) && !isValidPhone(identifier)) {
+          setFieldErrors({ identifier: "Please enter a valid email or phone number" });
+          toast({
+            title: "Validation Error",
+            description: "Please enter a valid email or phone number",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          setLoadingMessage("");
+          return;
+        }
+        
         // Login
         setLoadingMessage("Signing you in...");
-        await login(formData.email, formData.password);
+        await login(identifier, formData.password);
 
         // Handle remember me
         if (rememberMe) {
-          localStorage.setItem('remembered_email', formData.email);
+          localStorage.setItem('remembered_identifier', identifier);
           localStorage.setItem('remember_me', 'true');
         } else {
-          localStorage.removeItem('remembered_email');
+          localStorage.removeItem('remembered_identifier');
           localStorage.removeItem('remember_me');
         }
 
@@ -315,11 +439,17 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       
       // Map error codes to field-specific errors
       if (errorCode === 'EMAIL_NOT_FOUND') {
-        setFieldErrors({ email: "No account found with this email" });
+        setFieldErrors({ identifier: "No account found with this email" });
+      } else if (errorCode === 'PHONE_NOT_FOUND') {
+        setFieldErrors({ identifier: "No account found with this phone number" });
       } else if (errorCode === 'INVALID_PASSWORD') {
         setFieldErrors({ password: "Incorrect password" });
       } else if (errorCode === 'EMAIL_ALREADY_EXISTS') {
         setFieldErrors({ email: "This email is already registered" });
+      } else if (errorCode === 'PHONE_ALREADY_EXISTS') {
+        setFieldErrors({ phone: "This phone number is already registered" });
+      } else if (errorCode === 'INVALID_PHONE_FORMAT') {
+        setFieldErrors({ identifier: errorMessage });
       } else if (errorCode === 'WEAK_PASSWORD') {
         setFieldErrors({ password: "Password must be at least 8 characters" });
       } else {
@@ -552,7 +682,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with email
+                    Or continue with phone
                   </span>
                 </div>
               </div>
@@ -574,34 +704,99 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  // Clear error when user starts typing
-                  if (fieldErrors.email) {
-                    setFieldErrors({ ...fieldErrors, email: undefined });
-                  }
-                }}
-                onBlur={() => {
-                  // Validate email on blur
-                  if (formData.email && !isValidEmail(formData.email)) {
-                    setFieldErrors({ ...fieldErrors, email: 'Please enter a valid email address' });
-                  }
-                }}
-                required
-                disabled={isLoading}
-                className={fieldErrors.email ? "border-red-500" : ""}
-              />
-              {fieldErrors.email && (
-                <p className="text-sm text-red-500">{fieldErrors.email}</p>
-              )}
-            </div>
+            {/* Identifier field for login (email or phone) */}
+            {mode === "login" && (
+              <div className="space-y-2">
+                <Label htmlFor="identifier">Email or Phone Number</Label>
+                <Input
+                  id="identifier"
+                  type="text"
+                  placeholder="you@example.com or 9876543210"
+                  value={formData.identifier}
+                  onChange={(e) => {
+                    setFormData({ ...formData, identifier: e.target.value });
+                    if (fieldErrors.identifier) {
+                      setFieldErrors({ ...fieldErrors, identifier: undefined });
+                    }
+                  }}
+                  required
+                  disabled={isLoading}
+                  className={fieldErrors.identifier ? "border-red-500" : ""}
+                />
+                {fieldErrors.identifier && (
+                  <p className="text-sm text-red-500">{fieldErrors.identifier}</p>
+                )}
+              </div>
+            )}
+
+            {/* Phone field - required for signup only */}
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+91 9876543210"
+                  value={formData.phone}
+                  onChange={(e) => {
+                    setFormData({ ...formData, phone: e.target.value });
+                    if (fieldErrors.phone) {
+                      setFieldErrors({ ...fieldErrors, phone: undefined });
+                    }
+                  }}
+                  disabled={isLoading}
+                  required
+                  className={fieldErrors.phone || (formData.phone && !isValidPhone(formData.phone)) ? "border-red-500" : ""}
+                />
+                {fieldErrors.phone && (
+                  <p className="text-sm text-red-500">{fieldErrors.phone}</p>
+                )}
+                {formData.phone && !isValidPhone(formData.phone) && !fieldErrors.phone && (
+                  <p className="text-sm text-red-500">{getPhoneError(formData.phone) || "Please enter a valid phone number"}</p>
+                )}
+                {formData.phone && isValidPhone(formData.phone) && (
+                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                    <Check className="h-3 w-3" />
+                    <span>Valid phone number</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Email field - required for signup */}
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    // Clear error when user starts typing
+                    if (fieldErrors.email) {
+                      setFieldErrors({ ...fieldErrors, email: undefined });
+                    }
+                  }}
+                  onBlur={() => {
+                    // Validate email on blur
+                    if (formData.email && !isValidEmail(formData.email)) {
+                      setFieldErrors({ ...fieldErrors, email: 'Please enter a valid email address' });
+                    }
+                  }}
+                  required
+                  disabled={isLoading}
+                  className={fieldErrors.email ? "border-red-500" : ""}
+                />
+                {fieldErrors.email && (
+                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                )}
+                {formData.email && !isValidEmail(formData.email) && !fieldErrors.email && (
+                  <p className="text-sm text-red-500">Please enter a valid email address</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -727,38 +922,6 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     </div>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 9876543210"
-                    value={formData.phone}
-                    onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
-                      // Clear error when user starts typing
-                      if (fieldErrors.phone) {
-                        setFieldErrors({ ...fieldErrors, phone: undefined });
-                      }
-                    }}
-                    disabled={isLoading}
-                    required
-                    className={fieldErrors.phone || (formData.phone && !isValidPhone(formData.phone)) ? "border-red-500" : ""}
-                  />
-                  {fieldErrors.phone && (
-                    <p className="text-sm text-red-500">{fieldErrors.phone}</p>
-                  )}
-                  {formData.phone && !isValidPhone(formData.phone) && !fieldErrors.phone && (
-                    <p className="text-sm text-red-500">Please enter a valid phone number (10 digits)</p>
-                  )}
-                  {formData.phone && isValidPhone(formData.phone) && (
-                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-                      <Check className="h-3 w-3" />
-                      <span>Valid phone number</span>
-                    </div>
-                  )}
-                </div>
               </>
             )}
 
@@ -788,7 +951,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || !isSignupFormValid}>
+            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || (mode === 'signup' ? !isSignupFormValid : !isLoginFormValid)}>
               {isLoading || isGoogleLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

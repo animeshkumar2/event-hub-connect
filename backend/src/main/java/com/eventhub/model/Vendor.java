@@ -81,6 +81,19 @@ public class Vendor {
     @Column(name = "service_radius_km")
     private Integer serviceRadiusKm = 25;
     
+    // Contact Info Fields
+    @Column(name = "phone", length = 20)
+    private String phone;
+    
+    @Column(name = "email", length = 255)
+    private String email;
+    
+    @Column(name = "instagram", length = 100)
+    private String instagram;
+    
+    @Column(name = "website", length = 255)
+    private String website;
+    
     @Column(name = "is_verified")
     private Boolean isVerified = false;
     

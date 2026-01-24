@@ -7,6 +7,7 @@ import com.eventhub.model.UserProfile;
 import com.eventhub.repository.UserProfileRepository;
 import com.eventhub.repository.VendorRepository;
 import com.eventhub.util.JwtUtil;
+import com.eventhub.util.PhoneValidator;
 import com.eventhub.exception.ValidationException;
 import com.eventhub.exception.AuthException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -39,6 +40,25 @@ public class AuthService {
     private String googleClientId;
     
     public AuthResponse register(RegisterRequest request) {
+        // Validate and normalize phone number
+        PhoneValidator.ValidationResult phoneValidation = PhoneValidator.validate(request.getPhone());
+        if (!phoneValidation.isValid()) {
+            throw new AuthException(
+                AuthException.INVALID_PHONE_FORMAT,
+                phoneValidation.getErrorMessage()
+            );
+        }
+        String normalizedPhone = phoneValidation.getNormalizedPhone();
+        
+        // Check if phone already exists (phone is the primary identifier)
+        if (userProfileRepository.existsByPhone(normalizedPhone)) {
+            throw new AuthException(
+                AuthException.PHONE_ALREADY_EXISTS, 
+                "An account with this phone number already exists. Please login instead."
+            );
+        }
+        
+        // Check if email already exists
         if (userProfileRepository.existsByEmail(request.getEmail())) {
             throw new AuthException(
                 AuthException.EMAIL_ALREADY_EXISTS, 
@@ -55,10 +75,10 @@ public class AuthService {
         }
         
         UserProfile user = new UserProfile();
-        user.setId(UUID.randomUUID()); // In production, this would come from Supabase Auth
-        user.setEmail(request.getEmail());
+        user.setId(UUID.randomUUID());
+        user.setEmail(request.getEmail()); // Can be null
         user.setFullName(request.getFullName());
-        user.setPhone(request.getPhone());
+        user.setPhone(normalizedPhone); // Store normalized phone
         user.setRole(request.getIsVendor() != null && request.getIsVendor() 
                 ? UserProfile.Role.VENDOR 
                 : UserProfile.Role.CUSTOMER);
@@ -83,11 +103,34 @@ public class AuthService {
     }
     
     public AuthResponse login(LoginRequest request) {
-        UserProfile user = userProfileRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AuthException(
-                    AuthException.EMAIL_NOT_FOUND,
-                    "No account found with this email. Please check your email or sign up."
-                ));
+        String identifier = request.getIdentifier().trim();
+        UserProfile user;
+        
+        // Detect if identifier is email or phone
+        if (isEmail(identifier)) {
+            // Login with email
+            user = userProfileRepository.findByEmail(identifier)
+                    .orElseThrow(() -> new AuthException(
+                        AuthException.EMAIL_NOT_FOUND,
+                        "No account found with this email. Please check your email or sign up."
+                    ));
+        } else {
+            // Login with phone - validate and normalize
+            PhoneValidator.ValidationResult phoneValidation = PhoneValidator.validate(identifier);
+            if (!phoneValidation.isValid()) {
+                throw new AuthException(
+                    AuthException.INVALID_PHONE_FORMAT,
+                    phoneValidation.getErrorMessage()
+                );
+            }
+            String normalizedPhone = phoneValidation.getNormalizedPhone();
+            
+            user = userProfileRepository.findByPhone(normalizedPhone)
+                    .orElseThrow(() -> new AuthException(
+                        AuthException.PHONE_NOT_FOUND,
+                        "No account found with this phone number. Please check your number or sign up."
+                    ));
+        }
         
         // Verify password
         if (user.getPasswordHash() == null || 
@@ -258,6 +301,13 @@ public class AuthService {
                 "Failed to refresh token. Please log in again."
             );
         }
+    }
+    
+    /**
+     * Check if the identifier looks like an email address
+     */
+    private boolean isEmail(String identifier) {
+        return identifier != null && identifier.contains("@") && identifier.contains(".");
     }
     
     @lombok.Data
