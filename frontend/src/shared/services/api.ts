@@ -446,6 +446,7 @@ export const publicApi = {
   // Listings
   getPackage: (packageId: string) => apiClient.get<any>(`/public/packages/${packageId}`),
   getListing: (listingId: string) => apiClient.get<any>(`/public/listings/${listingId}`),
+  getListingsByIds: (listingIds: string[]) => apiClient.post<any[]>('/public/listings/batch', listingIds),
   
   // Event Planner
   getRecommendations: (data: { budget: number; eventType: string; guestCount: number }) =>
@@ -548,6 +549,7 @@ export const vendorApi = {
   
   // Listings
   getListings: () => apiClient.get<any[]>('/vendors/listings'),
+  getListing: (listingId: string) => apiClient.get<any>(`/vendors/listings/${listingId}`),
   createPackage: (data: any) => apiClient.post<any>('/vendors/listings/packages', data),
   createItem: (data: any) => apiClient.post<any>('/vendors/listings/items', data),
   updateListing: (listingId: string, data: any) => apiClient.put<any>(`/vendors/listings/${listingId}`, data),

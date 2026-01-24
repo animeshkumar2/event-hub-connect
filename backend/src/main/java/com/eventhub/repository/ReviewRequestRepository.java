@@ -32,5 +32,6 @@ public interface ReviewRequestRepository extends JpaRepository<ReviewRequest, UU
     long countByCustomerIdAndRequestedAtAfter(@Param("customerId") UUID customerId, @Param("since") LocalDateTime since);
     
     // Get all requests for a vendor
-    List<ReviewRequest> findByVendorIdOrderByRequestedAtDesc(UUID vendorId);
+    @Query("SELECT rr FROM ReviewRequest rr WHERE rr.vendor.id = :vendorId ORDER BY rr.requestedAt DESC")
+    List<ReviewRequest> findByVendorIdOrderByRequestedAtDesc(@Param("vendorId") UUID vendorId);
 }

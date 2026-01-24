@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/public")
@@ -52,6 +54,30 @@ public class PublicListingController {
         
         ListingDTO dto = listingMapper.toDTO(listing);
         return ResponseEntity.ok(ApiResponse.success(dto));
+    }
+    
+    /**
+     * Batch fetch listings by IDs - useful for fetching bundled items in packages
+     * POST is used instead of GET to avoid URL length limitations with many IDs
+     */
+    @PostMapping("/listings/batch")
+    public ResponseEntity<ApiResponse<List<ListingDTO>>> getListingsByIds(@RequestBody List<UUID> listingIds) {
+        if (listingIds == null || listingIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(List.of()));
+        }
+        
+        // Use custom query with JOIN FETCH to avoid lazy loading issues
+        List<Listing> listings = listingRepository.findByIdInWithRelations(listingIds);
+        
+        // Filter out drafts (same logic as single listing endpoint)
+        List<Listing> activeListings = listings.stream()
+                .filter(l -> l.getIsActive() != null && l.getIsActive())
+                .filter(l -> l.getPrice() != null && l.getPrice().compareTo(new java.math.BigDecimal("0.01")) > 0)
+                .filter(l -> l.getImages() != null && !l.getImages().isEmpty())
+                .collect(Collectors.toList());
+        
+        List<ListingDTO> dtos = listingMapper.toDTOList(activeListings);
+        return ResponseEntity.ok(ApiResponse.success(dtos));
     }
 }
 

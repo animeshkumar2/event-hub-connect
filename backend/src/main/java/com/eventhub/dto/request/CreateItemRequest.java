@@ -32,12 +32,18 @@ public class CreateItemRequest {
     // Highlights - key features
     private List<String> highlights;
     
+    // What's included/excluded
+    private List<String> includedItemsText;
+    private List<String> excludedItemsText;
+    
     private String unit;
     
     @Positive(message = "Minimum quantity must be positive")
     private Integer minimumQuantity = 1;
     
     private String deliveryTime;
+    
+    private String customNotes; // Additional notes from vendor
     
     // Extra charges with pricing
     private List<CreatePackageRequest.ExtraCharge> extraChargesDetailed;
@@ -48,6 +54,9 @@ public class CreateItemRequest {
     private List<String> images;
     
     private Boolean openForNegotiation = true; // Allow customers to make offers on this listing
+    
+    // Category-specific data (stored as JSON)
+    private Object categorySpecificData; // Flexible object to store category-specific fields
     
     // Control whether listing is active/visible to customers
     private Boolean isActive;

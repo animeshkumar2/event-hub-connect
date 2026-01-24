@@ -18,6 +18,8 @@ public class ListingMapper {
             return null;
         }
         
+        System.out.println("🔍 ListingMapper.toDTO called for: " + listing.getName() + " | Price: " + listing.getPrice());
+        
         ListingDTO dto = new ListingDTO();
         dto.setId(listing.getId());
         if (listing.getVendor() != null) {
@@ -34,7 +36,76 @@ public class ListingMapper {
         dto.setType(listing.getType() != null ? listing.getType().name().toLowerCase() : null);
         dto.setName(listing.getName());
         dto.setDescription(listing.getDescription());
-        dto.setPrice(listing.getPrice());
+        
+        // Extract display price from category-specific data if available
+        BigDecimal displayPrice = listing.getPrice();
+        if (listing.getCategorySpecificData() != null && !listing.getCategorySpecificData().isEmpty()) {
+            try {
+                System.out.println("🔍 Attempting to extract price from categorySpecificData: " + listing.getCategorySpecificData());
+                
+                // Parse the JSON to extract price
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.JsonNode categoryData = mapper.readTree(listing.getCategorySpecificData());
+                
+                String categoryId = listing.getListingCategory() != null ? listing.getListingCategory().getId() : null;
+                
+                System.out.println("🔍 Category ID: " + categoryId);
+                
+                if (categoryId != null) {
+                    BigDecimal extractedPrice = null;
+                    
+                    switch (categoryId) {
+                        case "caterer":
+                            if (categoryData.has("pricePerPlateVeg")) {
+                                extractedPrice = new BigDecimal(categoryData.get("pricePerPlateVeg").asText());
+                            } else if (categoryData.has("pricePerPlateNonVeg")) {
+                                extractedPrice = new BigDecimal(categoryData.get("pricePerPlateNonVeg").asText());
+                            }
+                            break;
+                        case "photographer":
+                        case "cinematographer":
+                        case "videographer":
+                            if (categoryData.has("price")) {
+                                extractedPrice = new BigDecimal(categoryData.get("price").asText());
+                            } else if (categoryData.has("photographyPrice")) {
+                                extractedPrice = new BigDecimal(categoryData.get("photographyPrice").asText());
+                            } else if (categoryData.has("videographyPrice")) {
+                                extractedPrice = new BigDecimal(categoryData.get("videographyPrice").asText());
+                            }
+                            break;
+                        case "mua":
+                            if (categoryData.has("bridalPrice")) {
+                                extractedPrice = new BigDecimal(categoryData.get("bridalPrice").asText());
+                            } else if (categoryData.has("nonBridalPrice")) {
+                                extractedPrice = new BigDecimal(categoryData.get("nonBridalPrice").asText());
+                            }
+                            break;
+                        default:
+                            if (categoryData.has("price")) {
+                                extractedPrice = new BigDecimal(categoryData.get("price").asText());
+                            }
+                    }
+                    
+                    System.out.println("🔍 Extracted price: " + extractedPrice);
+                    
+                    if (extractedPrice != null && extractedPrice.compareTo(BigDecimal.ZERO) > 0) {
+                        displayPrice = extractedPrice;
+                        System.out.println("✅ Using extracted price: " + displayPrice);
+                    } else {
+                        System.out.println("⚠️ Extracted price is null or zero, using main price: " + displayPrice);
+                    }
+                }
+            } catch (Exception e) {
+                // If parsing fails, use the main price field
+                System.err.println("❌ Error extracting price from category data: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("⚠️ No categorySpecificData available, using main price: " + displayPrice);
+        }
+        
+        dto.setPrice(displayPrice);
+        
         dto.setCategoryId(listing.getListingCategory() != null ? listing.getListingCategory().getId() : null);
         dto.setCategoryName(listing.getListingCategory() != null ? listing.getListingCategory().getDisplayName() : null);
         dto.setCustomCategoryName(listing.getCustomCategoryName());
@@ -51,6 +122,16 @@ public class ListingMapper {
             dto.setEventTypeIds(listing.getEventTypes().stream()
                     .map(et -> et.getId())
                     .collect(Collectors.toList()));
+            // Also set eventTypes for backward compatibility
+            dto.setEventTypes(listing.getEventTypes().stream()
+                    .map(et -> {
+                        java.util.Map<String, Object> etMap = new java.util.HashMap<>();
+                        etMap.put("id", et.getId());
+                        etMap.put("name", et.getName());
+                        etMap.put("displayName", et.getDisplayName());
+                        return etMap;
+                    })
+                    .collect(Collectors.toList()));
         }
         
         dto.setIsActive(listing.getIsActive());
@@ -58,11 +139,13 @@ public class ListingMapper {
         dto.setIsPopular(listing.getIsPopular());
         dto.setIsTrending(listing.getIsTrending());
         dto.setOpenForNegotiation(listing.getOpenForNegotiation());
+        dto.setCustomNotes(listing.getCustomNotes());
         
         // New fields for enhanced package features
         dto.setHighlights(listing.getHighlights());
         dto.setIncludedItemIds(listing.getIncludedItemIds());
         dto.setExtraChargesJson(listing.getExtraChargesJson());
+        dto.setCategorySpecificData(listing.getCategorySpecificData());
         
         // Location System - Service Mode
         if (listing.getServiceMode() != null) {

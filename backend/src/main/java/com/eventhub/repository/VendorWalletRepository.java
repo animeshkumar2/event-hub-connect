@@ -10,6 +10,8 @@ import java.util.UUID;
 @Repository
 public interface VendorWalletRepository extends JpaRepository<VendorWallet, UUID> {
     Optional<VendorWallet> findByVendor(Vendor vendor);
-    Optional<VendorWallet> findByVendorId(UUID vendorId);
+    
+    @org.springframework.data.jpa.repository.Query("SELECT w FROM VendorWallet w WHERE w.vendor.id = :vendorId")
+    Optional<VendorWallet> findByVendorId(@org.springframework.data.repository.query.Param("vendorId") UUID vendorId);
 }
 

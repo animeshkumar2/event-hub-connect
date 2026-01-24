@@ -317,6 +317,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         batchLocalStorageUpdate(storageUpdates);
         
+        // If user is a vendor but vendorId wasn't in login response, fetch it
+        if (role === 'VENDOR' && !vendorId) {
+          try {
+            const vendorResponse = await vendorApi.getVendorByUserId(userId);
+            if (vendorResponse.success && vendorResponse.data) {
+              localStorage.setItem('vendor_id', vendorResponse.data.id);
+            }
+          } catch (error) {
+            console.error('Error fetching vendor ID:', error);
+            // Vendor might not have completed onboarding yet
+          }
+        }
+        
         // Start token refresh timer
         startTokenRefreshTimer(newToken);
       } else {

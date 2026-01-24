@@ -58,7 +58,22 @@ public class VendorListingController {
         return ResponseEntity.ok(ApiResponse.success("Listing updated successfully", updated));
     }
     
-    @DeleteMapping("/{listingId}")
+    @GetMapping("/{listingId}")
+    public ResponseEntity<ApiResponse<Listing>> getListing(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
+            @PathVariable UUID listingId) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        
+        // Get the listing
+        Listing listing = vendorListingService.getVendorListings(vendorId).stream()
+                .filter(l -> l.getId().equals(listingId))
+                .findFirst()
+                .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Listing not found"));
+        
+        return ResponseEntity.ok(ApiResponse.success(listing));
+    }
+  
+  @DeleteMapping("/{listingId}")
     public ResponseEntity<ApiResponse<Void>> deleteListing(
             @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID listingId) {
