@@ -159,6 +159,10 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Location fields - mandatory
+  const [serviceLocation, setServiceLocation] = useState<LocationDTO | null>(null);
+  const [coverageRadius, setCoverageRadius] = useState(25); // Default 25km
 
   // Load data from signup or user context
   useEffect(() => {
@@ -183,10 +187,16 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
   }, [user, email, phone]);
 
   const isFormValid = businessName.trim() !== '' && category !== '' && 
-    (category !== 'other' || customCategoryName.trim() !== '') && city !== '';
+    (category !== 'other' || customCategoryName.trim() !== '') && city !== '' &&
+    serviceLocation !== null; // Location is now mandatory
   
-  // Calculate progress
-  const filledFields = [businessName.trim(), category, city].filter(Boolean).length;
+  // Calculate progress - now 4 steps
+  const filledFields = [
+    businessName.trim(), 
+    category, 
+    city,
+    serviceLocation
+  ].filter(Boolean).length;
 
   const handleSubmit = async () => {
     if (!isFormValid) {
@@ -203,7 +213,11 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
         phone: phone.trim() || null,
         email: email.trim() || null,
         bio: bio.trim() || null,
-        serviceRadiusKm: 25, // Default radius
+        serviceRadiusKm: coverageRadius,
+        // Location data
+        locationName: serviceLocation?.name || null,
+        locationLat: serviceLocation?.latitude || null,
+        locationLng: serviceLocation?.longitude || null,
       };
       console.log('Onboarding payload:', payload); // Debug log
       const response = await vendorApi.onboard(payload);
@@ -241,13 +255,13 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 Complete Your Profile
               </h2>
               <p className="text-white/80 text-sm mt-1">
-                Just 3 quick steps to start receiving leads
+                Just 4 quick steps to start receiving leads
               </p>
             </div>
             
             {/* Progress Steps */}
             <div className="flex items-center gap-2">
-              {[1, 2, 3].map((step) => (
+              {[1, 2, 3, 4].map((step) => (
                 <div key={step} className="flex items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                     step <= filledFields 
@@ -260,7 +274,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                       step
                     )}
                   </div>
-                  {step < 3 && (
+                  {step < 4 && (
                     <div className={`w-6 h-0.5 ${step < filledFields ? 'bg-white' : 'bg-white/20'}`} />
                   )}
                 </div>
@@ -344,6 +358,57 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
               placeholder="Specify your category" className="h-12 text-base border-2 border-border/50" />
           )}
 
+          {/* Step 4: Service Location - Mandatory */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                serviceLocation 
+                  ? 'bg-primary text-white' 
+                  : 'bg-primary/10 text-primary'
+              }`}>
+                {serviceLocation ? <CheckCircle className="h-3.5 w-3.5" /> : '4'}
+              </div>
+              <Label className="text-sm font-semibold text-foreground">Where do you provide services?</Label>
+            </div>
+            
+            <div className="space-y-4 ml-8">
+              {/* Location Autocomplete */}
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> Primary Service Location
+                </Label>
+                <LocationAutocomplete
+                  value={serviceLocation}
+                  onChange={setServiceLocation}
+                  placeholder="Search for your area (e.g., Koramangala, Bangalore)"
+                  className="h-12"
+                />
+                {serviceLocation && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-emerald-500" />
+                    {serviceLocation.name}
+                  </p>
+                )}
+              </div>
+              
+              {/* Coverage Radius */}
+              <div className="space-y-3">
+                <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <Navigation className="h-3.5 w-3.5" /> How far are you willing to travel?
+                </Label>
+                <RadiusSlider
+                  value={coverageRadius}
+                  onChange={setCoverageRadius}
+                  options={VENDOR_RADIUS_OPTIONS}
+                  label=""
+                />
+                <p className="text-xs text-muted-foreground">
+                  You'll receive leads within {coverageRadius}km of your location
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Optional Section */}
           <details className="group pt-2">
             <summary className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors list-none select-none">
@@ -402,7 +467,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               ) : (
-                <>Complete all 3 steps above</>
+                <>Complete all 4 steps above</>
               )}
             </Button>
             
