@@ -1338,68 +1338,68 @@ export default function VendorListings() {
         </div>
 
         {/* Add New Service Section - Prominent CTA */}
-        <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 overflow-hidden">
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Plus className="h-4 w-4 text-primary" />
-              </div>
-              <h2 className="text-sm font-semibold text-foreground">Add New Service</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Single Service Card */}
-              <div 
-                onClick={() => handleCreateListing('ITEM')}
-                className="group relative p-4 rounded-xl border-2 border-transparent bg-white dark:bg-card hover:border-emerald-500/50 hover:shadow-lg transition-all cursor-pointer"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 group-hover:scale-110 transition-transform">
-                    <Box className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground text-sm group-hover:text-emerald-600 transition-colors">Single Service</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                      One service like Photography, Catering, Decoration
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground px-1">What would you like to create?</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Single Service Card */}
+            <button 
+              onClick={() => handleCreateListing('ITEM')}
+              className="group relative p-4 rounded-xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-card hover:shadow-lg transition-all text-left"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 group-hover:scale-110 transition-transform shadow-sm">
+                  <Plus className="h-5 w-5 text-white" />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200">Most Common</Badge>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground text-sm group-hover:text-emerald-600 transition-colors">Add Single Service</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                    Photography, Catering, Decoration, etc.
+                  </p>
                 </div>
               </div>
+              <div className="mt-3 flex items-center justify-between">
+                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-100 text-emerald-700 border-emerald-200">Most Common</Badge>
+                <span className="text-[10px] text-emerald-600 font-medium group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                  Get started <ArrowRight className="h-3 w-3" />
+                </span>
+              </div>
+            </button>
 
-              {/* Package Deal Card */}
-              <div 
-                onClick={() => items.length > 0 ? handleCreateListing('PACKAGE') : toast.info('Create at least one service first to bundle them into a package')}
-                className={`group relative p-4 rounded-xl border-2 border-transparent bg-white dark:bg-card transition-all cursor-pointer ${items.length > 0 ? 'hover:border-primary/50 hover:shadow-lg' : 'opacity-60'}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 group-hover:scale-110 transition-transform">
-                    <Package className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">Package Deal</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                      Bundle services together at a special price
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
+            {/* Package Deal Card */}
+            <button 
+              onClick={() => items.length > 0 ? handleCreateListing('PACKAGE') : toast.info('Create at least one service first to bundle them into a package')}
+              disabled={items.length === 0}
+              className={`group relative p-4 rounded-xl border-2 border-dashed transition-all text-left ${items.length > 0 ? 'border-primary/40 hover:border-primary bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-card hover:shadow-lg' : 'border-muted bg-muted/30 opacity-60 cursor-not-allowed'}`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`p-2.5 rounded-xl shadow-sm transition-transform ${items.length > 0 ? 'bg-gradient-to-br from-primary to-violet-600 group-hover:scale-110' : 'bg-muted-foreground/30'}`}>
+                  <Package className="h-5 w-5 text-white" />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {items.length > 0 ? (
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">Higher Value</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-amber-600 border-amber-300 bg-amber-50">
-                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Create services first
-                    </Badge>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-semibold text-sm transition-colors ${items.length > 0 ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground'}`}>Create Package Deal</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                    Bundle services at a special price
+                  </p>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="mt-3 flex items-center justify-between">
+                {items.length > 0 ? (
+                  <>
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">Higher Value</Badge>
+                    <span className="text-[10px] text-primary font-medium group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                      Create bundle <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </>
+                ) : (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-amber-600 border-amber-300 bg-amber-50">
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Add services first
+                  </Badge>
+                )}
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Template Selection Modal */}
         <TemplateSelectionModal
