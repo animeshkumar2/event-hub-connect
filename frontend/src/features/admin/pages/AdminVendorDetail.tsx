@@ -531,7 +531,7 @@ export default function AdminVendorDetail() {
                         <div>
                           <p className="font-medium">{listing.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {listing.type} • {formatCurrency(listing.price)} • {listing.isActive ? 'Active' : 'Inactive'}
+                            {listing.type === 'PACKAGE' ? 'Package' : 'Service'} • {formatCurrency(listing.price)} • {listing.isActive ? 'Active' : 'Inactive'}
                           </p>
                         </div>
                         <Badge variant={listing.isActive ? "default" : "secondary"}>

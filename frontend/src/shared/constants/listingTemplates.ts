@@ -529,7 +529,7 @@ const muaItems: ListingTemplate[] = [
     includedItemsText: ['Engagement makeup', 'Hair styling', 'Draping assistance', '2 hours touch-up', 'False lashes'],
     excludedItemsText: ['Trial session', 'Family makeup', 'Travel beyond 15km'],
     deliveryTime: 'same_day',
-    eventTypeIds: [5, 4],
+    eventTypeIds: [1, 5], // Wedding, Engagement only - MUA category valid events
     categorySpecificData: {
       bridalPrice: 12000,
       familyPrice: 4000,
@@ -559,7 +559,7 @@ const muaItems: ListingTemplate[] = [
     includedItemsText: ['Party makeup', 'Hair styling', 'False lashes', 'Setting spray'],
     excludedItemsText: ['Draping service', 'Touch-up service', 'Travel beyond 10km'],
     deliveryTime: 'same_day',
-    eventTypeIds: [1, 2, 3, 4, 5],
+    eventTypeIds: [1, 5], // Wedding, Engagement only - MUA category valid events
     categorySpecificData: {
       bridalPrice: 6000,
       familyPrice: 4000,

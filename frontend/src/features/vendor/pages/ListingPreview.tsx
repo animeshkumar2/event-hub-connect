@@ -887,7 +887,7 @@ export default function ListingPreview() {
               <Card className="mt-3 border-dashed"><CardContent className="p-3">
                 <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
                   <div><p className="text-slate-400">Status</p>{listing.isActive ? <Badge className="bg-green-500 text-white text-[9px] h-4 px-1">Active</Badge> : <Badge variant="secondary" className="text-[9px] h-4 px-1">Inactive</Badge>}</div>
-                  <div><p className="text-slate-400">Type</p><p className="font-medium capitalize">{listing.type?.toLowerCase()}</p></div>
+                  <div><p className="text-slate-400">Type</p><p className="font-medium">{listing.type === 'PACKAGE' ? 'Package' : 'Service'}</p></div>
                   <div><p className="text-slate-400">Category</p><p className="font-medium truncate">{listing.categoryName || listing.categoryId}</p></div>
                 </div>
               </CardContent></Card>
