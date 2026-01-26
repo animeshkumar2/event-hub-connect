@@ -1,219 +1,210 @@
 import { useState } from 'react';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { Button } from '@/shared/components/ui/button';
 import { 
   Phone,
   Mail,
   ChevronDown,
-  ChevronUp,
   Clock,
-  HelpCircle,
-  MessageCircle
+  MessageCircleQuestion,
+  Copy,
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { SUPPORT_CONFIG } from '@/shared/config/supportConfig';
+import { toast } from 'sonner';
+import { cn } from '@/shared/lib/utils';
 
 export default function VendorHelp() {
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0); // First one open by default
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
 
-  // Destructure config for easier access
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItem(id);
+      setTimeout(() => setCopiedItem(null), 2000);
+      toast.success('Copied!');
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
   const { contact, hours, faqs } = SUPPORT_CONFIG;
 
   return (
     <VendorLayout>
-      <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Help Center</h1>
-          <p className="text-sm sm:text-base text-foreground/60">Get support and learn how to grow your business</p>
+      <div className="p-4 md:p-6 space-y-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-violet-600 p-6 md:p-8 text-white">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5" />
+              <span className="text-sm font-medium text-white/80">Support Center</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">We're here to help!</h1>
+            <p className="text-white/80 text-sm md:text-base max-w-md">
+              Have questions? Reach out to us anytime. We typically respond within 24 hours.
+            </p>
+          </div>
         </div>
 
-        {/* Phase 1: Direct Contact Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          {/* Phone Support */}
-          <Card className="border-border shadow-card hover:border-primary/50 transition-colors">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-xl bg-primary/20 flex-shrink-0">
-                  <Phone className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+        {/* Contact Options - Stacked on mobile, side by side on desktop */}
+        <div className="grid gap-4">
+          {/* Call Us */}
+          <div className="bg-card border rounded-2xl p-5 hover:shadow-lg transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                  <Phone className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-foreground font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Call Us</h3>
-                  <p className="text-xs sm:text-sm text-foreground/60 mb-2 sm:mb-3">
-                    Speak directly with our support team
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {contact.phones.map((phone, index) => (
-                      <a 
-                        key={index}
-                        href={phone.href} 
-                        className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors text-xs sm:text-sm font-medium bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg w-fit"
-                      >
-                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="whitespace-nowrap">{phone.display}</span>
-                      </a>
-                    ))}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground">Call Us</h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+                      Fastest
+                    </span>
                   </div>
-                  <div className="flex items-start gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
-                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0 mt-0.5" />
-                    <span className="leading-tight">Available: {hours.availability}</span>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{hours.availability}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                {contact.phones.map((phone, index) => (
+                  <div key={index} className="flex items-center gap-1">
+                    <a 
+                      href={phone.href}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-xl text-sm font-semibold text-green-700 dark:text-green-400 transition-colors"
+                    >
+                      <Phone className="h-4 w-4" />
+                      {phone.display}
+                    </a>
+                    <button
+                      onClick={() => copyToClipboard(phone.number, `phone-${index}`)}
+                      className="p-2 rounded-lg hover:bg-muted transition-colors"
+                      title="Copy number"
+                    >
+                      {copiedItem === `phone-${index}` ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
-          {/* Email Support */}
-          <Card className="border-border shadow-card hover:border-secondary/50 transition-colors">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className="p-2 sm:p-3 rounded-xl bg-secondary/20 flex-shrink-0">
-                  <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-secondary" />
+          {/* Email Us */}
+          <div className="bg-card border rounded-2xl p-5 hover:shadow-lg transition-shadow">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-foreground font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Email Support</h3>
-                  <p className="text-xs sm:text-sm text-foreground/60 mb-2 sm:mb-3">
-                    Send us your questions anytime
-                  </p>
-                  <a 
-                    href={contact.email.href} 
-                    className="inline-flex items-start gap-2 text-secondary hover:text-secondary/80 transition-colors text-xs sm:text-sm font-medium bg-secondary/5 hover:bg-secondary/10 px-3 py-2 rounded-lg w-fit max-w-full overflow-hidden"
-                  >
-                    <Mail className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                    <span className="break-all overflow-hidden">{contact.email.display}</span>
-                  </a>
-                  <div className="flex items-center gap-2 mt-3 sm:mt-4 text-xs text-foreground/60">
-                    <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
-                    <span>Response {hours.responseTime}</span>
-                  </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Email Us</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Response {hours.responseTime}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              
+              <div className="flex items-center gap-1">
+                <a 
+                  href={contact.email.href}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-xl text-sm font-semibold text-violet-700 dark:text-violet-400 transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  {contact.email.display}
+                </a>
+                <button
+                  onClick={() => copyToClipboard(contact.email.address, 'email')}
+                  className="p-2 rounded-lg hover:bg-muted transition-colors"
+                  title="Copy email"
+                >
+                  {copiedItem === 'email' ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* FAQs Section */}
-        <Card className="border-border shadow-card">
-          <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2 text-base sm:text-lg">
-              <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Frequently Asked Questions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 sm:space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <MessageCircleQuestion className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h2 className="font-semibold text-lg text-foreground">Common Questions</h2>
+            </div>
+            <span className="text-xs text-muted-foreground">{faqs.length} FAQs</span>
+          </div>
+
+          <div className="space-y-3">
             {faqs.map((faq, index) => (
               <div 
                 key={index}
-                className="border border-border rounded-lg overflow-hidden transition-all"
+                className={cn(
+                  "rounded-xl border overflow-hidden transition-all duration-300",
+                  expandedFaq === index 
+                    ? "bg-gradient-to-r from-primary/5 to-violet-500/5 border-primary/20 shadow-sm" 
+                    : "bg-card hover:border-primary/20"
+                )}
               >
                 <button
                   onClick={() => toggleFaq(index)}
-                  className="w-full p-3 sm:p-4 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors text-left"
+                  className="w-full p-4 flex items-start gap-3 text-left"
                 >
-                  <span className="font-medium text-foreground text-sm sm:text-base">{faq.question}</span>
-                  {expandedFaq === index ? (
-                    <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-foreground/60 flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-foreground/60 flex-shrink-0" />
-                  )}
-                </button>
-                {expandedFaq === index && (
-                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-                    <p className="text-foreground/70 leading-relaxed text-sm sm:text-base">{faq.answer}</p>
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-300",
+                    expandedFaq === index 
+                      ? "bg-primary text-white" 
+                      : "bg-muted text-muted-foreground"
+                  )}>
+                    <span className="text-xs font-bold">{index + 1}</span>
                   </div>
-                )}
+                  <span className="flex-1 font-medium text-foreground text-sm leading-relaxed pr-2">
+                    {faq.question}
+                  </span>
+                  <ChevronDown className={cn(
+                    "h-5 w-5 text-muted-foreground transition-transform duration-300 flex-shrink-0",
+                    expandedFaq === index && "rotate-180 text-primary"
+                  )} />
+                </button>
+                
+                <div className={cn(
+                  "overflow-hidden transition-all duration-300",
+                  expandedFaq === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                )}>
+                  <div className="px-4 pb-4 pl-14">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* PHASE 2: Features commented out for future use */}
-        {/* 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-border shadow-card hover:border-vendor-gold/50 transition-colors cursor-pointer">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-secondary/20">
-                <MessageCircle className="h-6 w-6 text-secondary" />
-              </div>
-              <div>
-                <p className="text-foreground font-medium">Live Chat</p>
-                <p className="text-sm text-foreground/60">Chat with support</p>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         </div>
-        */}
 
-        {/* PHASE 2: Ops Assistance - Commented out for future use */}
-        {/*
-        <Card className="border-border shadow-card border-vendor-gold/30 bg-gradient-to-r from-vendor-gold/10 to-transparent">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-secondary/20">
-                  <Sparkles className="h-6 w-6 text-secondary" />
-                </div>
-                <div>
-                  <h3 className="text-foreground font-semibold">Request Ops Assistance</h3>
-                  <p className="text-foreground/60">Get help with operations</p>
-                </div>
-              </div>
-              <Button className="bg-secondary text-secondary-foreground">
-                Request Assistance
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        */}
-
-        {/* PHASE 2: Tutorials & Documentation - Commented out for future use */}
-        {/*
-        <Card className="border-border shadow-card">
-          <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <Video className="h-5 w-5 text-primary" />
-              Tutorials & Documentation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="border-border hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center">
-                    <Play className="h-8 w-8 text-foreground/40" />
-                  </div>
-                  <h4 className="font-medium text-foreground mb-1">Getting Started</h4>
-                  <p className="text-sm text-foreground/60">Learn the basics</p>
-                </CardContent>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
-        */}
-
-        {/* Support Hours Notice */}
-        <Card className="border-border shadow-card bg-muted/30">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="p-2 sm:p-3 rounded-xl bg-primary/10 flex-shrink-0">
-                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-foreground font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Support Hours</h3>
-                <p className="text-foreground/70 mb-2 sm:mb-3 text-sm sm:text-base">
-                  {hours.fullDescription}
-                </p>
-                <p className="text-xs sm:text-sm text-foreground/60">
-                  {hours.urgentNote} We typically respond to all queries {hours.responseTime}.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Support Hours Info - Simple footer */}
+        <div className="text-center py-4 border-t">
+          <p className="text-xs text-muted-foreground">
+            <Clock className="h-3 w-3 inline mr-1" />
+            Support available {hours.days} • {hours.availability}
+          </p>
+        </div>
       </div>
     </VendorLayout>
   );
