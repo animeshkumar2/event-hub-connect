@@ -118,7 +118,7 @@ export const PackageCustomization = ({
         {/* Base Package/Item */}
         <div>
           <h4 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">
-            {isItem ? 'Item Details' : 'Base Package'}
+            {isItem ? 'Service Details' : 'Base Package'}
           </h4>
           <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 rounded-xl border border-primary/20">
             <div className="flex justify-between items-center">
@@ -213,7 +213,7 @@ export const PackageCustomization = ({
         {/* No Customizations Available */}
         {!hasCustomizations && (
           <div className="text-center py-6 text-muted-foreground">
-            <p>This {isItem ? 'item' : 'package'} is ready to book as-is.</p>
+            <p>This {isItem ? 'service' : 'package'} is ready to book as-is.</p>
             <p className="text-sm mt-1">No additional options available.</p>
           </div>
         )}

@@ -3,7 +3,7 @@
  * Centralized API client for backend communication
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8082/api';
 
 // Debug: Log the API URL being used (remove in production)
 if (typeof window !== 'undefined') {
@@ -553,7 +553,19 @@ export const vendorApi = {
   createPackage: (data: any) => apiClient.post<any>('/vendors/listings/packages', data),
   createItem: (data: any) => apiClient.post<any>('/vendors/listings/items', data),
   updateListing: (listingId: string, data: any) => apiClient.put<any>(`/vendors/listings/${listingId}`, data),
-  deleteListing: (listingId: string) => apiClient.delete<any>(`/vendors/listings/${listingId}`),
+  checkDeleteListing: (listingId: string) => apiClient.get<{
+    canDelete: boolean;
+    hasActiveOrders: boolean;
+    isUsedInPackages: boolean;
+    activeOrderCount: number;
+    packageCount: number;
+    activeOrderNumbers: string[];
+    packageNames: string[];
+    warningMessage: string | null;
+    deleteType: 'HARD' | 'SOFT';
+  }>(`/vendors/listings/${listingId}/delete-check`),
+  deleteListing: (listingId: string, force = false) => 
+    apiClient.delete<any>(`/vendors/listings/${listingId}${force ? '?force=true' : ''}`),
   
   // Add-ons
   getPackageAddOns: (packageId: string) => apiClient.get<any[]>(`/vendors/listings/${packageId}/add-ons`),

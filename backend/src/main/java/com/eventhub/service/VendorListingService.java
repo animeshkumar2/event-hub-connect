@@ -2,6 +2,7 @@ package com.eventhub.service;
 
 import com.eventhub.dto.request.CreatePackageRequest;
 import com.eventhub.dto.request.CreateItemRequest;
+import com.eventhub.dto.response.ListingDeleteCheckDTO;
 import com.eventhub.model.*;
 import com.eventhub.repository.*;
 import com.eventhub.exception.NotFoundException;
@@ -29,6 +30,7 @@ public class VendorListingService {
     private final EventTypeCategoryRepository eventTypeCategoryRepository;
     private final AddOnRepository addOnRepository;
     private final OrderRepository orderRepository;
+    private final PackageItemRepository packageItemRepository;
     private final ObjectMapper objectMapper;
     
     /**
@@ -333,7 +335,91 @@ public class VendorListingService {
         return listingRepository.save(listing);
     }
     
+    /**
+     * Check what will be affected if this listing is deleted
+     */
+    @Transactional(readOnly = true)
+    public ListingDeleteCheckDTO checkDeleteListing(UUID listingId, UUID vendorId) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new NotFoundException("Listing not found"));
+        
+        // Verify ownership
+        if (!listing.getVendor().getId().equals(vendorId)) {
+            throw new BusinessRuleException("You don't have permission to access this listing");
+        }
+        
+        boolean isDraft = listing.getIsDraft() != null && listing.getIsDraft();
+        
+        // Check for active orders
+        List<Order> activeOrders = orderRepository.findActiveOrdersByListing(listingId);
+        boolean hasActiveOrders = !activeOrders.isEmpty();
+        List<String> activeOrderNumbers = activeOrders.stream()
+                .map(Order::getOrderNumber)
+                .collect(Collectors.toList());
+        
+        // Check for ANY orders (including completed) - determines if hard delete is possible
+        boolean hasAnyOrders = listingRepository.hasAnyOrders(listingId);
+        
+        // Check if this item is used in any packages (only for ITEM type)
+        boolean isUsedInPackages = false;
+        List<String> packageNames = List.of();
+        if (listing.getType() == Listing.ListingType.ITEM) {
+            List<PackageItem> packageItems = packageItemRepository.findActivePackagesContainingItem(listingId);
+            isUsedInPackages = !packageItems.isEmpty();
+            packageNames = packageItems.stream()
+                    .map(pi -> pi.getPackageListing().getName())
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+        
+        // Build warning message
+        StringBuilder warning = new StringBuilder();
+        if (hasActiveOrders) {
+            warning.append("This listing has ").append(activeOrders.size())
+                   .append(" active booking(s). ");
+        } else if (hasAnyOrders) {
+            warning.append("This listing has past orders/bookings. ");
+        }
+        if (isUsedInPackages) {
+            warning.append("This item is included in ").append(packageNames.size())
+                   .append(" active package(s): ").append(String.join(", ", packageNames)).append(". ");
+        }
+        
+        // Determine delete type - SOFT if any orders exist (DB constraint)
+        String deleteType;
+        if (hasAnyOrders) {
+            deleteType = "SOFT"; // Must soft delete due to DB constraint
+        } else if (isDraft || !isUsedInPackages) {
+            deleteType = "HARD";
+        } else {
+            deleteType = "SOFT";
+        }
+        
+        return ListingDeleteCheckDTO.builder()
+                .canDelete(true) // Always allow delete, but warn about consequences
+                .hasActiveOrders(hasActiveOrders)
+                .isUsedInPackages(isUsedInPackages)
+                .activeOrderCount(activeOrders.size())
+                .packageCount(packageNames.size())
+                .activeOrderNumbers(activeOrderNumbers)
+                .packageNames(packageNames)
+                .warningMessage(warning.length() > 0 ? warning.toString().trim() : null)
+                .deleteType(deleteType)
+                .build();
+    }
+    
+    /**
+     * Delete a listing (soft or hard based on dependencies)
+     */
     public void deleteListing(UUID listingId, UUID vendorId) {
+        deleteListing(listingId, vendorId, false);
+    }
+    
+    /**
+     * Delete a listing with force option
+     * @param force If true, will remove from packages but still soft-delete if orders exist
+     */
+    public void deleteListing(UUID listingId, UUID vendorId, boolean force) {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new NotFoundException("Listing not found"));
         
@@ -342,20 +428,39 @@ public class VendorListingService {
             throw new BusinessRuleException("You don't have permission to delete this listing");
         }
         
-        // Check if listing has any orders - if so, only soft delete
-        boolean hasOrders = orderRepository.existsByListingId(listingId);
-        
-        // Hard delete for:
-        // 1. Draft listings (isDraft = true)
-        // 2. Inactive listings with no orders (never published or deactivated with no bookings)
         boolean isDraft = listing.getIsDraft() != null && listing.getIsDraft();
-        boolean isInactive = listing.getIsActive() == null || !listing.getIsActive();
         
-        if (isDraft || (isInactive && !hasOrders)) {
-            // Can be permanently deleted
+        // Check for ANY orders (not just active) - we can never hard delete if orders exist
+        // because orders table has NOT NULL constraint on listing_id
+        long totalOrderCount = orderRepository.countActiveOrdersByListing(listingId);
+        // Also check for completed/cancelled orders
+        boolean hasAnyOrders = listingRepository.hasAnyOrders(listingId);
+        
+        boolean isUsedInPackages = false;
+        if (listing.getType() == Listing.ListingType.ITEM) {
+            isUsedInPackages = packageItemRepository.countByItemListing(listing) > 0;
+        }
+        
+        // If there are ANY orders referencing this listing, we MUST soft delete
+        // Database constraint prevents hard delete
+        if (hasAnyOrders) {
+            // Soft delete - mark as inactive
+            listing.setIsActive(false);
+            listingRepository.save(listing);
+            return;
+        }
+        
+        // No orders - can potentially hard delete
+        if (isDraft || force || !isUsedInPackages) {
+            // Hard delete - permanently remove
+            // First remove from any packages if it's an item
+            if (listing.getType() == Listing.ListingType.ITEM) {
+                List<PackageItem> packageItems = packageItemRepository.findByItemListing(listing);
+                packageItemRepository.deleteAll(packageItems);
+            }
             listingRepository.delete(listing);
         } else {
-            // Active listings or listings with orders are soft deleted
+            // Soft delete - mark as inactive
             listing.setIsActive(false);
             listingRepository.save(listing);
         }

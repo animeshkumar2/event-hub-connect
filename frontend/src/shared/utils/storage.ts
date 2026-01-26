@@ -1,83 +1,112 @@
-import { supabase, STORAGE_BUCKETS } from '@/shared/lib/supabase'
-
-// Check if Supabase is configured
-if (!supabase) {
-  console.warn('Supabase not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file')
-}
+import { API_BASE_URL } from '@/shared/services/api';
 
 /**
- * Upload a single image to Supabase Storage
+ * Get auth token from localStorage
+ */
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('auth_token');
+};
+
+/**
+ * Upload a single image to R2 via backend
  * @param file - File object to upload
- * @param bucket - Storage bucket name
- * @param path - Path within bucket (e.g., 'covers/v1/cover.jpg')
+ * @param folder - Folder path (e.g., 'vendors/profiles', 'listings/items')
  * @returns Public URL of uploaded image
  */
 export const uploadImage = async (
   file: File,
-  bucket: string,
-  path: string
+  folder: string = 'uploads'
 ): Promise<string> => {
-  if (!supabase) {
-    const errorMsg = 'Supabase not configured. Please check: 1) Install @supabase/supabase-js, 2) Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file'
-    console.error(errorMsg)
-    throw new Error(errorMsg)
+  const validation = validateImageFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
   }
 
-  try {
-    console.log('Starting upload...', { bucket, path, fileSize: file.size, fileName: file.name })
-    
-    // 1. Upload file to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false, // Don't overwrite existing files
-      })
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', folder);
 
-    if (error) {
-      console.error('Supabase upload error:', error)
-      
-      // Provide more helpful error messages
-      if (error.message.includes('Bucket not found')) {
-        throw new Error(`Bucket "${bucket}" not found. Please create it in Supabase Dashboard → Storage.`)
-      } else if (error.message.includes('new row violates row-level security')) {
-        throw new Error(`Permission denied. Check RLS policies for bucket "${bucket}" in Supabase Dashboard.`)
-      } else if (error.message.includes('JWT')) {
-        throw new Error('Invalid Supabase credentials. Check your VITE_SUPABASE_ANON_KEY in .env file.')
-      } else {
-        throw new Error(`Upload failed: ${error.message}`)
-      }
-    }
-
-    if (!data) {
-      throw new Error('Upload succeeded but no data returned')
-    }
-
-    console.log('Upload successful:', data)
-
-    // 2. Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(path)
-
-    console.log('Public URL:', publicUrl)
-    return publicUrl
-  } catch (error: any) {
-    console.error('Image upload failed:', error)
-    
-    // Handle network errors
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-      throw new Error('Network error. Check: 1) Internet connection, 2) Supabase URL is correct, 3) CORS is enabled in Supabase Dashboard')
-    }
-    
-    // Re-throw with original message if it's already a helpful error
-    if (error.message && !error.message.includes('Failed to fetch')) {
-      throw error
-    }
-    
-    throw new Error(error.message || 'Failed to upload image. Check browser console for details.')
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-}
+
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to upload image');
+  }
+
+  console.log('Image uploaded:', data.url);
+  return data.url;
+};
+
+/**
+ * Upload multiple images to R2 via backend
+ * @param files - Array of File objects
+ * @param folder - Folder path
+ * @returns Array of public URLs
+ */
+export const uploadMultipleImages = async (
+  files: File[],
+  folder: string = 'uploads'
+): Promise<string[]> => {
+  // Validate all files first
+  for (const file of files) {
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      throw new Error(`${file.name}: ${validation.error}`);
+    }
+  }
+
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+  formData.append('folder', folder);
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/upload/images`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to upload images');
+  }
+
+  if (data.errors && data.errors.length > 0) {
+    console.warn('Some images failed to upload:', data.errors);
+  }
+
+  console.log(`Uploaded ${data.uploadedCount}/${data.totalCount} images`);
+  return data.urls;
+};
+
+/**
+ * Upload vendor profile image
+ */
+export const uploadVendorProfileImage = async (
+  vendorId: string,
+  file: File
+): Promise<string> => {
+  return uploadImage(file, `vendors/${vendorId}/profile`);
+};
 
 /**
  * Upload vendor cover image
@@ -86,10 +115,8 @@ export const uploadVendorCover = async (
   vendorId: string,
   file: File
 ): Promise<string> => {
-  const fileName = `cover-${Date.now()}.${file.name.split('.').pop()}`
-  const path = `covers/${vendorId}/${fileName}`
-  return uploadImage(file, STORAGE_BUCKETS.VENDOR_IMAGES, path)
-}
+  return uploadImage(file, `vendors/${vendorId}/cover`);
+};
 
 /**
  * Upload vendor portfolio images
@@ -99,58 +126,101 @@ export const uploadVendorPortfolio = async (
   file: File,
   index: number
 ): Promise<string> => {
-  const fileName = `portfolio-${index}-${Date.now()}.${file.name.split('.').pop()}`
-  const path = `portfolios/${vendorId}/${fileName}`
-  return uploadImage(file, STORAGE_BUCKETS.VENDOR_IMAGES, path)
-}
+  return uploadImage(file, `vendors/${vendorId}/portfolio`);
+};
 
 /**
- * Upload package/listing images
+ * Upload vendor portfolio images (multiple)
+ */
+export const uploadVendorPortfolioImages = async (
+  vendorId: string,
+  files: File[]
+): Promise<string[]> => {
+  return uploadMultipleImages(files, `vendors/${vendorId}/portfolio`);
+};
+
+/**
+ * Upload listing images
  */
 export const uploadListingImage = async (
   listingId: string,
   file: File,
   index: number,
-  type: 'package' | 'item' = 'package'
+  type: 'package' | 'item' = 'item'
 ): Promise<string> => {
-  const fileName = `image-${index}-${Date.now()}.${file.name.split('.').pop()}`
-  const folder = type === 'package' ? 'packages' : 'items'
-  const path = `${folder}/${listingId}/${fileName}`
-  return uploadImage(file, STORAGE_BUCKETS.LISTING_IMAGES, path)
-}
+  return uploadImage(file, `listings/${type}/${listingId}`);
+};
 
 /**
- * Upload multiple images
+ * Upload listing images (multiple)
  */
-export const uploadMultipleImages = async (
+export const uploadListingImages = async (
+  listingId: string,
   files: File[],
-  bucket: string,
-  basePath: string
+  type: 'package' | 'item' = 'item'
 ): Promise<string[]> => {
-  const uploadPromises = files.map((file, index) => {
-    const fileName = `${basePath}/image-${index}-${Date.now()}.${file.name.split('.').pop()}`
-    return uploadImage(file, bucket, fileName)
-  })
-
-  return Promise.all(uploadPromises)
-}
+  return uploadMultipleImages(files, `listings/${type}/${listingId}`);
+};
 
 /**
- * Delete an image from Supabase Storage
+ * Delete an image via backend
  */
-export const deleteImage = async (
-  bucket: string,
-  path: string
-): Promise<void> => {
-  const { error } = await supabase.storage
-    .from(bucket)
-    .remove([path])
-
-  if (error) {
-    console.error('Delete error:', error)
-    throw new Error(`Failed to delete image: ${error.message}`)
+export const deleteImage = async (imageUrl: string): Promise<void> => {
+  console.log('🗑️ deleteImage called with:', imageUrl);
+  
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-}
+
+  const response = await fetch(`${API_BASE_URL}/upload/image?url=${encodeURIComponent(imageUrl)}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  const data = await response.json();
+  console.log('🗑️ deleteImage response:', data);
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to delete image');
+  }
+};
+
+/**
+ * Delete multiple images (for cleanup on save)
+ * Silently fails for individual images - doesn't throw
+ */
+export const deleteImages = async (imageUrls: string[]): Promise<{ deleted: string[]; failed: string[] }> => {
+  const deleted: string[] = [];
+  const failed: string[] = [];
+  
+  for (const url of imageUrls) {
+    try {
+      await deleteImage(url);
+      deleted.push(url);
+    } catch (error) {
+      console.warn('Failed to delete image:', url, error);
+      failed.push(url);
+    }
+  }
+  
+  return { deleted, failed };
+};
+
+/**
+ * Allowed image types (SVG blocked for security)
+ */
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png', 
+  'image/webp',
+  'image/gif',
+  'image/bmp',
+  'image/tiff',
+];
 
 /**
  * Validate image file
@@ -158,15 +228,30 @@ export const deleteImage = async (
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
   // Check file type
   if (!file.type.startsWith('image/')) {
-    return { valid: false, error: 'File must be an image' }
+    return { valid: false, error: 'File must be an image' };
   }
 
-  // Check file size (5MB limit)
-  const maxSize = 5 * 1024 * 1024 // 5MB
+  // Block SVG (security risk - can contain scripts)
+  if (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg')) {
+    return { valid: false, error: 'SVG files are not allowed. Please use JPG, PNG, WebP, or GIF.' };
+  }
+
+  // Check if it's an allowed type
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { valid: false, error: 'Unsupported image format. Use JPG, PNG, WebP, or GIF.' };
+  }
+
+  // Check file size (5MB limit - backend will compress)
+  const maxSize = 5 * 1024 * 1024; // 5MB
   if (file.size > maxSize) {
-    return { valid: false, error: 'Image must be less than 5MB' }
+    return { valid: false, error: 'Image must be less than 5MB' };
   }
 
-  return { valid: true }
-}
+  return { valid: true };
+};
 
+// Legacy exports for backward compatibility
+export const STORAGE_BUCKETS = {
+  VENDOR_IMAGES: 'vendor-images',
+  LISTING_IMAGES: 'listing-images',
+};

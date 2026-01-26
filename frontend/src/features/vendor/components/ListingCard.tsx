@@ -186,7 +186,7 @@ export function ListingCard({
             </div>
             <Badge variant="outline" className="text-xs bg-background">
               {listing.type === 'PACKAGE' ? <Package className="h-3 w-3 mr-1" /> : <Box className="h-3 w-3 mr-1" />}
-              {listing.type === 'PACKAGE' ? 'Package' : 'Item'}
+              {listing.type === 'PACKAGE' ? 'Package' : 'Service'}
             </Badge>
           </div>
           <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-1">{listing.name || 'Untitled'}</h3>

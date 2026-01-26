@@ -11,6 +11,15 @@ import java.util.UUID;
 public interface PackageItemRepository extends JpaRepository<PackageItem, UUID> {
     List<PackageItem> findByPackageListingOrderByDisplayOrderAsc(Listing packageListing);
     List<PackageItem> findByItemListing(Listing itemListing);
+    
+    // Count packages that contain this item (for delete validation)
+    long countByItemListing(Listing itemListing);
+    
+    // Find active packages containing this item
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT pi FROM PackageItem pi WHERE pi.itemListing.id = :itemId AND pi.packageListing.isActive = true"
+    )
+    List<PackageItem> findActivePackagesContainingItem(@org.springframework.data.repository.query.Param("itemId") UUID itemId);
 }
 
 

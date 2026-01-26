@@ -42,6 +42,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/customer-waitlist/**").permitAll()
                 // Admin login - public
                 .requestMatchers("/api/admin/login").permitAll()
+                // Image upload - require authentication (any authenticated user can upload)
+                .requestMatchers("/api/upload/**").authenticated()
                 // Allow authenticated users to check if they have a vendor profile (must come before /api/vendors/**)
                 .requestMatchers("/api/vendors/by-user/**").authenticated()
                 // Vendor onboarding - accessible to authenticated users (they become vendors after onboarding)

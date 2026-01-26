@@ -723,7 +723,7 @@ const Search = () => {
       vendorId: listing.vendorId,
       vendorName: listing.vendorName,
       image: listing.images?.[0],
-      type: listing.type === 'PACKAGE' ? 'package' : 'item',
+      type: listing.type === 'PACKAGE' ? 'package' : 'service',
     });
     toast({
       title: "Added to cart",

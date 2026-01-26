@@ -14,6 +14,7 @@ export interface FieldSchema {
   options?: string[];
   defaultValue?: any;
   dependsOn?: string; // Field only shows if this field has a truthy value
+  dependsOnValue?: string | string[]; // Specific value(s) that should show this field
   fullWidth?: boolean; // Take full width in grid
 }
 
@@ -159,7 +160,8 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         min: 1,
         max: 24,
         helpText: 'For hourly pricing or package duration',
-        dependsOn: 'pricingType'
+        dependsOn: 'pricingType',
+        dependsOnValue: 'Per Hour'
       },
       {
         name: 'teamSize',

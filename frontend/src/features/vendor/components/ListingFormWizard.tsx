@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import * as React from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, AlertCircle } from 'lucide-react';
 import { Progress } from '@/shared/components/ui/progress';
 
@@ -67,6 +66,12 @@ interface ListingFormWizardProps {
   cancelHighlight: () => void;
   removeHighlight: (index: number) => void;
   handleImagesChange: (images: string[]) => void;
+  handlePendingImageDeletes: (urls: string[]) => void;
+  handlePendingImageChanges?: (changes: {
+    filesToUpload: File[];
+    urlsToDelete: string[];
+    finalOrder: (string | File)[];
+  }) => void;
 }
 
 export const ListingFormWizard = React.memo(function ListingFormWizard(props: ListingFormWizardProps) {
@@ -89,7 +94,7 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
 
   const steps = props.listingType === 'PACKAGE' ? [
     { number: 1, title: 'Basic Info', description: 'Name & description' },
-    { number: 2, title: 'Bundle Items', description: 'Select items to bundle' },
+    { number: 2, title: 'Bundle Services', description: 'Select services to bundle' },
     { number: 3, title: 'Pricing', description: 'Set package price' },
     { number: 4, title: 'Anything Else', description: 'Additional notes' },
     { number: 5, title: 'Images', description: 'Upload photos' },

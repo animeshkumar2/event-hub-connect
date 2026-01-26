@@ -18,6 +18,7 @@ export function ListingFormStep2BundleItems({
 }: Step2BundleItemsProps) {
   const selectedCount = formData.includedItemIds.length;
   const hasMinimumItems = items.length >= 2;
+  const hasAnyItems = items.length > 0;
   
   // Get unique categories from selected items
   const selectedCategories = new Set<string>();
@@ -37,7 +38,7 @@ export function ListingFormStep2BundleItems({
         <Alert className="border-orange-500/50 bg-orange-500/10">
           <AlertCircle className="h-4 w-4 text-orange-500" />
           <AlertDescription className="text-sm text-orange-700 dark:text-orange-300">
-            You need at least 2 items to create a package. Please create some items first!
+            You need at least 2 services to create a package. Please create some services first!
           </AlertDescription>
         </Alert>
       )}
@@ -50,9 +51,9 @@ export function ListingFormStep2BundleItems({
               <Package className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <Label className="text-foreground font-semibold text-base sm:text-lg">Bundle Your Items *</Label>
+              <Label className="text-foreground font-semibold text-base sm:text-lg">Bundle Your Services *</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                Select 2 or more items to create a package
+                Select 2 or more services to create a package
               </p>
             </div>
           </div>
@@ -81,7 +82,7 @@ export function ListingFormStep2BundleItems({
         <Alert className="border-yellow-500/50 bg-yellow-500/10">
           <AlertCircle className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-sm text-yellow-700 dark:text-yellow-300">
-            Please select at least 2 items to create a package
+            Please select at least 2 services to create a package
           </AlertDescription>
         </Alert>
       )}
@@ -90,13 +91,13 @@ export function ListingFormStep2BundleItems({
         <Alert className="border-green-500/50 bg-green-500/10">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-sm text-green-700 dark:text-green-300">
-            Great! You've selected {selectedCount} items for this package
+            Great! You've selected {selectedCount} services for this package
           </AlertDescription>
         </Alert>
       )}
 
       {/* Items Grid */}
-      {hasMinimumItems ? (
+      {hasAnyItems ? (
         <div className="border border-border rounded-lg overflow-hidden">
           <div className="max-h-[400px] overflow-y-auto">
             {items.map((item: any) => {
