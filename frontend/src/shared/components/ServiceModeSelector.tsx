@@ -8,31 +8,36 @@ interface ServiceModeSelectorProps {
   onChange: (mode: ServiceMode) => void;
   className?: string;
   label?: string;
+  compact?: boolean;
 }
 
 const SERVICE_MODE_OPTIONS: {
   value: ServiceMode;
   label: string;
-  description: string;
+  shortLabel: string;
   icon: React.ReactNode;
+  compactIcon: React.ReactNode;
 }[] = [
   {
     value: 'CUSTOMER_VISITS',
     label: 'Customer visits me',
-    description: 'Customers come to your studio/location',
-    icon: <Building2 className="h-5 w-5" />,
+    shortLabel: 'Visit me',
+    icon: <Building2 className="h-4 w-4" />,
+    compactIcon: <Building2 className="h-3 w-3" />,
   },
   {
     value: 'VENDOR_TRAVELS',
     label: 'I travel to customer',
-    description: 'You travel to the customer\'s venue',
-    icon: <Car className="h-5 w-5" />,
+    shortLabel: 'I travel',
+    icon: <Car className="h-4 w-4" />,
+    compactIcon: <Car className="h-3 w-3" />,
   },
   {
     value: 'BOTH',
     label: 'Both options',
-    description: 'Flexible - either option works',
-    icon: <ArrowLeftRight className="h-5 w-5" />,
+    shortLabel: 'Both',
+    icon: <ArrowLeftRight className="h-4 w-4" />,
+    compactIcon: <ArrowLeftRight className="h-3 w-3" />,
   },
 ];
 
@@ -41,23 +46,50 @@ export const ServiceModeSelector: React.FC<ServiceModeSelectorProps> = ({
   onChange,
   className = '',
   label = 'Service Mode',
+  compact = false,
 }) => {
+  if (compact) {
+    return (
+      <div className={className}>
+        <div className="flex gap-1">
+          {SERVICE_MODE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`
+                flex items-center gap-1 px-2 py-1 rounded text-[10px] border transition-all
+                ${value === option.value
+                  ? 'border-rose-500 bg-rose-50 text-rose-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                }
+              `}
+            >
+              {option.compactIcon}
+              <span>{option.shortLabel}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label className="block text-[10px] font-medium text-gray-700 mb-1.5">
           {label}
         </label>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-1">
         {SERVICE_MODE_OPTIONS.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
             className={`
-              w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all
+              w-full flex items-center gap-2 p-2 rounded border transition-all
               ${value === option.value
                 ? 'border-rose-500 bg-rose-50 text-rose-700'
                 : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
@@ -66,19 +98,16 @@ export const ServiceModeSelector: React.FC<ServiceModeSelectorProps> = ({
           >
             <div
               className={`
-                flex-shrink-0 p-2 rounded-full
+                flex-shrink-0 p-1 rounded-full
                 ${value === option.value ? 'bg-rose-100' : 'bg-gray-100'}
               `}
             >
               {option.icon}
             </div>
-            <div className="flex-1 text-left">
-              <div className="font-medium">{option.label}</div>
-              <div className="text-sm text-gray-500">{option.description}</div>
-            </div>
+            <div className="flex-1 text-left text-[11px] font-medium">{option.label}</div>
             <div
               className={`
-                w-5 h-5 rounded-full border-2 flex items-center justify-center
+                w-3.5 h-3.5 rounded-full border flex items-center justify-center
                 ${value === option.value
                   ? 'border-rose-500 bg-rose-500'
                   : 'border-gray-300'
@@ -86,7 +115,7 @@ export const ServiceModeSelector: React.FC<ServiceModeSelectorProps> = ({
               `}
             >
               {value === option.value && (
-                <div className="w-2 h-2 rounded-full bg-white" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
               )}
             </div>
           </button>

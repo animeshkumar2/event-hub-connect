@@ -18,8 +18,6 @@ public class ListingMapper {
             return null;
         }
         
-        System.out.println("🔍 ListingMapper.toDTO called for: " + listing.getName() + " | Price: " + listing.getPrice());
-        
         ListingDTO dto = new ListingDTO();
         dto.setId(listing.getId());
         if (listing.getVendor() != null) {
@@ -41,15 +39,11 @@ public class ListingMapper {
         BigDecimal displayPrice = listing.getPrice();
         if (listing.getCategorySpecificData() != null && !listing.getCategorySpecificData().isEmpty()) {
             try {
-                System.out.println("🔍 Attempting to extract price from categorySpecificData: " + listing.getCategorySpecificData());
-                
                 // Parse the JSON to extract price
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 com.fasterxml.jackson.databind.JsonNode categoryData = mapper.readTree(listing.getCategorySpecificData());
                 
                 String categoryId = listing.getListingCategory() != null ? listing.getListingCategory().getId() : null;
-                
-                System.out.println("🔍 Category ID: " + categoryId);
                 
                 if (categoryId != null) {
                     BigDecimal extractedPrice = null;
@@ -86,22 +80,13 @@ public class ListingMapper {
                             }
                     }
                     
-                    System.out.println("🔍 Extracted price: " + extractedPrice);
-                    
                     if (extractedPrice != null && extractedPrice.compareTo(BigDecimal.ZERO) > 0) {
                         displayPrice = extractedPrice;
-                        System.out.println("✅ Using extracted price: " + displayPrice);
-                    } else {
-                        System.out.println("⚠️ Extracted price is null or zero, using main price: " + displayPrice);
                     }
                 }
             } catch (Exception e) {
                 // If parsing fails, use the main price field
-                System.err.println("❌ Error extracting price from category data: " + e.getMessage());
-                e.printStackTrace();
             }
-        } else {
-            System.out.println("⚠️ No categorySpecificData available, using main price: " + displayPrice);
         }
         
         dto.setPrice(displayPrice);

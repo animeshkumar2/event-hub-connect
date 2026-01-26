@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, AlertCircle } from 'lucide-react';
 import { Progress } from '@/shared/components/ui/progress';
 
 // Import step components
@@ -100,65 +100,44 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
     { number: 4, title: 'Images', description: 'Upload photos' },
   ];
 
-  // Validation for each step - memoized to prevent re-renders
-  const isStep1Valid = React.useMemo(() => {
-    return !!(
-      props.formData.name &&
-      (props.listingType === 'ITEM' ? (
-        props.formData.categoryId &&
-        (props.formData.categoryId !== 'other' || props.formData.customCategoryName) &&
-        props.formData.eventTypeIds.length > 0
-      ) : true) // For packages, just name is required in step 1
-    );
+  // Detailed validation with specific error messages
+  const getStep1Errors = React.useCallback((): string[] => {
+    const errors: string[] = [];
+    if (!props.formData.name?.trim()) errors.push('Listing name is required');
+    if (props.listingType === 'ITEM') {
+      if (!props.formData.categoryId) errors.push('Category is required');
+      if (props.formData.categoryId === 'other' && !props.formData.customCategoryName?.trim()) {
+        errors.push('Custom category name is required');
+      }
+      if (!props.formData.eventTypeIds || props.formData.eventTypeIds.length === 0) {
+        errors.push('Select at least one event type');
+      }
+    }
+    return errors;
   }, [props.formData.name, props.formData.categoryId, props.formData.customCategoryName, props.formData.eventTypeIds, props.listingType]);
 
-  const isStep2Valid = React.useMemo(() => {
+  const getStep2Errors = React.useCallback((): string[] => {
+    const errors: string[] = [];
+    
     if (props.listingType === 'PACKAGE') {
-      // For packages, step 2 is bundle items - need at least 2 items selected
-      return props.formData.includedItemIds.length >= 2;
-    }
-    
-    // For items, step 2 is details & pricing
-    // Category is always required
-    if (!props.formData.categoryId) {
-      console.log('❌ Step 2 validation failed: No category selected');
-      return false;
-    }
-    
-    // Delivery time is mandatory for all listings
-    if (!props.formData.deliveryTime || props.formData.deliveryTime.trim() === '') {
-      console.log('❌ Step 2 validation failed: Delivery time required');
-      return false;
-    }
-    
-    // Minimum quantity is mandatory for ITEM type
-    if (props.listingType === 'ITEM') {
-      if (!props.formData.minimumQuantity || props.formData.minimumQuantity < 1) {
-        console.log('❌ Step 2 validation failed: Minimum quantity required for items');
-        return false;
+      if (props.formData.includedItemIds.length < 2) {
+        errors.push('Select at least 2 items to bundle');
       }
-      if (!props.formData.unit || props.formData.unit.trim() === '') {
-        console.log('❌ Step 2 validation failed: Unit required for items');
-        return false;
-      }
+      return errors;
     }
     
-    // Custom category name required for "Other"
+    // For ITEM type
+    if (!props.formData.deliveryTime?.trim()) {
+      errors.push('Delivery time is required');
+    }
+    
+    // Price validation based on category
     if (props.formData.categoryId === 'other') {
-      if (!props.formData.customCategoryName) {
-        console.log('❌ Step 2 validation failed: Custom category name required');
-        return false;
-      }
-      // For "Other" category, check main price field
       if (!props.formData.price) {
-        console.log('❌ Step 2 validation failed: Price required for Other category');
-        return false;
+        errors.push('Price is required');
       }
     } else {
-      // For specific categories, check if ANY price field exists in category-specific data
       const categoryData = props.categorySpecificData;
-      
-      // Check for common price fields
       const hasPriceField = !!(
         categoryData.price ||
         categoryData.pricePerPlateVeg ||
@@ -168,46 +147,94 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
       );
       
       if (!hasPriceField) {
-        console.log('❌ Step 2 validation failed: No price field found in category data', categoryData);
-        return false;
+        // Give category-specific price field name
+        switch (props.formData.categoryId) {
+          case 'caterer':
+            errors.push('Vegetarian price per plate is required');
+            break;
+          case 'mua':
+            errors.push('Bridal makeup price is required');
+            break;
+          case 'photographer':
+          case 'photography-videography':
+            errors.push('Service price is required');
+            break;
+          default:
+            errors.push('Price is required');
+        }
       }
-      
-      console.log('✅ Step 2 validation passed with category data:', categoryData);
     }
     
-    return true;
-  }, [props.listingType, props.formData.includedItemIds, props.formData.categoryId, props.formData.customCategoryName, props.formData.price, props.formData.deliveryTime, props.formData.minimumQuantity, props.categorySpecificData]);
+    return errors;
+  }, [props.listingType, props.formData.includedItemIds, props.formData.categoryId, props.formData.price, props.formData.deliveryTime, props.categorySpecificData]);
 
-  const isStep3Valid = React.useMemo(() => {
-    if (props.listingType === 'PACKAGE') {
-      // For packages, step 3 is pricing - need package price
-      return !!props.formData.price;
+  const getStep3Errors = React.useCallback((): string[] => {
+    const errors: string[] = [];
+    if (props.listingType === 'PACKAGE' && !props.formData.price) {
+      errors.push('Package price is required');
     }
-    // For items, step 3 is "anything else" - always valid (optional)
-    return true;
+    return errors;
   }, [props.listingType, props.formData.price]);
 
-  const isStep4Valid = React.useMemo(() => {
-    if (props.listingType === 'PACKAGE') {
-      // For packages, step 4 is "anything else" - always valid (optional)
-      return true;
+  const getStep4Errors = React.useCallback((): string[] => {
+    const errors: string[] = [];
+    if (props.listingType === 'ITEM' && props.formData.images.length === 0) {
+      errors.push('Add at least one image');
     }
-    // For items, step 4 is images
-    return props.formData.images.length > 0;
+    return errors;
   }, [props.listingType, props.formData.images]);
 
-  const isStep5Valid = React.useMemo(() => {
-    // Only for packages - step 5 is images
-    return props.formData.images.length > 0;
-  }, [props.formData.images]);
+  const getStep5Errors = React.useCallback((): string[] => {
+    const errors: string[] = [];
+    if (props.listingType === 'PACKAGE' && props.formData.images.length === 0) {
+      errors.push('Add at least one image');
+    }
+    return errors;
+  }, [props.listingType, props.formData.images]);
+
+  // Validation flags
+  const isStep1Valid = getStep1Errors().length === 0;
+  const isStep2Valid = getStep2Errors().length === 0;
+  const isStep3Valid = getStep3Errors().length === 0;
+  const isStep4Valid = getStep4Errors().length === 0;
+  const isStep5Valid = getStep5Errors().length === 0;
+
+  // Get all errors for display
+  const getAllErrors = React.useCallback((): { step: number; errors: string[] }[] => {
+    const allErrors: { step: number; errors: string[] }[] = [];
+    const step1Errors = getStep1Errors();
+    const step2Errors = getStep2Errors();
+    const step3Errors = getStep3Errors();
+    const step4Errors = getStep4Errors();
+    const step5Errors = getStep5Errors();
+    
+    if (step1Errors.length > 0) allErrors.push({ step: 1, errors: step1Errors });
+    if (step2Errors.length > 0) allErrors.push({ step: 2, errors: step2Errors });
+    if (step3Errors.length > 0) allErrors.push({ step: 3, errors: step3Errors });
+    if (step4Errors.length > 0) allErrors.push({ step: 4, errors: step4Errors });
+    if (props.listingType === 'PACKAGE' && step5Errors.length > 0) allErrors.push({ step: 5, errors: step5Errors });
+    
+    return allErrors;
+  }, [getStep1Errors, getStep2Errors, getStep3Errors, getStep4Errors, getStep5Errors, props.listingType]);
 
   const canProceedToNext = () => {
+    // Must complete ALL previous steps before proceeding
     if (currentStep === 1) return isStep1Valid;
-    if (currentStep === 2) return isStep2Valid;
-    if (currentStep === 3) return isStep3Valid;
-    if (currentStep === 4) return isStep4Valid;
-    if (currentStep === 5) return isStep5Valid;
+    if (currentStep === 2) return isStep1Valid && isStep2Valid;
+    if (currentStep === 3) return isStep1Valid && isStep2Valid && isStep3Valid;
+    if (currentStep === 4) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
+    if (currentStep === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid && isStep5Valid;
     return true;
+  };
+
+  // Check if a specific step can be accessed
+  const canAccessStep = (stepNumber: number) => {
+    if (stepNumber === 1) return true;
+    if (stepNumber === 2) return isStep1Valid;
+    if (stepNumber === 3) return isStep1Valid && isStep2Valid;
+    if (stepNumber === 4) return isStep1Valid && isStep2Valid && isStep3Valid;
+    if (stepNumber === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
+    return false;
   };
 
   const handleNext = () => {
@@ -227,8 +254,8 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
     if (stepNumber < currentStep) {
       setCurrentStep(stepNumber);
     }
-    // Allow going forward only if current step is valid
-    else if (stepNumber > currentStep && canProceedToNext()) {
+    // Allow going forward only if all previous steps are valid
+    else if (stepNumber > currentStep && canAccessStep(stepNumber)) {
       setCurrentStep(stepNumber);
     }
   };
@@ -265,7 +292,8 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
             {steps.map((step) => {
               const isActive = currentStep === step.number;
               const isCompleted = currentStep > step.number;
-              const isClickable = step.number < currentStep || (step.number === currentStep + 1 && canProceedToNext());
+              const isAccessible = canAccessStep(step.number);
+              const isClickable = step.number < currentStep || (step.number > currentStep && isAccessible);
               
               return (
                 <button
@@ -277,8 +305,10 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
                       ? 'bg-primary/10 border-2 border-primary'
                       : isCompleted
                       ? 'bg-green-500/10 border border-green-500/30 cursor-pointer hover:bg-green-500/20'
-                      : 'bg-muted/30 border border-border opacity-60'
-                  } ${isClickable && !isActive ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                      : isAccessible
+                      ? 'bg-muted/30 border border-border cursor-pointer hover:bg-muted/50'
+                      : 'bg-muted/30 border border-border opacity-40 cursor-not-allowed'
+                  }`}
                 >
                   {/* Step Number/Icon */}
                   <div
@@ -399,28 +429,40 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
               <span className="sm:hidden">Back</span>
             </Button>
 
-            {/* Validation Message */}
-            {(!isStep1Valid || !isStep2Valid || !isStep3Valid || !isStep4Valid || (props.listingType === 'PACKAGE' && !isStep5Valid)) && (
-              <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <p className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300 text-center">
-                  {!isStep1Valid
-                    ? '⚠️ Complete basic info (Step 1)'
-                    : !isStep2Valid
-                    ? props.listingType === 'PACKAGE' 
-                      ? '⚠️ Select at least 2 items (Step 2)'
-                      : '⚠️ Complete details & pricing (Step 2)'
-                    : !isStep3Valid
-                    ? props.listingType === 'PACKAGE'
-                      ? '⚠️ Set package price (Step 3)'
-                      : '✓ Step 3 complete'
-                    : !isStep4Valid
-                    ? props.listingType === 'PACKAGE'
-                      ? '✓ Step 4 complete'
-                      : '⚠️ Add at least one image (Step 4)'
-                    : props.listingType === 'PACKAGE' && !isStep5Valid
-                    ? '⚠️ Add at least one image (Step 5)'
-                    : '✓ Ready to publish'}
+            {/* Validation Message - Show detailed errors */}
+            {getAllErrors().length > 0 && (
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 space-y-3">
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Please complete the following before publishing:
                 </p>
+                <div className="space-y-2">
+                  {getAllErrors().map(({ step, errors }) => (
+                    <div key={step} className="pl-6">
+                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
+                        Step {step}: {steps[step - 1]?.title}
+                      </p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        {errors.map((error, idx) => (
+                          <li key={idx} className="text-xs text-red-600/80 dark:text-red-400/80">
+                            {error}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const firstErrorStep = getAllErrors()[0]?.step;
+                    if (firstErrorStep) setCurrentStep(firstErrorStep);
+                  }}
+                  className="w-full text-red-600 border-red-500/30 hover:bg-red-500/10"
+                >
+                  Go to first incomplete step
+                </Button>
               </div>
             )}
 

@@ -1,6 +1,5 @@
 import { Label } from '@/shared/components/ui/label';
 import { Input } from '@/shared/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Plus, X, CheckCircle2 } from 'lucide-react';
@@ -233,72 +232,36 @@ export const ListingFormStep2 = React.memo(function ListingFormStep2(props: Step
         categoryId={formData.categoryId}
       />
 
-      {/* Unit & Minimum Quantity for Items */}
-      {listingType === 'ITEM' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-foreground">
-              Unit <span className="text-red-500">*</span>
-            </Label>
-            <Select 
-              value={(() => {
-                const predefinedUnits = ['Per Piece', 'Per Set', 'Per Hour', 'Per Day', 'Per Person', 'Per Table', 'Per Square Foot', 'Per Square Meter'];
-                return predefinedUnits.includes(formData.unit) ? formData.unit : 'Custom';
-              })()} 
-              onValueChange={(value) => {
-                if (value === 'Custom') {
-                  // Set a default custom value if empty or switching from predefined
-                  if (!formData.unit || ['Per Piece', 'Per Set', 'Per Hour', 'Per Day', 'Per Person', 'Per Table', 'Per Square Foot', 'Per Square Meter'].includes(formData.unit)) {
-                    setFormData({ ...formData, unit: 'Per Event' }); // Set a valid default
-                  }
-                } else {
-                  setFormData({ ...formData, unit: value });
-                }
-              }}
-            >
-              <SelectTrigger className="bg-background border-border text-foreground">
-                <SelectValue placeholder="Select unit" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Per Piece">Per Piece</SelectItem>
-                <SelectItem value="Per Set">Per Set</SelectItem>
-                <SelectItem value="Per Hour">Per Hour</SelectItem>
-                <SelectItem value="Per Day">Per Day</SelectItem>
-                <SelectItem value="Per Person">Per Person</SelectItem>
-                <SelectItem value="Per Table">Per Table</SelectItem>
-                <SelectItem value="Per Square Foot">Per Square Foot</SelectItem>
-                <SelectItem value="Per Square Meter">Per Square Meter</SelectItem>
-                <SelectItem value="Custom">✏️ Custom Unit</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {/* Custom Unit Input - Show when unit is not one of the predefined options */}
-            {!['Per Piece', 'Per Set', 'Per Hour', 'Per Day', 'Per Person', 'Per Table', 'Per Square Foot', 'Per Square Meter'].includes(formData.unit) && (
-              <div className="mt-2">
-                <Input
-                  value={formData.unit || ''}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="e.g., Per Event, Per Package, Per Session"
-                  className="bg-background border-border text-foreground"
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Enter your custom unit (e.g., "Per Event", "Per Package", "Per Session")
-                </p>
-              </div>
-            )}
+      {/* Minimum Order - Only for Caterers */}
+      {listingType === 'ITEM' && formData.categoryId === 'caterer' && (
+        <div className="space-y-3 p-4 rounded-lg border border-orange-500/20 bg-orange-500/5">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🍽️</span>
+            <div>
+              <Label className="text-foreground font-medium">Minimum Order Requirement</Label>
+              <p className="text-xs text-muted-foreground">
+                Set the minimum number of plates customers must order (optional)
+              </p>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label className="text-foreground">
-              Minimum Quantity <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              type="number"
-              value={formData.minimumQuantity}
-              onChange={(e) => setFormData({ ...formData, minimumQuantity: parseInt(e.target.value) || 1 })}
-              className="bg-background border-border text-foreground"
-            />
+          
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <Input
+                type="number"
+                value={formData.minimumQuantity || ''}
+                onChange={(e) => setFormData({ ...formData, minimumQuantity: parseInt(e.target.value) || 0 })}
+                className="bg-background border-border text-foreground"
+                placeholder="e.g., 50"
+                min={0}
+              />
+            </div>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">plates minimum</span>
           </div>
+          
+          <p className="text-xs text-muted-foreground italic">
+            💡 Leave empty if you don't have a minimum order requirement
+          </p>
         </div>
       )}
     </div>

@@ -28,6 +28,7 @@ public class VendorListingService {
     private final EventTypeRepository eventTypeRepository;
     private final EventTypeCategoryRepository eventTypeCategoryRepository;
     private final AddOnRepository addOnRepository;
+    private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
     
     /**
@@ -117,7 +118,12 @@ public class VendorListingService {
         // Store category-specific data as JSON
         if (request.getCategorySpecificData() != null) {
             try {
-                listing.setCategorySpecificData(objectMapper.writeValueAsString(request.getCategorySpecificData()));
+                // If it's already a string (JSON), use it directly; otherwise serialize it
+                if (request.getCategorySpecificData() instanceof String) {
+                    listing.setCategorySpecificData((String) request.getCategorySpecificData());
+                } else {
+                    listing.setCategorySpecificData(objectMapper.writeValueAsString(request.getCategorySpecificData()));
+                }
             } catch (JsonProcessingException e) {
                 // Log error but don't fail the request
                 System.err.println("Failed to serialize category-specific data: " + e.getMessage());
@@ -140,10 +146,8 @@ public class VendorListingService {
      * Create individual item listing
      */
     public Listing createItem(UUID vendorId, CreateItemRequest request) {
-        System.out.println("📝 VendorListingService.createItem - vendorId parameter: " + vendorId);
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
-        System.out.println("📝 VendorListingService.createItem - Found vendor: " + vendor.getId() + ", user_id: " + vendor.getUserId());
         
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
@@ -178,7 +182,6 @@ public class VendorListingService {
         // Create listing
         Listing listing = new Listing();
         listing.setVendor(vendor);
-        System.out.println("📝 VendorListingService.createItem - Set vendor on listing. Vendor: " + (listing.getVendor() != null ? listing.getVendor().getId() : "NULL"));
         listing.setType(Listing.ListingType.ITEM);
         listing.setName(request.getName());
         listing.setDescription(request.getDescription());
@@ -213,7 +216,12 @@ public class VendorListingService {
         // Store category-specific data as JSON
         if (request.getCategorySpecificData() != null) {
             try {
-                listing.setCategorySpecificData(objectMapper.writeValueAsString(request.getCategorySpecificData()));
+                // If it's already a string (JSON), use it directly; otherwise serialize it
+                if (request.getCategorySpecificData() instanceof String) {
+                    listing.setCategorySpecificData((String) request.getCategorySpecificData());
+                } else {
+                    listing.setCategorySpecificData(objectMapper.writeValueAsString(request.getCategorySpecificData()));
+                }
             } catch (JsonProcessingException e) {
                 // Log error but don't fail the request
                 System.err.println("Failed to serialize category-specific data: " + e.getMessage());
@@ -227,9 +235,7 @@ public class VendorListingService {
                 .collect(Collectors.toList());
         listing.setEventTypes(eventTypes);
         
-        System.out.println("📝 VendorListingService.createItem - About to save. Vendor on listing: " + (listing.getVendor() != null ? listing.getVendor().getId() : "NULL"));
         listing = listingRepository.save(listing);
-        System.out.println("📝 VendorListingService.createItem - Saved listing. ID: " + listing.getId() + ", Vendor: " + (listing.getVendor() != null ? listing.getVendor().getId() : "NULL"));
         
         return listing;
     }
@@ -336,12 +342,20 @@ public class VendorListingService {
             throw new BusinessRuleException("You don't have permission to delete this listing");
         }
         
-        // Hard delete for drafts, soft delete for active listings
-        if (listing.getIsDraft() != null && listing.getIsDraft()) {
-            // Draft listings can be permanently deleted
+        // Check if listing has any orders - if so, only soft delete
+        boolean hasOrders = orderRepository.existsByListingId(listingId);
+        
+        // Hard delete for:
+        // 1. Draft listings (isDraft = true)
+        // 2. Inactive listings with no orders (never published or deactivated with no bookings)
+        boolean isDraft = listing.getIsDraft() != null && listing.getIsDraft();
+        boolean isInactive = listing.getIsActive() == null || !listing.getIsActive();
+        
+        if (isDraft || (isInactive && !hasOrders)) {
+            // Can be permanently deleted
             listingRepository.delete(listing);
         } else {
-            // Active listings are soft deleted (in case there are orders/bookings)
+            // Active listings or listings with orders are soft deleted
             listing.setIsActive(false);
             listingRepository.save(listing);
         }

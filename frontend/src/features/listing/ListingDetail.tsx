@@ -1,40 +1,31 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/features/home/Navbar';
-import { PhotoGallery } from './PhotoGallery';
 import { BookingWidget } from './BookingWidget';
 import { PackageCard } from '@/features/search/PackageCard';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { Separator } from '@/shared/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { 
   Star, 
   MapPin, 
-  Clock, 
   CheckCircle2, 
   XCircle, 
   Share2, 
   Heart,
   ArrowLeft,
   User,
-  Award,
-  Calendar,
   Package,
   AlertCircle,
   Loader2,
-  ExternalLink,
   IndianRupee,
   Edit,
   Eye,
-  Settings,
   MessageSquare,
   HandCoins
 } from 'lucide-react';
 import { useListingDetails, useVendorListings, useVendorReviews } from '@/shared/hooks/useApi';
 import { cn } from '@/shared/lib/utils';
-import { format } from 'date-fns';
 import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
@@ -230,21 +221,21 @@ export default function ListingDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50/50">
       <Navbar />
       
       {/* Vendor Owner Banner - Customer's View */}
       {isOwner && (
-        <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-primary/20 mb-6">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-primary/15">
-                  <Eye className="h-5 w-5 text-primary" />
+        <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-primary/20">
+          <div className="max-w-6xl mx-auto px-4 py-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/15">
+                  <Eye className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-primary">👁️ Customer's View</p>
-                  <p className="text-xs text-primary/70">This is how your customers see this listing</p>
+                  <p className="text-xs font-semibold text-primary">👁️ Customer's View</p>
+                  <p className="text-[10px] text-primary/70">How customers see this listing</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -252,18 +243,18 @@ export default function ListingDetail() {
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/vendor/listings')}
-                  className="border-primary/30 text-primary hover:bg-primary/10"
+                  className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-                  Back to Listings
+                  <ArrowLeft className="h-3 w-3 mr-1" />
+                  Back
                 </Button>
                 <Button 
                   size="sm"
                   onClick={() => navigate(`/vendor/listings?edit=${listingId}`)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  <Edit className="h-3.5 w-3.5 mr-1.5" />
-                  Edit Listing
+                  <Edit className="h-3 w-3 mr-1" />
+                  Edit
                 </Button>
               </div>
             </div>
@@ -273,120 +264,136 @@ export default function ListingDetail() {
       
       {/* Back Button - hidden for vendor preview since they have their own back button */}
       {!isOwner && (
-      <div className="container mx-auto px-4 pt-6">
+      <div className="max-w-6xl mx-auto px-4 pt-3">
         <Button
           variant="ghost"
+          size="sm"
           onClick={() => {
-            // Try to go back, but if no history, go to search
             if (window.history.length > 1) {
               navigate(-1);
             } else {
               navigate('/search');
             }
           }}
-          className="mb-4"
+          className="h-7 text-xs mb-2"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-1 h-3 w-3" />
           Back
         </Button>
       </div>
       )}
 
       {/* Main Content */}
-      <div className="container mx-auto px-3 sm:px-4 pb-12 sm:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+      <div className="max-w-6xl mx-auto px-4 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-            {/* Photo Gallery */}
+          <div className="lg:col-span-2 space-y-3">
+            {/* Photo Gallery - Compact */}
             <ScrollReveal animation="fadeInUp">
-              <PhotoGallery 
-                images={listing.images || []} 
-                title={listing.name}
-              />
-            </ScrollReveal>
-
-            {/* Header Section */}
-            <ScrollReveal animation="fadeInUp" delay={100}>
-              <section>
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    {isPackage && (
-                      <Badge className="bg-primary/10 text-primary border-primary/20">
-                        <Package className="h-3 w-3 mr-1" />
-                        Package
-                      </Badge>
-                    )}
-                    {isItem && (
-                      <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                        Individual Item
-                      </Badge>
-                    )}
-                    {listing.isPopular && (
-                      <Badge className="bg-orange-500 text-white">🔥 Popular</Badge>
-                    )}
-                    {listing.isTrending && (
-                      <Badge className="bg-purple-500 text-white">⭐ Trending</Badge>
+              <div className="relative rounded-lg overflow-hidden bg-slate-200 aspect-[2/1]">
+                {listing.images?.[0] ? (
+                  <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="h-8 w-8 text-slate-400" />
+                  </div>
+                )}
+                {listing.images?.length > 1 && (
+                  <div className="absolute bottom-2 right-2 flex gap-1">
+                    {listing.images.slice(1, 4).map((img: string, i: number) => (
+                      <div key={i} className="w-10 h-10 rounded border-2 border-white shadow overflow-hidden">
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    {listing.images.length > 4 && (
+                      <div className="w-10 h-10 rounded bg-black/60 flex items-center justify-center border-2 border-white">
+                        <span className="text-white text-[10px] font-bold">+{listing.images.length - 4}</span>
+                      </div>
                     )}
                   </div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
+                )}
+                <div className="absolute top-2 left-2 flex gap-1">
+                  {isPackage && (
+                    <Badge className="bg-primary/90 text-white text-[10px] h-5 px-1.5">
+                      <Package className="h-2.5 w-2.5 mr-0.5" />Package
+                    </Badge>
+                  )}
+                  {isItem && (
+                    <Badge className="bg-emerald-500/90 text-white text-[10px] h-5 px-1.5">Item</Badge>
+                  )}
+                  {listing.isPopular && (
+                    <Badge className="bg-orange-500/90 text-white text-[10px] h-5 px-1.5">🔥 Popular</Badge>
+                  )}
+                  {listing.isTrending && (
+                    <Badge className="bg-purple-500/90 text-white text-[10px] h-5 px-1.5">⭐ Trending</Badge>
+                  )}
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Header Section - Compact */}
+            <ScrollReveal animation="fadeInUp" delay={100}>
+              <section>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
                     {listing.name}
                   </h1>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-slate-500">
                     <Link 
                       to={`/vendor/${listing.vendorId}`}
-                      className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                      className="flex items-center gap-1 hover:text-primary transition-colors"
                     >
-                      <User className="h-4 w-4" />
-                      <span className="font-semibold">{listing.vendorName}</span>
+                      <User className="h-3 w-3" />
+                      <span className="font-medium">{listing.vendorName}</span>
                     </Link>
                     {listing.vendorCity && (
                       <>
                         <span>•</span>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="h-4 w-4" />
-                          <span>{listing.vendorCity}</span>
-                        </div>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {listing.vendorCity}
+                        </span>
                       </>
                     )}
                     {listing.vendorRating !== undefined && listing.vendorRating !== null && (
                       <>
                         <span>•</span>
-                        <div className="flex items-center gap-1.5">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold">{listing.vendorRating.toFixed(1)}</span>
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          <span className="font-medium">{listing.vendorRating.toFixed(1)}</span>
                           {listing.vendorReviewCount && (
                             <span>({listing.vendorReviewCount})</span>
                           )}
-                        </div>
+                        </span>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 mt-2 sm:mt-0">
-                  <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                    <Share2 className="h-4 w-4" />
+                <div className="flex gap-1 flex-shrink-0">
+                  <Button variant="outline" size="icon" className="h-7 w-7">
+                    <Share2 className="h-3 w-3" />
                   </Button>
-                  <Button variant="outline" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                    <Heart className="h-4 w-4" />
+                  <Button variant="outline" size="icon" className="h-7 w-7">
+                    <Heart className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
               </section>
             </ScrollReveal>
 
-            {/* Listing Highlights (for packages and items with highlights) */}
+            {/* Listing Highlights - Compact */}
             {displayHighlights.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={200}>
                 <section>
                 <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Listing Highlights</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <CardContent className="p-3">
+                    <h2 className="text-xs font-semibold mb-2">Highlights</h2>
+                    <div className="grid grid-cols-2 gap-1">
                       {displayHighlights.map((item: string, index: number) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{item}</span>
+                        <div key={index} className="flex items-start gap-1.5 text-[11px]">
+                          <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-slate-700">{item}</span>
                         </div>
                       ))}
                     </div>
@@ -396,184 +403,129 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Description */}
+            {/* Description - Compact */}
             <ScrollReveal animation="fadeInUp" delay={300}>
               <section>
               <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">About this {isPackage ? 'package' : 'item'}</h2>
-                  <div className="prose prose-sm max-w-none">
-                    <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {listing.description || 'No description available.'}
-                    </p>
-                  </div>
+                <CardContent className="p-3">
+                  <h2 className="text-xs font-semibold mb-2">About this {isPackage ? 'package' : 'item'}</h2>
+                  <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line line-clamp-4">
+                    {listing.description || 'No description available.'}
+                  </p>
                 </CardContent>
               </Card>
               </section>
             </ScrollReveal>
 
-            {/* Included Items - Clickable linked items */}
+            {/* Included Items - Clickable linked items - Compact */}
             {isPackage && linkedItems.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={350}>
                 <section>
-                <Card className="overflow-hidden">
-                  <CardContent className="p-0">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border-b border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-primary/10">
-                          <Package className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-bold">Bundled Items ({linkedItems.length})</h2>
-                          <p className="text-sm text-muted-foreground">This package includes the following items • Click to view details</p>
-                        </div>
+                <Card>
+                  <CardContent className="p-3">
+                    <h2 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+                      <Package className="h-3 w-3 text-primary" />
+                      Bundled Items ({linkedItems.length})
+                    </h2>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {linkedItems.map((item: any) => (
+                        <Link key={item.id} to={`/listing/${item.id}`} className="group block">
+                          <div className="rounded border overflow-hidden bg-white hover:border-primary transition-colors">
+                            <div className="aspect-square bg-slate-100 relative">
+                              {item.images?.[0] ? (
+                                <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="h-4 w-4 text-slate-300" />
+                                </div>
+                              )}
+                              <Badge className="absolute bottom-0.5 right-0.5 bg-white/90 text-slate-900 text-[9px] h-4 px-1 shadow">
+                                ₹{Number(item.price).toLocaleString('en-IN')}
+                              </Badge>
+                            </div>
+                            <p className="text-[10px] font-medium p-1 truncate group-hover:text-primary">{item.name}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-200">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-slate-600">
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                          {linkedItems.length} items included
+                        </span>
+                        <span className="text-slate-500">
+                          Value: ₹{linkedItems.reduce((sum: number, item: any) => sum + Number(item.price || 0), 0).toLocaleString('en-IN')}
+                        </span>
                       </div>
                     </div>
-                    
-                    {/* Items Grid */}
-                    <div className="p-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                        {linkedItems.map((item: any) => (
-                          <Link 
-                            key={item.id} 
-                            to={`/listing/${item.id}`}
-                            className="group block"
-                          >
-                            <div className="rounded-xl border-2 border-border hover:border-primary overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                              {/* Item Image */}
-                              <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                                {item.images?.[0] ? (
-                                  <>
-                                    <img 
-                                      src={item.images[0]} 
-                                      alt={item.name}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                                  </>
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Package className="h-10 w-10 text-muted-foreground/40" />
-                                  </div>
-                                )}
-                                {/* Click indicator */}
-                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <div className="bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1.5 text-xs font-medium text-primary shadow-lg">
-                                    <ExternalLink className="h-3 w-3" />
-                                    View Details
-                                  </div>
-                                </div>
-                                {/* Price Badge */}
-                                <div className="absolute bottom-2 right-2">
-                                  <Badge className="bg-white text-foreground font-bold shadow-lg">
-                                    ₹{Number(item.price).toLocaleString('en-IN')}
-                                  </Badge>
-                                </div>
-                              </div>
-                              
-                              {/* Item Info */}
-                              <div className="p-4 bg-card">
-                                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
-                                  {item.name}
-                                </h3>
-                                <p className="text-xs text-muted-foreground line-clamp-2">
-                                  {item.description || 'Individual item included in this package'}
-                                </p>
-                                {item.unit && (
-                                  <p className="text-xs text-primary mt-2">Per {item.unit}</p>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
+                  </CardContent>
+                </Card>
+                </section>
+              </ScrollReveal>
+            )}
+
+            {/* Included/Excluded - Side by side - Compact */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* What's Included */}
+              {isPackage && listing.includedItemsText && listing.includedItemsText.length > 0 && (
+                <ScrollReveal animation="fadeInUp" delay={400}>
+                  <Card>
+                    <CardContent className="p-3">
+                      <h2 className="text-xs font-semibold mb-2 text-green-700">✓ Included</h2>
+                      <div className="space-y-0.5">
+                        {listing.includedItemsText.map((item: string, index: number) => (
+                          <p key={index} className="text-[10px] text-slate-600 flex items-start gap-1">
+                            <CheckCircle2 className="h-2.5 w-2.5 text-green-500 mt-0.5 flex-shrink-0" />
+                            {item}
+                          </p>
                         ))}
                       </div>
-                      
-                      {/* Summary */}
-                      <div className="mt-6 p-4 rounded-xl bg-muted/50 border border-border">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                            <span className="text-sm font-medium">
-                              {linkedItems.length} item{linkedItems.length > 1 ? 's' : ''} included in this package
-                            </span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            Combined value: ₹{linkedItems.reduce((sum: number, item: any) => sum + Number(item.price || 0), 0).toLocaleString('en-IN')}
-                          </span>
-                        </div>
+                    </CardContent>
+                  </Card>
+                </ScrollReveal>
+              )}
+
+              {/* What's Not Included */}
+              {isPackage && listing.excludedItemsText && listing.excludedItemsText.length > 0 && (
+                <ScrollReveal animation="fadeInUp" delay={500}>
+                  <Card>
+                    <CardContent className="p-3">
+                      <h2 className="text-xs font-semibold mb-2 text-red-700">✗ Not Included</h2>
+                      <div className="space-y-0.5">
+                        {listing.excludedItemsText.map((item, index) => (
+                          <p key={index} className="text-[10px] text-slate-600 flex items-start gap-1">
+                            <XCircle className="h-2.5 w-2.5 text-red-500 mt-0.5 flex-shrink-0" />
+                            {item}
+                          </p>
+                        ))}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                </section>
-              </ScrollReveal>
-            )}
+                    </CardContent>
+                  </Card>
+                </ScrollReveal>
+              )}
+            </div>
 
-            {/* What's Included (text-based - packages only) */}
-            {isPackage && listing.includedItemsText && listing.includedItemsText.length > 0 && (
-              <ScrollReveal animation="fadeInUp" delay={400}>
-                <section>
-                <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">What's Included</h2>
-                    <div className="space-y-2">
-                      {listing.includedItemsText.map((item: string, index: number) => (
-                        <div key={index} className="flex items-start gap-3">
-                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                </section>
-              </ScrollReveal>
-            )}
-
-            {/* What's Not Included (packages only) */}
-            {isPackage && listing.excludedItemsText && listing.excludedItemsText.length > 0 && (
-              <ScrollReveal animation="fadeInUp" delay={500}>
-                <section>
-                <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">What's Not Included</h2>
-                    <div className="space-y-2">
-                      {listing.excludedItemsText.map((item, index) => (
-                        <div key={index} className="flex items-start gap-3">
-                          <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                </section>
-              </ScrollReveal>
-            )}
-
-            {/* Extra Charges - with pricing if available */}
+            {/* Extra Charges - Compact */}
             {(parsedExtraCharges.length > 0 || (listing.extraCharges && listing.extraCharges.length > 0)) && (
               <ScrollReveal animation="fadeInUp" delay={600}>
                 <section>
                   <Card>
-                    <CardContent className="p-6">
-                      <h2 className="text-xl font-bold mb-4">Extra Charges</h2>
-                      <div className="space-y-2">
-                        {/* Show structured charges with prices first */}
+                    <CardContent className="p-3">
+                      <h2 className="text-xs font-semibold mb-2">Extra Charges</h2>
+                      <div className="space-y-0.5">
                         {parsedExtraCharges.map((charge, index) => (
-                          <div key={`detailed-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <span className="text-sm font-medium">{charge.name}</span>
-                            <span className="text-sm font-semibold text-primary flex items-center">
-                              <IndianRupee className="h-3 w-3 mr-0.5" />
+                          <div key={`detailed-${index}`} className="flex items-center justify-between text-[10px] p-1.5 rounded bg-slate-50">
+                            <span className="text-slate-600">{charge.name}</span>
+                            <span className="font-medium text-primary flex items-center">
+                              <IndianRupee className="h-2.5 w-2.5 mr-0.5" />
                               {Number(charge.price).toLocaleString('en-IN')}
                             </span>
                           </div>
                         ))}
-                        {/* Show legacy text-based charges if no structured charges */}
                         {parsedExtraCharges.length === 0 && listing.extraCharges?.map((charge: string, index: number) => (
-                          <div key={`text-${index}`} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <span className="text-sm">{charge}</span>
+                          <div key={`text-${index}`} className="text-[10px] p-1.5 rounded bg-slate-50 text-slate-600">
+                            {charge}
                           </div>
                         ))}
                       </div>
@@ -583,38 +535,29 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Service Details */}
+            {/* Service Details - Compact */}
             <ScrollReveal animation="fadeInUp" delay={650}>
               <section>
                 <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Service Details</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent className="p-3">
+                    <h2 className="text-xs font-semibold mb-2">Service Details</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
                       {listing.deliveryTime && (
-                        <div className="flex items-center gap-3">
-                          <Clock className="h-5 w-5 text-primary" />
-                          <div>
-                            <p className="text-sm font-medium">Delivery Time</p>
-                            <p className="text-sm text-muted-foreground">{listing.deliveryTime}</p>
-                          </div>
+                        <div>
+                          <p className="text-slate-400">Delivery</p>
+                          <p className="font-medium">{listing.deliveryTime}</p>
                         </div>
                       )}
                       {isItem && listing.unit && (
-                        <div className="flex items-center gap-3">
-                          <Package className="h-5 w-5 text-primary" />
-                          <div>
-                            <p className="text-sm font-medium">Unit</p>
-                            <p className="text-sm text-muted-foreground">{listing.unit}</p>
-                          </div>
+                        <div>
+                          <p className="text-slate-400">Unit</p>
+                          <p className="font-medium">{listing.unit}</p>
                         </div>
                       )}
                       {isItem && listing.minimumQuantity && (
-                        <div className="flex items-center gap-3">
-                          <AlertCircle className="h-5 w-5 text-primary" />
-                          <div>
-                            <p className="text-sm font-medium">Minimum Quantity</p>
-                            <p className="text-sm text-muted-foreground">{listing.minimumQuantity}</p>
-                          </div>
+                        <div>
+                          <p className="text-slate-400">Min. Qty</p>
+                          <p className="font-medium">{listing.minimumQuantity}</p>
                         </div>
                       )}
                     </div>
@@ -623,7 +566,7 @@ export default function ListingDetail() {
               </section>
             </ScrollReveal>
 
-            {/* Category-Specific Details */}
+            {/* Category-Specific Details - Compact */}
             {listing.categorySpecificData && (
               <ScrollReveal animation="fadeInUp" delay={675}>
                 <section>
@@ -635,55 +578,48 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Reviews Section */}
+            {/* Reviews Section - Compact */}
             {reviews.length > 0 && (
               <ScrollReveal animation="fadeInUp" delay={700}>
                 <section>
                   <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-bold">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-xs font-semibold">
                         Reviews
                         {listing.vendorRating !== undefined && listing.vendorRating !== null && (
-                          <span className="ml-2 text-lg font-normal text-muted-foreground">
+                          <span className="ml-1 font-normal text-slate-400">
                             ({listing.vendorRating.toFixed(1)})
                           </span>
                         )}
                       </h2>
                       <Link to={`/vendor/${listing.vendorId}?tab=reviews`}>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px]">
                           View All
                         </Button>
                       </Link>
                     </div>
-                    <div className="space-y-4">
-                      {reviews.slice(0, 3).map((review: any) => (
-                        <div key={review.id} className="border-b last:border-0 pb-4 last:pb-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-semibold">{review.customerName || 'Anonymous'}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={cn(
-                                      "h-4 w-4",
-                                      i < (review.rating || 0)
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "text-muted-foreground"
-                                    )}
-                                  />
-                                ))}
-                              </div>
+                    <div className="space-y-2">
+                      {reviews.slice(0, 2).map((review: any) => (
+                        <div key={review.id} className="border-b last:border-0 pb-2 last:pb-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-medium">{review.customerName || 'Anonymous'}</p>
+                            <div className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={cn(
+                                    "h-2.5 w-2.5",
+                                    i < (review.rating || 0)
+                                      ? "fill-amber-400 text-amber-400"
+                                      : "text-slate-300"
+                                  )}
+                                />
+                              ))}
                             </div>
-                            {review.createdAt && (
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(review.createdAt), 'MMM d, yyyy')}
-                              </span>
-                            )}
                           </div>
                           {review.comment && (
-                            <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
+                            <p className="text-[9px] text-slate-500 mt-0.5 line-clamp-2">{review.comment}</p>
                           )}
                         </div>
                       ))}
@@ -694,33 +630,31 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Vendor Profile Card - hidden for vendor preview */}
+            {/* Vendor Profile Card - Compact */}
             {!isOwner && (
             <ScrollReveal animation="fadeInUp" delay={800}>
               <section>
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h2 className="text-xl font-bold mb-2">Meet your vendor</h2>
-                      <p className="text-lg font-semibold mb-1">{listing.vendorName}</p>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xs font-semibold mb-1">Meet your vendor</h2>
+                      <p className="text-[11px] font-medium">{listing.vendorName}</p>
                       {listing.vendorRating !== undefined && listing.vendorRating !== null && (
-                        <div className="flex items-center gap-2 mb-3">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-semibold">{listing.vendorRating.toFixed(1)}</span>
+                        <div className="flex items-center gap-1 mt-0.5 text-[10px]">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          <span className="font-medium">{listing.vendorRating.toFixed(1)}</span>
                           {listing.vendorReviewCount && (
-                            <span className="text-sm text-muted-foreground">
-                              ({listing.vendorReviewCount} reviews)
-                            </span>
+                            <span className="text-slate-400">({listing.vendorReviewCount})</span>
                           )}
                         </div>
                       )}
-                      <Link to={`/vendor/${listing.vendorId}`}>
-                        <Button variant="outline" className="mt-4">
-                          View Full Profile
-                        </Button>
-                      </Link>
                     </div>
+                    <Link to={`/vendor/${listing.vendorId}`}>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]">
+                        View Profile
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
@@ -728,18 +662,15 @@ export default function ListingDetail() {
             </ScrollReveal>
             )}
 
-            {/* Similar Listings - hidden for vendor preview */}
+            {/* Similar Listings - Compact */}
             {similarListings.length > 0 && !isOwner && (
               <ScrollReveal animation="fadeInUp" delay={900}>
                 <section>
-                <div className="mb-4">
-                  <h2 className="text-2xl font-bold">Similar Listings</h2>
-                  <p className="text-sm text-muted-foreground">
-                    More from {listing.vendorName}
-                  </p>
+                <div className="mb-2">
+                  <h2 className="text-sm font-semibold">More from {listing.vendorName}</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {similarListings.map((similarListing: any) => (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {similarListings.slice(0, 3).map((similarListing: any) => (
                     <PackageCard
                       key={similarListing.id}
                       package={{
@@ -772,44 +703,25 @@ export default function ListingDetail() {
             )}
           </div>
 
-          {/* Right Column - Booking Widget - Hidden for vendor preview */}
+          {/* Right Column - Booking Widget - Compact */}
           {!isOwner && (
           <div className="lg:col-span-1 order-first lg:order-last">
-            <div className="sticky top-20 lg:top-24 z-10 space-y-4">
-              {/* Chat/Offer Button - Only show if not owner and negotiation enabled (defaults to true) */}
+            <div className="sticky top-16 space-y-2">
+              {/* Chat/Offer Button - Compact */}
               {listing && (listing.openForNegotiation !== false) && (() => {
-                // Ensure we always have a valid listingId - try listing.id first, then fallback to listingId from params
                 const finalListingId = listing?.id 
                   ? String(listing.id).trim() 
                   : (listingId ? String(listingId).trim() : undefined);
                 
-                console.log('🔍 ListingDetail: About to render PremiumChatWindow (Chat & Make Offer)', {
-                  listingIdFromParams: listingId,
-                  listingIdFromParamsType: typeof listingId,
-                  listingIdFromListing: listing?.id,
-                  listingIdFromListingType: typeof listing?.id,
-                  listingIdFromListingValue: listing?.id,
-                  finalListingId,
-                  finalListingIdType: typeof finalListingId,
-                  finalListingIdLength: finalListingId?.length,
-                  listingExists: !!listing,
-                  listingKeys: listing ? Object.keys(listing) : [],
-                });
-                
-                // Only render if we have a valid listingId
                 if (!finalListingId || finalListingId === '') {
-                  console.error('❌ ListingDetail: Cannot render PremiumChatWindow - no valid listingId', {
-                    listingIdFromParams: listingId,
-                    listingIdFromListing: listing?.id,
-                  });
                   return null;
                 }
                 
                 return (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="w-full rounded-xl shadow-md hover:shadow-lg transition-shadow" size="lg">
-                        <HandCoins className="mr-2 h-5 w-5" />
+                      <Button className="w-full rounded-lg shadow-md hover:shadow-lg transition-shadow h-9 text-xs" size="sm">
+                        <HandCoins className="mr-1.5 h-3.5 w-3.5" />
                         Chat & Make Offer
                       </Button>
                     </DialogTrigger>
@@ -827,25 +739,17 @@ export default function ListingDetail() {
                 );
               })()}
               
-              {/* Regular Chat Button - If negotiation not enabled, but still pass listingId for context */}
+              {/* Regular Chat Button - Compact */}
               {listing && !listing.openForNegotiation && (() => {
-                // Even when negotiation is disabled, pass listingId for context
                 const finalListingId = listing?.id 
                   ? String(listing.id).trim() 
                   : (listingId ? String(listingId).trim() : undefined);
                 
-                console.log('🔍 ListingDetail: About to render PremiumChatWindow (Chat with Vendor)', {
-                  listingIdFromParams: listingId,
-                  listingIdFromListing: listing?.id,
-                  finalListingId,
-                  openForNegotiation: listing?.openForNegotiation,
-                });
-                
                 return (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full rounded-xl" size="lg">
-                        <MessageSquare className="mr-2 h-5 w-5" />
+                      <Button variant="outline" className="w-full rounded-lg h-9 text-xs" size="sm">
+                        <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
                         Chat with Vendor
                       </Button>
                     </DialogTrigger>
@@ -873,7 +777,7 @@ export default function ListingDetail() {
                   minimumQuantity: listing.minimumQuantity,
                   vendorId: listing.vendorId || '',
                   vendorName: listing.vendorName || '',
-                  addOns: [], // TODO: Fetch add-ons from API
+                  addOns: [],
                 }}
                 isVendorPreview={false}
               />

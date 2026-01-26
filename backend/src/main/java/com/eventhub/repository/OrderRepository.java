@@ -116,6 +116,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
         @Param("today") LocalDate today,
         Pageable pageable
     );
+    
+    // Check if any orders exist for a listing
+    boolean existsByListingId(UUID listingId);
 }
 
 

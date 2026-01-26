@@ -5,46 +5,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/shared/components/ui/checkbox';
 
 interface DeliveryTimeInputProps {
-  value: string; // Stored as string like "before:2-3 weeks" or "after:30 days"
+  value: string;
   onChange: (value: string) => void;
   categoryId?: string;
+  compact?: boolean;
 }
 
-export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeInputProps) {
-  // Parse existing value
+export function DeliveryTimeInput({ value, onChange, categoryId, compact = false }: DeliveryTimeInputProps) {
   const parseValue = (val: string) => {
     if (!val) return { timing: 'after', min: '', max: '', unit: 'days', isRange: false };
     
-    // Try to parse with timing prefix: "before:2-3 weeks" or "after:30 days"
     const timingMatch = val.match(/^(before|after):(.+)$/i);
     const timeString = timingMatch ? timingMatch[2] : val;
-    const timing = timingMatch ? timingMatch[1].toLowerCase() : 'after'; // Default to 'after' for backward compatibility
+    const timing = timingMatch ? timingMatch[1].toLowerCase() : 'after';
     
-    // Try to parse range format: "2-3 weeks" or "4-6 hours"
     const rangeMatch = timeString.match(/^(\d+)-(\d+)\s*(hour|hours|day|days|week|weeks|month|months)$/i);
     if (rangeMatch) {
       return {
         timing,
         min: rangeMatch[1],
         max: rangeMatch[2],
-        unit: rangeMatch[3].toLowerCase().replace(/s$/, '') + 's', // Normalize to plural
+        unit: rangeMatch[3].toLowerCase().replace(/s$/, '') + 's',
         isRange: true
       };
     }
     
-    // Try to parse single value: "30 days" or "2 weeks" or "4 hours"
     const singleMatch = timeString.match(/^(\d+)\s*(hour|hours|day|days|week|weeks|month|months)$/i);
     if (singleMatch) {
       return {
         timing,
         min: singleMatch[1],
         max: '',
-        unit: singleMatch[2].toLowerCase().replace(/s$/, '') + 's', // Normalize to plural
+        unit: singleMatch[2].toLowerCase().replace(/s$/, '') + 's',
         isRange: false
       };
     }
     
-    // Fallback for free-form text
     return { timing: 'after', min: '', max: '', unit: 'days', isRange: false };
   };
 
@@ -55,7 +51,6 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
   const [unit, setUnit] = useState(parsed.unit);
   const [isRange, setIsRange] = useState(parsed.isRange);
 
-  // Update parent when values change
   useEffect(() => {
     if (!minValue) {
       onChange('');
@@ -70,25 +65,76 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timing, minValue, maxValue, unit, isRange]);
 
-  // Get default unit based on category
-  const getDefaultUnit = () => {
-    if (categoryId === 'photography-videography' || categoryId === 'photographer') {
-      return 'days';
-    }
-    return 'days';
-  };
+  if (compact) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1">
+          <Checkbox
+            id="range-toggle"
+            checked={isRange}
+            onCheckedChange={(checked) => {
+              setIsRange(checked as boolean);
+              if (!checked) setMaxValue('');
+            }}
+            className="h-3 w-3"
+          />
+          <label htmlFor="range-toggle" className="text-[9px] text-slate-500 cursor-pointer">
+            Range
+          </label>
+        </div>
+        <div className="flex items-center gap-1">
+          <Select value={timing} onValueChange={setTiming}>
+            <SelectTrigger className="h-7 text-[10px] w-16 px-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="before" className="text-[10px]">Before</SelectItem>
+              <SelectItem value="after" className="text-[10px]">After</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            type="number"
+            min="0"
+            value={minValue}
+            onChange={(e) => setMinValue(e.target.value)}
+            placeholder="2"
+            className="h-7 text-[10px] w-12 px-1.5"
+          />
+          {isRange && (
+            <>
+              <span className="text-[10px] text-slate-400">-</span>
+              <Input
+                type="number"
+                min="0"
+                value={maxValue}
+                onChange={(e) => setMaxValue(e.target.value)}
+                placeholder="3"
+                className="h-7 text-[10px] w-12 px-1.5"
+              />
+            </>
+          )}
+          <Select value={unit} onValueChange={setUnit}>
+            <SelectTrigger className="h-7 text-[10px] w-16 px-1.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hours" className="text-[10px]">Hours</SelectItem>
+              <SelectItem value="days" className="text-[10px]">Days</SelectItem>
+              <SelectItem value="weeks" className="text-[10px]">Weeks</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      <Label className="text-foreground">
-        Delivery / Service Time <span className="text-red-500">*</span>
+    <div className="space-y-2">
+      <Label className="text-[10px] text-foreground">
+        Delivery Time <span className="text-red-500">*</span>
       </Label>
-      <p className="text-xs text-muted-foreground">
-        How long before/after the event do you need, or when will you deliver?
-      </p>
       
-      <div className="space-y-3 p-4 border border-border rounded-lg bg-muted/30">
-        {/* Range Toggle */}
+      <div className="space-y-2 p-2 border border-border rounded-lg bg-muted/30">
         <div className="flex items-center space-x-2">
           <Checkbox
             id="range-toggle"
@@ -97,93 +143,67 @@ export function DeliveryTimeInput({ value, onChange, categoryId }: DeliveryTimeI
               setIsRange(checked as boolean);
               if (!checked) setMaxValue('');
             }}
+            className="h-3 w-3"
           />
-          <label
-            htmlFor="range-toggle"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-          >
+          <label htmlFor="range-toggle" className="text-[10px] cursor-pointer">
             Specify a range (e.g., 2-3 weeks)
           </label>
         </div>
 
-        {/* Input Fields */}
-        <div className="grid grid-cols-[auto_1fr_auto_1fr_1fr] gap-2 items-end">
-          {/* Before/After Dropdown */}
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">When</Label>
-            <Select value={timing} onValueChange={setTiming}>
-              <SelectTrigger className="bg-background border-border text-foreground w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="before">Before</SelectItem>
-                <SelectItem value="after">After</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Select value={timing} onValueChange={setTiming}>
+            <SelectTrigger className="h-7 text-[10px] w-16">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="before" className="text-xs">Before</SelectItem>
+              <SelectItem value="after" className="text-xs">After</SelectItem>
+            </SelectContent>
+          </Select>
 
-          {/* Min Value */}
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">
-              {isRange ? 'From' : 'Duration'}
-            </Label>
-            <Input
-              type="number"
-              min="0"
-              value={minValue}
-              onChange={(e) => setMinValue(e.target.value)}
-              placeholder="2"
-              className="bg-background border-border text-foreground"
-            />
-          </div>
+          <Input
+            type="number"
+            min="0"
+            value={minValue}
+            onChange={(e) => setMinValue(e.target.value)}
+            placeholder="2"
+            className="h-7 text-[10px] w-14"
+          />
 
-          {/* Dash (only for range) */}
           {isRange && (
-            <div className="pb-2 text-muted-foreground font-bold">—</div>
-          )}
-
-          {/* Max Value (only for range) */}
-          {isRange && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">To</Label>
+            <>
+              <span className="text-[10px] text-muted-foreground">—</span>
               <Input
                 type="number"
                 min="0"
                 value={maxValue}
                 onChange={(e) => setMaxValue(e.target.value)}
                 placeholder="3"
-                className="bg-background border-border text-foreground"
+                className="h-7 text-[10px] w-14"
               />
-            </div>
+            </>
           )}
 
-          {/* Unit Dropdown */}
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Unit</Label>
-            <Select value={unit} onValueChange={setUnit}>
-              <SelectTrigger className="bg-background border-border text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hours">Hours</SelectItem>
-                <SelectItem value="days">Days</SelectItem>
-                <SelectItem value="weeks">Weeks</SelectItem>
-                <SelectItem value="months">Months</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={unit} onValueChange={setUnit}>
+            <SelectTrigger className="h-7 text-[10px] w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="hours" className="text-xs">Hours</SelectItem>
+              <SelectItem value="days" className="text-xs">Days</SelectItem>
+              <SelectItem value="weeks" className="text-xs">Weeks</SelectItem>
+              <SelectItem value="months" className="text-xs">Months</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Preview */}
         {minValue && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              Preview: <span className="font-medium text-foreground">
-                {timing === 'before' ? 'Before event: ' : 'After event: '}
-                {isRange && maxValue ? `${minValue}-${maxValue} ${unit}` : `${minValue} ${unit}`}
-              </span>
-            </p>
-          </div>
+          <p className="text-[9px] text-muted-foreground pt-1 border-t border-border">
+            Preview: <span className="font-medium text-foreground">
+              {timing === 'before' ? 'Before: ' : 'After: '}
+              {isRange && maxValue ? `${minValue}-${maxValue} ${unit}` : `${minValue} ${unit}`}
+            </span>
+          </p>
         )}
       </div>
     </div>

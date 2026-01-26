@@ -122,44 +122,44 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
     }
   };
 
-  // Vendor preview mode - show disabled state
+  // Vendor preview mode - show disabled state - Compact
   if (isVendorPreview) {
     return (
-      <Card className="sticky top-24 border-2 shadow-xl opacity-75">
-        <CardHeader className="pb-4">
+      <Card className="sticky top-16 border shadow-lg opacity-75">
+        <CardHeader className="p-3 pb-2">
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-3xl font-black text-foreground">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-xl font-bold text-foreground">
                   ₹{listing.price.toLocaleString('en-IN')}
                 </span>
                 {isItem && listing.unit && (
-                  <span className="text-sm text-muted-foreground">/{listing.unit}</span>
+                  <span className="text-[10px] text-muted-foreground">/{listing.unit}</span>
                 )}
               </div>
               {isPackage && (
-                <p className="text-xs text-muted-foreground">Fixed price package</p>
+                <p className="text-[10px] text-muted-foreground">Fixed price package</p>
               )}
             </div>
             {listing.type === 'PACKAGE' && (
-              <Badge className="bg-primary/10 text-primary border-primary/20">
+              <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] h-4 px-1">
                 Package
               </Badge>
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-muted/50 border border-border rounded-lg p-4 text-center">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium text-muted-foreground">
+        <CardContent className="space-y-3 p-3 pt-0">
+          <div className="bg-muted/50 border border-border rounded-lg p-3 text-center">
+            <AlertCircle className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+            <p className="text-[10px] font-medium text-muted-foreground">
               Preview Mode
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Booking is disabled while viewing your own listing
+            <p className="text-[9px] text-muted-foreground">
+              Booking disabled for your own listing
             </p>
           </div>
-          <Button disabled className="w-full" size="lg">
-            <ShoppingCart className="mr-2 h-4 w-4" />
+          <Button disabled className="w-full h-8 text-xs">
+            <ShoppingCart className="mr-1.5 h-3 w-3" />
             Add to Cart
           </Button>
         </CardContent>
@@ -168,47 +168,47 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
   }
 
   return (
-    <Card className="border-2 shadow-xl">
-      <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
+    <Card className="border shadow-lg">
+      <CardHeader className="p-3 pb-2">
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-3xl font-black text-foreground">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-xl font-bold text-foreground">
                 ₹{listing.price.toLocaleString('en-IN')}
               </span>
               {isItem && listing.unit && (
-                <span className="text-sm text-muted-foreground">/{listing.unit}</span>
+                <span className="text-[10px] text-muted-foreground">/{listing.unit}</span>
               )}
             </div>
             {isPackage && (
-              <p className="text-xs text-muted-foreground">Fixed price package</p>
+              <p className="text-[10px] text-muted-foreground">Fixed price package</p>
             )}
           </div>
           {listing.type === 'PACKAGE' && (
-            <Badge className="bg-primary/10 text-primary border-primary/20">
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] h-4 px-1">
               Package
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <CardContent className="space-y-3 p-3 pt-0">
         {/* Date Selection - Required */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold">
-            Select Event Date <span className="text-destructive">*</span>
+        <div className="space-y-1">
+          <Label className="text-[10px] font-medium">
+            Event Date <span className="text-destructive">*</span>
           </Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal h-8 text-xs",
                   !selectedDate && "text-muted-foreground border-destructive/50"
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP") : "Pick a date (required)"}
+                <CalendarIcon className="mr-1.5 h-3 w-3" />
+                {selectedDate ? format(selectedDate, "PPP") : "Pick date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -221,26 +221,23 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
               />
             </PopoverContent>
           </Popover>
-          {!selectedDate && (
-            <p className="text-xs text-destructive">Please select an event date to continue</p>
-          )}
         </div>
 
         {/* Quantity Selector (for items) */}
         {isItem && (
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">
+          <div className="space-y-1">
+            <Label className="text-[10px] font-medium">
               Quantity {listing.minimumQuantity && `(Min: ${listing.minimumQuantity})`}
             </Label>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9"
+                className="h-7 w-7"
                 onClick={() => handleQuantityChange(-1)}
                 disabled={quantity <= (listing.minimumQuantity || 1)}
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-3 w-3" />
               </Button>
               <Input
                 type="number"
@@ -251,53 +248,53 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
                     setQuantity(val);
                   }
                 }}
-                className="w-20 text-center"
+                className="w-14 h-7 text-xs text-center"
                 min={listing.minimumQuantity || 1}
                 max={100}
               />
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9"
+                className="h-7 w-7"
                 onClick={() => handleQuantityChange(1)}
                 disabled={quantity >= 100}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Add-ons (for packages) */}
+        {/* Add-ons (for packages) - Compact */}
         {isPackage && listing.addOns && listing.addOns.length > 0 && (
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Add-ons (Optional)</Label>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-medium">Add-ons</Label>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
               {listing.addOns.map((addOn) => (
                 <div
                   key={addOn.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  className="flex items-start gap-2 p-2 rounded border hover:bg-muted/50 transition-colors"
                 >
                   <Checkbox
                     id={addOn.id}
                     checked={selectedAddOns.has(addOn.id)}
                     onCheckedChange={() => handleAddOnToggle(addOn.id)}
-                    className="mt-0.5"
+                    className="mt-0.5 h-3 w-3"
                   />
                   <div className="flex-1 min-w-0">
                     <Label
                       htmlFor={addOn.id}
-                      className="text-sm font-medium cursor-pointer"
+                      className="text-[10px] font-medium cursor-pointer"
                     >
                       {addOn.title}
                     </Label>
                     {addOn.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-[9px] text-muted-foreground line-clamp-1">
                         {addOn.description}
                       </p>
                     )}
                   </div>
-                  <span className="text-sm font-semibold text-primary">
+                  <span className="text-[10px] font-medium text-primary">
                     +₹{addOn.price.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -308,57 +305,50 @@ export const BookingWidget = ({ listing, isVendorPreview = false }: BookingWidge
 
         <Separator />
 
-        {/* Price Breakdown */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+        {/* Price Breakdown - Compact */}
+        <div className="space-y-1 text-[10px]">
+          <div className="flex justify-between">
             <span className="text-muted-foreground">
-              {isItem ? `${quantity} × ₹${listing.price.toLocaleString('en-IN')}` : 'Base price'}
+              {isItem ? `${quantity} × ₹${listing.price.toLocaleString('en-IN')}` : 'Base'}
             </span>
-            <span className="font-medium">₹{subtotal.toLocaleString('en-IN')}</span>
+            <span>₹{subtotal.toLocaleString('en-IN')}</span>
           </div>
           {addOnsTotal > 0 && (
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Add-ons</span>
-              <span className="font-medium">₹{addOnsTotal.toLocaleString('en-IN')}</span>
+              <span>₹{addOnsTotal.toLocaleString('en-IN')}</span>
             </div>
           )}
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between">
             <span className="text-muted-foreground">Service fee</span>
-            <span className="font-medium">₹{serviceFee.toLocaleString('en-IN')}</span>
+            <span>₹{serviceFee.toLocaleString('en-IN')}</span>
           </div>
           <Separator />
-          <div className="flex justify-between text-base font-bold">
+          <div className="flex justify-between font-bold text-xs">
             <span>Total</span>
             <span className="text-primary">₹{total.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
-        {/* Add to Cart Button */}
-        <div className="space-y-2">
-          <Button
-            className="w-full bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-semibold h-12"
-            onClick={handleAddToCart}
-            disabled={!selectedDate}
-          >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Add to Cart
-          </Button>
-          {!selectedDate && (
-            <p className="text-xs text-center text-muted-foreground">
-              Select a date above to continue
-            </p>
-          )}
-        </div>
+        {/* Add to Cart Button - Compact */}
+        <Button
+          className="w-full bg-gradient-to-r from-primary to-primary-glow text-white hover:from-primary-glow hover:to-primary font-medium h-9 text-xs"
+          onClick={handleAddToCart}
+          disabled={!selectedDate}
+        >
+          <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+          Add to Cart
+        </Button>
 
-        {/* Important Info */}
-        <div className="pt-4 border-t space-y-2">
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500" />
-            <span>Free cancellation before event date</span>
+        {/* Important Info - Compact */}
+        <div className="pt-2 border-t space-y-1">
+          <div className="flex items-start gap-1.5 text-[9px] text-muted-foreground">
+            <CheckCircle2 className="h-3 w-3 mt-0.5 text-green-500 flex-shrink-0" />
+            <span>Free cancellation before event</span>
           </div>
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <AlertCircle className="h-4 w-4 mt-0.5 text-yellow-500" />
-            <span>You won't be charged until booking is confirmed</span>
+          <div className="flex items-start gap-1.5 text-[9px] text-muted-foreground">
+            <AlertCircle className="h-3 w-3 mt-0.5 text-amber-500 flex-shrink-0" />
+            <span>Pay after booking confirmed</span>
           </div>
         </div>
       </CardContent>
