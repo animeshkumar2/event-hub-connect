@@ -334,7 +334,7 @@ export default function AdminListingsList() {
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="package">Packages</SelectItem>
-                      <SelectItem value="item">Items</SelectItem>
+                      <SelectItem value="item">Services</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -8,7 +8,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
-import { ImageUpload } from '@/shared/components/ImageUpload';
+import { ImageUpload, PendingImageChanges } from '@/shared/components/ImageUpload';
+import { uploadImage } from '@/shared/utils/storage';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
 import { useVendorProfile } from '@/shared/hooks/useVendorProfile';
@@ -118,7 +119,9 @@ export default function VendorBookings() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
   const [eventImages, setEventImages] = useState<string[]>([]);
+  const [pendingEventImages, setPendingEventImages] = useState<PendingImageChanges | null>(null);
   const [eventDescription, setEventDescription] = useState('');
+  const [isCompletingEvent, setIsCompletingEvent] = useState(false);
 
   // Fetch bookings based on active tab
   const { data: allBookingsData, loading: allBookingsLoading, refetch: refetchAll } = useVendorBookings(page, 10);
@@ -298,14 +301,37 @@ export default function VendorBookings() {
   const handleCompleteEvent = async () => {
     if (!completingBookingId) return;
     
-    if (eventImages.length === 0) {
+    // Check if we have pending images to upload
+    const hasPendingImages = pendingEventImages && pendingEventImages.filesToUpload.length > 0;
+    const hasExistingImages = eventImages.length > 0;
+    
+    if (!hasPendingImages && !hasExistingImages) {
       toast.error('Please add at least one event photo');
       return;
     }
 
+    setIsCompletingEvent(true);
     try {
+      let finalImages = [...eventImages];
+      
+      // Upload pending images if any
+      if (hasPendingImages && pendingEventImages) {
+        const vendorId = localStorage.getItem('vendor_id') || 'unknown';
+        const folder = `vendors/${vendorId}/events`;
+        
+        for (const file of pendingEventImages.filesToUpload) {
+          try {
+            const url = await uploadImage(file, folder);
+            finalImages.push(url);
+          } catch (error: any) {
+            toast.error(`Failed to upload ${file.name}: ${error.message}`);
+            throw error;
+          }
+        }
+      }
+      
       const response = await vendorApi.completeEvent(completingBookingId, {
-        images: eventImages,
+        images: finalImages,
         description: eventDescription || undefined
       });
       
@@ -313,6 +339,7 @@ export default function VendorBookings() {
         toast.success('Event completed successfully! Photos will be added to your portfolio.');
         setShowCompleteModal(false);
         setEventImages([]);
+        setPendingEventImages(null);
         setEventDescription('');
         setCompletingBookingId(null);
         refetch();
@@ -324,12 +351,15 @@ export default function VendorBookings() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to complete event');
+    } finally {
+      setIsCompletingEvent(false);
     }
   };
 
   const openCompleteModal = (bookingId: string) => {
     setCompletingBookingId(bookingId);
     setEventImages([]);
+    setPendingEventImages(null);
     setEventDescription('');
     setShowCompleteModal(true);
   };
@@ -1368,6 +1398,7 @@ export default function VendorBookings() {
                 <ImageUpload
                   images={eventImages}
                   onChange={setEventImages}
+                  onPendingChanges={setPendingEventImages}
                   maxImages={20}
                 />
               </div>
@@ -1391,19 +1422,26 @@ export default function VendorBookings() {
                   onClick={() => {
                     setShowCompleteModal(false);
                     setEventImages([]);
+                    setPendingEventImages(null);
                     setEventDescription('');
                     setCompletingBookingId(null);
                   }}
                   className="flex-1 border-border text-foreground hover:bg-muted order-2 sm:order-1"
+                  disabled={isCompletingEvent}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCompleteEvent}
-                  disabled={eventImages.length === 0}
+                  disabled={eventImages.length === 0 && (!pendingEventImages || pendingEventImages.filesToUpload.length === 0) || isCompletingEvent}
                   className="flex-1 bg-green-600 hover:bg-green-700 order-1 sm:order-2"
                 >
-                  {eventImages.length === 0 ? (
+                  {isCompletingEvent ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : eventImages.length === 0 && (!pendingEventImages || pendingEventImages.filesToUpload.length === 0) ? (
                     'Add Photos to Continue'
                   ) : (
                     <>

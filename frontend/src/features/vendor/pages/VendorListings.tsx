@@ -37,7 +37,8 @@ import {
   Music,
   Lightbulb,
   Tag,
-  Navigation
+  Navigation,
+  LayoutGrid
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -124,6 +125,7 @@ type ExtraCharge = { name: string; price: string };
 
 // Initial form state
 const initialFormData = {
+  id: '', // Empty for new listings, set when editing
   name: '',
   description: '',
   price: '',
@@ -161,9 +163,26 @@ export default function VendorListings() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track which listing is being deleted
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; listing: any | null }>({
+  const [pendingImageDeletes, setPendingImageDeletes] = useState<string[]>([]); // Images to delete on save
+  const [deleteDialog, setDeleteDialog] = useState<{ 
+    open: boolean; 
+    listing: any | null;
+    checkResult: {
+      hasActiveOrders: boolean;
+      isUsedInPackages: boolean;
+      activeOrderCount: number;
+      packageCount: number;
+      activeOrderNumbers: string[];
+      packageNames: string[];
+      warningMessage: string | null;
+      deleteType: 'HARD' | 'SOFT';
+    } | null;
+    isChecking: boolean;
+  }>({
     open: false,
     listing: null,
+    checkResult: null,
+    isChecking: false,
   });
   const [draftSectionOpen, setDraftSectionOpen] = useState<string | undefined>('drafts'); // Default open
   const cardLimit = useResponsiveCardLimit(); // Get responsive card limit
@@ -406,10 +425,15 @@ export default function VendorListings() {
     [completedListings]
   );
   
-  const items = React.useMemo(() => 
-    completedListings.filter((l: any) => l.type === 'ITEM'), 
-    [completedListings]
-  );
+  const items = React.useMemo(() => {
+    const filtered = completedListings.filter((l: any) => l.type === 'ITEM');
+    console.log('📦 Items for bundling:', {
+      completedListingsCount: completedListings.length,
+      itemsCount: filtered.length,
+      items: filtered.map((i: any) => ({ id: i.id, name: i.name, type: i.type, isDraft: i.isDraft }))
+    });
+    return filtered;
+  }, [completedListings]);
   
   const filteredListings = completedListings;
   
@@ -441,7 +465,9 @@ export default function VendorListings() {
     console.log('🟢 useEffect running:', {
       showCreateModal,
       editingListingId: editingListing?.id,
-      loadedListingId: loadedListingIdRef.current
+      loadedListingId: loadedListingIdRef.current,
+      rawCategorySpecificData: editingListing?.categorySpecificData,
+      typeOfRawData: typeof editingListing?.categorySpecificData
     });
     
     // Only load if modal is open and we have a new listing to edit
@@ -465,18 +491,28 @@ export default function VendorListings() {
       let parsedCategorySpecificData: Record<string, any> = {};
       if (editingListing.categorySpecificData) {
         try {
-          parsedCategorySpecificData = JSON.parse(editingListing.categorySpecificData);
-          console.log('📋 Parsed categorySpecificData for editing:', {
-            raw: editingListing.categorySpecificData,
-            parsed: parsedCategorySpecificData,
-            keys: Object.keys(parsedCategorySpecificData)
-          });
+          // categorySpecificData might be double-stringified from backend
+          let data = editingListing.categorySpecificData;
+          
+          // First parse if it's a string
+          if (typeof data === 'string') {
+            data = JSON.parse(data);
+          }
+          
+          // Check if result is still a string (double-stringified case)
+          if (typeof data === 'string') {
+            data = JSON.parse(data);
+          }
+          
+          parsedCategorySpecificData = data;
+          console.log('📦 Parsed categorySpecificData:', parsedCategorySpecificData);
         } catch (e) {
           console.error('Failed to parse categorySpecificData:', e);
+          console.error('Raw categorySpecificData:', editingListing.categorySpecificData);
           parsedCategorySpecificData = {};
         }
       } else {
-        console.log('📋 No categorySpecificData found in editingListing');
+        console.log('⚠️ No categorySpecificData found in editingListing');
       }
       
       // Convert DB category ID to core category ID
@@ -498,6 +534,7 @@ export default function VendorListings() {
       
       // Set all state at once to minimize re-renders
       setFormDataWithLog({
+        id: editingListing.id, // Include ID for image upload folder path
         name: editingListing.name || '',
         description: editingListing.description || '',
         price: editingListing.price?.toString() || '',
@@ -521,6 +558,7 @@ export default function VendorListings() {
       console.log('📋 DEBUG - excludedItemsText:', editingListing.excludedItemsText);
       console.log('📋 DEBUG - customNotes:', editingListing.customNotes);
       console.log('✅ setFormData called');
+      console.log('📦 Setting categorySpecificData:', { type: typeof parsedCategorySpecificData, value: parsedCategorySpecificData });
       setCategorySpecificData(parsedCategorySpecificData);
       setListingType(editingListing.type || 'PACKAGE');
       setExpandedSections({
@@ -562,6 +600,7 @@ export default function VendorListings() {
         case 'caterer':
           finalPrice = categorySpecificData.pricePerPlateVeg || '';
           break;
+        case 'photography-videography':
         case 'photographer':
         case 'cinematographer':
         case 'videographer':
@@ -602,7 +641,7 @@ export default function VendorListings() {
       }
       
       if (formData.includedItemIds.length < 2) {
-        toast.error('Please select at least 2 items to create a package');
+        toast.error('Please select at least 2 services to create a package');
         return;
       }
     }
@@ -700,7 +739,7 @@ export default function VendorListings() {
         categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
         eventTypeIds: eventTypeIds,
-        images: formData.images,
+        images: formData.images, // Will be updated below if there are pending changes
         highlights: formData.highlights.filter(h => h.trim()), // Remove empty highlights
         deliveryTime: formData.deliveryTime,
         customNotes: formData.customNotes || undefined,
@@ -714,19 +753,52 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
-        // Store category-specific data as JSON string (ITEMS only)
+        // For creates: send as object (DTO accepts Object)
+        // For updates: send as string (entity expects String)
         categorySpecificData: listingType === 'ITEM' && formData.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0
-          ? JSON.stringify(categorySpecificData)
+          ? (editingListing ? JSON.stringify(categorySpecificData) : categorySpecificData)
           : undefined,
         serviceMode: formData.serviceMode, // Location system
       };
+
+      // Process pending image changes (upload new files, prepare final URLs)
+      if (pendingImageChanges && (pendingImageChanges.filesToUpload.length > 0 || pendingImageChanges.urlsToDelete.length > 0)) {
+        const { uploadImage, deleteImage } = await import('@/shared/utils/storage');
+        const vendorId = localStorage.getItem('vendor_id') || 'unknown';
+        const listingId = editingListing?.id || 'new';
+        const folder = `vendors/${vendorId}/listings/${listingId}`;
+        
+        // Upload new files
+        const uploadedUrls: Map<File, string> = new Map();
+        for (const file of pendingImageChanges.filesToUpload) {
+          try {
+            const url = await uploadImage(file, folder);
+            uploadedUrls.set(file, url);
+          } catch (error: any) {
+            toast.error(`Failed to upload ${file.name}: ${error.message}`);
+            throw error;
+          }
+        }
+        
+        // Build final URLs array in correct order
+        payload.images = pendingImageChanges.finalOrder.map(item => {
+          if (typeof item === 'string') return item;
+          return uploadedUrls.get(item) || '';
+        }).filter(url => url !== '');
+        
+        // Queue deletions for after successful save
+        if (pendingImageChanges.urlsToDelete.length > 0) {
+          setPendingImageDeletes(pendingImageChanges.urlsToDelete);
+        }
+      }
 
       console.log('📤 Submitting listing payload:', {
         listingType,
         categoryId: formData.categoryId,
         categorySpecificDataKeys: Object.keys(categorySpecificData),
         categorySpecificData,
-        payloadCategorySpecificData: payload.categorySpecificData
+        payloadCategorySpecificData: payload.categorySpecificData,
+        imagesCount: payload.images.length
       });
 
       // Include/exclude items are available for both packages and items
@@ -744,6 +816,17 @@ export default function VendorListings() {
         // Update existing listing
         const response = await vendorApi.updateListing(editingListing.id, payload);
         if (response.success) {
+          // Delete removed images from R2 after successful save
+          if (pendingImageDeletes.length > 0) {
+            const { deleteImages } = await import('@/shared/utils/storage');
+            deleteImages(pendingImageDeletes).then(({ deleted, failed }) => {
+              if (deleted.length > 0) console.log('Deleted images from R2:', deleted.length);
+              if (failed.length > 0) console.warn('Failed to delete some images:', failed.length);
+            });
+          }
+          // Clear all pending states
+          setPendingImageDeletes([]);
+          setPendingImageChanges(null);
           toast.success('Listing updated successfully!');
           setShowCreateModal(false);
           setEditingListing(null);
@@ -758,7 +841,10 @@ export default function VendorListings() {
           : await vendorApi.createItem(payload);
         
         if (response.success) {
-          toast.success(`${listingType === 'PACKAGE' ? 'Package' : 'Item'} created successfully!`);
+          // Clear all pending states
+          setPendingImageDeletes([]);
+          setPendingImageChanges(null);
+          toast.success(`${listingType === 'PACKAGE' ? 'Package' : 'Service'} created successfully!`);
           setShowCreateModal(false);
           refetch();
         } else {
@@ -773,7 +859,24 @@ export default function VendorListings() {
   };
 
   const handleDelete = async (listing: any) => {
-    setDeleteDialog({ open: true, listing });
+    setDeleteDialog({ open: true, listing, checkResult: null, isChecking: true });
+    
+    // Check for dependencies before showing confirmation
+    try {
+      const response = await vendorApi.checkDeleteListing(listing.id);
+      if (response.success && response.data) {
+        setDeleteDialog(prev => ({ 
+          ...prev, 
+          checkResult: response.data,
+          isChecking: false 
+        }));
+      } else {
+        setDeleteDialog(prev => ({ ...prev, isChecking: false }));
+      }
+    } catch (error) {
+      console.error('Failed to check delete dependencies:', error);
+      setDeleteDialog(prev => ({ ...prev, isChecking: false }));
+    }
   };
 
   // Handler to check profile completion before creating listing
@@ -820,10 +923,19 @@ export default function VendorListings() {
 
     setIsDeleting(deleteDialog.listing.id);
     try {
-      const response = await vendorApi.deleteListing(deleteDialog.listing.id);
+      // Use force=true if soft delete would happen but user confirmed
+      const shouldForce = deleteDialog.checkResult?.deleteType === 'SOFT' && 
+        (deleteDialog.checkResult?.hasActiveOrders || deleteDialog.checkResult?.isUsedInPackages);
+      
+      const response = await vendorApi.deleteListing(deleteDialog.listing.id, shouldForce);
       if (response.success) {
-        toast.success('Listing deleted successfully!');
-        setDeleteDialog({ open: false, listing: null });
+        const deleteType = deleteDialog.checkResult?.deleteType;
+        if (deleteType === 'SOFT') {
+          toast.success('Listing deactivated successfully!');
+        } else {
+          toast.success('Listing deleted successfully!');
+        }
+        setDeleteDialog({ open: false, listing: null, checkResult: null, isChecking: false });
         refetch();
       } else {
         throw new Error(response.message || 'Failed to delete listing');
@@ -850,8 +962,28 @@ export default function VendorListings() {
     }
   };
 
+  // State for pending image changes (new approach - upload on save)
+  const [pendingImageChanges, setPendingImageChanges] = useState<{
+    filesToUpload: File[];
+    urlsToDelete: string[];
+    finalOrder: (string | File)[];
+  } | null>(null);
+
   const handleImagesChange = React.useCallback((newImages: string[]) => {
     setFormData(prev => ({ ...prev, images: newImages }));
+  }, []);
+
+  const handlePendingImageChanges = React.useCallback((changes: {
+    filesToUpload: File[];
+    urlsToDelete: string[];
+    finalOrder: (string | File)[];
+  }) => {
+    setPendingImageChanges(changes);
+  }, []);
+
+  // Legacy handler for backward compatibility
+  const handlePendingImageDeletes = React.useCallback((urls: string[]) => {
+    setPendingImageDeletes(urls);
   }, []);
 
   // Highlight helpers - with draft state
@@ -1037,6 +1169,7 @@ export default function VendorListings() {
           case 'caterer':
             finalPrice = categorySpecificData.pricePerPlateVeg || '';
             break;
+          case 'photography-videography':
           case 'photographer':
           case 'venue':
           case 'decorator':
@@ -1071,8 +1204,11 @@ export default function VendorListings() {
         extraCharges: formData.extraCharges,
         isActive: false, // Drafts should NOT be visible to customers
         isDraft: true, // Mark as draft
-        // Store category-specific data as JSON
-        categorySpecificData: formData.categoryId !== 'other' ? categorySpecificData : undefined,
+        // For creates: send as object (DTO accepts Object)
+        // For updates: send as string (entity expects String)
+        categorySpecificData: formData.categoryId !== 'other' 
+          ? (editingListing ? JSON.stringify(categorySpecificData) : categorySpecificData) 
+          : undefined,
         serviceMode: formData.serviceMode, // Location system
       };
 
@@ -1127,6 +1263,8 @@ export default function VendorListings() {
     setEditingListing(null);
     setFormData(initialFormData); // Reset form to initial state
     setCategorySpecificData({}); // Reset category-specific data
+    setPendingImageDeletes([]); // Clear pending deletes (user cancelled, don't delete)
+    setPendingImageChanges(null); // Clear pending image changes (user cancelled)
     setExpandedSections({
       basic: true,
       pricing: true,
@@ -1254,7 +1392,7 @@ export default function VendorListings() {
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">Higher Value</Badge>
                   ) : (
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-amber-600 border-amber-300 bg-amber-50">
-                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Create items first
+                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Create services first
                     </Badge>
                   )}
                 </div>
@@ -1296,7 +1434,10 @@ export default function VendorListings() {
                 setFormData={setFormDataWithLog}
                 listingType={listingType}
                 setListingType={setListingType}
-                categorySpecificData={categorySpecificData}
+                categorySpecificData={(() => {
+                  console.log('🔴 Passing categorySpecificData to wizard:', typeof categorySpecificData, categorySpecificData);
+                  return categorySpecificData;
+                })()}
                 setCategorySpecificData={setCategorySpecificDataWithLog}
                 editingListing={editingListing}
                 onSubmit={handleSubmit}
@@ -1342,6 +1483,8 @@ export default function VendorListings() {
                 cancelHighlight={cancelHighlight}
                 removeHighlight={removeHighlight}
                 handleImagesChange={handleImagesChange}
+                handlePendingImageDeletes={handlePendingImageDeletes}
+                handlePendingImageChanges={handlePendingImageChanges}
               />
             </DialogContent>
           </Dialog>
@@ -1433,7 +1576,7 @@ export default function VendorListings() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="items">Items Only</SelectItem>
+              <SelectItem value="items">Services Only</SelectItem>
               <SelectItem value="packages">Packages Only</SelectItem>
             </SelectContent>
           </Select>
@@ -1461,20 +1604,26 @@ export default function VendorListings() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {/* Filter based on selection */}
-              {completedListings
-                .filter((listing: any) => {
-                  if (selectedCategoryFilter === 'items') return listing.type === 'ITEM';
-                  if (selectedCategoryFilter === 'packages') return listing.type === 'PACKAGE';
-                  return true;
-                })
-                .filter((listing: any) => {
-                  if (!searchQuery) return true;
-                  return listing.name?.toLowerCase().includes(searchQuery.toLowerCase());
-                })
-                .slice(0, cardLimit)
-                .map((listing: any) => {
-                  const isPackage = listing.type === 'PACKAGE';
-                  const CategoryIcon = getCategoryIcon(getCategoryName(listing.listingCategory?.id || listing.categoryId || ''));
+              {(() => {
+                const filteredListings = completedListings
+                  .filter((listing: any) => {
+                    if (selectedCategoryFilter === 'items') return listing.type === 'ITEM';
+                    if (selectedCategoryFilter === 'packages') return listing.type === 'PACKAGE';
+                    return true;
+                  })
+                  .filter((listing: any) => {
+                    if (!searchQuery) return true;
+                    return listing.name?.toLowerCase().includes(searchQuery.toLowerCase());
+                  });
+                
+                const displayedListings = filteredListings.slice(0, cardLimit);
+                const remainingCount = filteredListings.length - cardLimit;
+                
+                return (
+                  <>
+                    {displayedListings.map((listing: any) => {
+                      const isPackage = listing.type === 'PACKAGE';
+                      const CategoryIcon = getCategoryIcon(getCategoryName(listing.listingCategory?.id || listing.categoryId || ''));
                   
                   return (
                     <Card 
@@ -1506,7 +1655,7 @@ export default function VendorListings() {
                               : 'bg-emerald-500 text-white'
                           }`}
                         >
-                          {isPackage ? '📦 Package' : '🏷️ Item'}
+                          {isPackage ? '📦 Package' : '🏷️ Service'}
                         </Badge>
                         
                         {/* Status Badge - Top Right */}
@@ -1562,7 +1711,7 @@ export default function VendorListings() {
                               <DropdownMenuItem onClick={() => navigate(`/vendor/listings/preview/${listing.id}`)}>
                                 <Eye className="mr-2 h-3.5 w-3.5" /> Preview
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { setEditingListing(listing); setShowCreateModal(true); }}>
+                              <DropdownMenuItem onClick={() => navigate(`/vendor/listings/preview/${listing.id}?edit=true`)}>
                                 <Edit className="mr-2 h-3.5 w-3.5" /> Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleToggleActive(listing)}>
@@ -1603,7 +1752,7 @@ export default function VendorListings() {
                         {/* Package Items Count */}
                         {isPackage && listing.includedItemIds?.length > 0 && (
                           <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                            <Package className="h-3 w-3" /> {listing.includedItemIds.length} items bundled
+                            <Package className="h-3 w-3" /> {listing.includedItemIds.length} services bundled
                           </p>
                         )}
                       </CardContent>
@@ -1611,21 +1760,66 @@ export default function VendorListings() {
                   );
                 })}
               
-              {/* View More Card */}
-              {completedListings.length > cardLimit && (
+              {/* View More Card - Enhanced - Only show if there are more filtered listings */}
+              {remainingCount > 0 && (
                 <Card 
-                  className="border-2 border-dashed border-muted-foreground/20 hover:border-primary/30 transition-all cursor-pointer group flex items-center justify-center min-h-[200px]"
+                  className="relative overflow-hidden border-0 cursor-pointer group min-h-[280px]"
                   onClick={() => navigate('/vendor/listings/all')}
                 >
-                  <CardContent className="text-center p-4">
-                    <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-2 group-hover:bg-primary/10 transition-colors">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  {/* Animated Gradient Background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-violet-500/10 to-pink-500/5 group-hover:from-primary/15 group-hover:via-violet-500/20 group-hover:to-pink-500/10 transition-all duration-700" />
+                  
+                  {/* Animated Border with gradient */}
+                  <div className="absolute inset-0 rounded-lg border-2 border-dashed border-primary/20 group-hover:border-primary/50 transition-all duration-300" />
+                  
+                  {/* Floating Orbs */}
+                  <div className="absolute top-6 right-6 w-24 h-24 bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-full blur-2xl group-hover:scale-150 group-hover:bg-primary/30 transition-all duration-700" />
+                  <div className="absolute bottom-6 left-6 w-20 h-20 bg-gradient-to-br from-pink-500/15 to-violet-500/15 rounded-full blur-xl group-hover:scale-125 transition-all duration-500" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:w-48 group-hover:h-48 transition-all duration-700" />
+                  
+                  {/* Sparkle decorations */}
+                  <div className="absolute top-8 left-8 w-2 h-2 bg-primary/40 rounded-full group-hover:animate-ping" />
+                  <div className="absolute bottom-12 right-12 w-1.5 h-1.5 bg-violet-500/40 rounded-full group-hover:animate-ping" style={{ animationDelay: '0.2s' }} />
+                  <div className="absolute top-1/3 right-8 w-1 h-1 bg-pink-500/40 rounded-full group-hover:animate-ping" style={{ animationDelay: '0.4s' }} />
+                  
+                  {/* Content */}
+                  <CardContent className="relative h-full flex flex-col items-center justify-center p-6 text-center">
+                    {/* Icon with glow effect */}
+                    <div className="relative mb-4">
+                      <div className="absolute inset-0 w-14 h-14 bg-primary/20 rounded-2xl blur-xl group-hover:blur-2xl group-hover:bg-primary/30 transition-all duration-500" />
+                      <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 via-violet-500/20 to-pink-500/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-primary/20 border border-primary/10">
+                        <LayoutGrid className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-foreground">View All</p>
-                    <p className="text-xs text-muted-foreground">+{completedListings.length - cardLimit} more</p>
+                    
+                    {/* Count Badge - Big animated number */}
+                    <div className="mb-2 relative">
+                      <span className="text-4xl font-bold bg-gradient-to-r from-primary via-violet-500 to-primary bg-clip-text text-transparent group-hover:scale-110 transition-transform inline-block">
+                        +{remainingCount}
+                      </span>
+                    </div>
+                    
+                    {/* Text */}
+                    <h3 className="text-lg font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">
+                      More Listings
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      View all {filteredListings.length} listings
+                    </p>
+                    
+                    {/* CTA Button with gradient */}
+                    <div className="px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-violet-500/10 group-hover:from-primary group-hover:to-violet-500 transition-all duration-300">
+                      <div className="flex items-center gap-2 text-sm font-medium text-primary group-hover:text-white transition-colors">
+                        <span>Explore All</span>
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -1634,16 +1828,56 @@ export default function VendorListings() {
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, listing: null })}
+        onOpenChange={(open) => setDeleteDialog({ open, listing: null, checkResult: null, isChecking: false })}
         onConfirm={confirmDelete}
         title="Delete Listing"
         description={
-          deleteDialog.listing?.isDraft
-            ? "Are you sure you want to delete this draft? This action cannot be undone."
-            : "Are you sure you want to delete this listing? This will remove it from customer view and cannot be undone."
+          deleteDialog.isChecking ? (
+            "Checking for dependencies..."
+          ) : deleteDialog.checkResult?.warningMessage ? (
+            <div className="space-y-3">
+              <p className="text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ Warning: This listing has dependencies
+              </p>
+              {deleteDialog.checkResult.hasActiveOrders && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    {deleteDialog.checkResult.activeOrderCount} Active Booking(s)
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    Orders: {deleteDialog.checkResult.activeOrderNumbers.join(', ')}
+                  </p>
+                </div>
+              )}
+              {deleteDialog.checkResult.isUsedInPackages && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    Used in {deleteDialog.checkResult.packageCount} Package(s)
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    {deleteDialog.checkResult.packageNames.join(', ')}
+                  </p>
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {deleteDialog.checkResult.deleteType === 'SOFT' 
+                  ? "This listing will be deactivated (hidden from customers) but kept for historical records."
+                  : "This listing will be permanently deleted."}
+              </p>
+            </div>
+          ) : deleteDialog.listing?.isDraft ? (
+            "Are you sure you want to delete this draft? This action cannot be undone."
+          ) : (
+            "Are you sure you want to delete this listing? This will remove it from customer view."
+          )
         }
         itemName={deleteDialog.listing?.name}
-        isDeleting={isDeleting !== null}
+        isDeleting={isDeleting !== null || deleteDialog.isChecking}
+        confirmText={
+          deleteDialog.checkResult?.deleteType === 'SOFT' 
+            ? "Deactivate" 
+            : "Delete"
+        }
       />
     </VendorLayout>
   );

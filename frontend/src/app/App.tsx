@@ -52,6 +52,7 @@ const VendorListings = lazy(() => import("@/features/vendor/pages/VendorListings
 const VendorListingsDrafts = lazy(() => import("@/features/vendor/pages/VendorListingsDrafts"));
 const VendorListingsPackages = lazy(() => import("@/features/vendor/pages/VendorListingsPackages"));
 const VendorListingsItems = lazy(() => import("@/features/vendor/pages/VendorListingsItems"));
+const VendorListingsAll = lazy(() => import("@/features/vendor/pages/VendorListingsAll"));
 const ListingPreview = lazy(() => import("@/features/vendor/pages/ListingPreview"));
 const VendorOrders = lazy(() => import("@/features/vendor/pages/VendorOrders"));
 const VendorBookings = lazy(() => import("@/features/vendor/pages/VendorBookings"));
@@ -264,6 +265,13 @@ const App = () => (
               <ProtectedRoute requireVendor>
                 <Suspense fallback={<LoadingFallback />}>
                   <VendorListingsItems />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/vendor/listings/all" element={
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <VendorListingsAll />
                 </Suspense>
               </ProtectedRoute>
             } />

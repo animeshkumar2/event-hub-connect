@@ -59,7 +59,7 @@ export function ListingFormStep1({
             <SelectItem value="ITEM">
               <div className="flex items-center gap-2">
                 <Box className="h-4 w-4" />
-                <span>Item</span>
+                <span>Service</span>
               </div>
             </SelectItem>
           </SelectContent>
@@ -72,8 +72,8 @@ export function ListingFormStep1({
         {!editingListing && (
           <p className="text-xs text-muted-foreground">
             {listingType === 'PACKAGE' 
-              ? 'A package bundles 2 or more items together with custom pricing' 
-              : 'An item is a single service or product'}
+              ? 'A package bundles 2 or more services together with custom pricing' 
+              : 'A service is a single offering like Photography, Catering, etc.'}
           </p>
         )}
       </div>

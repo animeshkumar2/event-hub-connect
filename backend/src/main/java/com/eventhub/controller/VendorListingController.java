@@ -3,6 +3,7 @@ package com.eventhub.controller;
 import com.eventhub.dto.ApiResponse;
 import com.eventhub.dto.request.CreatePackageRequest;
 import com.eventhub.dto.request.CreateItemRequest;
+import com.eventhub.dto.response.ListingDeleteCheckDTO;
 import com.eventhub.model.Listing;
 import com.eventhub.service.VendorListingService;
 import com.eventhub.util.VendorIdResolver;
@@ -73,12 +74,22 @@ public class VendorListingController {
         return ResponseEntity.ok(ApiResponse.success(listing));
     }
   
-  @DeleteMapping("/{listingId}")
-    public ResponseEntity<ApiResponse<Void>> deleteListing(
+  @GetMapping("/{listingId}/delete-check")
+    public ResponseEntity<ApiResponse<ListingDeleteCheckDTO>> checkDeleteListing(
             @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
             @PathVariable UUID listingId) {
         UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
-        vendorListingService.deleteListing(listingId, vendorId);
+        ListingDeleteCheckDTO check = vendorListingService.checkDeleteListing(listingId, vendorId);
+        return ResponseEntity.ok(ApiResponse.success(check));
+    }
+  
+  @DeleteMapping("/{listingId}")
+    public ResponseEntity<ApiResponse<Void>> deleteListing(
+            @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
+            @PathVariable UUID listingId,
+            @RequestParam(value = "force", defaultValue = "false") boolean force) {
+        UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+        vendorListingService.deleteListing(listingId, vendorId, force);
         return ResponseEntity.ok(ApiResponse.success("Listing deleted successfully", null));
     }
 }

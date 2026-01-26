@@ -119,6 +119,14 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     
     // Check if any orders exist for a listing
     boolean existsByListingId(UUID listingId);
+    
+    // Check for active orders referencing a listing (for delete validation)
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.listing.id = :listingId AND o.status NOT IN ('COMPLETED', 'CANCELLED', 'REFUNDED')")
+    long countActiveOrdersByListing(@Param("listingId") UUID listingId);
+    
+    // Get active orders for a listing
+    @Query("SELECT o FROM Order o WHERE o.listing.id = :listingId AND o.status NOT IN ('COMPLETED', 'CANCELLED', 'REFUNDED')")
+    List<Order> findActiveOrdersByListing(@Param("listingId") UUID listingId);
 }
 
 

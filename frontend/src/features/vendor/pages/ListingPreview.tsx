@@ -10,14 +10,15 @@ import { Label } from '@/shared/components/ui/label';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Separator } from '@/shared/components/ui/separator';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
-import { ImageUpload } from '@/shared/components/ImageUpload';
+import { ImageUpload, PendingImageChanges } from '@/shared/components/ImageUpload';
 import { DeleteConfirmDialog } from '@/shared/components/DeleteConfirmDialog';
+import { uploadImage, deleteImages } from '@/shared/utils/storage';
 import { 
   Star, MapPin, Clock, CheckCircle2, XCircle, ArrowLeft, User, Users, Package,
-  AlertCircle, IndianRupee, Loader2, Save, X, Plus, Pencil, Eye, Heart, Share2,
+  AlertCircle, IndianRupee, Loader2, Save, X, Plus, Pencil, Eye,
   ShoppingCart, CalendarIcon, Lock, Camera, Trash2
 } from 'lucide-react';
-import { useVendorListingDetails, useVendorReviews, useEventTypes } from '@/shared/hooks/useApi';
+import { useVendorListingDetails, useEventTypes } from '@/shared/hooks/useApi';
 import { publicApi, vendorApi } from '@/shared/services/api';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
@@ -98,6 +99,9 @@ export default function ListingPreview() {
   const [draftExtraCharge, setDraftExtraCharge] = useState({ name: '', price: '' });
   const [showExtraChargeInput, setShowExtraChargeInput] = useState(false);
   
+  // Pending image changes for deferred upload
+  const [pendingImageChanges, setPendingImageChanges] = useState<PendingImageChanges | null>(null);
+  
   const { data: eventTypesData } = useEventTypes();
   const eventTypes = useMemo(() => eventTypesData || [], [eventTypesData]);
   const vendorId = listing?.vendorId || listing?.vendor?.id || null;
@@ -124,12 +128,6 @@ export default function ListingPreview() {
   });
   
   const linkedItems = useMemo(() => Array.isArray(bundledItemsData) ? bundledItemsData : [], [bundledItemsData]);
-  const { data: reviewsData } = useVendorReviews(vendorId || null, 0, 5);
-  const reviews = useMemo(() => {
-    if (!reviewsData) return [];
-    if (Array.isArray(reviewsData)) return reviewsData;
-    return (reviewsData as any)?.content || [];
-  }, [reviewsData]);
 
   const isPackage = listing?.type?.toLowerCase() === 'package' || listing?.type === 'PACKAGE';
   const isItem = listing?.type?.toLowerCase() === 'item' || listing?.type === 'ITEM';
@@ -179,16 +177,23 @@ export default function ListingPreview() {
     let parsedCategoryData: Record<string, any> = {};
     if (listing.categorySpecificData) { 
       try { 
-        // Handle both string and object cases
-        if (typeof listing.categorySpecificData === 'string') {
-          parsedCategoryData = JSON.parse(listing.categorySpecificData);
-        } else if (typeof listing.categorySpecificData === 'object') {
-          parsedCategoryData = listing.categorySpecificData;
+        let data = listing.categorySpecificData;
+        console.log('[EditMode] Raw categorySpecificData:', data, 'type:', typeof data);
+        
+        // Keep parsing while it's a string (handles multiple levels of stringification)
+        while (typeof data === 'string') {
+          data = JSON.parse(data);
         }
-        // Debug: Log parsed data
+        
+        // Ensure it's an object
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+          parsedCategoryData = data;
+        }
+        
         console.log('[EditMode] Parsed categorySpecificData:', parsedCategoryData);
       } catch (e) {
         console.error('[EditMode] Failed to parse categorySpecificData:', e);
+        console.error('[EditMode] Raw value was:', listing.categorySpecificData);
       }
     } else {
       console.log('[EditMode] No categorySpecificData on listing');
@@ -224,6 +229,7 @@ export default function ListingPreview() {
     setDraftIncludedItem(''); setShowIncludedItemInput(false);
     setDraftExcludedItem(''); setShowExcludedItemInput(false);
     setDraftExtraCharge({ name: '', price: '' }); setShowExtraChargeInput(false);
+    setPendingImageChanges(null); // Clear pending image changes
   }, []);
 
   const saveChanges = useCallback(async () => {
@@ -235,9 +241,58 @@ export default function ListingPreview() {
         const p = categorySpecificData;
         finalPrice = p.pricePerPlateVeg || p.price || p.photographyPrice || p.videographyPrice || p.bridalPrice || editForm.price;
       }
+      
+      // Start with current images from editForm
+      let finalImages = editForm.images || [];
+      
+      // Process pending image changes if any
+      if (pendingImageChanges) {
+        console.log('📸 Processing pending image changes:', {
+          filesToUpload: pendingImageChanges.filesToUpload.length,
+          urlsToDelete: pendingImageChanges.urlsToDelete,
+          finalOrder: pendingImageChanges.finalOrder.length,
+          finalOrderItems: pendingImageChanges.finalOrder.map(item => typeof item === 'string' ? item : 'File')
+        });
+        
+        const vendorId = localStorage.getItem('vendor_id') || 'unknown';
+        const folder = `vendors/${vendorId}/listings/${listing.id}`;
+        
+        // Upload new files
+        const uploadedUrls: Map<File, string> = new Map();
+        for (const file of pendingImageChanges.filesToUpload) {
+          try {
+            const url = await uploadImage(file, folder);
+            uploadedUrls.set(file, url);
+          } catch (error: any) {
+            toast.error(`Failed to upload ${file.name}: ${error.message}`);
+            throw error;
+          }
+        }
+        
+        // Build final URLs array in correct order
+        finalImages = pendingImageChanges.finalOrder.map(item => {
+          if (typeof item === 'string') return item;
+          return uploadedUrls.get(item) || '';
+        }).filter(url => url !== '');
+        
+        console.log('📸 Final images to save:', finalImages);
+        
+        // Delete removed images from R2 (don't fail if delete fails)
+        if (pendingImageChanges.urlsToDelete.length > 0) {
+          console.log('🗑️ Deleting images from R2:', pendingImageChanges.urlsToDelete);
+          deleteImages(pendingImageChanges.urlsToDelete).then(({ deleted, failed }) => {
+            console.log('🗑️ Delete results:', { deleted, failed });
+            if (deleted.length > 0) console.log('Deleted images from R2:', deleted.length);
+            if (failed.length > 0) console.warn('Failed to delete some images:', failed.length);
+          });
+        }
+      } else {
+        console.log('📸 No pending image changes, using editForm.images:', editForm.images);
+      }
+      
       const payload: any = {
         name: editForm.name, description: editForm.description, price: parseFloat(finalPrice) || 0,
-        images: editForm.images, highlights: editForm.highlights.filter((h: string) => h.trim()),
+        images: finalImages, highlights: editForm.highlights.filter((h: string) => h.trim()),
         includedItemsText: editForm.includedItemsText, excludedItemsText: editForm.excludedItemsText,
         extraChargesDetailed: editForm.extraChargesDetailed.filter((ec: any) => ec.name.trim() && ec.price).map((ec: any) => ({ name: ec.name, price: parseFloat(ec.price) || 0 })),
         deliveryTime: editForm.deliveryTime, customNotes: editForm.customNotes,
@@ -246,6 +301,9 @@ export default function ListingPreview() {
         minimumQuantity: listing.categoryId === 'caterer' ? (editForm.minimumQuantity || 0) : undefined,
         categorySpecificData: isItem && listing.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0 ? JSON.stringify(categorySpecificData) : undefined,
       };
+      
+      console.log('💾 Saving listing with images:', payload.images);
+      
       const response = await vendorApi.updateListing(listing.id, payload);
       if (response.success) {
         // Optimistic update - directly set the cache with new data
@@ -256,6 +314,9 @@ export default function ListingPreview() {
         };
         queryClient.setQueryData(['vendorListingDetails', listingId], updatedListing);
         
+        // Clear pending image changes
+        setPendingImageChanges(null);
+        
         // Exit edit mode immediately with optimistic data
         setIsEditMode(false);
         setEditForm(null);
@@ -263,12 +324,15 @@ export default function ListingPreview() {
         // Show success toast
         toast.success('Listing updated!');
         
-        // Background refetch to sync with server (won't block UI)
+        // Refetch queries to ensure fresh data everywhere
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
+        queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
+        // Force refetch the listings data so cards show updated images
+        queryClient.refetchQueries({ queryKey: ['myVendorListings'] });
       } else { toast.error(response.message || 'Failed to update'); }
     } catch (err: any) { toast.error(err.message || 'Failed to update'); }
     finally { setIsSaving(false); }
-  }, [listing, editForm, categorySpecificData, isItem, listingId, queryClient]);
+  }, [listing, editForm, categorySpecificData, isItem, listingId, queryClient, pendingImageChanges]);
 
   const addHighlight = () => { if (draftHighlight.trim()) { setEditForm((p: any) => ({ ...p, highlights: [...(p.highlights || []), draftHighlight.trim()] })); setDraftHighlight(''); setShowHighlightInput(false); } };
   const removeHighlight = (i: number) => setEditForm((p: any) => ({ ...p, highlights: p.highlights.filter((_: any, idx: number) => idx !== i) }));
@@ -431,22 +495,27 @@ export default function ListingPreview() {
             {isEditMode ? (
               <Card><CardContent className="p-3">
                 <Label className="text-xs font-medium mb-2 block">Photos</Label>
-                <ImageUpload images={editForm?.images || []} onChange={(imgs) => setEditForm((p: any) => ({ ...p, images: imgs }))} maxImages={10} />
+                <ImageUpload 
+                  images={editForm?.images || []} 
+                  onChange={(imgs) => setEditForm((p: any) => ({ ...p, images: imgs }))} 
+                  onPendingChanges={setPendingImageChanges}
+                  maxImages={10}
+                />
               </CardContent></Card>
             ) : (
               <div className="space-y-2">
                 {/* Main Image */}
-                <div className="relative rounded-lg overflow-hidden bg-slate-200 aspect-[2/1]">
+                <div className="relative rounded-lg overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 aspect-[16/9]">
                   {listing.images?.[selectedImageIndex] ? (
-                    <img src={listing.images[selectedImageIndex]} alt={listing.name} className="w-full h-full object-cover" />
+                    <img src={listing.images[selectedImageIndex]} alt={listing.name} className="w-full h-full object-contain" />
                   ) : listing.images?.[0] ? (
-                    <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover" />
+                    <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center"><Camera className="h-8 w-8 text-slate-400" /></div>
                   )}
                   <div className="absolute top-2 left-2 flex gap-1">
                     {isPackage && <Badge className="bg-primary/90 text-white text-[10px] h-5 px-1.5"><Package className="h-2.5 w-2.5 mr-0.5" />Package</Badge>}
-                    {isItem && <Badge className="bg-emerald-500/90 text-white text-[10px] h-5 px-1.5">Item</Badge>}
+                    {isItem && <Badge className="bg-emerald-500/90 text-white text-[10px] h-5 px-1.5">Service</Badge>}
                   </div>
                   {/* Image counter */}
                   {listing.images?.length > 1 && (
@@ -482,18 +551,12 @@ export default function ListingPreview() {
                 <div><Label className="text-xs">Description</Label><Textarea value={editForm?.description || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, description: e.target.value }))} rows={2} className="text-sm mt-1" /></div>
               </CardContent></Card>
             ) : (
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight truncate">{listing.name}</h1>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1"><User className="h-3 w-3" />{listing.vendorName}</span>
-                    {listing.vendorCity && <><span>•</span><span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{listing.vendorCity}</span></>}
-                    {listing.vendorRating > 0 && <><span>•</span><span className="flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{listing.vendorRating.toFixed(1)}</span></>}
-                  </div>
-                </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button variant="outline" size="icon" className="h-7 w-7 opacity-50" disabled><Share2 className="h-3 w-3" /></Button>
-                  <Button variant="outline" size="icon" className="h-7 w-7 opacity-50" disabled><Heart className="h-3 w-3" /></Button>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight truncate">{listing.name}</h1>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1"><User className="h-3 w-3" />{listing.vendorName}</span>
+                  {listing.vendorCity && <><span>•</span><span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{listing.vendorCity}</span></>}
+                  {listing.vendorRating > 0 && <><span>•</span><span className="flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{listing.vendorRating.toFixed(1)}</span></>}
                 </div>
               </div>
             )}
@@ -755,24 +818,6 @@ export default function ListingPreview() {
                 <h3 className="text-xs font-semibold mb-2">Additional Notes</h3>
                 {isEditMode ? <Textarea value={editForm?.customNotes || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, customNotes: e.target.value }))} rows={2} className="text-xs" placeholder="Terms, notes..." />
                 : <p className="text-[10px] text-slate-600 whitespace-pre-line">{listing.customNotes}</p>}
-              </CardContent></Card>
-            )}
-
-            {/* Reviews */}
-            {reviews.length > 0 && !isEditMode && (
-              <Card><CardContent className="p-3">
-                <h3 className="text-xs font-semibold mb-2">Reviews {listing.vendorRating > 0 && <span className="font-normal text-slate-400">({listing.vendorRating.toFixed(1)})</span>}</h3>
-                <div className="space-y-2">
-                  {reviews.slice(0, 2).map((r: any) => (
-                    <div key={r.id} className="border-b last:border-0 pb-2 last:pb-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-medium">{r.customerName || 'Anonymous'}</p>
-                        <div className="flex">{[...Array(5)].map((_, i) => <Star key={i} className={cn('h-2.5 w-2.5', i < (r.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300')} />)}</div>
-                      </div>
-                      {r.comment && <p className="text-[9px] text-slate-500 mt-0.5 line-clamp-2">{r.comment}</p>}
-                    </div>
-                  ))}
-                </div>
               </CardContent></Card>
             )}
           </div>

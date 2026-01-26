@@ -52,7 +52,7 @@ interface CategoryFieldRendererProps {
   onDraftExtraChargeChange?: (value: { name: string; price: string }) => void;
 }
 
-export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = React.memo(({
+export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = ({
   categoryId,
   values,
   onChange,
@@ -86,6 +86,9 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = React
   const config = useMemo(() => getCategoryConfig(categoryId), [categoryId]);
   const [packageDetailsOpen, setPackageDetailsOpen] = useState<string>('package-details');
 
+  // Debug: Log values received
+  console.log('🎨 CategoryFieldRenderer values:', { categoryId, values, config: config?.categoryId });
+
   const handleFieldChange = React.useCallback((fieldName: string, value: any) => {
     onChange((prev: Record<string, any>) => ({
       ...prev,
@@ -96,7 +99,19 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = React
   // Check if field should be visible based on dependencies
   const isFieldVisible = (field: FieldSchema): boolean => {
     if (!field.dependsOn) return true;
-    return !!values[field.dependsOn];
+    
+    const dependsOnValue = values[field.dependsOn];
+    
+    // If dependsOnValue is specified, check for specific value match
+    if (field.dependsOnValue) {
+      if (Array.isArray(field.dependsOnValue)) {
+        return field.dependsOnValue.includes(dependsOnValue);
+      }
+      return dependsOnValue === field.dependsOnValue;
+    }
+    
+    // Otherwise, just check for truthy value
+    return !!dependsOnValue;
   };
 
   const renderField = (field: FieldSchema) => {
@@ -283,4 +298,4 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = React
       )}
     </div>
   );
-});
+};

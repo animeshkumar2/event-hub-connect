@@ -319,7 +319,7 @@ export default function ListingDetail() {
                     </Badge>
                   )}
                   {isItem && (
-                    <Badge className="bg-emerald-500/90 text-white text-[10px] h-5 px-1.5">Item</Badge>
+                    <Badge className="bg-emerald-500/90 text-white text-[10px] h-5 px-1.5">Service</Badge>
                   )}
                   {listing.isPopular && (
                     <Badge className="bg-orange-500/90 text-white text-[10px] h-5 px-1.5">🔥 Popular</Badge>
@@ -408,7 +408,7 @@ export default function ListingDetail() {
               <section>
               <Card>
                 <CardContent className="p-3">
-                  <h2 className="text-xs font-semibold mb-2">About this {isPackage ? 'package' : 'item'}</h2>
+                  <h2 className="text-xs font-semibold mb-2">About this {isPackage ? 'package' : 'service'}</h2>
                   <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line line-clamp-4">
                     {listing.description || 'No description available.'}
                   </p>

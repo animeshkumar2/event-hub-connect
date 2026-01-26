@@ -9,15 +9,17 @@ import {
   AlertDialogTitle,
 } from '@/shared/components/ui/alert-dialog';
 import { AlertTriangle } from 'lucide-react';
+import { ReactNode } from 'react';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   title: string;
-  description: string;
+  description: string | ReactNode;
   itemName?: string;
   isDeleting?: boolean;
+  confirmText?: string;
 }
 
 export function DeleteConfirmDialog({
@@ -28,6 +30,7 @@ export function DeleteConfirmDialog({
   description,
   itemName,
   isDeleting = false,
+  confirmText = 'Delete',
 }: DeleteConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -39,13 +42,15 @@ export function DeleteConfirmDialog({
             </div>
             <AlertDialogTitle className="text-xl">{title}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-base pt-2">
-            {description}
-            {itemName && (
-              <span className="block mt-2 font-semibold text-foreground">
-                "{itemName}"
-              </span>
-            )}
+          <AlertDialogDescription asChild className="text-base pt-2">
+            <div>
+              {description}
+              {itemName && (
+                <span className="block mt-2 font-semibold text-foreground">
+                  "{itemName}"
+                </span>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -58,7 +63,7 @@ export function DeleteConfirmDialog({
             disabled={isDeleting}
             className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? `${confirmText}...` : confirmText}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

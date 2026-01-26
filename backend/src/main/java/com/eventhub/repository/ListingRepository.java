@@ -178,5 +178,9 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
            "GROUP BY category",
            nativeQuery = true)
     List<Object[]> getListingsByCategoryNative();
+    
+    // Check if listing has any orders (for delete validation)
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END FROM Order o WHERE o.listing.id = :listingId")
+    boolean hasAnyOrders(@Param("listingId") UUID listingId);
 }
 

@@ -1,14 +1,16 @@
 import { Label } from '@/shared/components/ui/label';
-import { ImageUpload } from '@/shared/components/ImageUpload';
+import { ImageUpload, PendingImageChanges } from '@/shared/components/ImageUpload';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { Camera, CheckCircle2 } from 'lucide-react';
 
 interface Step3Props {
   formData: any;
   handleImagesChange: (images: string[]) => void;
+  handlePendingImageDeletes?: (urls: string[]) => void;
+  handlePendingImageChanges?: (changes: PendingImageChanges) => void;
 }
 
-export function ListingFormStep3({ formData, handleImagesChange }: Step3Props) {
+export function ListingFormStep3({ formData, handleImagesChange, handlePendingImageDeletes, handlePendingImageChanges }: Step3Props) {
   return (
     <div className="space-y-4">
       <div className="text-center py-4">
@@ -31,6 +33,7 @@ export function ListingFormStep3({ formData, handleImagesChange }: Step3Props) {
         <ImageUpload
           images={formData.images}
           onChange={handleImagesChange}
+          onPendingChanges={handlePendingImageChanges}
           maxImages={20}
         />
       </div>

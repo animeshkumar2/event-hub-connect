@@ -69,12 +69,12 @@ export function BrandedLoader({ fullScreen = true, message }: BrandedLoaderProps
 
       {/* Loading text with enhanced styling */}
       {message && (
-        <div className="text-center space-y-2 animate-fade-in">
+        <div className="text-center space-y-3 animate-fade-in">
           <p className="text-lg font-semibold text-foreground bg-gradient-to-r from-primary via-foreground to-secondary bg-clip-text text-transparent animate-pulse">
             {message}{dots}
           </p>
-          {/* Progress bar */}
-          <div className="w-48 h-1 bg-muted rounded-full overflow-hidden">
+          {/* Progress bar - centered */}
+          <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mx-auto">
             <div className="h-full bg-gradient-to-r from-primary via-secondary to-primary animate-shimmer" 
                  style={{
                    backgroundSize: '200% 100%',

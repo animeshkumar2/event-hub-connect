@@ -22,37 +22,9 @@ import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationA
 import { RadiusSlider, VENDOR_RADIUS_OPTIONS } from '@/shared/components/RadiusSlider';
 import { categories, cities } from '@/shared/constants/mockData';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { uploadImage, validateImageFile, deleteImage } from '@/shared/utils/storage';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const COMPRESSION_QUALITY = 0.7;
-
-const compressImage = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-        const maxDimension = 1920;
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) { height = (height / width) * maxDimension; width = maxDimension; }
-          else { width = (width / height) * maxDimension; height = maxDimension; }
-        }
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('Failed to get canvas context')); return; }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', COMPRESSION_QUALITY));
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-};
 
 // Profile completion calculator - uses real data with accurate checks
 const calculateProfileCompletion = (profile: any, portfolioImages: string[], location: LocationDTO | null) => {
@@ -569,12 +541,12 @@ export default function VendorProfile() {
     finally { setIsSavingLocation(false); }
   };
 
-  // Auto-save function for cover and profile images
-  const autoSaveImage = async (imageType: 'cover' | 'profile', dataUrl: string) => {
+  // Auto-save function for cover and profile images (now uses R2 URL)
+  const autoSaveImage = async (imageType: 'cover' | 'profile', imageUrl: string) => {
     try {
       const updateData = imageType === 'cover' 
-        ? { coverImage: dataUrl }
-        : { profileImage: dataUrl };
+        ? { coverImage: imageUrl }
+        : { profileImage: imageUrl };
       const response = await vendorApi.updateProfile(updateData);
       if (response.success) {
         toast.success(`${imageType === 'cover' ? 'Cover' : 'Profile'} image saved!`);
@@ -590,12 +562,24 @@ export default function VendorProfile() {
   // Remove profile picture
   const handleRemoveProfileImage = async () => {
     setIsUploadingProfile(true);
+    const oldImageUrl = formData.profileImage;
+    
     try {
       const response = await vendorApi.updateProfile({ profileImage: '' });
       if (response.success) {
         setFormData({ ...formData, profileImage: '' });
         toast.success('Profile photo removed!');
         refetch();
+        
+        // Delete from R2 after successful DB update
+        if (oldImageUrl && oldImageUrl.includes('images.cartevent.com')) {
+          try {
+            await deleteImage(oldImageUrl);
+            console.log('Profile image deleted from R2:', oldImageUrl);
+          } catch (deleteError) {
+            console.warn('Failed to delete image from R2:', deleteError);
+          }
+        }
       } else {
         throw new Error(response.message || 'Failed to remove image');
       }
@@ -612,37 +596,60 @@ export default function VendorProfile() {
     const file = files[0];
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { toast.error('Only images allowed (JPG, PNG, WebP, GIF)'); return; }
     
+    // Validate file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || 'Invalid file');
+      return;
+    }
+    
     if (type === 'cover') setIsUploadingCover(true);
     else if (type === 'profile') setIsUploadingProfile(true);
     else setIsUploadingPortfolio(true);
     
     try {
-      let dataUrl: string;
-      if (file.size > MAX_FILE_SIZE) {
-        toast.info('Compressing image...');
-        dataUrl = await compressImage(file);
-      } else {
-        dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
+      const vendorId = localStorage.getItem('vendor_id') || 'new';
+      const folder = type === 'portfolio' 
+        ? `vendors/${vendorId}/portfolio`
+        : `vendors/${vendorId}/${type}`;
+      
+      // Get the old image URL to delete after successful upload
+      const oldImageUrl = type === 'cover' 
+        ? formData.coverImage 
+        : type === 'profile' 
+          ? formData.profileImage 
+          : null;
+      
+      // Upload to R2 via backend (compression happens on backend)
+      const imageUrl = await uploadImage(file, folder);
       
       if (type === 'cover') { 
-        setFormData(prev => ({ ...prev, coverImage: dataUrl })); 
+        setFormData(prev => ({ ...prev, coverImage: imageUrl })); 
         // Auto-save cover image immediately
-        await autoSaveImage('cover', dataUrl);
+        await autoSaveImage('cover', imageUrl);
       } else if (type === 'profile') { 
-        setFormData(prev => ({ ...prev, profileImage: dataUrl })); 
+        setFormData(prev => ({ ...prev, profileImage: imageUrl })); 
         // Auto-save profile image immediately
-        await autoSaveImage('profile', dataUrl);
+        await autoSaveImage('profile', imageUrl);
       } else { 
-        setPortfolioImages([...portfolioImages, dataUrl]); 
+        setPortfolioImages([...portfolioImages, imageUrl]); 
         toast.success('Image added! Click Save to apply.'); 
       }
-    } catch { toast.error('Failed to process image'); }
+      
+      // Delete old image from R2 after successful upload (for cover/profile only)
+      if (oldImageUrl && oldImageUrl.includes('images.cartevent.com')) {
+        try {
+          await deleteImage(oldImageUrl);
+          console.log('Old image deleted:', oldImageUrl);
+        } catch (deleteError) {
+          // Don't fail the upload if delete fails - just log it
+          console.warn('Failed to delete old image:', deleteError);
+        }
+      }
+    } catch (error: any) { 
+      console.error('Image upload failed:', error);
+      toast.error(error.message || 'Failed to upload image'); 
+    }
     finally { 
       if (type === 'cover') setIsUploadingCover(false);
       else if (type === 'profile') setIsUploadingProfile(false);
@@ -656,20 +663,23 @@ export default function VendorProfile() {
     if (!files || files.length === 0) return;
     setIsUploadingPortfolio(true);
     const newImages: string[] = [];
+    const vendorId = localStorage.getItem('vendor_id') || 'new';
+    const folder = `vendors/${vendorId}/portfolio`;
+    
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) continue;
+      
+      const validation = validateImageFile(file);
+      if (!validation.valid) continue;
+      
       try {
-        let dataUrl: string;
-        if (file.size > MAX_FILE_SIZE) dataUrl = await compressImage(file);
-        else dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        newImages.push(dataUrl);
-      } catch {}
+        // Upload to R2 via backend
+        const imageUrl = await uploadImage(file, folder);
+        newImages.push(imageUrl);
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+      }
     }
     if (newImages.length > 0) { setPortfolioImages([...portfolioImages, ...newImages]); toast.success(`${newImages.length} image(s) added!`); }
     setIsUploadingPortfolio(false);
