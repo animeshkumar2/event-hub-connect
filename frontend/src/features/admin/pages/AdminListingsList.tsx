@@ -384,7 +384,7 @@ export default function AdminListingsList() {
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="text-xl font-semibold">{listing.name}</h3>
                         <Badge variant={listing.type === 'PACKAGE' ? 'default' : 'secondary'}>
-                          {listing.type}
+                          {listing.type === 'PACKAGE' ? 'Package' : 'Service'}
                         </Badge>
                         {listing.isActive ? (
                           <Badge variant="default" className="bg-green-500">

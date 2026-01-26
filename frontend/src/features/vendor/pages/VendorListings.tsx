@@ -1405,7 +1405,6 @@ export default function VendorListings() {
         <TemplateSelectionModal
           open={showTemplateModal}
           onOpenChange={setShowTemplateModal}
-          vendorCategoryId={vendorCoreCategoryId}
           onStartBlank={handleStartBlank}
           onRefetch={refetch}
         />
@@ -1497,62 +1496,92 @@ export default function VendorListings() {
           </Alert>
         )}
 
-        {/* Draft Listings Section - Compact Alert Style */}
+        {/* Draft Listings Section - Improved UX */}
         {draftListings.length > 0 && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-600" />
-                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  {draftListings.length} incomplete draft{draftListings.length !== 1 ? 's' : ''}
-                </span>
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                    {draftListings.length} Incomplete {draftListings.length === 1 ? 'Draft' : 'Drafts'}
+                  </h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Continue editing to publish
+                  </p>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setDraftSectionOpen(draftSectionOpen ? undefined : 'drafts')}
-                className="h-7 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+                className="h-8 px-3 text-xs font-medium text-amber-700 hover:text-amber-900 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-800"
               >
-                {draftSectionOpen ? 'Hide' : 'Show'} <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${draftSectionOpen ? 'rotate-180' : ''}`} />
+                {draftSectionOpen ? 'Hide' : 'Show'} 
+                <ChevronDown className={`h-3.5 w-3.5 ml-1.5 transition-transform duration-200 ${draftSectionOpen ? 'rotate-180' : ''}`} />
               </Button>
             </div>
+            
             {draftSectionOpen && (
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              <div className="space-y-2">
                 {draftListings.slice(0, 4).map((listing: any) => (
                   <div 
                     key={listing.id}
-                    className="flex items-center gap-2 p-2 bg-white dark:bg-card rounded-lg border border-amber-200 dark:border-amber-800 group"
+                    className="flex items-center gap-3 p-3 bg-white dark:bg-card rounded-lg border border-amber-100 dark:border-amber-800/50 hover:border-amber-300 dark:hover:border-amber-700 transition-colors group"
                   >
-                    <div 
-                      onClick={() => navigate(`/vendor/listings/preview/${listing.id}?edit=true`)}
-                      className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:opacity-80"
-                    >
-                      <div className="w-10 h-10 rounded bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {listing.images?.[0] ? (
-                          <img src={listing.images[0]} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Box className="h-4 w-4 text-amber-500" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-foreground truncate">{listing.name || 'Untitled'}</p>
-                        <p className="text-[10px] text-muted-foreground">{listing.type}</p>
-                      </div>
+                    {/* Thumbnail */}
+                    <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {listing.images?.[0] ? (
+                        <img src={listing.images[0]} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Box className="h-5 w-5 text-amber-400" />
+                      )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleDelete(listing); }}
-                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {listing.name || 'Untitled Service'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {listing.type === 'PACKAGE' ? 'Package' : 'Service'} • Last edited recently
+                      </p>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/vendor/listings/preview/${listing.id}?edit=true`)}
+                        className="h-8 px-3 text-xs font-medium border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-700 dark:text-amber-300"
+                      >
+                        <Edit className="h-3 w-3 mr-1.5" />
+                        Continue
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(listing); }}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
+                
+                {/* View All Link */}
                 {draftListings.length > 4 && (
-                  <Button variant="ghost" size="sm" className="h-auto py-2 text-xs text-amber-700" onClick={() => navigate('/vendor/listings/drafts')}>
-                    +{draftListings.length - 4} more
-                  </Button>
+                  <button 
+                    onClick={() => navigate('/vendor/listings/drafts')}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-amber-700 hover:text-amber-900 hover:bg-amber-100/50 dark:text-amber-300 dark:hover:bg-amber-800/30 rounded-lg transition-colors"
+                  >
+                    View all {draftListings.length} drafts
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 )}
               </div>
             )}
@@ -1830,40 +1859,58 @@ export default function VendorListings() {
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, listing: null, checkResult: null, isChecking: false })}
         onConfirm={confirmDelete}
-        title="Delete Listing"
+        title={
+          deleteDialog.checkResult?.deleteType === 'SOFT' 
+            ? "Can't Delete This Service" 
+            : "Delete Listing"
+        }
         description={
           deleteDialog.isChecking ? (
-            "Checking for dependencies..."
+            "Checking for active bookings..."
           ) : deleteDialog.checkResult?.warningMessage ? (
-            <div className="space-y-3">
-              <p className="text-amber-600 dark:text-amber-400 font-medium">
-                ⚠️ Warning: This listing has dependencies
-              </p>
+            <div className="space-y-4">
               {deleteDialog.checkResult.hasActiveOrders && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    {deleteDialog.checkResult.activeOrderCount} Active Booking(s)
-                  </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                    Orders: {deleteDialog.checkResult.activeOrderNumbers.join(', ')}
-                  </p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">📋</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-amber-800 dark:text-amber-200">
+                        {deleteDialog.checkResult.activeOrderCount} customer{deleteDialog.checkResult.activeOrderCount > 1 ? 's have' : ' has'} booked this service
+                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                        You can't delete services with active bookings. We'll hide it from new customers instead.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
               {deleteDialog.checkResult.isUsedInPackages && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                    Used in {deleteDialog.checkResult.packageCount} Package(s)
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    {deleteDialog.checkResult.packageNames.join(', ')}
-                  </p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">📦</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">
+                        Part of {deleteDialog.checkResult.packageCount} package{deleteDialog.checkResult.packageCount > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        {deleteDialog.checkResult.packageNames.join(', ')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
-              <p className="text-sm text-muted-foreground">
-                {deleteDialog.checkResult.deleteType === 'SOFT' 
-                  ? "This listing will be deactivated (hidden from customers) but kept for historical records."
-                  : "This listing will be permanently deleted."}
-              </p>
+              <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                <p className="font-medium text-foreground">What happens next?</p>
+                <p className="text-muted-foreground mt-1">
+                  {deleteDialog.checkResult.deleteType === 'SOFT' 
+                    ? "This service will be hidden from your storefront. Existing bookings will continue as normal. You can reactivate it anytime."
+                    : "This listing will be permanently deleted."}
+                </p>
+              </div>
             </div>
           ) : deleteDialog.listing?.isDraft ? (
             "Are you sure you want to delete this draft? This action cannot be undone."
@@ -1875,7 +1922,7 @@ export default function VendorListings() {
         isDeleting={isDeleting !== null || deleteDialog.isChecking}
         confirmText={
           deleteDialog.checkResult?.deleteType === 'SOFT' 
-            ? "Deactivate" 
+            ? "Deactivate Service" 
             : "Delete"
         }
       />
