@@ -32,6 +32,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dia
 import { PremiumChatWindow } from '@/features/vendor/PremiumChatWindow';
 
 import { CategorySpecificDisplay } from './CategorySpecificDisplay';
+import { PackageDetailView } from './PackageDetailView';
 
 // Type for extra charges
 interface ExtraCharge {
@@ -217,6 +218,17 @@ export default function ListingDetail() {
           </Card>
         </div>
       </div>
+    );
+  }
+
+  // Use enhanced PackageDetailView for packages with bundled items
+  if (isPackage && listing.includedItemIds && listing.includedItemIds.length > 0) {
+    return (
+      <PackageDetailView 
+        listing={listing} 
+        isOwner={isOwner}
+        reviews={reviews}
+      />
     );
   }
 

@@ -180,11 +180,26 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
       <SectionHeader icon={Package} title="What You'll Receive" />
       <div className="grid grid-cols-2 gap-1.5">
         <BooleanFeature label="Raw Photos" value={data.rawPhotos} />
-        <BooleanFeature label="Highlight Video" value={data.highlightVideo} />
-        <BooleanFeature label="Full Video" value={data.fullVideo} />
+        {data.highlightVideo && (
+          <div className="flex items-center gap-1.5 p-1.5 rounded bg-green-50 text-[10px] text-green-700">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>Highlight Video{data.highlightVideoMinutes ? ` (${data.highlightVideoMinutes} min)` : ''}</span>
+          </div>
+        )}
+        {data.fullVideo && (
+          <div className="flex items-center gap-1.5 p-1.5 rounded bg-green-50 text-[10px] text-green-700">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>Full Video{data.fullVideoMinutes ? ` (${data.fullVideoMinutes} min)` : ''}</span>
+          </div>
+        )}
         <BooleanFeature label="Drone Coverage" value={data.droneIncluded} />
-        <BooleanFeature label="Album" value={data.albumIncluded} />
-        <BooleanFeature label="Pre-Wedding" value={data.preWeddingIncluded} />
+        {data.albumIncluded && (
+          <div className="flex items-center gap-1.5 p-1.5 rounded bg-green-50 text-[10px] text-green-700">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>Physical Album{data.albumPages ? ` (${data.albumPages} pages)` : ''}</span>
+          </div>
+        )}
+        <BooleanFeature label="Pre-Wedding Shoot" value={data.preWeddingIncluded} />
       </div>
     </div>
   );

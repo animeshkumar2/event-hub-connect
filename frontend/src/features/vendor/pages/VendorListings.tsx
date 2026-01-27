@@ -150,10 +150,6 @@ export default function VendorListings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Render counter for debugging
-  const renderCount = React.useRef(0);
-  renderCount.current += 1;
-  
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [listingType, setListingType] = useState<'PACKAGE' | 'ITEM'>('PACKAGE');
@@ -203,37 +199,13 @@ export default function VendorListings() {
   // Fetch data in parallel using optimized hook
   const { listings, profile, eventTypes, categories, loading: dataLoading } = useVendorListingsData();
   
-  // Debug: Track what's changing
-  const prevListingsData = React.useRef(listings.data);
-  const prevProfileData = React.useRef(profile.data);
-  if (prevListingsData.current !== listings.data) {
-    console.log('⚠️ listings.data reference changed', {
-      prevLength: prevListingsData.current?.length,
-      newLength: listings.data?.length,
-      same: prevListingsData.current === listings.data
-    });
-    prevListingsData.current = listings.data;
-  }
-  if (prevProfileData.current !== profile.data) {
-    console.log('⚠️ profile.data reference changed');
-    prevProfileData.current = profile.data;
-  }
-  
-  console.log('🟡 After useVendorListingsData', {
-    listingsDataLength: listings.data?.length,
-    listingsLoading: listings.loading,
-    listingsFetching: listings.isFetching,
-    profileFetching: profile.isFetching,
-    eventTypesFetching: eventTypes.isFetching,
-    categoriesFetching: categories.isFetching
-  });
   const { data: eventTypeCategoriesData } = useEventTypeCategories();
   
   // Check if vendor profile is complete (MUST be after all other hooks)
   const { isComplete: profileComplete, isLoading: profileLoading, canCreateListing, completionPercentage, missingFields } = useVendorProfileCompletion();
   
   // Memoize listingsData to prevent re-renders when reference changes but data is the same
-  const listingsData = React.useMemo(() => listings.data, [listings.data]);
+  const listingsData = listings.data;
   const listingsLoading = listings.loading || dataLoading;
   const listingsError = listings.error;
   const refetch = listings.refetch;
@@ -241,43 +213,12 @@ export default function VendorListings() {
   const eventTypesData = eventTypes.data;
   const categoriesData = categories.data;
   const eventTypeCategories = React.useMemo(() => eventTypeCategoriesData || [], [eventTypeCategoriesData]);
-  
-  // Debug: Check if listingsData reference is changing
-  const listingsDataRef = React.useRef(listingsData);
-  if (listingsDataRef.current !== listingsData) {
-    console.log('⚠️ listingsData reference changed!', {
-      old: listingsDataRef.current,
-      new: listingsData,
-      same: listingsDataRef.current === listingsData
-    });
-    listingsDataRef.current = listingsData;
-  }
 
   // Form state
   const [formData, setFormData] = useState(initialFormData);
   
-  // Wrap setFormData to log when it's called
-  const setFormDataWithLog = React.useCallback((data: any) => {
-    console.log('🟢 setFormData called', typeof data === 'function' ? 'with function' : 'with data');
-    console.trace('Stack trace:');
-    setFormData(data);
-  }, []);
-  
-  console.log('🔴 VendorListings render #', renderCount.current, {
-    showCreateModal,
-    editingListingId: editingListing?.id,
-    formDataCategoryId: formData.categoryId,
-    listingsDataLength: listingsData?.length
-  });
-  
   // Category-specific fields state
   const [categorySpecificData, setCategorySpecificData] = useState<Record<string, any>>({});
-  
-  // Wrap setCategorySpecificData to log when it's called
-  const setCategorySpecificDataWithLog = React.useCallback((data: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => {
-    console.log('🔵 setCategorySpecificData called', typeof data === 'function' ? 'with function' : data);
-    setCategorySpecificData(data);
-  }, []);
 
   // Draft states for inline editing
   const [draftIncludedItem, setDraftIncludedItem] = useState('');
@@ -426,13 +367,7 @@ export default function VendorListings() {
   );
   
   const items = React.useMemo(() => {
-    const filtered = completedListings.filter((l: any) => l.type === 'ITEM');
-    console.log('📦 Items for bundling:', {
-      completedListingsCount: completedListings.length,
-      itemsCount: filtered.length,
-      items: filtered.map((i: any) => ({ id: i.id, name: i.name, type: i.type, isDraft: i.isDraft }))
-    });
-    return filtered;
+    return completedListings.filter((l: any) => l.type === 'ITEM');
   }, [completedListings]);
   
   const filteredListings = completedListings;
@@ -462,18 +397,8 @@ export default function VendorListings() {
   const loadedListingIdRef = React.useRef<string | null>(null);
   
   useEffect(() => {
-    console.log('🟢 useEffect running:', {
-      showCreateModal,
-      editingListingId: editingListing?.id,
-      loadedListingId: loadedListingIdRef.current,
-      rawCategorySpecificData: editingListing?.categorySpecificData,
-      typeOfRawData: typeof editingListing?.categorySpecificData
-    });
-    
     // Only load if modal is open and we have a new listing to edit
     if (showCreateModal && editingListing && editingListing.id !== loadedListingIdRef.current) {
-      console.log('✅ Loading listing data');
-      
       // Mark as loaded FIRST to prevent re-running
       loadedListingIdRef.current = editingListing.id;
       
@@ -505,14 +430,10 @@ export default function VendorListings() {
           }
           
           parsedCategorySpecificData = data;
-          console.log('📦 Parsed categorySpecificData:', parsedCategorySpecificData);
         } catch (e) {
           console.error('Failed to parse categorySpecificData:', e);
-          console.error('Raw categorySpecificData:', editingListing.categorySpecificData);
           parsedCategorySpecificData = {};
         }
-      } else {
-        console.log('⚠️ No categorySpecificData found in editingListing');
       }
       
       // Convert DB category ID to core category ID
@@ -530,10 +451,8 @@ export default function VendorListings() {
         }).filter((id: any) => id != null);
       }
       
-      console.log('� Setting form data with eventTypeIds:', eventTypeIds);
-      
       // Set all state at once to minimize re-renders
-      setFormDataWithLog({
+      setFormData({
         id: editingListing.id, // Include ID for image upload folder path
         name: editingListing.name || '',
         description: editingListing.description || '',
@@ -554,11 +473,6 @@ export default function VendorListings() {
         customNotes: editingListing.customNotes || '',
         serviceMode: editingListing.serviceMode || 'BOTH',
       });
-      console.log('📋 DEBUG - includedItemsText:', editingListing.includedItemsText);
-      console.log('📋 DEBUG - excludedItemsText:', editingListing.excludedItemsText);
-      console.log('📋 DEBUG - customNotes:', editingListing.customNotes);
-      console.log('✅ setFormData called');
-      console.log('📦 Setting categorySpecificData:', { type: typeof parsedCategorySpecificData, value: parsedCategorySpecificData });
       setCategorySpecificData(parsedCategorySpecificData);
       setListingType(editingListing.type || 'PACKAGE');
       setExpandedSections({
@@ -572,7 +486,7 @@ export default function VendorListings() {
       // Only reset when modal is actually closed
       loadedListingIdRef.current = null;
     }
-  }, [editingListing?.id, showCreateModal]); // Only depend on ID and modal state
+  }, [editingListing?.id, showCreateModal, vendorCategoryId]); // Only depend on ID and modal state
 
   const handleSubmit = async () => {
     // Prevent multiple clicks
@@ -1126,10 +1040,6 @@ export default function VendorListings() {
   const handleSaveAsDraft = async () => {
     // Check if vendor_id exists in localStorage
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') : null;
-    console.log('🔍 Checking vendor_id:', vendorId);
-    console.log('📦 All localStorage keys:', Object.keys(localStorage));
-    console.log('👤 User ID:', localStorage.getItem('user_id'));
-    console.log('🎭 User Role:', localStorage.getItem('user_role'));
     
     if (!vendorId) {
       toast.error('Vendor profile not found. Please complete vendor onboarding first.');
@@ -1215,10 +1125,6 @@ export default function VendorListings() {
       // Include/exclude items are available for both packages and items
       payload.includedItemsText = formData.includedItemsText.filter((i: string) => i.trim());
       payload.excludedItemsText = formData.excludedItemsText.filter((i: string) => i.trim());
-      
-      console.log('📤 DRAFT SAVE - includedItemsText:', payload.includedItemsText);
-      console.log('📤 DRAFT SAVE - excludedItemsText:', payload.excludedItemsText);
-      console.log('📤 DRAFT SAVE - Full payload:', JSON.stringify(payload, null, 2));
 
       if (listingType === 'PACKAGE') {
         payload.includedItemIds = formData.includedItemIds;
@@ -1430,14 +1336,11 @@ export default function VendorListings() {
 
               <ListingFormWizard
                 formData={formData}
-                setFormData={setFormDataWithLog}
+                setFormData={setFormData}
                 listingType={listingType}
                 setListingType={setListingType}
-                categorySpecificData={(() => {
-                  console.log('🔴 Passing categorySpecificData to wizard:', typeof categorySpecificData, categorySpecificData);
-                  return categorySpecificData;
-                })()}
-                setCategorySpecificData={setCategorySpecificDataWithLog}
+                categorySpecificData={categorySpecificData}
+                setCategorySpecificData={setCategorySpecificData}
                 editingListing={editingListing}
                 onSubmit={handleSubmit}
                 onSaveAsDraft={handleSaveAsDraft}

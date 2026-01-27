@@ -637,30 +637,79 @@ export function useVendorListingsData() {
     ],
   });
 
-  // Memoize each converted result individually
+  // Extract primitive values for stable dependencies
+  const listingsData = queries[0].data;
+  const listingsLoading = queries[0].isLoading;
+  const listingsError = queries[0].error;
+  const listingsFetching = queries[0].isFetching;
+  const listingsRefetch = queries[0].refetch;
+  
+  const profileData = queries[1].data;
+  const profileLoading = queries[1].isLoading;
+  const profileError = queries[1].error;
+  const profileFetching = queries[1].isFetching;
+  const profileRefetch = queries[1].refetch;
+  
+  const eventTypesData = queries[2].data;
+  const eventTypesLoading = queries[2].isLoading;
+  const eventTypesError = queries[2].error;
+  const eventTypesFetching = queries[2].isFetching;
+  const eventTypesRefetch = queries[2].refetch;
+  
+  const categoriesData = queries[3].data;
+  const categoriesLoading = queries[3].isLoading;
+  const categoriesError = queries[3].error;
+  const categoriesFetching = queries[3].isFetching;
+  const categoriesRefetch = queries[3].refetch;
+
+  // Memoize each result object with primitive dependencies
   const listings = useMemo(
-    () => convertQueryResult(queries[0]),
-    [queries[0].data, queries[0].isLoading, queries[0].error, queries[0].isFetching]
+    () => ({
+      data: listingsData ?? null,
+      loading: listingsLoading,
+      isFetching: listingsFetching,
+      error: listingsError?.message || null,
+      refetch: () => listingsRefetch(),
+    }),
+    [listingsData, listingsLoading, listingsError?.message, listingsFetching, listingsRefetch]
   );
   
   const profile = useMemo(
-    () => convertQueryResult(queries[1]),
-    [queries[1].data, queries[1].isLoading, queries[1].error, queries[1].isFetching]
+    () => ({
+      data: profileData ?? null,
+      loading: profileLoading,
+      isFetching: profileFetching,
+      error: profileError?.message || null,
+      refetch: () => profileRefetch(),
+    }),
+    [profileData, profileLoading, profileError?.message, profileFetching, profileRefetch]
   );
   
   const eventTypes = useMemo(
-    () => convertQueryResult(queries[2]),
-    [queries[2].data, queries[2].isLoading, queries[2].error, queries[2].isFetching]
+    () => ({
+      data: eventTypesData ?? null,
+      loading: eventTypesLoading,
+      isFetching: eventTypesFetching,
+      error: eventTypesError?.message || null,
+      refetch: () => eventTypesRefetch(),
+    }),
+    [eventTypesData, eventTypesLoading, eventTypesError?.message, eventTypesFetching, eventTypesRefetch]
   );
   
   const categories = useMemo(
-    () => convertQueryResult(queries[3]),
-    [queries[3].data, queries[3].isLoading, queries[3].error, queries[3].isFetching]
+    () => ({
+      data: categoriesData ?? null,
+      loading: categoriesLoading,
+      isFetching: categoriesFetching,
+      error: categoriesError?.message || null,
+      refetch: () => categoriesRefetch(),
+    }),
+    [categoriesData, categoriesLoading, categoriesError?.message, categoriesFetching, categoriesRefetch]
   );
   
-  const loading = queries.some(q => q.isLoading);
+  const loading = listingsLoading || profileLoading || eventTypesLoading || categoriesLoading;
 
-  // Memoize the final return object
+  // Memoize the final return object with stable references
   return useMemo(() => ({
     listings,
     profile,

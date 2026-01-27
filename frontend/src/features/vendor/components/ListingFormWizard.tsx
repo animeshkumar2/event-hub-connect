@@ -77,18 +77,6 @@ interface ListingFormWizardProps {
 export const ListingFormWizard = React.memo(function ListingFormWizard(props: ListingFormWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   
-  // Render counter for debugging
-  const renderCount = React.useRef(0);
-  renderCount.current += 1;
-  console.log('🎯 Wizard render #', renderCount.current);
-  
-  // Debug: Track what props are changing
-  const prevCategorySpecificData = React.useRef(props.categorySpecificData);
-  if (prevCategorySpecificData.current !== props.categorySpecificData) {
-    console.log('⚠️ categorySpecificData reference changed in wizard');
-    prevCategorySpecificData.current = props.categorySpecificData;
-  }
-  
   // Different total steps for packages vs items
   const totalSteps = props.listingType === 'PACKAGE' ? 5 : 4;
 

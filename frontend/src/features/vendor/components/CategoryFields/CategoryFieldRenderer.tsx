@@ -23,6 +23,8 @@ interface CategoryFieldRendererProps {
   errors?: Record<string, string>;
   // Package details props (for inclusions/exclusions)
   listingType?: 'PACKAGE' | 'ITEM';
+  // Hide the package details section (Included/Excluded/Extra Charges)
+  hidePackageDetails?: boolean;
   // Inclusions
   includedItems?: string[];
   draftIncludedItem?: string;
@@ -58,6 +60,7 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = ({
   onChange,
   errors = {},
   listingType,
+  hidePackageDetails = false,
   includedItems = [],
   draftIncludedItem = '',
   showIncludedItemInput = false,
@@ -173,7 +176,7 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = ({
       </div>
 
       {/* Additional Info Section - Compact */}
-      {config.showPackageDetails && (
+      {config.showPackageDetails && !hidePackageDetails && (
         <Accordion 
           type="single" 
           collapsible 
