@@ -1,0 +1,76 @@
+# ============================================
+# LOCAL DEVELOPMENT DOCKER COMPOSE
+# Use: docker compose -f docker-compose-dev.yml up -d
+# ============================================
+
+services:
+  # Local PostgreSQL Database
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: eventhub-dev-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpassword123
+      POSTGRES_DB: eventhub
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d eventhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - eventhub-dev-network
+
+  # Backend (connects to local PostgreSQL)
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eventhub-backend-dev
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-dev:5432/eventhub
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=devpassword123
+    restart: unless-stopped
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - eventhub-dev-network
+
+  # Frontend
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eventhub-frontend-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=http://localhost:8082/api
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    depends_on:
+      - backend-dev
+    networks:
+      - eventhub-dev-network
+
+volumes:
+  postgres_dev_data:
+
+networks:
+  eventhub-dev-network:
+    driver: bridge

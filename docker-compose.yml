@@ -1,4 +1,31 @@
 services:
+  # ============================================
+  # LOCAL DEVELOPMENT DATABASE (PostgreSQL)
+  # ============================================
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: eventhub-dev-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpassword123
+      POSTGRES_DB: eventhub
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d eventhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - eventhub-network
+
+  # ============================================
+  # FRONTEND (Development)
+  # ============================================
   frontend:
     build:
       context: ./frontend
@@ -9,45 +36,42 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    # Note: Vite automatically loads .env.local from the mounted volume
-    # Don't set VITE_API_BASE_URL here to allow .env.local to take precedence
     env_file:
-      - .env
+      - ./frontend/.env.development
     environment:
       - NODE_ENV=development
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://vwhxzxayzpdfmpnnzslq.supabase.co}
-      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3aHh6eGF5enBkZm1wbm56c2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3MDM4NjksImV4cCI6MjA4MDI3OTg2OX0.eOg_EmPuJA9SJdhkbw1zBH5jthFrZ5Jo9o_zRztfgCY}
-      # VITE_API_BASE_URL is NOT set here - it will be read from .env.local (local dev) or .env (production)
     stdin_open: true
     tty: true
     restart: unless-stopped
+    depends_on:
+      - backend
     networks:
       - eventhub-network
 
+  # ============================================
+  # BACKEND (Development - connects to local PostgreSQL)
+  # ============================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: eventhub-backend
     ports:
-      - "8081:8080"
+      - "8082:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db.vwhxzxayzpdfmpnnzslq.supabase.co:5432/postgres
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-dev:5432/eventhub
       - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=event@9060dbpassword
-      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=none
-      - SPRING_JPA_SHOW_SQL=true
-      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
-      - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=true
-      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=10
-      - SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=5
-      - SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=30000
-      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=INFO
-      - LOGGING_LEVEL_ORG_HIBERNATE_SQL=DEBUG
+      - SPRING_DATASOURCE_PASSWORD=devpassword123
     restart: unless-stopped
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
     networks:
       - eventhub-network
+
+volumes:
+  postgres_dev_data:
 
 networks:
   eventhub-network:
