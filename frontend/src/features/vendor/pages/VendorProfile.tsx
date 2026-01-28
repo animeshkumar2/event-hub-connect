@@ -363,21 +363,23 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 )}
               </div>
               
-              {/* Coverage Radius */}
-              <div className="space-y-3">
-                <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <Navigation className="h-3.5 w-3.5" /> How far are you willing to travel?
-                </Label>
-                <RadiusSlider
-                  value={coverageRadius}
-                  onChange={setCoverageRadius}
-                  options={VENDOR_RADIUS_OPTIONS}
-                  label=""
-                />
-                <p className="text-xs text-muted-foreground">
-                  You'll receive leads within {coverageRadius}km of your location
-                </p>
-              </div>
+              {/* Coverage Radius - Only show after location is set */}
+              {serviceLocation && (
+                <div className="space-y-3 pt-2 border-t border-border/50">
+                  <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <Navigation className="h-3.5 w-3.5" /> How far will you travel at no extra cost?
+                  </Label>
+                  <RadiusSlider
+                    value={coverageRadius}
+                    onChange={setCoverageRadius}
+                    options={VENDOR_RADIUS_OPTIONS}
+                    label=""
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Customers within {coverageRadius}km won't be charged travel fees
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1268,7 +1270,20 @@ export default function VendorProfile() {
                     
                     <LocationAutocomplete value={location} onChange={setLocation} placeholder="Search for your location..." label="Primary Service Location" />
                     
-                    <RadiusSlider value={serviceRadiusKm} onChange={setServiceRadiusKm} options={VENDOR_RADIUS_OPTIONS} label="How far are you willing to travel?" />
+                    {/* Only show radius slider after location is set */}
+                    {location && (
+                      <div className="space-y-2 pt-2 border-t border-border/50">
+                        <RadiusSlider 
+                          value={serviceRadiusKm} 
+                          onChange={setServiceRadiusKm} 
+                          options={VENDOR_RADIUS_OPTIONS} 
+                          label="How far will you travel at no extra cost?" 
+                        />
+                        <p className="text-xs text-muted-foreground pl-1">
+                          💡 Customers within this radius won't be charged travel fees
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-muted/30 rounded-2xl p-6">

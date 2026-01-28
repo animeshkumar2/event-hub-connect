@@ -579,7 +579,10 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
                       <Alert className="border-green-500/50 bg-green-500/10">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                         <AlertDescription className="text-sm text-green-700">
-                          Great! You've selected {editModeTotal.validCount} services for this package
+                          {editModeTotal.validCount === 2 
+                            ? "You've selected 2 services. Add more services first if you want to change your selection."
+                            : `Great! You've selected ${editModeTotal.validCount} services for this package`
+                          }
                         </AlertDescription>
                       </Alert>
                     )}
@@ -617,7 +620,7 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
                                   )}
                                 />
                                 {isSelected && !canDeselect && (
-                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center" title="Minimum 2 services required">
+                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center" title="Add another service first to change selection">
                                     <Lock className="h-2 w-2 text-white" />
                                   </div>
                                 )}
@@ -635,12 +638,6 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
                                 <p className={cn("text-sm font-medium truncate", isSelected && "text-primary")}>{item.name}</p>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <Badge variant="outline" className="text-[10px]">{categoryName}</Badge>
-                                  {isSelected && !canDeselect && (
-                                    <span className="text-[9px] text-amber-600 flex items-center gap-0.5">
-                                      <Lock className="h-2.5 w-2.5" />
-                                      Required
-                                    </span>
-                                  )}
                                 </div>
                               </div>
                               

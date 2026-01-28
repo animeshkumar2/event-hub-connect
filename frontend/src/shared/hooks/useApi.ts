@@ -598,7 +598,7 @@ export function useVendorListingsData() {
         },
         staleTime: 30 * 1000,
         refetchOnWindowFocus: false,
-        refetchOnMount: false,
+        refetchOnMount: 'always', // Always refetch when component mounts (e.g., after navigation)
         refetchOnReconnect: false,
       },
       {

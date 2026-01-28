@@ -332,6 +332,24 @@ public class VendorListingService {
             listing.setCategorySpecificData(updatedListing.getCategorySpecificData());
         }
         
+        // Service mode
+        if (updatedListing.getServiceMode() != null) {
+            listing.setServiceMode(updatedListing.getServiceMode());
+        }
+        
+        // Event types - update if provided
+        if (updatedListing.getEventTypeIds() != null && !updatedListing.getEventTypeIds().isEmpty()) {
+            System.out.println("📝 Updating event types to: " + updatedListing.getEventTypeIds());
+            List<EventType> eventTypes = updatedListing.getEventTypeIds().stream()
+                    .map(id -> eventTypeRepository.findById(id)
+                            .orElseThrow(() -> new NotFoundException("Event type not found: " + id)))
+                    .collect(Collectors.toList());
+            listing.setEventTypes(eventTypes);
+            System.out.println("📝 Event types set successfully: " + eventTypes.size() + " types");
+        } else {
+            System.out.println("📝 No eventTypeIds in update request or empty list. Received: " + updatedListing.getEventTypeIds());
+        }
+        
         return listingRepository.save(listing);
     }
     
