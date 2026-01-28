@@ -22,7 +22,7 @@ import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationA
 import { RadiusSlider, VENDOR_RADIUS_OPTIONS } from '@/shared/components/RadiusSlider';
 import { categories, cities } from '@/shared/constants/mockData';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { uploadImage, validateImageFile, deleteImage } from '@/shared/utils/storage';
+import { uploadImage, validateImageFile, deleteImage, deleteImages } from '@/shared/utils/storage';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -483,6 +483,12 @@ export default function VendorProfile() {
   const [serviceRadiusKm, setServiceRadiusKm] = useState(25);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
+  
+  // Track original values to detect changes (dirty state)
+  const [originalFormData, setOriginalFormData] = useState<typeof formData | null>(null);
+  const [originalPortfolioImages, setOriginalPortfolioImages] = useState<string[]>([]);
+  const [originalLocation, setOriginalLocation] = useState<LocationDTO | null>(null);
+  const [originalRadius, setOriginalRadius] = useState(25);
 
   useEffect(() => {
     if (profileData) {
@@ -499,11 +505,54 @@ export default function VendorProfile() {
       });
       setPortfolioImages(profileData.portfolioImages || []);
       if (profileData.locationName && profileData.locationLat && profileData.locationLng) {
-        setLocation({ name: profileData.locationName, latitude: profileData.locationLat, longitude: profileData.locationLng });
+        const loc = { name: profileData.locationName, latitude: profileData.locationLat, longitude: profileData.locationLng };
+        setLocation(loc);
+        setOriginalLocation(loc);
       }
-      if (profileData.serviceRadiusKm) setServiceRadiusKm(profileData.serviceRadiusKm);
+      if (profileData.serviceRadiusKm) {
+        setServiceRadiusKm(profileData.serviceRadiusKm);
+        setOriginalRadius(profileData.serviceRadiusKm);
+      }
+      
+      // Store original values for dirty checking
+      setOriginalFormData({
+        businessName: profileData.businessName || '',
+        bio: profileData.bio || '',
+        coverImage: profileData.coverImage || '',
+        profileImage: profileData.profileImage || '',
+        portfolioImages: profileData.portfolioImages || [],
+        phone: profileData.phone || '',
+        email: profileData.email || '',
+        instagram: profileData.instagram || '',
+        website: profileData.website || '',
+      });
+      setOriginalPortfolioImages(profileData.portfolioImages || []);
     }
   }, [profileData]);
+  
+  // Dirty state checks - only enable save when something changed
+  const isProfileDirty = originalFormData && (
+    formData.businessName !== originalFormData.businessName ||
+    formData.bio !== originalFormData.bio
+  );
+  
+  const isGalleryDirty = (
+    pendingPortfolioFiles.length > 0 ||
+    removedPortfolioUrls.length > 0 ||
+    JSON.stringify(portfolioImages) !== JSON.stringify(originalPortfolioImages)
+  );
+  
+  const isLocationDirty = (
+    (location?.name !== originalLocation?.name) ||
+    (location?.latitude !== originalLocation?.latitude) ||
+    (location?.longitude !== originalLocation?.longitude) ||
+    serviceRadiusKm !== originalRadius
+  );
+  
+  const isContactDirty = originalFormData && (
+    formData.instagram !== originalFormData.instagram ||
+    formData.website !== originalFormData.website
+  );
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -530,7 +579,7 @@ export default function VendorProfile() {
       
       // Delete removed images from CDN (don't fail if delete fails)
       if (removedPortfolioUrls.length > 0) {
-        deleteImage(removedPortfolioUrls).catch(err => {
+        deleteImages(removedPortfolioUrls).catch(err => {
           console.warn('Failed to delete some images:', err);
         });
       }
@@ -546,6 +595,9 @@ export default function VendorProfile() {
         setPendingPortfolioFiles([]);
         setRemovedPortfolioUrls([]);
         setPortfolioImages(finalPortfolioImages);
+        // Update original values to reflect saved state
+        setOriginalFormData({ ...formData });
+        setOriginalPortfolioImages(finalPortfolioImages);
         toast.success('Profile updated!'); 
         refetch(); 
         setActiveSection('overview'); 
@@ -562,7 +614,15 @@ export default function VendorProfile() {
         phone: formData.phone, email: formData.email,
         instagram: formData.instagram, website: formData.website,
       });
-      if (response.success) { toast.success('Contact info updated!'); refetch(); setActiveSection('overview'); }
+      if (response.success) { 
+        // Update original values to reflect saved state
+        if (originalFormData) {
+          setOriginalFormData({ ...originalFormData, instagram: formData.instagram, website: formData.website });
+        }
+        toast.success('Contact info updated!'); 
+        refetch(); 
+        setActiveSection('overview'); 
+      }
       else throw new Error(response.message || 'Failed to update contact info');
     } catch (error: any) { toast.error(error.message || 'Failed to update contact info'); }
     finally { setIsSavingContact(false); }
@@ -576,7 +636,14 @@ export default function VendorProfile() {
         locationName: location.name, latitude: location.latitude,
         longitude: location.longitude, serviceRadiusKm: serviceRadiusKm,
       });
-      if (response.success) { toast.success('Location updated!'); refetch(); setActiveSection('overview'); }
+      if (response.success) { 
+        // Update original values to reflect saved state
+        setOriginalLocation(location);
+        setOriginalRadius(serviceRadiusKm);
+        toast.success('Location updated!'); 
+        refetch(); 
+        setActiveSection('overview'); 
+      }
       else throw new Error(response.message || 'Failed to update location');
     } catch (error: any) { toast.error(error.message || 'Failed to update location'); }
     finally { setIsSavingLocation(false); }
@@ -787,7 +854,7 @@ export default function VendorProfile() {
           <div className="relative">
             <div className="h-56 sm:h-64 md:h-80 lg:h-96 relative overflow-hidden">
               {formData.coverImage ? (
-                <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover object-top" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-secondary/20 flex items-center justify-center">
                   <div className="text-center">
@@ -1038,9 +1105,9 @@ export default function VendorProfile() {
               <CardContent className="p-6 sm:p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold">Edit Profile</h3>
-                  <Button onClick={handleSave} disabled={isSaving} className="bg-gradient-to-r from-primary to-primary-glow">
+                  <Button onClick={handleSave} disabled={isSaving || !isProfileDirty} className={`${isProfileDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
                     {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
+                    {isProfileDirty ? 'Save Changes' : 'No Changes'}
                   </Button>
                 </div>
                 
@@ -1137,9 +1204,9 @@ export default function VendorProfile() {
                       {isUploadingPortfolio ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImagePlus className="h-4 w-4 mr-2" />}
                       Add Images
                     </Button>
-                    <Button onClick={handleSave} disabled={isSaving} className="bg-gradient-to-r from-primary to-primary-glow">
+                    <Button onClick={handleSave} disabled={isSaving || !isGalleryDirty} className={`${isGalleryDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
                       {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                      Save
+                      {isGalleryDirty ? 'Save' : 'No Changes'}
                     </Button>
                   </div>
                 </div>
@@ -1225,9 +1292,9 @@ export default function VendorProfile() {
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">Help customers reach you easily</p>
                   </div>
-                  <Button onClick={handleSaveContact} disabled={isSavingContact} className="bg-gradient-to-r from-primary to-primary-glow">
+                  <Button onClick={handleSaveContact} disabled={isSavingContact || !isContactDirty} className={`${isContactDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
                     {isSavingContact ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Contact Info
+                    {isContactDirty ? 'Save Contact Info' : 'No Changes'}
                   </Button>
                 </div>
 
@@ -1310,9 +1377,9 @@ export default function VendorProfile() {
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">Set your location to help customers find you</p>
                   </div>
-                  <Button onClick={handleSaveLocation} disabled={isSavingLocation || !location} className="bg-gradient-to-r from-primary to-primary-glow">
+                  <Button onClick={handleSaveLocation} disabled={isSavingLocation || !location || !isLocationDirty} className={`${isLocationDirty && location ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
                     {isSavingLocation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Location
+                    {isLocationDirty ? 'Save Location' : 'No Changes'}
                   </Button>
                 </div>
 

@@ -66,20 +66,6 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-lg text-muted-foreground max-w-md mx-auto">
                 We encountered an unexpected error. Don't worry, our team has been notified and we're working on it.
               </p>
-
-              {/* Error details (collapsed by default in production) */}
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="mt-6 text-left">
-                  <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Technical details (dev only)
-                  </summary>
-                  <div className="mt-2 p-4 bg-muted/50 rounded-lg border border-border">
-                    <code className="text-xs text-destructive break-all">
-                      {this.state.error.message}
-                    </code>
-                  </div>
-                </details>
-              )}
             </div>
 
             {/* Action buttons */}

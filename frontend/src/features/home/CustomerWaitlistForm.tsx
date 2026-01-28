@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
-import { Loader2, Sparkles, CheckCircle2, Mail, User, Phone } from 'lucide-react';
+import { Loader2, Sparkles, CheckCircle2, Mail, User, Phone, PartyPopper, Bell, Check } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { apiClient } from '@/shared/services/api';
 
@@ -20,11 +20,13 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submittedData, setSubmittedData] = useState({ name: '', email: '' });
   const { toast } = useToast();
 
   const isValidPhone = (phone: string) => {
-    const phoneRegex = /^[\d\s+()-]{10,}$/;
-    return phoneRegex.test(phone);
+    // Normalize and check for 10 digits
+    const normalized = phone.replace(/[\s\-\(\)\+]/g, '');
+    return /^\d{10,12}$/.test(normalized);
   };
 
   const isValidEmail = (email: string) => {
@@ -73,9 +75,10 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
 
     try {
       // Call the backend API to store waitlist data
-      // Note: apiClient already has /api as base URL, so we don't add it again
       await apiClient.post('/customer-waitlist', formData);
       
+      // Store submitted data for success screen
+      setSubmittedData({ name: formData.name, email: formData.email });
       setShowSuccess(true);
       
       // Reset form
@@ -103,69 +106,83 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden border-0 shadow-2xl">
         {!showSuccess ? (
-          <>
-            <DialogHeader>
-              <div className="flex items-center justify-center mb-4">
-                <div className="p-3 rounded-full bg-gradient-to-br from-primary/20 to-primary-glow/20">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
+          <div className="relative">
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-br from-primary/10 via-purple-500/5 to-pink-500/10 px-6 pt-8 pb-6 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-lg shadow-primary/10 mb-4">
+                <Bell className="h-8 w-8 text-primary" />
               </div>
-              <DialogTitle className="text-center text-2xl">Join the Waitlist!</DialogTitle>
-              <DialogDescription className="text-center">
-                Be the first to know when we launch for customers. We'll keep you updated, <span className="font-semibold text-foreground">{formData.name || 'friend'}</span>!
+              <DialogTitle className="text-2xl font-bold text-foreground">Get Early Access</DialogTitle>
+              <DialogDescription className="text-muted-foreground mt-2 text-sm">
+                Be the first to book amazing vendors when we launch!
               </DialogDescription>
-            </DialogHeader>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  Full Name <span className="text-destructive">*</span>
+            <form onSubmit={handleSubmit} className="px-6 pb-6 pt-4 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  Your Name
                 </Label>
                 <Input
                   id="name"
-                  placeholder="John Doe"
+                  placeholder="What should we call you?"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   disabled={isSubmitting}
+                  className="h-11 rounded-xl border-border/60 focus:border-primary"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  Email <span className="text-destructive">*</span>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  Email Address
                 </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="john@example.com"
+                  placeholder="you@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={isSubmitting}
+                  className="h-11 rounded-xl border-border/60 focus:border-primary"
                 />
+                {formData.email && isValidEmail(formData.email) && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                    <Check className="h-3 w-3" />
+                    <span>Looks good!</span>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  Phone Number <span className="text-destructive">*</span>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
+                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                  Phone Number
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+91 9876543210"
+                  placeholder="9876543210"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   disabled={isSubmitting}
+                  className="h-11 rounded-xl border-border/60 focus:border-primary"
                 />
+                {formData.phone && isValidPhone(formData.phone) && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                    <Check className="h-3 w-3" />
+                    <span>Valid number</span>
+                  </div>
+                )}
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-primary to-primary-glow"
+                className="w-full h-12 rounded-xl font-semibold text-base bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all mt-2"
                 disabled={isSubmitting || !isFormValid}
               >
                 {isSubmitting ? (
@@ -174,30 +191,54 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
                     Joining...
                   </>
                 ) : (
-                  'Join Waitlist'
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Join the Waitlist
+                  </>
                 )}
               </Button>
-            </form>
-          </>
-        ) : (
-          <div className="py-6 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <div className="p-4 rounded-full bg-green-100 dark:bg-green-900/20">
-                <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-            <DialogTitle className="text-2xl mb-3">You're on the list!</DialogTitle>
-            <DialogDescription className="text-base mb-6">
-              Thanks for your interest, <span className="font-semibold text-foreground">{formData.name || 'friend'}</span>! We'll notify you at <span className="font-semibold text-foreground">{formData.email}</span> as soon as we launch for customers.
-            </DialogDescription>
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
-              <p className="text-sm text-muted-foreground">
-                💡 <span className="font-semibold">Pro tip:</span> Know a vendor? Ask them to join now and get free lifetime access as one of our first 100 vendors!
+              
+              <p className="text-center text-xs text-muted-foreground pt-1">
+                We'll only contact you about the launch. No spam, promise! 🤞
               </p>
+            </form>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* Success state with celebration */}
+            <div className="bg-gradient-to-br from-emerald-500/10 via-green-500/5 to-teal-500/10 px-6 pt-10 pb-6 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-100 mb-4 animate-bounce" style={{ animationDuration: '1s', animationIterationCount: '2' }}>
+                <PartyPopper className="h-10 w-10 text-emerald-600" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-foreground">You're In! 🎉</DialogTitle>
+              <DialogDescription className="text-muted-foreground mt-2">
+                Thanks <span className="font-semibold text-foreground">{submittedData.name}</span>! You're on the list.
+              </DialogDescription>
             </div>
-            <Button onClick={handleClose} className="w-full">
-              Got it!
-            </Button>
+            
+            <div className="px-6 pb-6 pt-4">
+              <div className="bg-muted/50 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Mail className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">We'll notify you at</p>
+                    <p className="text-sm text-muted-foreground">{submittedData.email}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200/50 rounded-xl p-4 mb-5">
+                <p className="text-sm text-amber-800">
+                  <span className="font-semibold">💡 Know a vendor?</span> Tell them to join now and get free lifetime access as one of our first 100 vendors!
+                </p>
+              </div>
+              
+              <Button onClick={handleClose} className="w-full h-11 rounded-xl font-medium">
+                Got it, thanks!
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>

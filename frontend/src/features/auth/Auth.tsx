@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
-import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, ArrowLeft } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { CustomerWaitlistForm } from "@/features/home/CustomerWaitlistForm";
 
@@ -335,6 +335,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         toast({
           title: "Account created!",
           description: "Your account has been created successfully.",
+          variant: "success",
         });
 
         // Navigate based on user type
@@ -397,6 +398,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
+          variant: "success",
         });
 
         // Check for redirect parameter
@@ -495,6 +497,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       toast({
         title: mode === "signup" ? "Account created!" : "Welcome!",
         description: "You have successfully signed in with Google.",
+        variant: "success",
       });
 
       // Navigate based on redirect or user type
@@ -563,26 +566,43 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
-      <Card className="w-full max-w-md shadow-elegant">
-        <CardHeader className="text-center">
-          <Link to="/" className="text-2xl font-bold text-[#5046E5] mb-4 inline-block">
-            cartevent<span className="text-[#7C6BFF]">.</span>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 p-4 relative overflow-hidden">
+      {/* Subtle background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
+      
+      {/* Back to Home link */}
+      <Link 
+        to="/" 
+        className="absolute top-6 left-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group bg-white/80 backdrop-blur-sm px-3 py-2 rounded-full shadow-sm border border-border/50"
+      >
+        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+        <span>Home</span>
+      </Link>
+      
+      <Card className="w-full max-w-md shadow-2xl shadow-primary/5 border-0 bg-white/95 backdrop-blur-sm relative z-10">
+        <CardHeader className="text-center pb-2">
+          <Link to="/" className="inline-flex items-center justify-center mb-4 group">
+            <span className="text-2xl font-bold text-[#5046E5] group-hover:opacity-80 transition-opacity">
+              cartevent<span className="text-[#7C6BFF]">.</span>
+            </span>
           </Link>
-          <CardTitle className="text-2xl">
-            {mode === "login" ? "Welcome Back" : "Create Account"}
+          <CardTitle className="text-2xl font-bold text-foreground">
+            {mode === "login" ? "Welcome back!" : "Join cartevent"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-muted-foreground mt-1">
             {mode === "login"
-              ? "Enter your credentials to access your account"
-              : "Sign up to start booking event vendors"}
+              ? "Sign in to manage your business"
+              : "Create your vendor account in minutes"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {/* Vendor Selection - PHASE 1: Show waitlist form for customers */}
           {mode === "signup" && (
-            <div className="mb-4">
-              <Label className="text-sm font-medium mb-3 block">I want to sign up as:</Label>
+            <div className="mb-6">
+              <Label className="text-sm font-medium mb-3 block text-center">I am a...</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -591,16 +611,18 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     setShowWaitlistForm(false);
                   }}
                   disabled={isLoading || isGoogleLoading}
-                  className={`p-4 rounded-lg border-2 transition-all ${
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                     isVendor && !showWaitlistForm
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border hover:border-primary/50'
+                      ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                      : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-2xl mb-1">💼</div>
-                    <div className="font-semibold text-sm">Vendor</div>
-                    <div className="text-xs text-muted-foreground mt-1">Offer services</div>
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+                      <span className="text-2xl">💼</span>
+                    </div>
+                    <div className={`font-semibold text-sm ${isVendor && !showWaitlistForm ? 'text-primary' : 'text-foreground'}`}>Vendor</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">List your services</div>
                   </div>
                 </button>
                 {/* PHASE 1: Customer option opens waitlist form */}
@@ -612,25 +634,24 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                       setShowWaitlistForm(true);
                     }}
                     disabled={isLoading || isGoogleLoading}
-                    className={`w-full p-4 rounded-lg border-2 transition-all ${
+                    className={`w-full p-4 rounded-xl border-2 transition-all duration-200 ${
                       !isVendor && showWaitlistForm
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:border-primary/50'
+                        ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                        : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="text-2xl mb-1">🎉</div>
-                      <div className="font-semibold text-sm">Customer</div>
-                      <div className="text-xs text-muted-foreground mt-1">Join waitlist</div>
+                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                        <span className="text-2xl">🎉</span>
+                      </div>
+                      <div className={`font-semibold text-sm ${!isVendor && showWaitlistForm ? 'text-primary' : 'text-foreground'}`}>Customer</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Book vendors</div>
                     </div>
                   </button>
                   {/* Coming Soon Badge */}
-                  <div className="absolute -top-2 -right-2 z-10">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-sm opacity-75"></div>
-                      <div className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-full shadow-lg uppercase tracking-wider">
-                        Soon
-                      </div>
+                  <div className="absolute -top-1.5 -right-1.5 z-10">
+                    <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wide">
+                      Soon
                     </div>
                   </div>
                 </div>
@@ -658,7 +679,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
             <div className="mb-6">
               <div className="flex justify-center">
                 {isGoogleLoading ? (
-                  <Button disabled className="w-full h-10">
+                  <Button disabled className="w-full h-11 rounded-xl">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {loadingMessage || "Signing in with Google..."}
                   </Button>
@@ -678,11 +699,11 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-border/60" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with phone
+                  <span className="bg-white px-3 text-muted-foreground font-medium">
+                    or
                   </span>
                 </div>
               </div>
@@ -691,23 +712,24 @@ const Auth = ({ mode: propMode }: AuthProps) => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
                 <Input
                   id="name"
-                  placeholder="John Doe"
+                  placeholder="Enter your full name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                   disabled={isLoading}
+                  className="h-11 rounded-xl border-border/60 focus:border-primary"
                 />
               </div>
             )}
 
             {/* Identifier field for login (email or phone) */}
             {mode === "login" && (
-              <div className="space-y-2">
-                <Label htmlFor="identifier">Email or Phone Number</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="identifier" className="text-sm font-medium">Email or Phone</Label>
                 <Input
                   id="identifier"
                   type="text"
@@ -721,22 +743,22 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   }}
                   required
                   disabled={isLoading}
-                  className={fieldErrors.identifier ? "border-red-500" : ""}
+                  className={`h-11 rounded-xl border-border/60 focus:border-primary ${fieldErrors.identifier ? "border-red-500 focus:border-red-500" : ""}`}
                 />
                 {fieldErrors.identifier && (
-                  <p className="text-sm text-red-500">{fieldErrors.identifier}</p>
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.identifier}</p>
                 )}
               </div>
             )}
 
             {/* Phone field - required for signup only */}
             {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+91 9876543210"
+                  placeholder="9876543210"
                   value={formData.phone}
                   onChange={(e) => {
                     setFormData({ ...formData, phone: e.target.value });
@@ -746,16 +768,16 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   }}
                   disabled={isLoading}
                   required
-                  className={fieldErrors.phone || (formData.phone && !isValidPhone(formData.phone)) ? "border-red-500" : ""}
+                  className={`h-11 rounded-xl border-border/60 focus:border-primary ${fieldErrors.phone || (formData.phone && !isValidPhone(formData.phone)) ? "border-red-500 focus:border-red-500" : ""}`}
                 />
                 {fieldErrors.phone && (
-                  <p className="text-sm text-red-500">{fieldErrors.phone}</p>
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>
                 )}
                 {formData.phone && !isValidPhone(formData.phone) && !fieldErrors.phone && (
-                  <p className="text-sm text-red-500">{getPhoneError(formData.phone) || "Please enter a valid phone number"}</p>
+                  <p className="text-xs text-red-500 mt-1">{getPhoneError(formData.phone) || "Please enter a valid phone number"}</p>
                 )}
                 {formData.phone && isValidPhone(formData.phone) && (
-                  <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1">
                     <Check className="h-3 w-3" />
                     <span>Valid phone number</span>
                   </div>
@@ -765,8 +787,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
 
             {/* Email field - required for signup */}
             {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -774,41 +796,38 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   value={formData.email}
                   onChange={(e) => {
                     setFormData({ ...formData, email: e.target.value });
-                    // Clear error when user starts typing
                     if (fieldErrors.email) {
                       setFieldErrors({ ...fieldErrors, email: undefined });
                     }
                   }}
                   onBlur={() => {
-                    // Validate email on blur
                     if (formData.email && !isValidEmail(formData.email)) {
                       setFieldErrors({ ...fieldErrors, email: 'Please enter a valid email address' });
                     }
                   }}
                   required
                   disabled={isLoading}
-                  className={fieldErrors.email ? "border-red-500" : ""}
+                  className={`h-11 rounded-xl border-border/60 focus:border-primary ${fieldErrors.email ? "border-red-500 focus:border-red-500" : ""}`}
                 />
                 {fieldErrors.email && (
-                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>
                 )}
                 {formData.email && !isValidEmail(formData.email) && !fieldErrors.email && (
-                  <p className="text-sm text-red-500">Please enter a valid email address</p>
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid email address</p>
                 )}
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder={mode === "login" ? "Enter your password" : "At least 8 characters"}
+                  placeholder={mode === "login" ? "Enter your password" : "Create a strong password"}
                   value={formData.password}
                   onChange={(e) => {
                     setFormData({ ...formData, password: e.target.value });
-                    // Clear error when user starts typing
                     if (fieldErrors.password) {
                       setFieldErrors({ ...fieldErrors, password: undefined });
                     }
@@ -816,7 +835,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   required
                   disabled={isLoading}
                   minLength={mode === "signup" ? 8 : undefined}
-                  className={fieldErrors.password ? "border-red-500 pr-10" : "pr-10"}
+                  className={`h-11 rounded-xl border-border/60 focus:border-primary pr-10 ${fieldErrors.password ? "border-red-500 focus:border-red-500" : ""}`}
                 />
                 <button
                   type="button"
@@ -833,12 +852,12 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                 </button>
               </div>
               {fieldErrors.password && (
-                <p className="text-sm text-red-500">{fieldErrors.password}</p>
+                <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
               )}
               
               {/* Password strength indicator for signup */}
               {mode === "signup" && formData.password && (
-                <div className="space-y-2 mt-2">
+                <div className="space-y-2 mt-3 p-3 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div 
@@ -846,21 +865,24 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                         style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
                       />
                     </div>
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className={`text-xs font-medium ${
+                      passwordStrength.label === 'Strong' ? 'text-emerald-600' :
+                      passwordStrength.label === 'Medium' ? 'text-amber-600' : 'text-red-500'
+                    }`}>
                       {passwordStrength.label}
                     </span>
                   </div>
                   
                   {/* Password requirements checklist */}
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-2 gap-1">
                     {passwordRequirements.map((req, index) => (
-                      <div key={index} className="flex items-center gap-2 text-xs">
+                      <div key={index} className="flex items-center gap-1.5 text-xs">
                         {req.met ? (
-                          <Check className="h-3 w-3 text-green-500" />
+                          <Check className="h-3 w-3 text-emerald-500" />
                         ) : (
-                          <X className="h-3 w-3 text-muted-foreground" />
+                          <X className="h-3 w-3 text-muted-foreground/50" />
                         )}
-                        <span className={req.met ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
+                        <span className={req.met ? "text-emerald-600" : "text-muted-foreground"}>
                           {req.label}
                         </span>
                       </div>
@@ -872,30 +894,28 @@ const Auth = ({ mode: propMode }: AuthProps) => {
 
             {mode === "signup" && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
+                      placeholder="Re-enter your password"
                       value={formData.confirmPassword}
                       onChange={(e) => {
                         setFormData({ ...formData, confirmPassword: e.target.value });
-                        // Clear error when user starts typing
                         if (fieldErrors.confirmPassword) {
                           setFieldErrors({ ...fieldErrors, confirmPassword: undefined });
                         }
                       }}
                       onBlur={() => {
-                        // Check if passwords match on blur
                         if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
                           setFieldErrors({ ...fieldErrors, confirmPassword: 'Passwords do not match' });
                         }
                       }}
                       required
                       disabled={isLoading}
-                      className={fieldErrors.confirmPassword ? "border-red-500 pr-10" : "pr-10"}
+                      className={`h-11 rounded-xl border-border/60 focus:border-primary pr-10 ${fieldErrors.confirmPassword ? "border-red-500 focus:border-red-500" : ""}`}
                     />
                     <button
                       type="button"
@@ -912,11 +932,10 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     </button>
                   </div>
                   {fieldErrors.confirmPassword && (
-                    <p className="text-sm text-red-500">{fieldErrors.confirmPassword}</p>
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.confirmPassword}</p>
                   )}
-                  {/* Show success indicator when passwords match and no error */}
                   {!fieldErrors.confirmPassword && formData.confirmPassword && formData.password === formData.confirmPassword && (
-                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-600 mt-1">
                       <Check className="h-3 w-3" />
                       <span>Passwords match</span>
                     </div>
@@ -925,15 +944,16 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               </>
             )}
 
-            {/* Remember Me checkbox - only for login */}
+            {/* Remember Me & Forgot Password - only for login */}
             {mode === "login" && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remember-me"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
                     disabled={isLoading}
+                    className="rounded"
                   />
                   <Label 
                     htmlFor="remember-me" 
@@ -944,14 +964,18 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                 </div>
                 <Link 
                   to="/forgot-password" 
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:text-primary/80 transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading || (mode === 'signup' ? !isSignupFormValid : !isLoginFormValid)}>
+            <Button 
+              type="submit" 
+              className="w-full h-11 rounded-xl font-semibold text-base mt-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all" 
+              disabled={isLoading || isGoogleLoading || (mode === 'signup' ? !isSignupFormValid : !isLoginFormValid)}
+            >
               {isLoading || isGoogleLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -962,18 +986,18 @@ const Auth = ({ mode: propMode }: AuthProps) => {
               )}
             </Button>
 
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm text-muted-foreground pt-2">
               {mode === "login" ? (
                 <>
-                  Don't have an account?{" "}
-                  <Link to="/signup" className="text-primary hover:underline">
-                    Sign up
+                  New to cartevent?{" "}
+                  <Link to="/signup" className="text-primary font-medium hover:text-primary/80 transition-colors">
+                    Create account
                   </Link>
                 </>
               ) : (
                 <>
                   Already have an account?{" "}
-                  <Link to="/login" className="text-primary hover:underline">
+                  <Link to="/login" className="text-primary font-medium hover:text-primary/80 transition-colors">
                     Sign in
                   </Link>
                 </>
