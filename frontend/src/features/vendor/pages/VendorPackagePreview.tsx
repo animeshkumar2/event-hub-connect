@@ -797,7 +797,9 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
                           <div className="space-y-4 pt-2">
                             {item.images?.length > 0 && (
                               <div>
-                                <div className="aspect-video rounded-lg overflow-hidden bg-slate-100 mb-2"><img src={item.images[0]} alt={item.name} className="w-full h-full object-cover" /></div>
+                                <div className="rounded-xl overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 mb-2 flex items-center justify-center p-4" style={{ maxHeight: '420px' }}>
+                                  <img src={item.images[0]} alt={item.name} className="max-w-full max-h-[380px] object-contain rounded-lg shadow-md" />
+                                </div>
                                 {item.images.length > 1 && (
                                   <div className="flex gap-1.5 overflow-x-auto pb-1">
                                     {item.images.slice(1, 5).map((img: string, i: number) => <div key={i} className="w-14 h-14 rounded-md overflow-hidden flex-shrink-0"><img src={img} alt="" className="w-full h-full object-cover" /></div>)}

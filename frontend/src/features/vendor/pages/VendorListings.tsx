@@ -117,7 +117,6 @@ const coreCategories = [
   { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
   { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
   { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-  { id: 'other', name: 'Other', icon: '📦' },
 ];
 
 // Extra charge with pricing type

@@ -44,7 +44,7 @@ export function ListingFormStep1({
         <Select 
           value={listingType} 
           onValueChange={(value: 'PACKAGE' | 'ITEM') => setListingType(value)}
-          disabled={!!editingListing}
+          disabled={true}
         >
           <SelectTrigger className="bg-background border-border text-foreground">
             <SelectValue />
@@ -64,18 +64,11 @@ export function ListingFormStep1({
             </SelectItem>
           </SelectContent>
         </Select>
-        {editingListing && (
-          <p className="text-xs text-amber-600 flex items-center gap-1">
-            ⚠️ Listing type cannot be changed when editing.
-          </p>
-        )}
-        {!editingListing && (
-          <p className="text-xs text-muted-foreground">
-            {listingType === 'PACKAGE' 
-              ? 'A package bundles 2 or more services together with custom pricing' 
-              : 'A service is a single offering like Photography, Catering, etc.'}
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          {listingType === 'PACKAGE' 
+            ? 'A package bundles 2 or more services together with custom pricing' 
+            : 'A service is a single offering like Photography, Catering, etc.'}
+        </p>
       </div>
 
       <div className="space-y-2">
