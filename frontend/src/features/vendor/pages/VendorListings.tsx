@@ -561,8 +561,10 @@ export default function VendorListings() {
     }
     
     // Validate images are required for publishing
-    if (!formData.images || formData.images.length === 0) {
-      // This shouldn't happen as button is disabled, but keep as safety check
+    // Count both already-uploaded images AND pending images
+    const totalImages = (formData.images?.length || 0) + (pendingImageChanges?.filesToUpload?.length || 0);
+    if (totalImages === 0) {
+      toast.error('Please add at least one image before publishing');
       return;
     }
 
@@ -882,6 +884,9 @@ export default function VendorListings() {
     urlsToDelete: string[];
     finalOrder: (string | File)[];
   } | null>(null);
+
+  // Compute pending images count for validation
+  const pendingImagesCount = pendingImageChanges?.filesToUpload?.length || 0;
 
   const handleImagesChange = React.useCallback((newImages: string[]) => {
     setFormData(prev => ({ ...prev, images: newImages }));
@@ -1387,6 +1392,7 @@ export default function VendorListings() {
                 handleImagesChange={handleImagesChange}
                 handlePendingImageDeletes={handlePendingImageDeletes}
                 handlePendingImageChanges={handlePendingImageChanges}
+                pendingImagesCount={pendingImagesCount}
               />
             </DialogContent>
           </Dialog>

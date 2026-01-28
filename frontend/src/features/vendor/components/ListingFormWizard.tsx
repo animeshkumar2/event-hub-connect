@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as React from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save } from 'lucide-react';
 import { Progress } from '@/shared/components/ui/progress';
 
 // Import step components
@@ -72,6 +72,8 @@ interface ListingFormWizardProps {
     urlsToDelete: string[];
     finalOrder: (string | File)[];
   }) => void;
+  // Count of pending images (not yet uploaded)
+  pendingImagesCount?: number;
 }
 
 export const ListingFormWizard = React.memo(function ListingFormWizard(props: ListingFormWizardProps) {
@@ -171,19 +173,21 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
 
   const getStep4Errors = React.useCallback((): string[] => {
     const errors: string[] = [];
-    if (props.listingType === 'ITEM' && props.formData.images.length === 0) {
+    const totalImages = props.formData.images.length + (props.pendingImagesCount || 0);
+    if (props.listingType === 'ITEM' && totalImages === 0) {
       errors.push('Add at least one image');
     }
     return errors;
-  }, [props.listingType, props.formData.images]);
+  }, [props.listingType, props.formData.images, props.pendingImagesCount]);
 
   const getStep5Errors = React.useCallback((): string[] => {
     const errors: string[] = [];
-    if (props.listingType === 'PACKAGE' && props.formData.images.length === 0) {
+    const totalImages = props.formData.images.length + (props.pendingImagesCount || 0);
+    if (props.listingType === 'PACKAGE' && totalImages === 0) {
       errors.push('Add at least one image');
     }
     return errors;
-  }, [props.listingType, props.formData.images]);
+  }, [props.listingType, props.formData.images, props.pendingImagesCount]);
 
   // Validation flags
   const isStep1Valid = getStep1Errors().length === 0;
@@ -421,43 +425,6 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
               <span className="hidden sm:inline">Back to Previous Step</span>
               <span className="sm:hidden">Back</span>
             </Button>
-
-            {/* Validation Message - Show detailed errors */}
-            {getAllErrors().length > 0 && (
-              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 space-y-3">
-                <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Please complete the following before publishing:
-                </p>
-                <div className="space-y-2">
-                  {getAllErrors().map(({ step, errors }) => (
-                    <div key={step} className="pl-6">
-                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
-                        Step {step}: {steps[step - 1]?.title}
-                      </p>
-                      <ul className="list-disc list-inside space-y-0.5">
-                        {errors.map((error, idx) => (
-                          <li key={idx} className="text-xs text-red-600/80 dark:text-red-400/80">
-                            {error}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const firstErrorStep = getAllErrors()[0]?.step;
-                    if (firstErrorStep) setCurrentStep(firstErrorStep);
-                  }}
-                  className="w-full text-red-600 border-red-500/30 hover:bg-red-500/10"
-                >
-                  Go to first incomplete step
-                </Button>
-              </div>
-            )}
 
             {/* Primary Actions */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
