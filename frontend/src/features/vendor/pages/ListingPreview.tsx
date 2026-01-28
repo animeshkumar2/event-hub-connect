@@ -366,7 +366,11 @@ export default function ListingPreview() {
         isDraft: listing.isDraft,
       };
       
-      console.log('💾 Saving listing with images:', payload.images);
+      console.log('💾 Saving listing payload:', { 
+        eventTypeIds: payload.eventTypeIds,
+        editFormEventTypeIds: editForm.eventTypeIds,
+        images: payload.images?.length 
+      });
       
       const response = await vendorApi.updateListing(listing.id, payload);
       if (response.success) {
@@ -408,7 +412,14 @@ export default function ListingPreview() {
   const removeExcludedItem = (i: number) => setEditForm((p: any) => ({ ...p, excludedItemsText: p.excludedItemsText.filter((_: any, idx: number) => idx !== i) }));
   const addExtraCharge = () => { if (draftExtraCharge.name.trim() && draftExtraCharge.price) { setEditForm((p: any) => ({ ...p, extraChargesDetailed: [...(p.extraChargesDetailed || []), { ...draftExtraCharge }] })); setDraftExtraCharge({ name: '', price: '' }); setShowExtraChargeInput(false); } };
   const removeExtraCharge = (i: number) => setEditForm((p: any) => ({ ...p, extraChargesDetailed: p.extraChargesDetailed.filter((_: any, idx: number) => idx !== i) }));
-  const toggleEventType = (id: number) => setEditForm((p: any) => ({ ...p, eventTypeIds: p.eventTypeIds.includes(id) ? p.eventTypeIds.filter((x: number) => x !== id) : [...p.eventTypeIds, id] }));
+  const toggleEventType = (id: number) => setEditForm((p: any) => {
+    const isSelected = p.eventTypeIds.includes(id);
+    // Prevent removing the last event type
+    if (isSelected && p.eventTypeIds.length === 1) {
+      return p; // Don't change state
+    }
+    return { ...p, eventTypeIds: isSelected ? p.eventTypeIds.filter((x: number) => x !== id) : [...p.eventTypeIds, id] };
+  });
 
   // Publish draft listing
   const publishListing = useCallback(async () => {
@@ -446,6 +457,8 @@ export default function ListingPreview() {
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
         queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
         queryClient.invalidateQueries({ queryKey: ['myVendorListings'] });
+        // Force immediate refetch before navigation
+        await queryClient.refetchQueries({ queryKey: ['myVendorListings'] });
         navigate('/vendor/listings');
       } else {
         toast.error(response.message || 'Failed to publish');
@@ -1126,11 +1139,31 @@ export default function ListingPreview() {
               <Card><CardContent className="p-3">
                 <h3 className="text-xs font-semibold mb-2">Event Types</h3>
                 {isEditMode ? (
-                  <div className="flex flex-wrap gap-1">
-                    {eventTypes.map((et: any) => {
-                      const sel = (editForm?.eventTypeIds || []).includes(et.id);
-                      return <Badge key={et.id} variant={sel ? 'default' : 'outline'} className={cn('cursor-pointer text-[10px] h-5 px-1.5', sel ? 'bg-primary' : 'hover:bg-primary/10')} onClick={() => toggleEventType(et.id)}>{sel && <CheckCircle2 className="h-2 w-2 mr-0.5" />}{et.displayName || et.name}</Badge>;
-                    })}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {eventTypes.map((et: any) => {
+                        const sel = (editForm?.eventTypeIds || []).includes(et.id);
+                        const isLastSelected = sel && (editForm?.eventTypeIds || []).length === 1;
+                        return (
+                          <Badge 
+                            key={et.id} 
+                            variant={sel ? 'default' : 'outline'} 
+                            className={cn(
+                              'text-[10px] h-5 px-1.5',
+                              sel ? 'bg-primary' : 'hover:bg-primary/10',
+                              isLastSelected ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                            )} 
+                            onClick={() => !isLastSelected && toggleEventType(et.id)}
+                          >
+                            {sel && <CheckCircle2 className="h-2 w-2 mr-0.5" />}
+                            {et.displayName || et.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    {(editForm?.eventTypeIds || []).length === 1 && (
+                      <p className="text-[10px] text-amber-600">💡 Select another event type first to change your selection</p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-1">

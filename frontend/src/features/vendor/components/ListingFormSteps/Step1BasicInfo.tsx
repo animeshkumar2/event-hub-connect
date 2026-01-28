@@ -44,7 +44,7 @@ export function ListingFormStep1({
         <Select 
           value={listingType} 
           onValueChange={(value: 'PACKAGE' | 'ITEM') => setListingType(value)}
-          disabled={!!editingListing}
+          disabled={true}
         >
           <SelectTrigger className="bg-background border-border text-foreground">
             <SelectValue />
@@ -64,18 +64,11 @@ export function ListingFormStep1({
             </SelectItem>
           </SelectContent>
         </Select>
-        {editingListing && (
-          <p className="text-xs text-amber-600 flex items-center gap-1">
-            ⚠️ Listing type cannot be changed when editing.
-          </p>
-        )}
-        {!editingListing && (
-          <p className="text-xs text-muted-foreground">
-            {listingType === 'PACKAGE' 
-              ? 'A package bundles 2 or more services together with custom pricing' 
-              : 'A service is a single offering like Photography, Catering, etc.'}
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          {listingType === 'PACKAGE' 
+            ? 'A package bundles 2 or more services together with custom pricing' 
+            : 'A service is a single offering like Photography, Catering, etc.'}
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -201,19 +194,25 @@ export function ListingFormStep1({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-background max-h-60 overflow-y-auto">
                   {availableEventTypes.map((et: any) => {
                     const isChecked = formData.eventTypeIds.includes(et.id);
+                    const isLastSelected = isChecked && formData.eventTypeIds.length === 1;
                     return (
                       <div key={et.id} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
                           checked={isChecked}
+                          disabled={isLastSelected}
                           onChange={(e) => {
                             if (e.target.checked) {
                               setFormData({ ...formData, eventTypeIds: [...formData.eventTypeIds, et.id] });
                             } else {
-                              setFormData({ ...formData, eventTypeIds: formData.eventTypeIds.filter((id: number) => id !== et.id) });
+                              // Prevent unchecking the last event type
+                              if (formData.eventTypeIds.length > 1) {
+                                setFormData({ ...formData, eventTypeIds: formData.eventTypeIds.filter((id: number) => id !== et.id) });
+                              }
                             }
                           }}
-                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                          className={`w-4 h-4 rounded border-border text-primary focus:ring-primary ${isLastSelected ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          title={isLastSelected ? 'Select another event type first to deselect this one' : ''}
                         />
                         <Label className="text-sm font-normal text-foreground cursor-pointer">
                           {et.name || et.displayName}
@@ -222,9 +221,9 @@ export function ListingFormStep1({
                     );
                   })}
                 </div>
-                {formData.eventTypeIds.length === 0 && (
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                    ⚠️ Please select at least one event type
+                {formData.eventTypeIds.length === 1 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    💡 At least one event type must be selected. Select another first to change your selection.
                   </p>
                 )}
                 {formData.eventTypeIds.length > 0 && (

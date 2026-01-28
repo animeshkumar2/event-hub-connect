@@ -434,8 +434,30 @@ export default function VendorListingsAll() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredListings.map((listing: any) => {
               const isPackage = listing.type === 'PACKAGE';
-              const categoryName = getCategoryName(listing.listingCategory?.id || listing.categoryId || '');
-              const CategoryIcon = getCategoryIcon(categoryName);
+              
+              // Get all items for looking up bundled items
+              const allItems = listingsData?.filter((l: any) => l.type === 'ITEM') || [];
+              
+              // For packages, extract unique categories from bundled items
+              let packageCategories: string[] = [];
+              if (isPackage && listing.includedItemIds?.length > 0) {
+                const uniqueCategories = new Set<string>();
+                listing.includedItemIds.forEach((itemId: string) => {
+                  const item = allItems.find((i: any) => i.id === itemId);
+                  if (item) {
+                    const categoryId = item.listingCategory?.id || item.categoryId;
+                    if (categoryId) {
+                      uniqueCategories.add(getCategoryName(categoryId));
+                    }
+                  }
+                });
+                packageCategories = Array.from(uniqueCategories);
+              }
+              
+              const displayCategory = isPackage && packageCategories.length > 0 
+                ? packageCategories[0] 
+                : getCategoryName(listing.listingCategory?.id || listing.categoryId || '');
+              const CategoryIcon = getCategoryIcon(displayCategory);
               
               return (
                 <Card 
@@ -505,10 +527,29 @@ export default function VendorListingsAll() {
                           {listing.name}
                         </h3>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <CategoryIcon className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground truncate">
-                            {categoryName}
-                          </span>
+                          {isPackage && packageCategories.length > 1 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {packageCategories.slice(0, 3).map((catName, idx) => {
+                                const CatIcon = getCategoryIcon(catName);
+                                return (
+                                  <span key={idx} className="flex items-center gap-0.5 text-[9px] text-muted-foreground bg-muted/50 px-1 py-0.5 rounded">
+                                    <CatIcon className="h-2.5 w-2.5" />
+                                    {catName.split(' ')[0]}
+                                  </span>
+                                );
+                              })}
+                              {packageCategories.length > 3 && (
+                                <span className="text-[9px] text-muted-foreground">+{packageCategories.length - 3}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              <CategoryIcon className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-[10px] text-muted-foreground truncate">
+                                {displayCategory}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                       
