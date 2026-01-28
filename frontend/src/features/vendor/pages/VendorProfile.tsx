@@ -461,6 +461,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
 export default function VendorProfile() {
   const { data: profileData, loading, error, refetch } = useVendorProfile();
   const { data: dashboardStats } = useVendorDashboardStats();
+  const { user } = useAuth();
   
   const coverInputRef = useRef<HTMLInputElement>(null);
   const profileInputRef = useRef<HTMLInputElement>(null);
@@ -473,6 +474,8 @@ export default function VendorProfile() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [pendingPortfolioFiles, setPendingPortfolioFiles] = useState<File[]>([]); // Files waiting to be uploaded on save
+  const [removedPortfolioUrls, setRemovedPortfolioUrls] = useState<string[]>([]); // URLs to delete on save
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingPortfolio, setIsUploadingPortfolio] = useState(false);
@@ -505,15 +508,51 @@ export default function VendorProfile() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const vendorId = localStorage.getItem('vendor_id') || 'new';
+      const folder = `vendors/${vendorId}/portfolio`;
+      
+      // Upload pending portfolio files
+      let finalPortfolioImages = [...portfolioImages];
+      
+      if (pendingPortfolioFiles.length > 0) {
+        setIsUploadingPortfolio(true);
+        for (const file of pendingPortfolioFiles) {
+          try {
+            const imageUrl = await uploadImage(file, folder);
+            finalPortfolioImages.push(imageUrl);
+          } catch (error) {
+            console.error(`Failed to upload ${file.name}:`, error);
+            toast.error(`Failed to upload ${file.name}`);
+          }
+        }
+        setIsUploadingPortfolio(false);
+      }
+      
+      // Delete removed images from CDN (don't fail if delete fails)
+      if (removedPortfolioUrls.length > 0) {
+        deleteImage(removedPortfolioUrls).catch(err => {
+          console.warn('Failed to delete some images:', err);
+        });
+      }
+      
       const response = await vendorApi.updateProfile({
         businessName: formData.businessName, bio: formData.bio,
         coverImage: formData.coverImage, profileImage: formData.profileImage,
-        portfolioImages: portfolioImages,
+        portfolioImages: finalPortfolioImages,
       });
-      if (response.success) { toast.success('Profile updated!'); refetch(); setActiveSection('overview'); }
+      
+      if (response.success) { 
+        // Clear pending states
+        setPendingPortfolioFiles([]);
+        setRemovedPortfolioUrls([]);
+        setPortfolioImages(finalPortfolioImages);
+        toast.success('Profile updated!'); 
+        refetch(); 
+        setActiveSection('overview'); 
+      }
       else throw new Error(response.message || 'Failed to update profile');
     } catch (error: any) { toast.error(error.message || 'Failed to update profile'); }
-    finally { setIsSaving(false); }
+    finally { setIsSaving(false); setIsUploadingPortfolio(false); }
   };
 
   const handleSaveContact = async () => {
@@ -663,28 +702,29 @@ export default function VendorProfile() {
   const handleMultipleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    setIsUploadingPortfolio(true);
-    const newImages: string[] = [];
-    const vendorId = localStorage.getItem('vendor_id') || 'new';
-    const folder = `vendors/${vendorId}/portfolio`;
+    
+    const validFiles: File[] = [];
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) continue;
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        toast.error(`${file.name}: Invalid file type`);
+        continue;
+      }
       
       const validation = validateImageFile(file);
-      if (!validation.valid) continue;
-      
-      try {
-        // Upload to R2 via backend
-        const imageUrl = await uploadImage(file, folder);
-        newImages.push(imageUrl);
-      } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
+      if (!validation.valid) {
+        toast.error(`${file.name}: ${validation.error}`);
+        continue;
       }
+      
+      validFiles.push(file);
     }
-    if (newImages.length > 0) { setPortfolioImages([...portfolioImages, ...newImages]); toast.success(`${newImages.length} image(s) added!`); }
-    setIsUploadingPortfolio(false);
+    
+    if (validFiles.length > 0) {
+      setPendingPortfolioFiles(prev => [...prev, ...validFiles]);
+      toast.success(`${validFiles.length} image(s) added. Click Save to upload.`);
+    }
     e.target.value = '';
   };
 
@@ -980,37 +1020,14 @@ export default function VendorProfile() {
                       <QuickAction icon={ImagePlus} label="Add Portfolio" onClick={() => setActiveSection('gallery')} badge={`${portfolioImages.length}`} />
                       <QuickAction icon={MapPin} label="Update Location" onClick={() => setActiveSection('location')} />
                       <QuickAction icon={Phone} label="Contact Info" onClick={() => setActiveSection('contact')} />
+                      {/* TODO: Add preview mode for vendors to see how their profile looks to customers
                       <QuickAction icon={Globe} label="View Public Profile" onClick={() => window.open(`/vendors/${profileData.id}`, '_blank')} />
+                      */}
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Contact Info Card with Add Button */}
-                <Card className="overflow-hidden border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Contact Info</h3>
-                      <Button variant="ghost" size="sm" onClick={() => setActiveSection('contact')}>
-                        <Edit3 className="h-4 w-4 mr-1" /> Edit
-                      </Button>
-                    </div>
-                    <div className="space-y-3">
-                      {formData.phone && <div className="flex items-center gap-3 text-sm"><Phone className="h-4 w-4 text-primary" /><span>{formData.phone}</span></div>}
-                      {formData.email && <div className="flex items-center gap-3 text-sm"><Mail className="h-4 w-4 text-primary" /><span className="truncate">{formData.email}</span></div>}
-                      {formData.instagram && <div className="flex items-center gap-3 text-sm"><Instagram className="h-4 w-4 text-primary" /><span className="truncate">{formData.instagram}</span></div>}
-                      {formData.website && <div className="flex items-center gap-3 text-sm"><Globe className="h-4 w-4 text-primary" /><span className="truncate">{formData.website}</span></div>}
-                      {!formData.phone && !formData.email && !formData.instagram && !formData.website && (
-                        <div className="text-center py-4 bg-muted/30 rounded-lg">
-                          <Phone className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground mb-2">No contact info added</p>
-                          <Button variant="outline" size="sm" onClick={() => setActiveSection('contact')}>
-                            <Plus className="h-4 w-4 mr-1" /> Add Contact Info
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Contact Info Card removed - accessible via sidebar navigation */}
               </div>
             </div>
           )}
@@ -1112,7 +1129,7 @@ export default function VendorProfile() {
                     <h3 className="text-xl font-semibold">Portfolio Gallery</h3>
                     <p className="text-sm text-muted-foreground mt-1">
                       Upload high-quality images to showcase your work 
-                      <span className={portfolioImages.length >= 3 ? 'text-emerald-500' : 'text-amber-500'}> ({portfolioImages.length}/3 minimum)</span>
+                      <span className={(portfolioImages.length + pendingPortfolioFiles.length) >= 3 ? 'text-emerald-500' : 'text-amber-500'}> ({portfolioImages.length + pendingPortfolioFiles.length}/3 minimum)</span>
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -1127,18 +1144,52 @@ export default function VendorProfile() {
                   </div>
                 </div>
 
-                {portfolioImages.length > 0 ? (
+                {/* Pending uploads notice */}
+                {pendingPortfolioFiles.length > 0 && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    <p className="text-sm text-amber-700">
+                      {pendingPortfolioFiles.length} image(s) pending upload. Click <strong>Save</strong> to upload them.
+                    </p>
+                  </div>
+                )}
+
+                {(portfolioImages.length > 0 || pendingPortfolioFiles.length > 0) ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* Existing uploaded images */}
                     {portfolioImages.map((img, i) => (
-                      <div key={i} className="aspect-square rounded-2xl overflow-hidden group relative bg-muted">
+                      <div key={`uploaded-${i}`} className="aspect-square rounded-2xl overflow-hidden group relative bg-muted">
                         <img src={img} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button size="sm" variant="destructive" onClick={() => { setPortfolioImages(portfolioImages.filter((_, idx) => idx !== i)); toast.success('Image removed'); }}>
+                          <Button size="sm" variant="destructive" onClick={() => { 
+                            setPortfolioImages(portfolioImages.filter((_, idx) => idx !== i)); 
+                            setRemovedPortfolioUrls(prev => [...prev, img]);
+                            toast.success('Image marked for removal. Click Save to confirm.'); 
+                          }}>
                             <X className="h-4 w-4 mr-1" /> Remove
                           </Button>
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Pending images (not yet uploaded) */}
+                    {pendingPortfolioFiles.map((file, i) => (
+                      <div key={`pending-${i}`} className="aspect-square rounded-2xl overflow-hidden group relative bg-muted border-2 border-dashed border-amber-400">
+                        <img src={URL.createObjectURL(file)} alt={`Pending ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <div className="absolute top-2 left-2">
+                          <span className="text-[10px] px-2 py-1 rounded-full bg-amber-500 text-white font-medium">Pending</span>
+                        </div>
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button size="sm" variant="destructive" onClick={() => { 
+                            setPendingPortfolioFiles(pendingPortfolioFiles.filter((_, idx) => idx !== i)); 
+                            toast.success('Image removed'); 
+                          }}>
+                            <X className="h-4 w-4 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
                     <div className="aspect-square rounded-2xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all"
                       onClick={() => portfolioInputRef.current?.click()}>
                       <div className="text-center p-4">
@@ -1185,31 +1236,34 @@ export default function VendorProfile() {
                     <div>
                       <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
                         <Phone className="h-4 w-4 text-muted-foreground" /> Phone Number
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Login credential</span>
                       </Label>
                       <Input 
-                        value={formData.phone} 
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
-                        placeholder="+91 98765 43210" 
-                        className="h-12" 
+                        value={user?.phone || formData.phone || ''} 
+                        disabled
+                        className="h-12 bg-muted/50 cursor-not-allowed" 
                       />
+                      <p className="text-[10px] text-muted-foreground mt-1">This is your registered phone number</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" /> Email Address
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Login credential</span>
                       </Label>
                       <Input 
                         type="email"
-                        value={formData.email} 
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
-                        placeholder="your@email.com" 
-                        className="h-12" 
+                        value={user?.email || formData.email || ''} 
+                        disabled
+                        className="h-12 bg-muted/50 cursor-not-allowed" 
                       />
+                      <p className="text-[10px] text-muted-foreground mt-1">This is your registered email address</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div>
                       <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
                         <Instagram className="h-4 w-4 text-muted-foreground" /> Instagram Handle
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
                       </Label>
                       <Input 
                         value={formData.instagram} 
@@ -1221,6 +1275,7 @@ export default function VendorProfile() {
                     <div>
                       <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
                         <Globe className="h-4 w-4 text-muted-foreground" /> Website
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
                       </Label>
                       <Input 
                         value={formData.website} 
