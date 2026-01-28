@@ -77,14 +77,15 @@ const getCategoryIcon = (categoryName: string) => {
 // Core category mapping for Phase 1
 // Maps display categories to their underlying DB category IDs
 const CORE_CATEGORY_MAP = {
-  'photography-videography': ['photographer', 'cinematographer', 'videographer'],
+  'photography-videography': ['photo-video'],
   'decorator': ['decorator'],
   'caterer': ['caterer'],
   'venue': ['venue'],
   'mua': ['mua'],
-  'dj-entertainment': ['dj', 'live-music'],
+  'dj-entertainment': ['dj-entertainment'],
   'sound-lights': ['sound-lights'],
-  'other': ['other', 'return-gifts', 'invitations', 'anchors', 'event-coordinator'],
+  'artists': ['artists'],
+  'other': ['other'],
 };
 
 // Helper: Get core category ID from DB category ID
@@ -117,6 +118,7 @@ const coreCategories = [
   { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
   { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
   { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
+  { id: 'artists', name: 'Artists & Performers', icon: '🎭' },
 ];
 
 // Extra charge with pricing type

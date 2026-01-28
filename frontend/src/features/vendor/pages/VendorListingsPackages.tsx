@@ -41,14 +41,15 @@ export default function VendorListingsPackages() {
   ];
 
   const CORE_CATEGORY_MAP: Record<string, string[]> = {
-    'photography-videography': ['photographer', 'cinematographer', 'videographer'],
+    'photography-videography': ['photo-video'],
     'decorator': ['decorator'],
     'caterer': ['caterer'],
     'venue': ['venue'],
     'mua': ['mua'],
-    'dj-entertainment': ['dj', 'live-music'],
+    'dj-entertainment': ['dj-entertainment'],
     'sound-lights': ['sound-lights'],
-    'other': ['other', 'return-gifts', 'invitations', 'anchors', 'event-coordinator'],
+    'artists': ['artists'],
+    'other': ['other'],
   };
 
   const getCoreCategoryId = (dbCategoryId: string): string => {

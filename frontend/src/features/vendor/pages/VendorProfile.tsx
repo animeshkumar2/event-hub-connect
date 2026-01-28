@@ -20,7 +20,7 @@ import { useVendorProfile, useVendorDashboardStats } from '@/shared/hooks/useApi
 import { vendorApi } from '@/shared/services/api';
 import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
 import { RadiusSlider, VENDOR_RADIUS_OPTIONS } from '@/shared/components/RadiusSlider';
-import { categories, cities } from '@/shared/constants/mockData';
+import { categories, cities, vendorProfessions } from '@/shared/constants/mockData';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { uploadImage, validateImageFile, deleteImage, deleteImages } from '@/shared/utils/storage';
 
@@ -142,17 +142,18 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
     if (signupData) {
       try {
         const data = JSON.parse(signupData);
+        // Set email and phone from signup data (these are login credentials, so read-only)
         if (data.email) setEmail(data.email);
-        if (data.fullName) setBusinessName(data.fullName);
         if (data.phone) setPhone(data.phone);
+        // Don't pre-fill business name - let vendor enter their actual business name
       } catch (e) {}
       sessionStorage.removeItem('vendorSignupData');
     }
-    // Always set email from user context if not already set
+    // Always set email from user context if not already set (login credential)
     if (!email && user?.email) {
       setEmail(user.email);
     }
-    // Set phone from user context if available
+    // Set phone from user context if available (login credential)
     if (!phone && user?.phone) {
       setPhone(user.phone);
     }
@@ -271,9 +272,12 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
             <Input 
               value={businessName} 
               onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g., Royal Moments Photography"
+              placeholder="e.g., Royal Decorators, Shutter Stories Photography"
               className="h-12 text-base border-2 border-border/50 focus:border-primary bg-background transition-colors"
             />
+            <p className="text-xs text-muted-foreground ml-8">
+              This is how customers will see your business. Choose a memorable name!
+            </p>
           </div>
 
           {/* Step 2 & 3: City & Category */}
@@ -308,14 +312,14 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 }`}>
                   {category ? <CheckCircle className="h-3.5 w-3.5" /> : '3'}
                 </div>
-                <Label className="text-sm font-semibold text-foreground">What do you offer?</Label>
+                <Label className="text-sm font-semibold text-foreground">What are you?</Label>
               </div>
               <Select value={category} onValueChange={(v) => { setCategory(v); if (v !== 'other') setCustomCategoryName(''); }}>
                 <SelectTrigger className="h-12 text-base border-2 border-border/50 focus:border-primary bg-background">
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select your profession" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {vendorProfessions.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <span className="flex items-center gap-2"><span>{cat.icon}</span><span>{cat.name}</span></span>
                     </SelectItem>
@@ -397,18 +401,40 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
                     <Phone className="h-3.5 w-3.5" /> Phone
+                    {phone && <span className="text-xs text-primary">(Login credential)</span>}
                   </Label>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} 
+                  <Input 
+                    value={phone} 
+                    onChange={(e) => !user?.phone && setPhone(e.target.value)} 
                     placeholder="+91 98765 43210" 
-                    className="h-11 border border-border/50" />
+                    className={`h-11 border border-border/50 ${phone ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                    readOnly={!!phone}
+                    disabled={!!phone}
+                  />
+                  {phone && (
+                    <p className="text-xs text-muted-foreground">
+                      This is your login phone number and cannot be changed here
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
                     <Mail className="h-3.5 w-3.5" /> Email
+                    {email && <span className="text-xs text-primary">(Login credential)</span>}
                   </Label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} 
+                  <Input 
+                    value={email} 
+                    onChange={(e) => !user?.email && setEmail(e.target.value)} 
                     placeholder="you@business.com" 
-                    className="h-11 border border-border/50" />
+                    className={`h-11 border border-border/50 ${email ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                    readOnly={!!email}
+                    disabled={!!email}
+                  />
+                  {email && (
+                    <p className="text-xs text-muted-foreground">
+                      This is your login email and cannot be changed here
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
@@ -842,8 +868,8 @@ export default function VendorProfile() {
         {/* Hero Section - Simplified for new vendors */}
         {isNewVendor ? (
           <div className="relative">
-            {/* Brand-aligned Hero for New Vendors */}
-            <div className="h-28 sm:h-36 relative overflow-hidden bg-gradient-to-br from-[#5950b3] via-[#6858c8] to-[#7867dc]">
+            {/* Brand-aligned Hero for New Vendors - Lighter background */}
+            <div className="h-28 sm:h-36 relative overflow-hidden bg-gradient-to-br from-[#7a72c4]/70 via-[#8b7fd4]/60 to-[#9d93e0]/50">
               {/* Decorative circles */}
               <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-white/5" />
               <div className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-white/5" />

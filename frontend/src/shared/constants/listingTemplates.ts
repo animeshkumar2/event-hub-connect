@@ -52,7 +52,7 @@ const photographyItems: ListingTemplate[] = [
     description: 'Complete wedding day coverage with candid and traditional photography. Capture every precious moment from getting ready to the final farewell.',
     type: 'ITEM',
     categoryId: 'photography-videography',
-    dbCategoryId: 'photographer',
+    dbCategoryId: 'photo-video',
     shortDescription: '8-10 hrs • 500+ photos',
     displayPrice: 75000,
     highlights: ['8-10 hours coverage', '2 photographers', '500+ edited photos', 'Online gallery'],
@@ -83,7 +83,7 @@ const photographyItems: ListingTemplate[] = [
     description: 'Romantic pre-wedding photoshoot at location of your choice. Create beautiful memories before your big day.',
     type: 'ITEM',
     categoryId: 'photography-videography',
-    dbCategoryId: 'photographer',
+    dbCategoryId: 'photo-video',
     shortDescription: '4-5 hrs • 100+ photos',
     displayPrice: 35000,
     highlights: ['4-5 hours shoot', '1 location', '100+ edited photos', 'Outfit changes allowed'],
@@ -113,7 +113,7 @@ const photographyItems: ListingTemplate[] = [
     description: 'Complete photography and videography coverage for your event. Best value for comprehensive documentation.',
     type: 'ITEM',
     categoryId: 'photography-videography',
-    dbCategoryId: 'photographer',
+    dbCategoryId: 'photo-video',
     shortDescription: 'Full day • Photo + Video',
     displayPrice: 120000,
     highlights: ['Full day coverage', '2 photographers + 2 videographers', '500+ photos', 'Highlight reel'],
@@ -602,7 +602,7 @@ const djItems: ListingTemplate[] = [
     description: 'Professional DJ with premium sound system and lighting. Perfect for sangeet and reception.',
     type: 'ITEM',
     categoryId: 'dj-entertainment',
-    dbCategoryId: 'dj',
+    dbCategoryId: 'dj-entertainment',
     shortDescription: '5 hrs • Sound + Lights',
     displayPrice: 35000,
     highlights: ['5 hours performance', 'Premium sound system', 'LED lighting', 'Custom playlist'],
@@ -629,7 +629,7 @@ const djItems: ListingTemplate[] = [
     description: 'Professional DJ setup for corporate events, conferences, and office parties.',
     type: 'ITEM',
     categoryId: 'dj-entertainment',
-    dbCategoryId: 'dj',
+    dbCategoryId: 'dj-entertainment',
     shortDescription: '4 hrs • Professional setup',
     displayPrice: 25000,
     highlights: ['4 hours performance', 'Clean sound', 'Ambient lighting', 'Professional conduct'],
@@ -656,7 +656,7 @@ const djItems: ListingTemplate[] = [
     description: 'Complete entertainment package with DJ and professional anchor/emcee for your event.',
     type: 'ITEM',
     categoryId: 'dj-entertainment',
-    dbCategoryId: 'dj',
+    dbCategoryId: 'dj-entertainment',
     shortDescription: '5 hrs • DJ + Emcee',
     displayPrice: 50000,
     highlights: ['DJ + Anchor combo', '5 hours', 'Games & activities', 'Crowd engagement'],
@@ -868,13 +868,13 @@ const otherPackage: PackageTemplate = {
 export const CATEGORY_TEMPLATES: Record<string, CategoryTemplates> = {
   'photography-videography': {
     categoryId: 'photography-videography',
-    categoryName: 'Photography',
+    categoryName: 'Photography & Videography',
     items: photographyItems,
     package: photographyPackage
   },
-  'photographer': {
-    categoryId: 'photographer',
-    categoryName: 'Photography',
+  'photo-video': {
+    categoryId: 'photo-video',
+    categoryName: 'Photography & Videography',
     items: photographyItems,
     package: photographyPackage
   },
@@ -898,7 +898,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplates> = {
   },
   'mua': {
     categoryId: 'mua',
-    categoryName: 'Makeup Artist',
+    categoryName: 'Makeup & Styling',
     items: muaItems,
     package: muaPackage
   },
@@ -908,17 +908,17 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplates> = {
     items: djItems,
     package: djPackage
   },
-  'dj': {
-    categoryId: 'dj',
-    categoryName: 'DJ & Entertainment',
-    items: djItems,
-    package: djPackage
-  },
   'sound-lights': {
     categoryId: 'sound-lights',
     categoryName: 'Sound & Lights',
     items: soundLightsItems,
     package: soundLightsPackage
+  },
+  'artists': {
+    categoryId: 'artists',
+    categoryName: 'Artists & Performers',
+    items: otherItems, // Reuse other items for now, can be customized later
+    package: otherPackage
   },
   'other': {
     categoryId: 'other',

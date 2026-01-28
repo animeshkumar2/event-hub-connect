@@ -1,16 +1,27 @@
-// SOLUTION 1: Categories (Photography & Cinematography merged, Return Gifts removed)
+// SOLUTION 1: Categories for listings (service-focused names)
 export const categories = [
-  { id: 'photographer', name: 'Photography & Cinematography', icon: '📸' },
+  { id: 'photo-video', name: 'Photography & Videography', icon: '📸' },
   { id: 'decorator', name: 'Décor', icon: '🎨' },
-  { id: 'dj', name: 'DJ', icon: '🎵' },
-  { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-  { id: 'mua', name: 'Makeup / Stylist', icon: '💄' },
   { id: 'caterer', name: 'Catering', icon: '🍽️' },
-  { id: 'invitations', name: 'Invitations', icon: '✉️' },
-  { id: 'live-music', name: 'Live Music', icon: '🎤' },
-  { id: 'anchors', name: 'Anchors', icon: '🎙️' },
-  { id: 'event-coordinator', name: 'Event Coordinators', icon: '📋' },
-  { id: 'other', name: 'Other', icon: '📦' }, // For miscellaneous listings
+  { id: 'venue', name: 'Venue', icon: '🏛️' },
+  { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
+  { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
+  { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
+  { id: 'artists', name: 'Artists & Performers', icon: '🎭' },
+  { id: 'other', name: 'Other', icon: '📦' },
+];
+
+// Vendor profession categories (for onboarding - profession-focused names with simple icons)
+export const vendorProfessions = [
+  { id: 'photo-video', name: 'Photographer', icon: '📷' },
+  { id: 'decorator', name: 'Decorator', icon: '🎀' },
+  { id: 'caterer', name: 'Caterer', icon: '🍴' },
+  { id: 'venue', name: 'Venue Owner', icon: '🏠' },
+  { id: 'mua', name: 'Makeup Artist', icon: '💄' },
+  { id: 'dj-entertainment', name: 'DJ', icon: '🎧' },
+  { id: 'sound-lights', name: 'Sound & Lights', icon: '🔈' },
+  { id: 'artists', name: 'Artist / Performer', icon: '🎤' },
+  { id: 'other', name: 'Other', icon: '•••' },
 ];
 
 export const cities = [
@@ -100,7 +111,7 @@ export const suggestCategoryForListing = (listingName: string, listingDescriptio
   
   // Photography equipment → photography
   if (text.match(/\b(camera|dslr|lens|photography|photo|shoot|photographer)\b/)) {
-    return 'photographer';
+    return 'photo-video';
   }
   
   // Decor items → decorator
@@ -113,9 +124,9 @@ export const suggestCategoryForListing = (listingName: string, listingDescriptio
     return 'sound-lights';
   }
   
-  // Music equipment → live-music or dj
+  // Music equipment → artists
   if (text.match(/\b(instrument|guitar|piano|keyboard|drums|music|band|musician)\b/)) {
-    return 'live-music';
+    return 'artists';
   }
   
   // Makeup/styling → mua
@@ -123,9 +134,9 @@ export const suggestCategoryForListing = (listingName: string, listingDescriptio
     return 'mua';
   }
   
-  // Video equipment → photographer (merged category)
+  // Video equipment → photo-video (merged category)
   if (text.match(/\b(video|camera|cinematography|cinematographer|film|recording)\b/)) {
-    return 'photographer';
+    return 'photo-video';
   }
   
   // If no match, return null (will use 'other')
@@ -350,7 +361,7 @@ const generateBookableSetups = (vendorId: string, category: string): BookableSet
         title: 'Candid Wedding Photography',
         description: 'Natural, unposed moments captured beautifully',
         price: 45000,
-        category: 'photographer',
+        category: 'photo-video',
       },
     ];
   }
@@ -361,7 +372,7 @@ export const mockVendors: Vendor[] = [
   {
     id: 'v1',
     businessName: 'Moments Photography Studio',
-    category: 'photographer',
+    category: 'photo-video',
     city: 'Mumbai',
     bio: 'Capturing your precious moments with artistic excellence. 10+ years of experience in wedding and event photography. We specialize in candid, traditional, and cinematic styles.',
     rating: 4.8,
@@ -489,7 +500,7 @@ export const mockVendors: Vendor[] = [
         price: 5000,
         description: 'High-end DSLR camera rental for events. Includes camera body, lens, and basic accessories.',
         images: ['https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=800&h=600&fit=crop&q=80'],
-        category: 'photographer',
+        category: 'photo-video',
         unit: 'per day',
         minimumQuantity: 1,
         deliveryTime: 'Same day pickup available',
@@ -502,7 +513,7 @@ export const mockVendors: Vendor[] = [
         price: 8000,
         description: 'Extra photographer for your event. Professional with 5+ years experience.',
         images: ['https://images.unsplash.com/photo-1519741497674-611481863552?w=800&h=600&fit=crop&q=80'],
-        category: 'photographer',
+        category: 'photo-video',
         unit: 'per event',
         minimumQuantity: 1,
         deliveryTime: 'Available on event day',
@@ -676,7 +687,7 @@ export const mockVendors: Vendor[] = [
   {
     id: 'v3',
     businessName: 'Beat Masters DJ',
-    category: 'dj',
+    category: 'dj-entertainment',
     city: 'Delhi',
     bio: 'Professional DJ services for weddings, corporate events, and parties. Latest equipment and massive music library. We keep the party going!',
     rating: 4.7,
@@ -765,7 +776,7 @@ export const mockVendors: Vendor[] = [
         price: 15000,
         description: 'High-end DJ console with mixing capabilities. Perfect for professional DJs.',
         images: ['https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=600&fit=crop&q=80'],
-        category: 'dj',
+        category: 'dj-entertainment',
         unit: 'per day',
         minimumQuantity: 1,
         deliveryTime: 'Same day pickup available',
@@ -778,7 +789,7 @@ export const mockVendors: Vendor[] = [
         price: 3000,
         description: 'Professional wireless microphone system with 2 handheld mics and receiver.',
         images: ['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop&q=80'],
-        category: 'dj',
+        category: 'dj-entertainment',
         unit: 'per set',
         minimumQuantity: 1,
         deliveryTime: 'Available on event day',

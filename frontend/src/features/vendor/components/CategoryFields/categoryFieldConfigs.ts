@@ -121,8 +121,8 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     ]
   },
 
-  'photographer': {
-    categoryId: 'photographer',
+  'photo-video': {
+    categoryId: 'photo-video',
     pricingModel: 'per_event',
     showPackageDetails: true,
     fields: [
@@ -574,8 +574,8 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     ]
   },
 
-  'dj': {
-    categoryId: 'dj',
+  'dj-entertainment': {
+    categoryId: 'dj-entertainment',
     pricingModel: 'per_hour',
     showPackageDetails: true,
     fields: [

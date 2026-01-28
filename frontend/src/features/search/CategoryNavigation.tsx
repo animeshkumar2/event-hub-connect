@@ -15,8 +15,8 @@ interface Category {
 
 const categories: Category[] = [
   {
-    id: 'photographer',
-    name: 'PHOTOGRAPHY & CINEMATOGRAPHY',
+    id: 'photo-video',
+    name: 'PHOTOGRAPHY & VIDEOGRAPHY',
     image: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=400',
     location: 'Wedding Photography & Films',
     description: 'Capture your precious moments',
@@ -29,15 +29,15 @@ const categories: Category[] = [
     description: 'Transform spaces into magic',
   },
   {
-    id: 'dj',
-    name: 'DJ & MUSIC',
+    id: 'dj-entertainment',
+    name: 'DJ & ENTERTAINMENT',
     image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400',
     location: 'Sound & Lighting',
     description: 'Keep the party going',
   },
   {
     id: 'mua',
-    name: 'MAKEUP ARTIST',
+    name: 'MAKEUP & STYLING',
     image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400',
     location: 'Bridal Makeup',
     description: 'Look stunning on your day',
@@ -48,6 +48,13 @@ const categories: Category[] = [
     image: 'https://images.unsplash.com/photo-1555244162-803834f90033?w=400',
     location: 'Food & Beverages',
     description: 'Delicious food for all',
+  },
+  {
+    id: 'artists',
+    name: 'ARTISTS & PERFORMERS',
+    image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400',
+    location: 'Live Entertainment',
+    description: 'Unforgettable performances',
   },
 ];
 

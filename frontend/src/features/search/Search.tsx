@@ -249,14 +249,18 @@ const Search = () => {
     
     // Direct ID mapping for hardcoded frontend category IDs to backend category IDs
     const directIdMap: Record<string, string> = {
-      'mua': 'makeup',  // Frontend uses 'mua', backend uses 'makeup'
-      'makeup': 'makeup',
-      'photographer': 'photographer',
+      'mua': 'mua',
+      'makeup': 'mua',
+      'photo-video': 'photo-video',
+      'photography-videography': 'photo-video',
+      'photographer': 'photo-video',  // Legacy support
       'decorator': 'decorator',
-      'dj': 'dj',
+      'dj-entertainment': 'dj-entertainment',
+      'dj': 'dj-entertainment',  // Legacy support
       'caterer': 'caterer',
-      'mehendi': 'mehendi',
-      'event-coordinator': 'event-coordinator',
+      'venue': 'venue',
+      'sound-lights': 'sound-lights',
+      'artists': 'artists',
     };
     
     // First, try direct ID mapping
@@ -283,13 +287,13 @@ const Search = () => {
     // Third, try to find by name/slug (for other hardcoded IDs)
     const categoryNameMap: Record<string, string[]> = {
       'mua': ['makeup', 'mua', 'makeup artist', 'makeup-artist'],
-      'makeup': ['makeup', 'mua', 'makeup artist'],
-      'photographer': ['photographer', 'photography'],
+      'photo-video': ['photographer', 'photography', 'videography', 'photo-video'],
       'decorator': ['decorator', 'decoration', 'décor'],
-      'dj': ['dj', 'music', 'sound'],
+      'dj-entertainment': ['dj', 'music', 'entertainment', 'dj-entertainment'],
       'caterer': ['caterer', 'catering'],
-      'mehendi': ['mehendi', 'henna'],
-      'event-coordinator': ['event coordinator', 'event planner', 'planner'],
+      'venue': ['venue', 'hall', 'banquet'],
+      'sound-lights': ['sound', 'lights', 'audio'],
+      'artists': ['artist', 'performer', 'band', 'musician'],
     };
     
     const searchTerms = categoryNameMap[selectedCategory.toLowerCase()] || [selectedCategory.toLowerCase()];

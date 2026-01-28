@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { ArrowRight, Loader2, Sparkles, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { categories, cities } from '@/shared/constants/mockData';
+import { vendorProfessions, cities } from '@/shared/constants/mockData';
 import { vendorApi } from '@/shared/services/api';
 import { useAuth } from '@/shared/contexts/AuthContext';
 
@@ -40,7 +40,7 @@ export default function VendorOnboarding() {
       try {
         const data = JSON.parse(signupData);
         if (data.email) setEmail(data.email);
-        if (data.fullName) setBusinessName(data.fullName); // Use name as initial business name
+        // Don't pre-fill business name - let vendor enter their actual business name
         if (data.phone) setPhone(data.phone);
       } catch (e) {
         // Ignore parse errors
@@ -49,6 +49,10 @@ export default function VendorOnboarding() {
       }
     } else if (user?.email) {
       setEmail(user.email);
+    }
+    // Pre-fill phone from user profile if available
+    if (user?.phone) {
+      setPhone(user.phone);
     }
   }, [user]);
 
@@ -131,25 +135,28 @@ export default function VendorOnboarding() {
               <Input 
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="e.g., Royal Moments Photography"
+                placeholder="e.g., Royal Decorators, Shutter Stories Photography"
                 className="h-11 bg-background"
               />
+              <p className="text-xs text-muted-foreground">
+                This is how customers will see your business. Choose a memorable name!
+              </p>
             </div>
 
             {/* Category */}
             <div className="space-y-2">
               <Label className="text-foreground font-medium">
-                What do you offer? <span className="text-destructive">*</span>
+                What are you? <span className="text-destructive">*</span>
               </Label>
               <Select value={category} onValueChange={(value) => {
                 setCategory(value);
                 if (value !== 'other') setCustomCategoryName('');
               }}>
                 <SelectTrigger className="h-11 bg-background">
-                  <SelectValue placeholder="Select your service category" />
+                  <SelectValue placeholder="Select your profession" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {vendorProfessions.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <span className="flex items-center gap-2">
                         <span>{cat.icon}</span>
@@ -163,7 +170,7 @@ export default function VendorOnboarding() {
                 <Input
                   value={customCategoryName}
                   onChange={(e) => setCustomCategoryName(e.target.value)}
-                  placeholder="Specify your category..."
+                  placeholder="Specify your profession..."
                   className="h-11 mt-2 bg-background"
                 />
               )}

@@ -6,7 +6,6 @@
 -- =====================================================
 -- 1. INSERT EVENT TYPES
 -- =====================================================
-
 INSERT INTO event_types (name, display_name) VALUES
 ('Wedding', 'Wedding'),
 ('Birthday', 'Birthday'),
@@ -23,17 +22,15 @@ ON CONFLICT (name) DO NOTHING;
 -- 2. INSERT CATEGORIES
 -- =====================================================
 INSERT INTO categories (id, name, display_name, icon) VALUES
-('photo-video', 'Photography & Videography', 'Photography & Videography', '📸'),
+('photo-video', 'Photography & Videography', 'Photography & Videography', '�'),
 ('decorator', 'Décor', 'Décor', '🎨'),
-('caterer', 'Catering', 'Catering', '🍽️'),
-('venue', 'Venue', 'Venue', '🏛️'),
-('mua', 'Makeup & Styling', 'Makeup & Styling', '💄'),
-('dj-entertainment', 'DJ & Entertainment', 'DJ & Entertainment', '🎵'),
-('sound-lights', 'Sound & Lights', 'Sound & Lights', '💡'),
-('artists', 'Artists & Performers', 'Artists & Performers', '🎭')
+('caterer', 'Catering', 'Catering', '�️'),
+('venue', 'Venue', 'Venue', '�️'),
+('mua', 'Makeup & Styling', 'Makeup & Styling', '�'),
+('dj-entertainment', 'DJ & Entertainment', 'DJ & Entertainment', '�'),
+('sound-lights', 'Sound & Lights', 'Sound & Lights', '�'),
+('artists', 'Artists & Performers', 'Artists & Performers', '�')
 ON CONFLICT (id) DO NOTHING;
-
-
 
 -- =====================================================
 -- 3. INSERT EVENT TYPE → CATEGORY MAPPINGS
@@ -52,6 +49,22 @@ SELECT et.id, c.id
 FROM event_types et, categories c
 WHERE et.name = 'Birthday'
 AND c.id IN ('photo-video', 'decorator', 'caterer', 'dj-entertainment', 'sound-lights', 'artists', 'venue')
+ON CONFLICT DO NOTHING;
+
+-- Anniversary: Selected categories
+INSERT INTO event_type_categories (event_type_id, category_id)
+SELECT et.id, c.id
+FROM event_types et, categories c
+WHERE et.name = 'Anniversary'
+AND c.id IN ('photo-video', 'decorator', 'caterer', 'dj-entertainment', 'artists', 'venue', 'sound-lights')
+ON CONFLICT DO NOTHING;
+
+-- Corporate: Selected categories
+INSERT INTO event_type_categories (event_type_id, category_id)
+SELECT et.id, c.id
+FROM event_types et, categories c
+WHERE et.name = 'Corporate'
+AND c.id IN ('photo-video', 'decorator', 'caterer', 'sound-lights', 'artists', 'venue', 'dj-entertainment')
 ON CONFLICT DO NOTHING;
 
 -- Engagement: Selected categories
@@ -99,27 +112,9 @@ SELECT et.id, 'venue'
 FROM event_types et
 ON CONFLICT DO NOTHING;
 
--- Corporate: Selected categories
-INSERT INTO event_type_categories (event_type_id, category_id)
-SELECT et.id, c.id
-FROM event_types et, categories c
-WHERE et.name = 'Corporate'
-AND c.id IN ('photo-video', 'decorator', 'caterer', 'sound-lights', 'artists', 'venue', 'dj-entertainment')
-ON CONFLICT DO NOTHING;
-
--- Anniversary: Selected categories
-INSERT INTO event_type_categories (event_type_id, category_id)
-SELECT et.id, c.id
-FROM event_types et, categories c
-WHERE et.name = 'Anniversary'
-AND c.id IN ('photo-video', 'decorator', 'caterer', 'dj-entertainment', 'artists', 'venue', 'sound-lights')
-ON CONFLICT DO NOTHING;
-
-
 -- =====================================================
 -- 4. INSERT CITIES
 -- =====================================================
-
 INSERT INTO cities (name, state, country) VALUES
 ('Mumbai', 'Maharashtra', 'India'),
 ('Delhi', 'Delhi', 'India'),
