@@ -35,10 +35,10 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
         <div className="w-10" />
       </header>
 
-      {/* Backdrop for mobile sidebar */}
+      {/* Backdrop for mobile sidebar - extends beyond viewport for overscroll */}
       {sidebarOpen && (
         <div
-          className="md:hidden fixed inset-0 z-30 bg-black/40"
+          className="md:hidden fixed -inset-96 z-30 bg-black/40"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
