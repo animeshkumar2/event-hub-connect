@@ -9,20 +9,20 @@ export const SUPPORT_CONFIG = {
   contact: {
     phones: [
       {
+        number: '+91 84559 43587',
+        display: '+91 84559 43587',
+        href: 'tel:+918455943587'
+      },
+      {
         number: '+91 84592 11850',
         display: '+91 84592 11850',
         href: 'tel:+918459211850'
-      },
-      {
-        number: '+91 91689 98942',
-        display: '+91 91689 98942',
-        href: 'tel:+919168998942'
       }
     ],
     email: {
-      address: 'piyushmchotiya@gmail.com',
-      display: 'piyushmchotiya@gmail.com',
-      href: 'mailto:piyushmchotiya@gmail.com'
+      address: 'support@cartevent.com',
+      display: 'support@cartevent.com',
+      href: 'mailto:support@cartevent.com'
     }
   },
 
