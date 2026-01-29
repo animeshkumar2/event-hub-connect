@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogTitle } from '@/shared/components/ui/dialo
 import { Button } from '@/shared/components/ui/button';
 import { 
   Loader2, ArrowRight, ArrowLeft, Camera, Utensils, Building2, 
-  Palette, Sparkles, Music, Speaker, MoreHorizontal, Wand2, PenLine,
-  CheckCircle2
+  Palette, Sparkles, Music, Speaker, MoreHorizontal, PenLine,
+  CheckCircle2, Plus, LayoutTemplate
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { vendorApi } from '@/shared/services/api';
@@ -178,7 +178,7 @@ export function TemplateSelectionModal({
           <div className="p-6">
             <div className="text-center mb-6">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-4">
-                <Wand2 className="h-7 w-7 text-primary" />
+                <Plus className="h-7 w-7 text-primary" />
               </div>
               <h2 className="text-xl font-semibold text-foreground">Create New Service</h2>
               <p className="text-sm text-muted-foreground mt-1">How would you like to start?</p>
@@ -192,7 +192,7 @@ export function TemplateSelectionModal({
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                    <Wand2 className="h-6 w-6 text-primary" />
+                    <LayoutTemplate className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

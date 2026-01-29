@@ -547,29 +547,94 @@ export default function ListingDetail() {
               </ScrollReveal>
             )}
 
-            {/* Service Details - Compact */}
+            {/* Service Details - Modern Design */}
             <ScrollReveal animation="fadeInUp" delay={650}>
               <section>
-                <Card>
-                  <CardContent className="p-3">
-                    <h2 className="text-xs font-semibold mb-2">Service Details</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                <Card className="overflow-hidden border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-4">
+                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/20">
+                        <Package className="h-4 w-4" />
+                      </div>
+                      Service Details
+                    </h2>
+                  </div>
+                  <CardContent className="p-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {/* Delivery Time */}
                       {listing.deliveryTime && (
-                        <div>
-                          <p className="text-slate-400">Delivery</p>
-                          <p className="font-medium">{listing.deliveryTime}</p>
+                        <div className="group p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 hover:shadow-md transition-all">
+                          <div className="inline-flex p-2 rounded-lg bg-blue-100 mb-2 group-hover:scale-110 transition-transform">
+                            <Star className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <p className="text-xs font-medium text-blue-600/80 uppercase tracking-wide">Delivery</p>
+                          <p className="text-sm font-bold text-blue-900 mt-0.5">{listing.deliveryTime}</p>
                         </div>
                       )}
+                      
+                      {/* Service Mode */}
+                      {listing.serviceMode && (
+                        <div className="group p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200/60 hover:shadow-md transition-all">
+                          <div className="inline-flex p-2 rounded-lg bg-violet-100 mb-2 group-hover:scale-110 transition-transform">
+                            <MapPin className="h-4 w-4 text-violet-600" />
+                          </div>
+                          <p className="text-xs font-medium text-violet-600/80 uppercase tracking-wide">Service Mode</p>
+                          <p className="text-sm font-bold text-violet-900 mt-0.5">
+                            {listing.serviceMode === 'CUSTOMER_VISITS' ? 'Visit Venue' : 
+                             listing.serviceMode === 'VENDOR_TRAVELS' ? 'We Travel' : 'Flexible'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Negotiation */}
+                      {listing.openForNegotiation !== undefined && (
+                        <div className={cn(
+                          "group p-4 rounded-xl border hover:shadow-md transition-all",
+                          listing.openForNegotiation 
+                            ? "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200/60" 
+                            : "bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200/60"
+                        )}>
+                          <div className={cn(
+                            "inline-flex p-2 rounded-lg mb-2 group-hover:scale-110 transition-transform",
+                            listing.openForNegotiation ? "bg-emerald-100" : "bg-slate-100"
+                          )}>
+                            <IndianRupee className={cn(
+                              "h-4 w-4",
+                              listing.openForNegotiation ? "text-emerald-600" : "text-slate-500"
+                            )} />
+                          </div>
+                          <p className={cn(
+                            "text-xs font-medium uppercase tracking-wide",
+                            listing.openForNegotiation ? "text-emerald-600/80" : "text-slate-500/80"
+                          )}>Price</p>
+                          <p className={cn(
+                            "text-sm font-bold mt-0.5",
+                            listing.openForNegotiation ? "text-emerald-900" : "text-slate-700"
+                          )}>
+                            {listing.openForNegotiation ? 'Negotiable' : 'Fixed'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Unit for items */}
                       {isItem && listing.unit && (
-                        <div>
-                          <p className="text-slate-400">Unit</p>
-                          <p className="font-medium">{listing.unit}</p>
+                        <div className="group p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 hover:shadow-md transition-all">
+                          <div className="inline-flex p-2 rounded-lg bg-amber-100 mb-2 group-hover:scale-110 transition-transform">
+                            <Package className="h-4 w-4 text-amber-600" />
+                          </div>
+                          <p className="text-xs font-medium text-amber-600/80 uppercase tracking-wide">Unit</p>
+                          <p className="text-sm font-bold text-amber-900 mt-0.5">{listing.unit}</p>
                         </div>
                       )}
+                      
+                      {/* Minimum Quantity */}
                       {isItem && listing.minimumQuantity && (
-                        <div>
-                          <p className="text-slate-400">Min. Qty</p>
-                          <p className="font-medium">{listing.minimumQuantity}</p>
+                        <div className="group p-4 rounded-xl bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200/60 hover:shadow-md transition-all">
+                          <div className="inline-flex p-2 rounded-lg bg-rose-100 mb-2 group-hover:scale-110 transition-transform">
+                            <User className="h-4 w-4 text-rose-600" />
+                          </div>
+                          <p className="text-xs font-medium text-rose-600/80 uppercase tracking-wide">Min. Qty</p>
+                          <p className="text-sm font-bold text-rose-900 mt-0.5">{listing.minimumQuantity}</p>
                         </div>
                       )}
                     </div>
