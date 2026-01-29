@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { useToast } from "@/shared/hooks/use-toast";
 import { useAuth } from "@/shared/contexts/AuthContext";
-import { Loader2, Eye, EyeOff, Check, X, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, ArrowLeft, Briefcase, PartyPopper } from "lucide-react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { CustomerWaitlistForm } from "@/features/home/CustomerWaitlistForm";
 
@@ -615,8 +615,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
-                      <span className="text-2xl">💼</span>
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Briefcase className="h-6 w-6 text-primary" />
                     </div>
                     <div className={`font-semibold text-sm ${isVendor && !showWaitlistForm ? 'text-primary' : 'text-foreground'}`}>Vendor</div>
                     <div className="text-xs text-muted-foreground mt-0.5">List your services</div>
@@ -638,8 +638,8 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     }`}
                   >
                     <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
-                        <span className="text-2xl">🎉</span>
+                      <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-amber-50 flex items-center justify-center">
+                        <PartyPopper className="h-6 w-6 text-amber-500" />
                       </div>
                       <div className={`font-semibold text-sm ${!isVendor && showWaitlistForm ? 'text-primary' : 'text-foreground'}`}>Customer</div>
                       <div className="text-xs text-muted-foreground mt-0.5">Book vendors</div>

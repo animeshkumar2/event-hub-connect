@@ -15,7 +15,7 @@ import { PremiumChatWindow } from '@/features/vendor/PremiumChatWindow';
 import { PremiumPackageCard } from '@/features/search/PremiumPackageCard';
 import { PackageCustomization } from '@/features/vendor/PackageCustomization';
 import { BookExactSetup } from '@/features/vendor/BookExactSetup';
-import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/shared/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { 
   useVendor, 
@@ -395,6 +395,7 @@ const VendorDetails = () => {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
+                <DialogTitle className="sr-only">Chat with {vendor.businessName}</DialogTitle>
                 <PremiumChatWindow
                   vendorId={vendor.id}
                   vendorName={vendor.businessName}
@@ -1064,6 +1065,7 @@ const VendorDetails = () => {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
+                    <DialogTitle className="sr-only">Chat with {vendor.businessName}</DialogTitle>
                     <PremiumChatWindow
                       vendorId={vendor.id}
                       vendorName={vendor.businessName}

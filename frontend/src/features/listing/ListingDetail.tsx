@@ -28,7 +28,7 @@ import { useListingDetails, useVendorListings, useVendorReviews } from '@/shared
 import { cn } from '@/shared/lib/utils';
 import { ScrollReveal } from '@/shared/components/ScrollReveal';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/shared/components/ui/dialog';
 import { PremiumChatWindow } from '@/features/vendor/PremiumChatWindow';
 
 import { CategorySpecificDisplay } from './CategorySpecificDisplay';
@@ -738,6 +738,7 @@ export default function ListingDetail() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
+                      <DialogTitle className="sr-only">Chat with {listing?.vendorName || 'Vendor'}</DialogTitle>
                       <PremiumChatWindow
                         key={`chat-${finalListingId}`}
                         vendorId={listing?.vendorId || ''}
@@ -766,6 +767,7 @@ export default function ListingDetail() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-3xl p-0 [&>button]:top-2 [&>button]:right-2 [&>button]:z-50 [&>button]:bg-background/80 [&>button]:rounded-full [&>button]:p-1">
+                      <DialogTitle className="sr-only">Chat with {listing.vendorName || 'Vendor'}</DialogTitle>
                       <PremiumChatWindow
                         key={`chat-${finalListingId || 'no-listing'}`}
                         vendorId={listing.vendorId || ''}

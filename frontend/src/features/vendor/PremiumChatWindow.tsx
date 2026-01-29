@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
-import { Send, Loader2, Wifi, WifiOff, Sparkles, CheckCheck, MessageSquare, HandCoins, IndianRupee, CheckCircle2, XCircle, Clock, User, Calendar, Package, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Loader2, Wifi, WifiOff, Sparkles, CheckCheck, MessageSquare, HandCoins, IndianRupee, CheckCircle2, XCircle, Clock, User, Calendar, Package, ChevronDown, ChevronUp, Camera, LucideIcon } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { useWebSocket, ChatMessage } from '@/shared/hooks/useWebSocket';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -40,12 +40,12 @@ interface PremiumChatWindowProps {
   onClose?: () => void;  // Note: Dialog already has a close button, this is optional
 }
 
-// Customer quick suggestions
-const CUSTOMER_SUGGESTIONS = [
-  { icon: '📅', text: "What dates are you available?" },
-  { icon: '💰', text: "Can you share your pricing?" },
-  { icon: '📸', text: "Do you have a portfolio?" },
-  { icon: '📦', text: "What packages do you offer?" },
+// Customer quick suggestions with Lucide icons
+const CUSTOMER_SUGGESTIONS: { icon: LucideIcon; text: string; color: string; bg: string }[] = [
+  { icon: Calendar, text: "What dates are you available?", color: "text-blue-500", bg: "bg-blue-50" },
+  { icon: IndianRupee, text: "Can you share your pricing?", color: "text-emerald-500", bg: "bg-emerald-50" },
+  { icon: Camera, text: "Do you have a portfolio?", color: "text-purple-500", bg: "bg-purple-50" },
+  { icon: Package, text: "What packages do you offer?", color: "text-orange-500", bg: "bg-orange-50" },
 ];
 
 export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPrice, openForNegotiation = true, onClose }: PremiumChatWindowProps) => {
@@ -632,7 +632,7 @@ export const PremiumChatWindow = ({ vendorId, vendorName, listingId, listingPric
       orderId: tokenPaymentOrderId,
     });
     
-    toast.success('🎉 Booking confirmed! Token payment received.');
+    toast.success('Booking confirmed! Token payment received.');
     setShowTokenPaymentModal(false);
     setTokenPaymentOrderId(null);
     

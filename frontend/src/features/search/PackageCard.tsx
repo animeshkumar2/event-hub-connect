@@ -8,7 +8,7 @@ import { FlattenedPackage } from '@/shared/utils/packageUtils';
 import { cn } from '@/shared/lib/utils';
 import { useCart } from '@/shared/contexts/CartContext';
 import { useToast } from '@/shared/hooks/use-toast';
-import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/shared/components/ui/dialog';
 import { PackageCustomization } from '@/features/vendor/PackageCustomization';
 
 interface PackageCardProps {
@@ -176,6 +176,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
+              <DialogTitle className="sr-only">Customize {pkg.packageName || pkg.name}</DialogTitle>
               <PackageCustomization
                 pkg={{
                   id: pkg.packageId || pkg.id,

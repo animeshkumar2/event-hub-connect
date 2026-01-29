@@ -304,7 +304,7 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-100 mb-4 animate-bounce" style={{ animationDuration: '1s', animationIterationCount: '2' }}>
                 <PartyPopper className="h-10 w-10 text-emerald-600" />
               </div>
-              <DialogTitle className="text-2xl font-bold text-foreground">You're In! 🎉</DialogTitle>
+              <DialogTitle className="text-2xl font-bold text-foreground">You're In!</DialogTitle>
               <DialogDescription className="text-muted-foreground mt-2">
                 Thanks <span className="font-semibold text-foreground">{submittedData.name}</span>! You're on the list.
               </DialogDescription>

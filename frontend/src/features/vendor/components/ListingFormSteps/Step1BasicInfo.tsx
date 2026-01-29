@@ -3,7 +3,15 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Badge } from '@/shared/components/ui/badge';
-import { Package, Box } from 'lucide-react';
+import { Package, Box, LucideIcon } from 'lucide-react';
+
+interface CoreCategory {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  iconColor: string;
+  iconBg: string;
+}
 
 interface Step1Props {
   formData: any;
@@ -14,7 +22,7 @@ interface Step1Props {
   items: any[];
   toggleLinkedItem: (itemId: string) => void;
   getCategoryName: (categoryId: string) => string;
-  coreCategories: any[];
+  coreCategories: CoreCategory[];
   eventTypesData: any[];
   eventTypeCategories: any[];
   getAllDbCategoryIds: (coreCategoryId: string) => string[];
@@ -145,11 +153,17 @@ export function ListingFormStep1({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {coreCategories.map((cat: any) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
-                  </SelectItem>
-                ))}
+                {coreCategories.map((cat) => {
+                  const IconComponent = cat.icon;
+                  return (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className={`h-4 w-4 ${cat.iconColor}`} />
+                        <span>{cat.name}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             {isEditing ? (

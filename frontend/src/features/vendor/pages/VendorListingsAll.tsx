@@ -68,14 +68,14 @@ export default function VendorListingsAll() {
 
   // Core categories for display
   const coreCategories = [
-    { id: 'photography-videography', name: 'Photography & Videography', icon: '📸' },
-    { id: 'decorator', name: 'Décor', icon: '🎨' },
-    { id: 'caterer', name: 'Catering', icon: '🍽️' },
-    { id: 'venue', name: 'Venue', icon: '🏛️' },
-    { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
-    { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
-    { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-    { id: 'other', name: 'Other', icon: '📦' },
+    { id: 'photography-videography', name: 'Photography & Videography' },
+    { id: 'decorator', name: 'Décor' },
+    { id: 'caterer', name: 'Catering' },
+    { id: 'venue', name: 'Venue' },
+    { id: 'mua', name: 'Makeup & Styling' },
+    { id: 'dj-entertainment', name: 'DJ & Entertainment' },
+    { id: 'sound-lights', name: 'Sound & Lights' },
+    { id: 'other', name: 'Other' },
   ];
 
   const CORE_CATEGORY_MAP: Record<string, string[]> = {

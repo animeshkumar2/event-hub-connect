@@ -38,7 +38,11 @@ import {
   Lightbulb,
   Tag,
   Navigation,
-  LayoutGrid
+  LayoutGrid,
+  Building2,
+  Sparkle,
+  Theater,
+  LucideIcon
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -109,16 +113,16 @@ const getAllDbCategoryIds = (coreCategoryId: string): string[] => {
   return CORE_CATEGORY_MAP[coreCategoryId as keyof typeof CORE_CATEGORY_MAP] || ['other'];
 };
 
-// Build core categories list for dropdowns
-const coreCategories = [
-  { id: 'photography-videography', name: 'Photography & Videography', icon: '📸' },
-  { id: 'decorator', name: 'Décor', icon: '🎨' },
-  { id: 'caterer', name: 'Catering', icon: '🍽️' },
-  { id: 'venue', name: 'Venue', icon: '🏛️' },
-  { id: 'mua', name: 'Makeup & Styling', icon: '💄' },
-  { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: '🎵' },
-  { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-  { id: 'artists', name: 'Artists & Performers', icon: '🎭' },
+// Build core categories list for dropdowns with Lucide icons
+const coreCategories: { id: string; name: string; icon: LucideIcon; iconColor: string; iconBg: string }[] = [
+  { id: 'photography-videography', name: 'Photography & Videography', icon: Camera, iconColor: 'text-blue-500', iconBg: 'bg-blue-50' },
+  { id: 'decorator', name: 'Décor', icon: Palette, iconColor: 'text-pink-500', iconBg: 'bg-pink-50' },
+  { id: 'caterer', name: 'Catering', icon: UtensilsCrossed, iconColor: 'text-orange-500', iconBg: 'bg-orange-50' },
+  { id: 'venue', name: 'Venue', icon: Building2, iconColor: 'text-emerald-500', iconBg: 'bg-emerald-50' },
+  { id: 'mua', name: 'Makeup & Styling', icon: Sparkle, iconColor: 'text-rose-500', iconBg: 'bg-rose-50' },
+  { id: 'dj-entertainment', name: 'DJ & Entertainment', icon: Music, iconColor: 'text-purple-500', iconBg: 'bg-purple-50' },
+  { id: 'sound-lights', name: 'Sound & Lights', icon: Lightbulb, iconColor: 'text-yellow-500', iconBg: 'bg-yellow-50' },
+  { id: 'artists', name: 'Artists & Performers', icon: Theater, iconColor: 'text-indigo-500', iconBg: 'bg-indigo-50' },
 ];
 
 // Extra charge with pricing type
@@ -533,7 +537,7 @@ export default function VendorListings() {
           break;
       }
       
-      console.log('💰 Extracted final price:', finalPrice);
+      console.log('Extracted final price:', finalPrice);
     }
 
     // Validation differs for ITEMS vs PACKAGES

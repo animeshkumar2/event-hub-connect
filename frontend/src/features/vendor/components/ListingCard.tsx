@@ -127,7 +127,7 @@ export function ListingCard({
             extractedPrice = categoryData.price || 0;
         }
         
-        console.log('💰 Extracted price from category data:', extractedPrice);
+        console.log('Extracted price from category data:', extractedPrice);
         if (extractedPrice > 0) {
           return extractedPrice;
         }

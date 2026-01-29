@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Check, X, Clock, AlertCircle, ShoppingCart, Grid3x3 } from 'lucide-react';
 import { Package, categories } from '@/shared/constants/mockData';
 import { cn } from '@/shared/lib/utils';
-import { Dialog, DialogContent, DialogTrigger } from '@/shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/shared/components/ui/dialog';
 import { PackageCustomization } from '@/features/vendor/PackageCustomization';
 import { useNavigate } from 'react-router-dom';
 
@@ -218,6 +218,7 @@ export const PremiumPackageCard = ({
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
+              <DialogTitle className="sr-only">Customize {pkg.name}</DialogTitle>
               <PackageCustomization
                 pkg={pkg}
                 onCustomize={(selectedExtras, quantity, totalPrice) => {

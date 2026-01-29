@@ -57,11 +57,21 @@ const categories: Category[] = [
   },
 ];
 
-// Event images from public folder
+// CDN base URL for optimized images
+const CDN_BASE = 'https://images.cartevent.com/trivial-images/home-page';
+
+// Event images - CDN with local fallback
 const galleryImages = {
-  decor: '/Aditi Rao Hydari\'s Dreamy Wedding Decor Setup at Alila Fort Bishangarh.jpeg', // Wedding decor
-  event: '/Background event Photos - Download Free High-Quality Pictures _ Freepik.jpeg', // Event background
-  colorful: '/Rainbow Hued Décor Ideas That Wowed Us!.jpeg', // Colorful decor
+  decor: `${CDN_BASE}/wedding-decor.webp`,
+  event: `${CDN_BASE}/event-background.webp`,
+  colorful: `${CDN_BASE}/colorful-decor.webp`,
+};
+
+// Local fallbacks
+const localFallbacks = {
+  decor: '/Aditi Rao Hydari\'s Dreamy Wedding Decor Setup at Alila Fort Bishangarh.jpeg',
+  event: '/Background event Photos - Download Free High-Quality Pictures _ Freepik.jpeg',
+  colorful: '/Rainbow Hued Décor Ideas That Wowed Us!.jpeg',
 };
 
 export const CategoryServicesSection = () => {
@@ -101,19 +111,13 @@ export const CategoryServicesSection = () => {
     };
   }, []);
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, fallback?: string) => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imageKey: keyof typeof localFallbacks) => {
     const img = e.currentTarget as HTMLImageElement;
     // Prevent infinite loops by checking if already using fallback
     if (img.dataset.fallbackUsed === 'true') return;
     
-    if (fallback) {
-      img.dataset.fallbackUsed = 'true';
-      img.src = fallback;
-    } else {
-      // Use a data URI placeholder to prevent further errors
-      img.dataset.fallbackUsed = 'true';
-      img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f3f4f6"/%3E%3C/svg%3E';
-    }
+    img.dataset.fallbackUsed = 'true';
+    img.src = localFallbacks[imageKey];
   };
 
   return (
@@ -218,7 +222,7 @@ export const CategoryServicesSection = () => {
                   src={galleryImages.decor}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
-                  onError={(e) => handleImageError(e)}
+                  onError={(e) => handleImageError(e, 'decor')}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
@@ -232,7 +236,7 @@ export const CategoryServicesSection = () => {
                   src={galleryImages.event}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
-                  onError={(e) => handleImageError(e)}
+                  onError={(e) => handleImageError(e, 'event')}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
@@ -246,7 +250,7 @@ export const CategoryServicesSection = () => {
                   src={galleryImages.colorful}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
-                  onError={(e) => handleImageError(e)}
+                  onError={(e) => handleImageError(e, 'colorful')}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
