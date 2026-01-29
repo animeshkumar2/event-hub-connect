@@ -20,13 +20,101 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [submittedData, setSubmittedData] = useState({ name: '', email: '' });
+  const [submittedData, setSubmittedData] = useState({ name: '', email: '', phone: '' });
   const { toast } = useToast();
 
   const isValidPhone = (phone: string) => {
-    // Normalize and check for 10 digits
-    const normalized = phone.replace(/[\s\-\(\)\+]/g, '');
-    return /^\d{10,12}$/.test(normalized);
+    return validatePhone(phone).isValid;
+  };
+
+  // Phone number validation for Indian mobile numbers
+  const validatePhone = (phoneNumber: string): { isValid: boolean; error?: string; normalized?: string } => {
+    if (!phoneNumber) return { isValid: false, error: "Phone number is required" };
+    
+    // Normalize: remove spaces, dashes, parentheses, dots
+    let normalized = phoneNumber.replace(/[\s\-\(\)\.]/g, '');
+    
+    // Remove +91 or 91 prefix if present
+    if (normalized.startsWith('+91')) {
+      normalized = normalized.substring(3);
+    } else if (normalized.startsWith('91') && normalized.length === 12) {
+      normalized = normalized.substring(2);
+    }
+    
+    // Must be exactly 10 digits
+    if (normalized.length !== 10) {
+      return { isValid: false, error: "Phone number must be 10 digits" };
+    }
+    
+    // Must start with 6, 7, 8, or 9 (Indian mobile)
+    if (!/^[6-9]\d{9}$/.test(normalized)) {
+      return { isValid: false, error: "Please enter a valid Indian mobile number" };
+    }
+    
+    // Check for obvious fake patterns
+    const fakeError = checkForFakeNumber(normalized);
+    if (fakeError) {
+      return { isValid: false, error: fakeError };
+    }
+    
+    return { isValid: true, normalized };
+  };
+  
+  // Check for obvious fake/test number patterns
+  const checkForFakeNumber = (phone: string): string | null => {
+    // All same digit
+    if (new Set(phone).size === 1) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Fully sequential (ascending or descending)
+    const isSequential = (str: string, ascending: boolean): boolean => {
+      for (let i = 1; i < str.length; i++) {
+        const diff = str.charCodeAt(i) - str.charCodeAt(i - 1);
+        if (ascending ? diff !== 1 : diff !== -1) return false;
+      }
+      return true;
+    };
+    
+    if (isSequential(phone, true) || isSequential(phone, false)) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Common test patterns
+    const obviousFakes = [
+      '1234567890', '0123456789', '9876543210',
+      '1234567891', '1234567892', '1234567893', '1234567894',
+      '1234567895', '1234567896', '1234567897', '1234567898', '1234567899',
+      '9999999999', '8888888888', '7777777777', '6666666666',
+    ];
+    
+    if (obviousFakes.includes(phone)) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Repeating pairs (1212121212, 9898989898)
+    const pair = phone.substring(0, 2);
+    if (pair[0] !== pair[1] && phone === pair.repeat(5)) {
+      return "Please enter a valid phone number";
+    }
+    
+    // Too many repeated digits (7+ same digit)
+    const digitCounts: Record<string, number> = {};
+    for (const digit of phone) {
+      digitCounts[digit] = (digitCounts[digit] || 0) + 1;
+    }
+    if (Object.values(digitCounts).some(count => count >= 7)) {
+      return "Please enter a valid phone number";
+    }
+    
+    return null;
+  };
+
+  // Get phone validation error message
+  const getPhoneError = (phoneNumber: string): string | undefined => {
+    if (!phoneNumber) return undefined;
+    const result = validatePhone(phoneNumber);
+    return result.isValid ? undefined : result.error;
   };
 
   const isValidEmail = (email: string) => {
@@ -78,7 +166,7 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
       await apiClient.post('/customer-waitlist', formData);
       
       // Store submitted data for success screen
-      setSubmittedData({ name: formData.name, email: formData.email });
+      setSubmittedData({ name: formData.name, email: formData.email, phone: formData.phone });
       setShowSuccess(true);
       
       // Reset form
@@ -148,8 +236,11 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={isSubmitting}
-                  className="h-11 rounded-xl border-border/60 focus:border-primary"
+                  className={`h-11 rounded-xl border-border/60 focus:border-primary ${formData.email && !isValidEmail(formData.email) ? "border-red-500 focus:border-red-500" : ""}`}
                 />
+                {formData.email && !isValidEmail(formData.email) && (
+                  <p className="text-xs text-red-500">Please enter a valid email address</p>
+                )}
                 {formData.email && isValidEmail(formData.email) && (
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                     <Check className="h-3 w-3" />
@@ -170,8 +261,11 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   disabled={isSubmitting}
-                  className="h-11 rounded-xl border-border/60 focus:border-primary"
+                  className={`h-11 rounded-xl border-border/60 focus:border-primary ${formData.phone && !isValidPhone(formData.phone) ? "border-red-500 focus:border-red-500" : ""}`}
                 />
+                {formData.phone && !isValidPhone(formData.phone) && (
+                  <p className="text-xs text-red-500">{getPhoneError(formData.phone)}</p>
+                )}
                 {formData.phone && isValidPhone(formData.phone) && (
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                     <Check className="h-3 w-3" />
@@ -217,22 +311,19 @@ export const CustomerWaitlistForm = ({ open, onOpenChange }: CustomerWaitlistFor
             </div>
             
             <div className="px-6 pb-6 pt-4">
-              <div className="bg-muted/50 rounded-xl p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              {/* Notification details - cleaner layout */}
+              <div className="bg-muted/50 rounded-xl p-4 mb-5 space-y-3">
+                <p className="text-sm font-medium text-foreground text-center">We'll notify you when we launch</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 bg-white rounded-lg px-3 py-2">
                     <Mail className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-foreground">{submittedData.email}</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">We'll notify you at</p>
-                    <p className="text-sm text-muted-foreground">{submittedData.email}</p>
+                  <div className="flex items-center gap-3 bg-white rounded-lg px-3 py-2">
+                    <Phone className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-foreground">{submittedData.phone}</span>
                   </div>
                 </div>
-              </div>
-              
-              <div className="bg-amber-50 border border-amber-200/50 rounded-xl p-4 mb-5">
-                <p className="text-sm text-amber-800">
-                  <span className="font-semibold">💡 Know a vendor?</span> Tell them to join now and get free lifetime access as one of our first 100 vendors!
-                </p>
               </div>
               
               <Button onClick={handleClose} className="w-full h-11 rounded-xl font-medium">

@@ -167,7 +167,9 @@ const App = () => (
             <Route path="/vendors/:vendorId" element={<PreLaunchGuard><VendorDetails /></PreLaunchGuard>} />
             {/* Redirect singular /vendor/:id to plural /vendors/:id for backwards compatibility */}
             <Route path="/vendor/:vendorId" element={<VendorRedirect />} />
-            <Route path="/cart" element={<PreLaunchGuard><Cart /></PreLaunchGuard>} />
+            {/* PHASE 1: Cart disabled - redirect to home */}
+            {/* <Route path="/cart" element={<PreLaunchGuard><Cart /></PreLaunchGuard>} /> */}
+            <Route path="/cart" element={<Navigate to="/" replace />} />
             <Route path="/checkout" element={<PreLaunchGuard><Checkout /></PreLaunchGuard>} />
             <Route path="/event-planner" element={<PreLaunchGuard><EventPlanner /></PreLaunchGuard>} />
             <Route path="/booking-success" element={<PreLaunchGuard><BookingSuccess /></PreLaunchGuard>} />
