@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { VendorSidebar } from './VendorSidebar';
 import { Button } from '@/shared/components/ui/button';
 import { Menu } from 'lucide-react';
@@ -25,12 +26,12 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-2">
+        <Link to="/vendor/dashboard" className="flex items-center gap-2">
           <span className="text-base font-semibold text-[#5046E5]">
             cartevent<span className="text-[#7C6BFF]">.</span>
           </span>
           <span className="text-xs text-muted-foreground">Vendor</span>
-        </div>
+        </Link>
         <div className="w-10" />
       </header>
 

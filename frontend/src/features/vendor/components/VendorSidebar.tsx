@@ -97,7 +97,7 @@ export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) =
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card flex-shrink-0">
           {!collapsed && (
-            <Link to="/" className="text-xl font-bold text-[#5046E5]">
+            <Link to="/vendor/dashboard" className="text-xl font-bold text-[#5046E5]">
               cartevent<span className="text-[#7C6BFF]">.</span>
             </Link>
           )}

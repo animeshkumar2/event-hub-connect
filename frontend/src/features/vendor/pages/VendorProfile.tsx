@@ -913,19 +913,19 @@ export default function VendorProfile() {
                 <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-violet-500/10 to-primary/5 rounded-full blur-3xl -ml-28 -mb-28" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/[0.02] rounded-full blur-3xl" />
                 
-                <div className="relative p-4 sm:p-5 lg:p-8">
-                  {/* Mobile & Tablet: Stacked layout, Desktop: Side by side */}
-                  <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                <div className="relative p-4 sm:p-5 lg:p-6 xl:p-8">
+                  {/* Mobile/Tablet: Stacked layout, Large Desktop: Side by side */}
+                  <div className="flex flex-col xl:flex-row gap-4 xl:gap-6">
                     
                     {/* Left Section: Profile Info */}
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 lg:flex-1">
-                      {/* Profile Picture with Upload */}
+                    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-5 xl:flex-1">
+                      {/* Profile Picture with Upload - Large */}
                       <div className="flex-shrink-0 relative group">
-                        <div className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-2xl overflow-hidden shadow-lg ring-4 ring-background">
+                        <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 lg:w-52 lg:h-52 rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white dark:ring-background">
                           {formData.profileImage ? (
                             <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-white text-3xl sm:text-4xl font-bold">
+                            <div className="w-full h-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-white text-5xl sm:text-6xl md:text-7xl font-bold">
                               {formData.businessName?.charAt(0)?.toUpperCase() || 'V'}
                             </div>
                           )}
@@ -934,44 +934,44 @@ export default function VendorProfile() {
                         <button 
                           onClick={() => profileInputRef.current?.click()}
                           disabled={isUploadingProfile}
-                          className="absolute -bottom-2 -right-2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110"
+                          className="absolute -bottom-3 -right-3 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-primary text-white shadow-xl flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110 border-4 border-white dark:border-background"
                         >
-                          {isUploadingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                          {isUploadingProfile ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : <Camera className="h-5 w-5 sm:h-6 sm:w-6" />}
                         </button>
                         {/* Remove Profile Picture Button */}
                         {formData.profileImage && (
                           <button 
                             onClick={handleRemoveProfileImage}
                             disabled={isUploadingProfile}
-                            className="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 transition-all hover:scale-110 opacity-0 group-hover:opacity-100"
+                            className="absolute -top-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 transition-all hover:scale-110 opacity-0 group-hover:opacity-100 border-2 border-white"
                             title="Remove profile photo"
                           >
-                            <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                            <X className="h-4 w-4" />
                           </button>
                         )}
                       </div>
                       
                       {/* Business Info */}
                       <div className="flex-1 min-w-0 text-center sm:text-left">
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
-                          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{formData.businessName || 'Your Business'}</h1>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2 sm:mb-3">
+                          <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-foreground">{formData.businessName || 'Your Business'}</h1>
                           {isVerified && (
-                            <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 flex items-center gap-1 text-xs">
+                            <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 flex items-center gap-1 text-xs px-2 py-0.5">
                               <CheckCircle className="h-3 w-3" /> Verified
                             </Badge>
                           )}
                         </div>
                         
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-muted-foreground text-sm mb-3">
-                          <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4" /> {categoryName}</span>
-                          {cityName && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" /> {cityName}</span>}
-                          {location && <span className="flex items-center gap-1.5"><Navigation className="h-4 w-4 text-primary" /> {serviceRadiusKm}km</span>}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-muted-foreground text-sm sm:text-base">
+                          <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4 sm:h-5 sm:w-5" /> {categoryName}</span>
+                          {cityName && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 sm:h-5 sm:w-5" /> {cityName}</span>}
+                          {location && <span className="flex items-center gap-1.5"><Navigation className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /> {serviceRadiusKm}km</span>}
                         </div>
                       </div>
                     </div>
 
-                    {/* Right Section: Profile Strength - Full width on mobile/tablet, side panel on desktop */}
-                    <div className="lg:w-80 xl:w-96">
+                    {/* Right Section: Profile Strength - Full width until xl, then side panel */}
+                    <div className="xl:w-80 2xl:w-96">
                       <div className="relative overflow-hidden rounded-xl p-4 bg-white/80 dark:bg-card/90 backdrop-blur-sm border border-border/50 shadow-sm">
                         {/* Header */}
                         <div className="relative flex items-center justify-between mb-3">
@@ -1112,8 +1112,8 @@ export default function VendorProfile() {
 
           {/* All Profile Sections - Only show for existing vendors */}
           {!isNewVendor && activeSection === 'overview' && (
-            <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <div className="grid xl:grid-cols-3 gap-4 sm:gap-6">
+              <div className="xl:col-span-2 space-y-4 sm:space-y-6">
                 {/* About */}
                 <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
                   <CardContent className="p-4 sm:p-5">
@@ -1168,10 +1168,10 @@ export default function VendorProfile() {
                   <CardContent className="p-4 sm:p-5">
                     <h3 className="text-sm sm:text-base font-semibold mb-3 sm:mb-4">Quick Actions</h3>
                     
-                    {/* Mobile: 4-column grid that fits all items */}
-                    <div className="grid grid-cols-4 gap-2 sm:hidden">
+                    {/* Mobile: 2x2 grid for better touch targets */}
+                    <div className="grid grid-cols-2 gap-2 sm:hidden">
                       {[
-                        { icon: Edit3, label: 'Edit', action: () => setActiveSection('edit') },
+                        { icon: Edit3, label: 'Edit Profile', action: () => setActiveSection('edit') },
                         { icon: ImagePlus, label: 'Gallery', action: () => setActiveSection('gallery'), badge: portfolioImages.length },
                         { icon: MapPin, label: 'Location', action: () => setActiveSection('location') },
                         { icon: Phone, label: 'Contact', action: () => setActiveSection('contact') },
@@ -1179,19 +1179,19 @@ export default function VendorProfile() {
                         <button 
                           key={i}
                           onClick={item.action}
-                          className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-muted/50 hover:bg-muted transition-all"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-all text-left"
                         >
-                          <div className="relative">
+                          <div className="relative flex-shrink-0">
                             <div className="p-2 rounded-lg bg-primary/10 text-primary">
                               <item.icon className="h-4 w-4" />
                             </div>
                             {item.badge !== undefined && item.badge > 0 && (
-                              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold bg-amber-500 text-white rounded-full px-0.5">
+                              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold bg-amber-500 text-white rounded-full px-1">
                                 {item.badge}
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] font-medium text-foreground text-center leading-tight">{item.label}</span>
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
                         </button>
                       ))}
                     </div>
