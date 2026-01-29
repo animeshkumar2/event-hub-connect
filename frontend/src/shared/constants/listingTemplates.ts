@@ -141,6 +141,97 @@ const photographyItems: ListingTemplate[] = [
   }
 ];
 
+const photographyItemsExtra: ListingTemplate[] = [
+  {
+    id: 'photo-personal-shoot',
+    name: 'Personal Photoshoot',
+    description: 'Professional photoshoot for individuals - portfolio, social media, dating profiles, or just for yourself. Indoor or outdoor locations.',
+    type: 'ITEM',
+    categoryId: 'photography-videography',
+    dbCategoryId: 'photo-video',
+    shortDescription: '2 hrs • 50+ photos',
+    displayPrice: 8000,
+    highlights: ['2 hour shoot', '50+ edited photos', 'Outfit changes', 'Location flexible'],
+    includedItemsText: ['2 hours photoshoot', '50+ edited photos', '2 outfit changes', 'Basic retouching', 'Online gallery', 'Location within city'],
+    excludedItemsText: ['Makeup artist', 'Props & accessories', 'Location fees', 'Printed photos'],
+    deliveryTime: 'after:5 days',
+    eventTypeIds: [9],
+    categorySpecificData: {
+      serviceType: 'Photography Only',
+      pricingType: 'Per Event',
+      price: 8000,
+      durationHours: 2,
+      teamSize: '1 photographer',
+      editedPhotos: 50,
+      rawPhotos: false,
+      highlightVideo: false,
+      droneIncluded: false,
+      albumIncluded: false,
+      preWeddingIncluded: false
+    }
+  },
+  {
+    id: 'photo-club-event',
+    name: 'Club & Event Photo + Video',
+    description: 'Professional photography and videography for nightclubs, parties, and events. Capture the energy and vibe of your night with photos and highlight reels.',
+    type: 'ITEM',
+    categoryId: 'photography-videography',
+    dbCategoryId: 'photo-video',
+    shortDescription: '4 hrs • Photo + Video',
+    displayPrice: 25000,
+    highlights: ['4 hour coverage', '200+ photos', 'Highlight reel', 'Low-light expertise'],
+    includedItemsText: ['4 hours event coverage', '200+ edited photos', '1-2 min highlight reel', 'Low-light photography', 'Candid & posed shots', 'Quick 48hr delivery', 'Online gallery'],
+    excludedItemsText: ['Full event video', 'Printed photos', 'Extended hours', 'Travel outside city'],
+    deliveryTime: 'after:2 days',
+    eventTypeIds: [7, 8],
+    categorySpecificData: {
+      serviceType: 'Both Photography & Videography',
+      pricingType: 'Per Event',
+      price: 25000,
+      durationHours: 4,
+      teamSize: '1 photographer + 1 videographer',
+      editedPhotos: 200,
+      rawPhotos: true,
+      highlightVideo: true,
+      highlightVideoMinutes: 2,
+      fullVideo: false,
+      droneIncluded: false,
+      albumIncluded: false,
+      preWeddingIncluded: false
+    }
+  },
+  {
+    id: 'photo-reel-creation',
+    name: 'Reels & Short Video Creation',
+    description: 'Professional short-form video content for Instagram Reels, YouTube Shorts, and TikTok. Trending edits and transitions.',
+    type: 'ITEM',
+    categoryId: 'photography-videography',
+    dbCategoryId: 'photo-video',
+    shortDescription: '3 reels • Trending edits',
+    displayPrice: 12000,
+    highlights: ['3 edited reels', 'Trending transitions', 'Music sync', 'Vertical format'],
+    includedItemsText: ['2 hour shoot', '3 fully edited reels (30-60 sec each)', 'Trending transitions & effects', 'Music synchronization', 'Color grading', 'Vertical format optimized'],
+    excludedItemsText: ['Raw footage', 'Additional reels', 'Location fees', 'Props'],
+    deliveryTime: 'after:3 days',
+    eventTypeIds: [7, 8, 9],
+    categorySpecificData: {
+      serviceType: 'Videography Only',
+      pricingType: 'Per Event',
+      price: 12000,
+      durationHours: 2,
+      teamSize: '1 videographer',
+      editedPhotos: 0,
+      rawPhotos: false,
+      highlightVideo: true,
+      highlightVideoMinutes: 3,
+      fullVideo: false,
+      droneIncluded: false,
+      albumIncluded: false,
+      preWeddingIncluded: false
+    }
+  }
+];
+
 const photographyPackage: PackageTemplate = {
   id: 'photo-complete-wedding',
   name: 'Complete Wedding Coverage',
@@ -679,6 +770,63 @@ const djItems: ListingTemplate[] = [
   }
 ];
 
+const djItemsExtra: ListingTemplate[] = [
+  {
+    id: 'dj-nightclub',
+    name: 'Nightclub DJ Set',
+    description: 'High-energy DJ performance for nightclubs and club nights. EDM, house, techno, and commercial hits to keep the dance floor packed.',
+    type: 'ITEM',
+    categoryId: 'dj-entertainment',
+    dbCategoryId: 'dj-entertainment',
+    shortDescription: '4 hrs • Club vibes',
+    displayPrice: 30000,
+    highlights: ['4 hour set', 'Club-style mixing', 'EDM & House', 'Crowd reading'],
+    includedItemsText: ['4 hours DJ performance', 'Professional mixing', 'Track selection for club crowd', 'Seamless transitions', 'Crowd engagement'],
+    excludedItemsText: ['Sound system', 'Lighting', 'Extended hours', 'Travel outside city'],
+    deliveryTime: 'same_day',
+    eventTypeIds: [7],
+    categorySpecificData: {
+      serviceType: 'DJ',
+      pricingType: 'Per Event',
+      price: 30000,
+      durationHours: 4,
+      equipmentIncluded: ['Mixer Console'],
+      soundSystemWattage: 0,
+      teamSize: 1,
+      musicGenre: ['EDM', 'House', 'Commercial', 'Hip Hop'],
+      customPlaylist: true,
+      extraHourPrice: 6000
+    }
+  },
+  {
+    id: 'dj-house-party',
+    name: 'House Party DJ',
+    description: 'Fun and energetic DJ for private house parties and intimate gatherings. Versatile music selection to match your crowd.',
+    type: 'ITEM',
+    categoryId: 'dj-entertainment',
+    dbCategoryId: 'dj-entertainment',
+    shortDescription: '3 hrs • Portable setup',
+    displayPrice: 18000,
+    highlights: ['3 hour party', 'Portable sound system', 'All genres', 'Party games music'],
+    includedItemsText: ['3 hours DJ performance', 'Portable sound system (3000W)', 'Basic LED lights', '1 wireless mic', 'Custom playlist', 'Party game music'],
+    excludedItemsText: ['Smoke machine', 'Extended hours', 'Anchor services', 'Travel beyond 20km'],
+    deliveryTime: 'same_day',
+    eventTypeIds: [2, 7],
+    categorySpecificData: {
+      serviceType: 'DJ',
+      pricingType: 'Per Event',
+      price: 18000,
+      durationHours: 3,
+      equipmentIncluded: ['Sound System', 'LED Lighting', 'Wireless Microphones'],
+      soundSystemWattage: 3000,
+      teamSize: 1,
+      musicGenre: ['Bollywood', 'Punjabi', 'EDM', 'Retro', 'Commercial', 'Hip Hop'],
+      customPlaylist: true,
+      extraHourPrice: 4000
+    }
+  }
+];
+
 const djPackage: PackageTemplate = {
   id: 'dj-complete',
   name: 'Complete Entertainment Package',
@@ -861,6 +1009,79 @@ const otherPackage: PackageTemplate = {
   shortDescription: 'Cards + Mehendi + Pandit'
 };
 
+// ============================================
+// ARTISTS & PERFORMERS TEMPLATES
+// Generic templates that work for any type of artist (musicians, dancers, performers)
+// ============================================
+
+const artistsItems: ListingTemplate[] = [
+  {
+    id: 'artist-solo-performance',
+    name: 'Solo Artist Performance',
+    description: 'Live solo performance by a professional artist. Perfect for intimate gatherings, cocktail hours, and background entertainment. Customize for your instrument/art form.',
+    type: 'ITEM',
+    categoryId: 'artists',
+    dbCategoryId: 'artists',
+    shortDescription: '2 hrs • Solo performance',
+    displayPrice: 15000,
+    highlights: ['2 hour performance', 'Professional artist', 'Sound system included', 'Flexible repertoire'],
+    includedItemsText: ['2 hours live performance', 'Basic sound setup', 'Artist travel within city', 'Customized song/performance list', 'Setup & soundcheck'],
+    excludedItemsText: ['Extended hours', 'Premium sound system', 'Travel outside city', 'Recording rights'],
+    deliveryTime: 'same_day',
+    eventTypeIds: [1, 2, 3, 4, 5, 6, 7, 8],
+    categorySpecificData: {
+      price: 15000
+    }
+  },
+  {
+    id: 'artist-group-performance',
+    name: 'Group/Band Performance',
+    description: 'Live performance by a group of artists or band. Ideal for weddings, corporate events, and celebrations. Specify your group type (band, dance troupe, etc.).',
+    type: 'ITEM',
+    categoryId: 'artists',
+    dbCategoryId: 'artists',
+    shortDescription: '3 hrs • Group/Band',
+    displayPrice: 45000,
+    highlights: ['3 hour performance', '3-5 member group', 'Full sound system', 'Stage lighting'],
+    includedItemsText: ['3 hours live performance', '3-5 artists/musicians', 'Professional sound system', 'Basic stage lighting', 'Customized setlist', 'Soundcheck & setup'],
+    excludedItemsText: ['Extended hours', 'Premium lighting', 'Travel outside city', 'Recording/streaming rights'],
+    deliveryTime: 'same_day',
+    eventTypeIds: [1, 2, 3, 4, 5, 7, 8],
+    categorySpecificData: {
+      price: 45000
+    }
+  },
+  {
+    id: 'artist-premium-show',
+    name: 'Premium Artist Show',
+    description: 'Full-scale professional performance with complete production. Perfect for main events, sangeet nights, and grand celebrations. Customize for your performance type.',
+    type: 'ITEM',
+    categoryId: 'artists',
+    dbCategoryId: 'artists',
+    shortDescription: '4 hrs • Full production',
+    displayPrice: 80000,
+    highlights: ['4 hour show', 'Full production', 'Premium sound & lights', 'Multiple acts'],
+    includedItemsText: ['4 hours performance', 'Multiple performance segments', 'Premium sound system', 'Professional lighting', 'Costume changes', 'Choreographed acts', 'Dedicated technician'],
+    excludedItemsText: ['LED screens', 'Pyrotechnics', 'Travel outside city', 'Recording rights'],
+    deliveryTime: 'same_day',
+    eventTypeIds: [1, 3, 5, 7, 8],
+    categorySpecificData: {
+      price: 80000
+    }
+  }
+];
+
+const artistsPackage: PackageTemplate = {
+  id: 'artist-complete',
+  name: 'Complete Entertainment Package',
+  description: 'Multiple performances for your multi-day event.',
+  suggestedPrice: 120000,
+  savings: 20000,
+  bundleItemIds: ['artist-solo-performance', 'artist-group-performance', 'artist-premium-show'],
+  highlights: ['Save ₹20,000', 'Multiple performances', 'Full event coverage'],
+  shortDescription: 'Solo + Group + Premium Show'
+};
+
 
 // ============================================
 // CATEGORY TEMPLATES MAP
@@ -869,13 +1090,13 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplates> = {
   'photography-videography': {
     categoryId: 'photography-videography',
     categoryName: 'Photography & Videography',
-    items: photographyItems,
+    items: [...photographyItems, ...photographyItemsExtra],
     package: photographyPackage
   },
   'photo-video': {
     categoryId: 'photo-video',
     categoryName: 'Photography & Videography',
-    items: photographyItems,
+    items: [...photographyItems, ...photographyItemsExtra],
     package: photographyPackage
   },
   'decorator': {
@@ -905,7 +1126,7 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplates> = {
   'dj-entertainment': {
     categoryId: 'dj-entertainment',
     categoryName: 'DJ & Entertainment',
-    items: djItems,
+    items: [...djItems, ...djItemsExtra],
     package: djPackage
   },
   'sound-lights': {
@@ -917,8 +1138,8 @@ export const CATEGORY_TEMPLATES: Record<string, CategoryTemplates> = {
   'artists': {
     categoryId: 'artists',
     categoryName: 'Artists & Performers',
-    items: otherItems, // Reuse other items for now, can be customized later
-    package: otherPackage
+    items: artistsItems,
+    package: artistsPackage
   },
   'other': {
     categoryId: 'other',
