@@ -132,8 +132,6 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
   const [category, setCategory] = useState('');
   const [customCategoryName, setCustomCategoryName] = useState('');
   const [city, setCity] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -141,31 +139,30 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
   const [serviceLocation, setServiceLocation] = useState<LocationDTO | null>(null);
   const [coverageRadius, setCoverageRadius] = useState(25); // Default 25km
 
-  // Load data from signup or user context
+  // Get phone and email from user context or sessionStorage (for fresh signups)
+  // These are read-only login credentials
+  const [signupPhone, setSignupPhone] = useState<string | null>(null);
+  const [signupEmail, setSignupEmail] = useState<string | null>(null);
+  
+  // Load signup data once on mount
   useEffect(() => {
     const signupData = sessionStorage.getItem('vendorSignupData');
     if (signupData) {
       try {
         const data = JSON.parse(signupData);
-        // Set email and phone from signup data (these are login credentials, so read-only)
-        if (data.email) setEmail(data.email);
-        if (data.phone) setPhone(data.phone);
-        // Don't pre-fill business name - let vendor enter their actual business name
+        if (data.phone) setSignupPhone(data.phone);
+        if (data.email) setSignupEmail(data.email);
       } catch (e) {}
+      // Clear after reading
       sessionStorage.removeItem('vendorSignupData');
     }
-    // Always set email from user context if not already set (login credential)
-    if (!email && user?.email) {
-      setEmail(user.email);
-    }
-    // Set phone from user context if available (login credential)
-    if (!phone && user?.phone) {
-      setPhone(user.phone);
-    }
-  }, [user, email, phone]);
+  }, []);
+  
+  // Derive phone and email - prefer user context, fallback to signup data
+  const phone = user?.phone || signupPhone || '';
+  const email = user?.email || signupEmail || '';
 
-  const isFormValid = businessName.trim() !== '' && category !== '' && 
-    (category !== 'other' || customCategoryName.trim() !== '') && city !== '' &&
+  const isFormValid = businessName.trim() !== '' && category !== '' && city !== '' &&
     serviceLocation !== null; // Location is now mandatory
   
   // Calculate progress - now 4 steps
@@ -185,8 +182,8 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
     try {
       const payload = {
         businessName: businessName.trim(),
-        categoryId: category === 'other' ? 'other' : category,
-        customCategoryName: category === 'other' ? customCategoryName.trim() : null,
+        categoryId: category,
+        customCategoryName: null,
         cityName: city,
         phone: phone.trim() || null,
         email: email.trim() || null,
@@ -319,7 +316,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 </div>
                 <Label className="text-sm font-semibold text-foreground">What are you?</Label>
               </div>
-              <Select value={category} onValueChange={(v) => { setCategory(v); if (v !== 'other') setCustomCategoryName(''); }}>
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-12 text-base border-2 border-border/50 focus:border-primary bg-background">
                   <SelectValue placeholder="Select your profession" />
                 </SelectTrigger>
@@ -333,11 +330,6 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
               </Select>
             </div>
           </div>
-          
-          {category === 'other' && (
-            <Input value={customCategoryName} onChange={(e) => setCustomCategoryName(e.target.value)} 
-              placeholder="Specify your category" className="h-12 text-base border-2 border-border/50" />
-          )}
 
           {/* Step 4: Service Location - Mandatory */}
           <div className="space-y-4 pt-2">
@@ -408,14 +400,9 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                     <Phone className="h-3.5 w-3.5" /> Phone
                     {phone && <span className="text-xs text-primary">(Login credential)</span>}
                   </Label>
-                  <Input 
-                    value={phone} 
-                    onChange={(e) => !user?.phone && setPhone(e.target.value)} 
-                    placeholder="+91 98765 43210" 
-                    className={`h-11 border border-border/50 ${phone ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                    readOnly={!!phone}
-                    disabled={!!phone}
-                  />
+                  <div className="h-11 px-3 flex items-center bg-muted/50 rounded-lg border border-border/50 text-sm text-foreground">
+                    {phone || 'Not provided'}
+                  </div>
                   {phone && (
                     <p className="text-xs text-muted-foreground">
                       This is your login phone number and cannot be changed here
@@ -427,14 +414,9 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                     <Mail className="h-3.5 w-3.5" /> Email
                     {email && <span className="text-xs text-primary">(Login credential)</span>}
                   </Label>
-                  <Input 
-                    value={email} 
-                    onChange={(e) => !user?.email && setEmail(e.target.value)} 
-                    placeholder="you@business.com" 
-                    className={`h-11 border border-border/50 ${email ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                    readOnly={!!email}
-                    disabled={!!email}
-                  />
+                  <div className="h-11 px-3 flex items-center bg-muted/50 rounded-lg border border-border/50 text-sm text-foreground truncate">
+                    {email || 'Not provided'}
+                  </div>
                   {email && (
                     <p className="text-xs text-muted-foreground">
                       This is your login email and cannot be changed here

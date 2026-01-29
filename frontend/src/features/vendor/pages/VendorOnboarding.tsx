@@ -60,7 +60,6 @@ export default function VendorOnboarding() {
   const isFormValid = 
     businessName.trim() !== '' &&
     category !== '' &&
-    (category !== 'other' || customCategoryName.trim() !== '') &&
     city !== '';
 
   const handleComplete = async () => {
@@ -74,8 +73,8 @@ export default function VendorOnboarding() {
     try {
       const vendorData = {
         businessName: businessName.trim(),
-        categoryId: category === 'other' ? 'other' : category,
-        customCategoryName: category === 'other' ? customCategoryName.trim() : undefined,
+        categoryId: category,
+        customCategoryName: undefined,
         cityName: city,
         phone: phone.trim() || undefined,
         email: email.trim() || undefined,
@@ -148,10 +147,7 @@ export default function VendorOnboarding() {
               <Label className="text-foreground font-medium">
                 What are you? <span className="text-destructive">*</span>
               </Label>
-              <Select value={category} onValueChange={(value) => {
-                setCategory(value);
-                if (value !== 'other') setCustomCategoryName('');
-              }}>
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-11 bg-background">
                   <SelectValue placeholder="Select your profession" />
                 </SelectTrigger>
@@ -166,14 +162,6 @@ export default function VendorOnboarding() {
                   ))}
                 </SelectContent>
               </Select>
-              {category === 'other' && (
-                <Input
-                  value={customCategoryName}
-                  onChange={(e) => setCustomCategoryName(e.target.value)}
-                  placeholder="Specify your profession..."
-                  className="h-11 mt-2 bg-background"
-                />
-              )}
             </div>
 
             {/* City */}

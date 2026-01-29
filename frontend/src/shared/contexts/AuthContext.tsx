@@ -116,6 +116,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         expiresIn: number;
         userId: string;
         email: string;
+        phone?: string;
+        fullName?: string;
         role: string;
         vendorId?: string;
       }>('/auth/refresh', {}, {
@@ -123,16 +125,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (response.success && response.data) {
-        const { token: newToken, refreshToken: newRefreshToken } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email, phone, fullName, role, vendorId } = response.data;
         
         setToken(newToken);
         setRefreshToken(newRefreshToken);
         apiClient.setToken(newToken);
         
+        // Update user data with fresh info from backend (includes phone if it was missing)
+        const updatedUser: User = {
+          id: userId,
+          email: email,
+          fullName: fullName || user?.fullName || '',
+          role: role as 'CUSTOMER' | 'VENDOR' | 'ADMIN',
+          phone: phone || user?.phone,
+        };
+        setUser(updatedUser);
+        
         batchLocalStorageUpdate({
           'auth_token': newToken,
           'refresh_token': newRefreshToken,
+          'user_data': JSON.stringify(updatedUser),
         });
+        
+        // Update vendor ID if returned
+        if (vendorId) {
+          localStorage.setItem('vendor_id', vendorId);
+        }
         
         // Start new refresh timer
         startTokenRefreshTimer(newToken);
@@ -204,6 +222,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refreshToken: string;
         userId: string;
         email: string;
+        phone?: string;
+        fullName?: string;
         role: string;
         isNewUser?: boolean;
         vendorId?: string;
@@ -214,7 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (response.success && response.data) {
-        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, isNewUser, vendorId } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, phone: userPhone, fullName, role, isNewUser, vendorId } = response.data;
         
         // Store tokens
         setToken(newToken);
@@ -225,8 +245,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData: User = {
           id: userId,
           email: userEmail,
-          fullName: decoded.name || '',
+          fullName: fullName || decoded.name || '',
           role: role as 'CUSTOMER' | 'VENDOR',
+          phone: userPhone,
         };
 
         setUser(userData);
@@ -278,13 +299,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refreshToken: string;
         userId: string;
         email: string;
+        phone?: string;
+        fullName?: string;
         role: string;
         vendorId?: string;
         expiresIn: number;
       }>('/auth/login', { identifier, password });
 
       if (response.success && response.data) {
-        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, vendorId } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, phone: userPhone, fullName, role, vendorId } = response.data;
         
         // Store tokens
         setToken(newToken);
@@ -295,8 +318,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData: User = {
           id: userId,
           email: userEmail,
-          fullName: '', // Will be fetched from profile if needed
+          fullName: fullName || '',
           role: role as 'CUSTOMER' | 'VENDOR',
+          phone: userPhone,
         };
 
         setUser(userData);
@@ -354,6 +378,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refreshToken: string;
         userId: string;
         email: string;
+        phone?: string;
+        fullName?: string;
         role: string;
         vendorId?: string;
         expiresIn: number;
@@ -366,20 +392,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (response.success && response.data) {
-        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, role, vendorId } = response.data;
+        const { token: newToken, refreshToken: newRefreshToken, userId, email: userEmail, phone: userPhone, fullName, role, vendorId } = response.data;
         
         // Store tokens
         setToken(newToken);
         setRefreshToken(newRefreshToken);
         apiClient.setToken(newToken);
 
-        // Create user object
+        // Create user object - prefer backend response values (may be normalized)
         const userData: User = {
           id: userId,
           email: userEmail,
-          fullName: data.fullName,
+          fullName: fullName || data.fullName,
           role: role as 'CUSTOMER' | 'VENDOR',
-          phone: data.phone,
+          phone: userPhone || data.phone,
         };
 
         setUser(userData);
@@ -407,8 +433,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.isVendor) {
           sessionStorage.setItem('vendorSignupData', JSON.stringify({
             email: userEmail,
-            fullName: data.fullName,
-            phone: data.phone,
+            fullName: fullName || data.fullName,
+            phone: userPhone || data.phone,
           }));
         }
       } else {

@@ -21,7 +21,6 @@ export const vendorProfessions = [
   { id: 'dj-entertainment', name: 'DJ', icon: '🎧' },
   { id: 'sound-lights', name: 'Sound & Lights', icon: '🔈' },
   { id: 'artists', name: 'Artist / Performer', icon: '🎤' },
-  { id: 'other', name: 'Other', icon: '•••' },
 ];
 
 export const cities = [

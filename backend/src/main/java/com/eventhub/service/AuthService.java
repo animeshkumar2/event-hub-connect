@@ -99,7 +99,7 @@ public class AuthService {
                     .orElse(null);
         }
         
-        return new AuthResponse(token, refreshToken, user.getId(), user.getEmail(), user.getRole().name(), vendorId, jwtUtil.getExpiresIn());
+        return new AuthResponse(token, refreshToken, user.getId(), user.getEmail(), user.getPhone(), user.getFullName(), user.getRole().name(), vendorId, jwtUtil.getExpiresIn());
     }
     
     public AuthResponse login(LoginRequest request) {
@@ -152,7 +152,7 @@ public class AuthService {
                     .orElse(null);
         }
         
-        return new AuthResponse(token, refreshToken, user.getId(), user.getEmail(), user.getRole().name(), vendorId, jwtUtil.getExpiresIn());
+        return new AuthResponse(token, refreshToken, user.getId(), user.getEmail(), user.getPhone(), user.getFullName(), user.getRole().name(), vendorId, jwtUtil.getExpiresIn());
     }
     
     public GoogleAuthResponse authenticateWithGoogle(GoogleAuthRequest request) {
@@ -232,7 +232,9 @@ public class AuthService {
                     token,
                     refreshToken,
                     user.getId(), 
-                    user.getEmail(), 
+                    user.getEmail(),
+                    user.getPhone(),
+                    user.getFullName(),
                     user.getRole().name(), 
                     isNewUser,
                     vendorId,
@@ -287,6 +289,8 @@ public class AuthService {
                 newRefreshToken,
                 user.getId(),
                 user.getEmail(),
+                user.getPhone(),
+                user.getFullName(),
                 user.getRole().name(),
                 vendorId,
                 jwtUtil.getExpiresIn()
@@ -317,6 +321,8 @@ public class AuthService {
         private String refreshToken;
         private UUID userId;
         private String email;
+        private String phone; // User's phone number
+        private String fullName; // User's full name
         private String role;
         private UUID vendorId; // Include vendor ID for vendors
         private Long expiresIn; // Seconds until expiration
@@ -329,6 +335,8 @@ public class AuthService {
         private String refreshToken;
         private UUID userId;
         private String email;
+        private String phone; // User's phone number
+        private String fullName; // User's full name
         private String role;
         private boolean isNewUser;
         private UUID vendorId; // Include vendor ID for vendors
