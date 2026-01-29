@@ -95,7 +95,7 @@ export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) =
         )}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-card flex-shrink-0">
           {!collapsed && (
             <Link to="/" className="text-xl font-bold text-[#5046E5]">
               cartevent<span className="text-[#7C6BFF]">.</span>
@@ -124,7 +124,7 @@ export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) =
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto min-h-0">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -163,8 +163,8 @@ export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) =
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="p-2 border-t border-border">
+        {/* Logout - Fixed at bottom */}
+        <div className="p-2 border-t border-border bg-card flex-shrink-0">
           <button
             onClick={handleLogoutClick}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors w-full"
