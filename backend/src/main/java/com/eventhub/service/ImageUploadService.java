@@ -11,9 +11,12 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.UUID;
 
 @Service
@@ -159,9 +162,9 @@ public class ImageUploadService {
             throw new IllegalArgumentException("SVG files are not allowed for security reasons. Please upload JPG, PNG, or WebP.");
         }
 
-        // Max 5MB
-        if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("Image must be less than 5MB");
+        // Max 10MB
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("Image must be less than 10MB");
         }
     }
 
@@ -172,12 +175,25 @@ public class ImageUploadService {
         // (PNG, GIF, BMP, TIFF, WebP → JPEG)
         String outputFormat = "jpeg";
 
-        Thumbnails.of(file.getInputStream())
-                .size(maxWidth, maxHeight)
-                .keepAspectRatio(true)
-                .outputQuality(compressionQuality)
-                .outputFormat(outputFormat)
-                .toOutputStream(outputStream);
+        try {
+            // First try to read the image to verify it's valid
+            BufferedImage image = ImageIO.read(file.getInputStream());
+            if (image == null) {
+                throw new IOException("Unable to read image. Format may not be supported. Supported formats: JPG, PNG, GIF, WebP, BMP, TIFF");
+            }
+            
+            // Reset stream and compress
+            Thumbnails.of(file.getInputStream())
+                    .size(maxWidth, maxHeight)
+                    .keepAspectRatio(true)
+                    .outputQuality(compressionQuality)
+                    .outputFormat(outputFormat)
+                    .toOutputStream(outputStream);
+        } catch (javax.imageio.IIOException e) {
+            // Provide helpful error message for unsupported formats
+            String supportedFormats = String.join(", ", Arrays.asList(ImageIO.getReaderFormatNames()));
+            throw new IOException("Unable to process image format '" + extension + "'. Supported formats: " + supportedFormats, e);
+        }
 
         return outputStream.toByteArray();
     }
@@ -189,12 +205,22 @@ public class ImageUploadService {
         // Convert all formats to JPEG
         String outputFormat = "jpeg";
 
-        Thumbnails.of(inputStream)
-                .size(maxWidth, maxHeight)
-                .keepAspectRatio(true)
-                .outputQuality(compressionQuality)
-                .outputFormat(outputFormat)
-                .toOutputStream(outputStream);
+        try {
+            // First verify the image can be read
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (image == null) {
+                throw new IOException("Unable to read image data. Format may not be supported.");
+            }
+            
+            Thumbnails.of(inputStream)
+                    .size(maxWidth, maxHeight)
+                    .keepAspectRatio(true)
+                    .outputQuality(compressionQuality)
+                    .outputFormat(outputFormat)
+                    .toOutputStream(outputStream);
+        } catch (javax.imageio.IIOException e) {
+            throw new IOException("Unable to process image format '" + extension + "'", e);
+        }
 
         return outputStream.toByteArray();
     }

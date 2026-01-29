@@ -747,15 +747,14 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
 
 // Map core category IDs to their configs
 export const getCategoryConfig = (categoryId: string): CategoryConfig | null => {
-  // Handle photography-videography group
-  if (categoryId === 'photography-videography') {
-    return CATEGORY_CONFIGS['photographer'];
-  }
+  // Handle old category IDs for backward compatibility
+  const categoryMapping: Record<string, string> = {
+    'photographer': 'photo-video',
+    'cinematographer': 'photo-video',
+    'photography-videography': 'photo-video',
+    'dj': 'dj-entertainment',
+  };
   
-  // Handle dj-entertainment group
-  if (categoryId === 'dj-entertainment') {
-    return CATEGORY_CONFIGS['dj'];
-  }
-  
-  return CATEGORY_CONFIGS[categoryId] || null;
+  const mappedId = categoryMapping[categoryId] || categoryId;
+  return CATEGORY_CONFIGS[mappedId] || null;
 };
