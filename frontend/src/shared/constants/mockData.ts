@@ -35,6 +35,8 @@ export const eventTypes = [
   'Corporate',
   'Engagement',
   'Baby Shower',
+  'Nightlife',
+  'Concert',
   'Other',
 ];
 

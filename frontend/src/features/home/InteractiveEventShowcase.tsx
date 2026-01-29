@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, Users, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { eventTypes } from '@/shared/constants/mockData';
 import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
@@ -24,14 +24,23 @@ interface EventCard {
   link: string;
 }
 
+const CDN_BASE = 'https://images.cartevent.com/trivial-images/home-page';
+const LOCAL_FALLBACK = '/events';
+
+// Helper to get fallback local path from CDN URL
+const getLocalFallback = (cdnUrl: string): string => {
+  const filename = cdnUrl.split('/').pop()?.replace('.webp', '.jpg') || '';
+  return `${LOCAL_FALLBACK}/${filename}`;
+};
+
 const eventCards: EventCard[] = [
   {
     id: 'wedding',
     title: 'Wedding',
     subtitle: 'Your Perfect Day',
     description: 'Complete wedding services from photography to catering, all in one place',
-    image: '/events/haldi.jpg',
-    cardImage: '/events/mehendi.jpg',
+    image: `${CDN_BASE}/haldi.webp`,
+    cardImage: `${CDN_BASE}/mehendi.webp`,
     gradient: 'from-amber-900/80 via-yellow-800/70 to-amber-700/80',
     icon: '💒',
     stats: { label: 'Weddings Booked', value: '2,500+' },
@@ -42,8 +51,8 @@ const eventCards: EventCard[] = [
     title: 'Birthday',
     subtitle: 'Celebrate in Style',
     description: 'Make every birthday unforgettable with our curated vendors',
-    image: '/events/birthday2.jpg',
-    cardImage: '/events/birthday.jpg',
+    image: `${CDN_BASE}/birthday2.webp`,
+    cardImage: `${CDN_BASE}/birthday.webp`,
     gradient: 'from-blue-600/80 via-cyan-500/70 to-indigo-600/80',
     icon: '🎂',
     stats: { label: 'Birthdays Celebrated', value: '5,000+' },
@@ -54,8 +63,8 @@ const eventCards: EventCard[] = [
     title: 'Anniversary',
     subtitle: 'Mark the Milestone',
     description: 'Celebrate your special moments with elegance and style',
-    image: '/events/anniversary.jpg',
-    cardImage: '/events/anniversary.jpg',
+    image: `${CDN_BASE}/anniversary.webp`,
+    cardImage: `${CDN_BASE}/anniversary.webp`,
     gradient: 'from-pink-700/80 via-rose-600/70 to-red-600/80',
     icon: '💝',
     stats: { label: 'Anniversaries', value: '800+' },
@@ -66,8 +75,8 @@ const eventCards: EventCard[] = [
     title: 'Corporate',
     subtitle: 'Professional Events',
     description: 'Elevate your corporate events with premium services',
-    image: '/events/corporate.jpg',
-    cardImage: '/events/corporate.jpg',
+    image: `${CDN_BASE}/corporate.webp`,
+    cardImage: `${CDN_BASE}/corporate.webp`,
     gradient: 'from-slate-800/80 via-gray-700/70 to-slate-600/80',
     icon: '💼',
     stats: { label: 'Corporate Events', value: '1,200+' },
@@ -78,8 +87,8 @@ const eventCards: EventCard[] = [
     title: 'Engagement',
     subtitle: 'Start Your Journey',
     description: 'Begin your forever story with beautiful engagement celebrations',
-    image: '/events/engagement.jpg',
-    cardImage: '/events/engagement.jpg',
+    image: `${CDN_BASE}/engagement.webp`,
+    cardImage: `${CDN_BASE}/engagement.webp`,
     gradient: 'from-purple-700/80 via-pink-600/70 to-rose-600/80',
     icon: '💍',
     stats: { label: 'Engagements', value: '1,500+' },
@@ -90,20 +99,44 @@ const eventCards: EventCard[] = [
     title: 'Baby Shower',
     subtitle: 'Welcome the Little One',
     description: 'Celebrate new beginnings with joy and excitement',
-    image: '/events/baby_shower.jpg',
-    cardImage: '/events/baby-shower2.jpg',
+    image: `${CDN_BASE}/baby_shower.webp`,
+    cardImage: `${CDN_BASE}/baby-shower2.webp`,
     gradient: 'from-pink-500/80 via-purple-500/70 to-indigo-500/80',
     icon: '👶',
     stats: { label: 'Baby Showers', value: '600+' },
     link: '/search?eventType=Baby Shower',
   },
   {
+    id: 'nightlife',
+    title: 'Nightlife',
+    subtitle: 'Party All Night',
+    description: 'Epic nightlife experiences with top DJs, stunning venues, and unforgettable vibes',
+    image: `${CDN_BASE}/nightlife.webp`,
+    cardImage: `${CDN_BASE}/nightlife.webp`,
+    gradient: 'from-violet-900/80 via-purple-800/70 to-indigo-900/80',
+    icon: '🌙',
+    stats: { label: 'Nightlife Events', value: '400+' },
+    link: '/search?eventType=Nightlife',
+  },
+  {
+    id: 'concert',
+    title: 'Concert',
+    subtitle: 'Live Music Magic',
+    description: 'From intimate acoustic sets to grand live performances, bring music to your events',
+    image: `${CDN_BASE}/concert.webp`,
+    cardImage: `${CDN_BASE}/concert.webp`,
+    gradient: 'from-red-800/80 via-orange-700/70 to-yellow-600/80',
+    icon: '🎸',
+    stats: { label: 'Concerts & Shows', value: '300+' },
+    link: '/search?eventType=Concert',
+  },
+  {
     id: 'other',
     title: 'Other',
     subtitle: 'Custom Events',
     description: 'We support all types of celebrations! From festivals to reunions, we\'re expanding to cover every special moment.',
-    image: '/events/corporate.jpg',
-    cardImage: '/events/corporate.jpg',
+    image: `${CDN_BASE}/corporate.webp`,
+    cardImage: `${CDN_BASE}/corporate.webp`,
     gradient: 'from-gray-700/80 via-slate-600/70 to-gray-500/80',
     icon: '🎉',
     stats: { label: 'Custom Events', value: 'Coming Soon' },
@@ -223,12 +256,19 @@ export const InteractiveEventShowcase = () => {
               'absolute inset-0 transition-opacity duration-1000 ease-in-out',
               index === activeIndex ? 'opacity-100 z-0' : 'opacity-0 z-0'
             )}
-            style={{
-              backgroundImage: `url(${card.image})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
           >
+            {/* Background image with fallback */}
+            <img
+              src={card.image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes(LOCAL_FALLBACK)) {
+                  target.src = getLocalFallback(card.image);
+                }
+              }}
+            />
             <div className={cn('absolute inset-0 bg-gradient-to-br', card.gradient)} />
           </div>
         ))}
@@ -255,22 +295,22 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* Scrollable Card Container - Same as category carousel */}
-        <div className="relative max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-0">
-          {/* Navigation Arrows */}
+        <div className="relative max-w-5xl mx-auto w-full px-2 sm:px-4 md:px-12 lg:px-16">
+          {/* Navigation Arrows - positioned inside the container */}
           <button
             onClick={goToPrevious}
-            className="hidden sm:flex absolute left-0 md:-left-12 lg:-left-16 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-xl border-2 border-primary/30 hover:border-primary hover:shadow-2xl hover:scale-110 transition-all duration-200"
+            className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl hover:scale-105 transition-all duration-200"
             aria-label="Previous event"
           >
-            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <ChevronLeft className="h-5 w-5 text-gray-700" />
           </button>
 
           <button
             onClick={goToNext}
-            className="hidden sm:flex absolute right-0 md:-right-12 lg:-right-16 top-1/2 -translate-y-1/2 z-40 p-2 sm:p-3 rounded-full bg-white shadow-xl border-2 border-primary/30 hover:border-primary hover:shadow-2xl hover:scale-110 transition-all duration-200"
+            className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-40 p-2.5 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl hover:scale-105 transition-all duration-200"
             aria-label="Next event"
           >
-            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <ChevronRight className="h-5 w-5 text-gray-700" />
           </button>
 
           {/* Scrollable Container */}
@@ -309,6 +349,13 @@ export const InteractiveEventShowcase = () => {
                         alt={card.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          const currentSrc = card.cardImage || card.image;
+                          if (!target.src.includes(LOCAL_FALLBACK)) {
+                            target.src = getLocalFallback(currentSrc);
+                          }
+                        }}
                       />
                     </div>
                     
@@ -409,50 +456,32 @@ export const InteractiveEventShowcase = () => {
         </div>
 
         {/* All Event Types - Bottom Navigation */}
-        <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 md:gap-3 px-2">
-          {eventTypes.map((eventType) => {
-            const card = eventCards.find(c => c.title === eventType);
-            const isActive = activeCard.title === eventType;
-            
-            return (
-              <button
-                key={eventType}
-                onClick={() => goToEvent(eventType)}
-                className={cn(
-                  'px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-semibold transition-all duration-300 hover-lift backdrop-blur-md border-2',
-                  isActive
-                    ? 'bg-white/30 border-white/50 text-white shadow-lg scale-105'
-                    : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20 hover:border-white/30'
-                )}
-              >
-                <span className="flex items-center gap-1 sm:gap-1.5">
-                  {card?.icon && <span className="text-sm sm:text-base">{card.icon}</span>}
-                  <span className="whitespace-nowrap">{eventType}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Card Indicators */}
-        <div className="mt-6 sm:mt-8 flex justify-center gap-1.5 sm:gap-2">
-          {eventCards.map((card, index) => (
-            <button
-              key={card.id}
-              onClick={() => goToSlide(index)}
-              className={cn(
-                'relative h-1.5 sm:h-2 rounded-full transition-all duration-500',
-                index === activeIndex
-                  ? 'w-8 sm:w-12 bg-white'
-                  : 'w-1.5 sm:w-2 bg-white/40 hover:bg-white/60'
-              )}
-              aria-label={`Go to ${card.title}`}
-            >
-              {index === activeIndex && (
-                <div className="absolute inset-0 bg-white rounded-full animate-pulse" />
-              )}
-            </button>
-          ))}
+        <div className="mt-6 sm:mt-8 pb-4 px-4">
+          {/* Wrap on desktop, scroll on mobile */}
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+            {eventTypes.map((eventType) => {
+              const card = eventCards.find(c => c.title === eventType);
+              const isActive = activeCard.title === eventType;
+              
+              return (
+                <button
+                  key={eventType}
+                  onClick={() => goToEvent(eventType)}
+                  className={cn(
+                    'px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 border',
+                    isActive
+                      ? 'bg-white text-gray-900 border-white shadow-lg'
+                      : 'bg-transparent text-white border-white/40 hover:bg-white/10 hover:border-white/60'
+                  )}
+                >
+                  <span className="flex items-center gap-1.5">
+                    {card?.icon && <span>{card.icon}</span>}
+                    <span className="whitespace-nowrap">{eventType}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
