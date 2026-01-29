@@ -1,246 +1,92 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, Sparkles } from 'lucide-react';
+import { Users, Bell, ArrowRight, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
-
-interface ButtonOption {
-  id: string;
-  label: string;
-  subtitle: string;
-  description: string;
-  icon: typeof Search;
-  path: string;
-  bgColor: string;
-  accentColor: string;
-  iconBg: string;
-  disabled?: boolean;
-  comingSoon?: boolean;
-}
-
-export const buttonOptions: ButtonOption[] = [
-  {
-    id: 'find-vendors',
-    label: 'Find Vendors',
-    subtitle: 'For Customers',
-    description: 'Discover trusted vendors for your events.\nCompare prices, view portfolios & book instantly!',
-    icon: Search,
-    path: '/search',
-    bgColor: 'bg-[#1a1a2e]',
-    accentColor: 'text-cyan-400',
-    iconBg: 'bg-cyan-500/20 border-cyan-500/30',
-    disabled: true,
-    comingSoon: true,
-  },
-  {
-    id: 'join-vendor',
-    label: 'Join as Vendor',
-    subtitle: 'For Businesses',
-    description: 'List your services and grow your business.\nJoin India\'s fastest-growing event marketplace today!',
-    icon: Users,
-    path: '/join-vendors',
-    bgColor: 'bg-[#0f172a]',
-    accentColor: 'text-amber-400',
-    iconBg: 'bg-amber-500/20 border-amber-500/30',
-    disabled: false,
-    comingSoon: false,
-  },
-  {
-    id: 'planner',
-    label: 'AI Planner',
-    subtitle: 'Smart Planning',
-    description: 'Plan your perfect event with AI assistance.\nGet personalized recommendations in minutes!',
-    icon: Sparkles,
-    path: '/event-planner',
-    bgColor: 'bg-[#1e1b4b]',
-    accentColor: 'text-violet-400',
-    iconBg: 'bg-violet-500/20 border-violet-500/30',
-    disabled: true,
-    comingSoon: true,
-  },
-];
+import { CustomerWaitlistForm } from './CustomerWaitlistForm';
 
 export const SlidingButtons = () => {
   const navigate = useNavigate();
   const { hasFullAccess } = usePreLaunch();
-  const [activeIndex, setActiveIndex] = useState(1);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const handleClick = (id: string, path: string, disabled: boolean, e: React.MouseEvent) => {
-    e.preventDefault();
-    // Admins with full access can click any button
-    if (hasFullAccess) {
-      navigate(path);
-      return;
-    }
-    if (id === 'find-vendors') {
-      navigate('/signup?type=customer');
-      return;
-    }
-    if (disabled) return;
-    navigate(path);
-  };
-
-  const handleScroll = () => {
-    if (!scrollRef.current) return;
-    const scrollLeft = scrollRef.current.scrollLeft;
-    const buttonWidth = scrollRef.current.offsetWidth;
-    const newIndex = Math.round(scrollLeft / buttonWidth);
-    
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < buttonOptions.length) {
-      setActiveIndex(newIndex);
-    }
-  };
-
-  const goToSlide = (index: number) => {
-    if (!scrollRef.current) return;
-    const buttonWidth = scrollRef.current.offsetWidth;
-    setActiveIndex(index);
-    scrollRef.current.scrollTo({
-      left: index * buttonWidth,
-      behavior: 'smooth',
-    });
-  };
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      const buttonWidth = scrollRef.current.offsetWidth;
-      scrollRef.current.scrollTo({
-        left: activeIndex * buttonWidth,
-        behavior: 'auto',
-      });
-    }
-  }, []);
-
-  const activeOption = buttonOptions[activeIndex];
+  const [showWaitlist, setShowWaitlist] = useState(false);
 
   return (
-    <div className="relative w-full max-w-sm mx-auto">
-      {/* Dynamic Description Text */}
-      <div className="text-center mb-4 px-4 min-h-[50px] flex items-center justify-center">
-        <p 
-          key={activeIndex}
-          className="text-sm leading-relaxed transition-all duration-300 text-white/70"
-          style={{
-            animation: 'fadeIn 0.3s ease-out',
-          }}
-        >
-          {activeOption.description.split('\n').map((line, i) => (
-            <React.Fragment key={i}>
-              {line}
-              {i === 0 && <br />}
-            </React.Fragment>
-          ))}
+    <div className="relative w-full max-w-md mx-auto">
+      {/* Description Text */}
+      <div className="text-center mb-5 px-4">
+        <p className="text-sm leading-relaxed text-white/70">
+          List your services and grow your business.
+          <br />
+          Join India's fastest-growing event marketplace today!
         </p>
       </div>
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 px-2"
-        style={{ scrollSnapType: 'x mandatory', scrollPadding: '0 8px' }}
-      >
-        {buttonOptions.map((option, index) => {
-          const Icon = option.icon;
-          // If admin has full access, nothing is disabled
-          const isDisabled = hasFullAccess ? false : (option.disabled || false);
-          const isComingSoon = option.comingSoon || false;
-          const isActive = index === activeIndex;
-          
-          return (
-            <div
-              key={option.id}
-              className="flex-shrink-0 w-full flex justify-center items-center"
-              style={{ scrollSnapAlign: 'start' }}
-            >
-              <div className="relative w-full max-w-[260px]">
-                {/* Button Card */}
-                <button
-                  onClick={(e) => handleClick(option.id, option.path, isDisabled, e)}
-                  disabled={isDisabled}
-                  className={cn(
-                    "relative w-full px-4 py-3.5 rounded-xl transition-all duration-300",
-                    "flex items-center justify-between gap-3",
-                    option.bgColor,
-                    "border border-white/10",
-                    isDisabled 
-                      ? "cursor-not-allowed opacity-60" 
-                      : cn(
-                          "hover:border-white/20 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer",
-                          isActive && "border-white/25 shadow-xl"
-                        )
-                  )}
-                >
-                  {/* Text */}
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-white leading-tight">
-                        {option.label}
-                      </h3>
-                      {/* Status Badge - Inline */}
-                      {hasFullAccess && isComingSoon ? (
-                        // Admin access badge for coming soon features
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-bold bg-purple-500/20 text-purple-400 uppercase tracking-wide">
-                          <span className="w-1 h-1 bg-purple-400 rounded-full animate-pulse"></span>
-                          Admin
-                        </span>
-                      ) : isComingSoon ? (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[7px] font-bold bg-white/10 text-white/50 uppercase tracking-wide">
-                          Soon
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-bold bg-emerald-500/20 text-emerald-400 uppercase tracking-wide">
-                          <span className="w-1 h-1 bg-emerald-400 rounded-full"></span>
-                          Live
-                        </span>
-                      )}
-                    </div>
-                    <p className={cn("text-[10px] font-medium mt-0.5", option.accentColor)}>
-                      {option.subtitle}
-                    </p>
-                  </div>
+      {/* Main CTAs */}
+      <div className="px-4 space-y-3">
+        {/* Vendor Signup */}
+        <button
+          onClick={() => navigate('/signup?type=vendor')}
+          className={cn(
+            "relative w-full px-5 py-4 rounded-2xl transition-all duration-300",
+            "flex items-center justify-between gap-4",
+            "bg-gradient-to-r from-primary to-primary-glow",
+            "border border-white/20",
+            "hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 cursor-pointer",
+            "group"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <h3 className="text-base font-bold text-white">
+              Join as Vendor
+            </h3>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white uppercase">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              Live
+            </span>
+          </div>
+          <ArrowRight className="h-5 w-5 text-white/70 group-hover:translate-x-1 transition-transform" />
+        </button>
 
-                  {/* Icon */}
-                  <div className={cn(
-                    "p-2.5 rounded-lg border backdrop-blur-sm flex-shrink-0",
-                    option.iconBg
-                  )}>
-                    <Icon className={cn("h-5 w-5", option.accentColor)} />
-                  </div>
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {/* Customer Waitlist */}
+        <button
+          onClick={() => hasFullAccess ? navigate('/search') : setShowWaitlist(true)}
+          className={cn(
+            "relative w-full px-5 py-3.5 rounded-2xl transition-all duration-300",
+            "flex items-center justify-between gap-4",
+            "bg-white/5 backdrop-blur-sm",
+            "border border-white/10",
+            "hover:bg-white/10 hover:border-white/20 cursor-pointer",
+            "group"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-white/90">
+              Book Vendors
+            </h3>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-500/20 text-amber-400 uppercase">
+              Soon
+            </span>
+          </div>
+          <Bell className="h-4 w-4 text-white/50 group-hover:text-amber-400 transition-colors" />
+        </button>
       </div>
 
-      {/* Indicators */}
-      <div className="flex justify-center items-center gap-1.5 mt-3">
-        {buttonOptions.map((option, index) => (
-          <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={cn(
-              "rounded-full transition-all duration-300 cursor-pointer",
-              index === activeIndex
-                ? cn("w-5 h-1.5", 
-                    option.id === 'find-vendors' ? "bg-cyan-400" :
-                    option.id === 'join-vendor' ? "bg-amber-400" : "bg-violet-400"
-                  )
-                : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
-            )}
-            aria-label={`Go to ${buttonOptions[index].label}`}
-          />
-        ))}
-      </div>
-
-      {/* Fade animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {/* Customer Waitlist Modal */}
+      <CustomerWaitlistForm 
+        open={showWaitlist} 
+        onOpenChange={setShowWaitlist} 
+      />
     </div>
   );
 };
+
+// Export for backward compatibility
+export const buttonOptions = [
+  {
+    id: 'join-vendor',
+    label: 'Join as Vendor',
+    subtitle: 'For Businesses',
+    description: 'List your services and grow your business.',
+    path: '/signup?type=vendor',
+  },
+];

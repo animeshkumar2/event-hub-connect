@@ -5,7 +5,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { useToast } from "@/shared/hooks/use-toast";
-import { Loader2, Eye, EyeOff, Check, X } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, ArrowLeft, KeyRound } from "lucide-react";
 import { apiClient } from "@/shared/services/api";
 
 const ResetPassword = () => {
@@ -156,21 +156,36 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
-      <Card className="w-full max-w-md shadow-elegant">
-        <CardHeader className="text-center">
-          <Link to="/" className="text-2xl font-bold text-[#5046E5] mb-4 inline-block">
-            cartevent<span className="text-[#7C6BFF]">.</span>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
+      </div>
+      
+      <Card className="w-full max-w-md shadow-2xl shadow-primary/5 border-0 bg-white/95 backdrop-blur-sm relative z-10">
+        <CardHeader className="text-center pb-2">
+          {/* Logo doubles as back button */}
+          <Link to="/login" className="inline-flex items-center justify-center mb-4 group">
+            <div className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all opacity-0 group-hover:opacity-100 -ml-6 translate-y-[2px]" />
+              <span className="text-2xl font-bold text-[#5046E5] group-hover:opacity-80 transition-opacity leading-none">
+                cartevent<span className="text-[#7C6BFF]">.</span>
+              </span>
+            </div>
           </Link>
-          <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-          <CardDescription>
+          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-3">
+            <KeyRound className="h-7 w-7 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-bold">Reset Your Password</CardTitle>
+          <CardDescription className="mt-2">
             Enter your new password below
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium">New Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -181,7 +196,7 @@ const ResetPassword = () => {
                   required
                   disabled={isLoading}
                   minLength={8}
-                  className="pr-10"
+                  className="h-11 rounded-xl border-border/60 focus:border-primary pr-10"
                 />
                 <button
                   type="button"
@@ -228,8 +243,8 @@ const ResetPassword = () => {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm New Password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -239,7 +254,7 @@ const ResetPassword = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="pr-10"
+                  className="h-11 rounded-xl border-border/60 focus:border-primary pr-10"
                 />
                 <button
                   type="button"
@@ -259,7 +274,11 @@ const ResetPassword = () => {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all" 
+              disabled={isLoading || password.length < 8 || password !== confirmPassword}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -270,9 +289,12 @@ const ResetPassword = () => {
               )}
             </Button>
 
-            <Link to="/login">
-              <Button variant="ghost" className="w-full">Back to Login</Button>
-            </Link>
+            <div className="text-center text-sm text-muted-foreground pt-2">
+              Remember your password?{" "}
+              <Link to="/login" className="text-primary font-medium hover:text-primary/80 transition-colors">
+                Sign in
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -1,34 +1,34 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { ShoppingCart, User, Menu, Sparkles, ChevronDown } from "lucide-react";
+import { ShoppingCart, User, Menu, Sparkles, ChevronDown, Camera, Palette, Music, Lightbulb, Sparkle, UtensilsCrossed, Mail, Mic2, Mic, ClipboardList, Heart, Cake, Gift, Briefcase, Gem, Baby } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useCart } from "@/shared/contexts/CartContext";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { cn } from "@/shared/lib/utils";
 
-// Vendor categories
+// Vendor categories with Lucide icons
 const vendorCategories = [
-  { id: 'photographer', name: 'Photography & Cinematography', icon: '📸' },
-  { id: 'decorator', name: 'Décor', icon: '🎨' },
-  { id: 'dj', name: 'DJ', icon: '🎵' },
-  { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-  { id: 'mua', name: 'Makeup / Stylist', icon: '💄' },
-  { id: 'caterer', name: 'Catering', icon: '🍽️' },
-  { id: 'invitations', name: 'Invitations', icon: '✉️' },
-  { id: 'live-music', name: 'Live Music', icon: '🎤' },
-  { id: 'anchors', name: 'Anchors', icon: '🎙️' },
-  { id: 'event-coordinator', name: 'Event Coordinators', icon: '📋' },
+  { id: 'photographer', name: 'Photography & Cinematography', icon: Camera, iconColor: 'text-blue-500', iconBg: 'bg-blue-50' },
+  { id: 'decorator', name: 'Décor', icon: Palette, iconColor: 'text-pink-500', iconBg: 'bg-pink-50' },
+  { id: 'dj', name: 'DJ', icon: Music, iconColor: 'text-purple-500', iconBg: 'bg-purple-50' },
+  { id: 'sound-lights', name: 'Sound & Lights', icon: Lightbulb, iconColor: 'text-yellow-500', iconBg: 'bg-yellow-50' },
+  { id: 'mua', name: 'Makeup / Stylist', icon: Sparkle, iconColor: 'text-rose-500', iconBg: 'bg-rose-50' },
+  { id: 'caterer', name: 'Catering', icon: UtensilsCrossed, iconColor: 'text-orange-500', iconBg: 'bg-orange-50' },
+  { id: 'invitations', name: 'Invitations', icon: Mail, iconColor: 'text-teal-500', iconBg: 'bg-teal-50' },
+  { id: 'live-music', name: 'Live Music', icon: Mic2, iconColor: 'text-red-500', iconBg: 'bg-red-50' },
+  { id: 'anchors', name: 'Anchors', icon: Mic, iconColor: 'text-indigo-500', iconBg: 'bg-indigo-50' },
+  { id: 'event-coordinator', name: 'Event Coordinators', icon: ClipboardList, iconColor: 'text-emerald-500', iconBg: 'bg-emerald-50' },
 ];
 
-// Event types
+// Event types with Lucide icons
 const eventTypes = [
-  { id: 'wedding', name: 'Wedding', icon: '💒' },
-  { id: 'birthday', name: 'Birthday', icon: '🎂' },
-  { id: 'anniversary', name: 'Anniversary', icon: '🎉' },
-  { id: 'corporate', name: 'Corporate', icon: '💼' },
-  { id: 'engagement', name: 'Engagement', icon: '💍' },
-  { id: 'baby-shower', name: 'Baby Shower', icon: '👶' },
+  { id: 'wedding', name: 'Wedding', icon: Heart, iconColor: 'text-rose-500', iconBg: 'bg-rose-50' },
+  { id: 'birthday', name: 'Birthday', icon: Cake, iconColor: 'text-pink-500', iconBg: 'bg-pink-50' },
+  { id: 'anniversary', name: 'Anniversary', icon: Gift, iconColor: 'text-red-500', iconBg: 'bg-red-50' },
+  { id: 'corporate', name: 'Corporate', icon: Briefcase, iconColor: 'text-slate-600', iconBg: 'bg-slate-100' },
+  { id: 'engagement', name: 'Engagement', icon: Gem, iconColor: 'text-purple-500', iconBg: 'bg-purple-50' },
+  { id: 'baby-shower', name: 'Baby Shower', icon: Baby, iconColor: 'text-pink-400', iconBg: 'bg-pink-50' },
 ];
 
 export const Navbar = () => {

@@ -1,34 +1,34 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { ShoppingCart, User, Menu, Sparkles, ChevronDown, X } from 'lucide-react';
+import { ShoppingCart, User, Menu, Sparkles, ChevronDown, ChevronRight, X, Camera, Palette, Music, Lightbulb, Sparkle, UtensilsCrossed, Mail, Mic2, Mic, ClipboardList, Heart, Cake, Gift, Briefcase, Gem, Baby } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useCart } from '@/shared/contexts/CartContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { cn } from '@/shared/lib/utils';
 
-// Vendor categories
+// Vendor categories with Lucide icons
 const vendorCategories = [
-  { id: 'photographer', name: 'Photography & Cinematography', icon: '📸' },
-  { id: 'decorator', name: 'Décor', icon: '🎨' },
-  { id: 'dj', name: 'DJ', icon: '🎵' },
-  { id: 'sound-lights', name: 'Sound & Lights', icon: '💡' },
-  { id: 'mua', name: 'Makeup / Stylist', icon: '💄' },
-  { id: 'caterer', name: 'Catering', icon: '🍽️' },
-  { id: 'invitations', name: 'Invitations', icon: '✉️' },
-  { id: 'live-music', name: 'Live Music', icon: '🎤' },
-  { id: 'anchors', name: 'Anchors', icon: '🎙️' },
-  { id: 'event-coordinator', name: 'Event Coordinators', icon: '📋' },
+  { id: 'photographer', name: 'Photography & Cinematography', icon: Camera, iconColor: 'text-blue-500', iconBg: 'bg-blue-50' },
+  { id: 'decorator', name: 'Décor', icon: Palette, iconColor: 'text-pink-500', iconBg: 'bg-pink-50' },
+  { id: 'dj', name: 'DJ', icon: Music, iconColor: 'text-purple-500', iconBg: 'bg-purple-50' },
+  { id: 'sound-lights', name: 'Sound & Lights', icon: Lightbulb, iconColor: 'text-yellow-500', iconBg: 'bg-yellow-50' },
+  { id: 'mua', name: 'Makeup / Stylist', icon: Sparkle, iconColor: 'text-rose-500', iconBg: 'bg-rose-50' },
+  { id: 'caterer', name: 'Catering', icon: UtensilsCrossed, iconColor: 'text-orange-500', iconBg: 'bg-orange-50' },
+  { id: 'invitations', name: 'Invitations', icon: Mail, iconColor: 'text-teal-500', iconBg: 'bg-teal-50' },
+  { id: 'live-music', name: 'Live Music', icon: Mic2, iconColor: 'text-red-500', iconBg: 'bg-red-50' },
+  { id: 'anchors', name: 'Anchors', icon: Mic, iconColor: 'text-indigo-500', iconBg: 'bg-indigo-50' },
+  { id: 'event-coordinator', name: 'Event Coordinators', icon: ClipboardList, iconColor: 'text-emerald-500', iconBg: 'bg-emerald-50' },
 ];
 
-// Event types
+// Event types with Lucide icons
 const eventTypes = [
-  { id: 'wedding', name: 'Wedding', icon: '💒' },
-  { id: 'birthday', name: 'Birthday', icon: '🎂' },
-  { id: 'anniversary', name: 'Anniversary', icon: '🎉' },
-  { id: 'corporate', name: 'Corporate', icon: '💼' },
-  { id: 'engagement', name: 'Engagement', icon: '💍' },
-  { id: 'baby-shower', name: 'Baby Shower', icon: '👶' },
+  { id: 'wedding', name: 'Wedding', icon: Heart, iconColor: 'text-rose-500', iconBg: 'bg-rose-50' },
+  { id: 'birthday', name: 'Birthday', icon: Cake, iconColor: 'text-pink-500', iconBg: 'bg-pink-50' },
+  { id: 'anniversary', name: 'Anniversary', icon: Gift, iconColor: 'text-red-500', iconBg: 'bg-red-50' },
+  { id: 'corporate', name: 'Corporate', icon: Briefcase, iconColor: 'text-slate-600', iconBg: 'bg-slate-100' },
+  { id: 'engagement', name: 'Engagement', icon: Gem, iconColor: 'text-purple-500', iconBg: 'bg-purple-50' },
+  { id: 'baby-shower', name: 'Baby Shower', icon: Baby, iconColor: 'text-pink-400', iconBg: 'bg-pink-50' },
 ];
 
 export const MinimalNavbar = () => {
@@ -142,7 +142,7 @@ export const MinimalNavbar = () => {
           : 'bg-transparent'
       )}
     >
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container mx-auto px-4 md:px-8 relative">
         <div className="flex h-16 md:h-20 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
@@ -437,198 +437,51 @@ export const MinimalNavbar = () => {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className={cn(
-            'md:hidden py-4 space-y-3 border-t transition-colors',
-            isSolidNav ? 'border-border bg-white' : 'border-white/20 bg-white/90'
-          )}>
-            {/* PHASE 1: Simplified navigation - Home removed (logo serves this purpose) */}
-            
-            {/* PHASE 1: Customer features commented out - uncomment for Phase 2 */}
-            {/* Mobile Vendors Section 
-            <div ref={mobileVendorsRef}>
-              <button
-                className={cn(
-                  'w-full flex items-center justify-between py-2.5 text-xs font-medium transition-all duration-200 rounded-md px-2',
-                  isSolidNav 
-                    ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
-                )}
-                onClick={() => {
-                  setVendorsDropdownOpen((open) => {
-                    const next = !open;
-                    if (next) setEventTypesDropdownOpen(false);
-                    return next;
-                  });
-                }}
-              >
-                Vendors
-                <ChevronDown className={cn(
-                  'h-3.5 w-3.5 transition-transform duration-200',
-                  vendorsDropdownOpen && 'rotate-180'
-                )} />
-              </button>
-              {vendorsDropdownOpen && (
-                <div className="pl-3 mt-1.5 space-y-0.5">
-                  {vendorCategories.map((category) => (
-                    <Link
-                      key={category.id}
-                      to={`/search?category=${category.id}&view=vendors`}
-                      className={cn(
-                        'flex items-center gap-2 py-2 px-2.5 rounded-md text-xs transition-all duration-150',
-                        isSolidNav 
-                          ? 'text-muted-foreground hover:text-primary hover:bg-primary/5' 
-                          : 'text-white/70 hover:text-white hover:bg-white/10'
-                      )}
-                      onClick={() => {
-                        closeMobileMenu();
-                      }}
-                    >
-                      <span className="text-sm">{category.icon}</span>
-                      <span className="font-medium">{category.name}</span>
-                    </Link>
-                  ))}
-                </div>
+          <div className="md:hidden absolute left-0 right-0 top-full bg-white shadow-lg border-t z-50">
+            <div className="px-4 py-4 space-y-4">
+              {/* For Vendors Link - styled as a card */}
+              {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
+                <Link
+                  to="/join-vendors"
+                  className="flex items-center justify-between py-3 px-4 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl hover:from-primary/10 hover:to-primary/15 transition-all group"
+                  onClick={closeMobileMenu}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-semibold text-gray-900">For Vendors</span>
+                      <span className="block text-xs text-gray-500">Grow your business with us</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
+                </Link>
               )}
-            </div>
-            */}
-
-            {/* Mobile Event Types Section 
-            <div ref={mobileEventTypesRef}>
-              <button
-                className={cn(
-                  'w-full flex items-center justify-between py-2.5 text-xs font-medium transition-all duration-200 rounded-md px-2',
-                  isSolidNav 
-                    ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
-                )}
-                onClick={() => {
-                  setEventTypesDropdownOpen((open) => {
-                    const next = !open;
-                    if (next) setVendorsDropdownOpen(false);
-                    return next;
-                  });
-                }}
-              >
-                Event Types
-                <ChevronDown className={cn(
-                  'h-3.5 w-3.5 transition-transform duration-200',
-                  eventTypesDropdownOpen && 'rotate-180'
-                )} />
-              </button>
-              {eventTypesDropdownOpen && (
-                <div className="pl-3 mt-1.5 space-y-0.5">
-                  {eventTypes.map((eventType) => (
-                    <Link
-                      key={eventType.id}
-                      to={`/search?eventType=${eventType.id}`}
-                      className={cn(
-                        'flex items-center gap-2 py-2 px-2.5 rounded-md text-xs transition-all duration-150',
-                        isSolidNav 
-                          ? 'text-muted-foreground hover:text-primary hover:bg-primary/5' 
-                          : 'text-white/70 hover:text-white hover:bg-white/10'
-                      )}
-                      onClick={() => {
-                        closeMobileMenu();
-                      }}
-                    >
-                      <span className="text-sm">{eventType.icon}</span>
-                      <span className="font-medium">{eventType.name}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-            */}
-
-            {/* Event Planner 
-            <Link
-              to="/event-planner"
-              className={cn(
-                'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 flex items-center gap-2',
-                isSolidNav 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-              onClick={closeMobileMenu}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Event Planner
-            </Link>
-            */}
-
-            {/* For Vendors - Keep active for Phase 1 */}
-            {/* For Vendors - Keep active for Phase 1 */}
-            {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
-              <Link
-                to="/join-vendors"
-                className={cn(
-                  'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200',
-                  isSolidNav 
-                    ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
-                )}
-                onClick={closeMobileMenu}
-              >
-                For Vendors
-              </Link>
-            )}
-
-            {/* Cart - Commented out for Phase 1 
-            <Link
-              to="/cart"
-              className={cn(
-                'block py-2.5 px-2 text-xs font-medium rounded-md transition-all duration-200 flex items-center gap-2 relative',
-                isSolidNav 
-                  ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              )}
-              onClick={closeMobileMenu}
-            >
-              <ShoppingCart className="h-3.5 w-3.5" />
-              Cart
-              {cartCount > 0 && (
-                <Badge className="ml-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground">
-                  {cartCount}
-                </Badge>
-              )}
-            </Link>
-            */}
-
-            <div className="flex items-center gap-2 pt-2">
+              
+              {/* Auth Buttons */}
               {isAuthenticated && user ? (
-                <>
+                <div className="space-y-2 pt-2">
                   <Button 
                     variant="outline" 
-                    size="sm" 
                     asChild 
-                    className={cn(
-                      'flex-1 h-8 text-xs font-medium',
-                      isSolidNav 
-                        ? 'border-border' 
-                        : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
-                    )}
+                    className="w-full justify-center h-12 text-sm font-medium border-gray-200"
                   >
                     {user.role === 'VENDOR' ? (
                       <Link to="/vendor/dashboard" onClick={closeMobileMenu}>
-                        <User className="h-3.5 w-3.5 mr-1.5" />
+                        <User className="h-4 w-4 mr-2" />
                         Dashboard
                       </Link>
                     ) : (
                       <Link to="/profile" onClick={closeMobileMenu}>
-                        <User className="h-3.5 w-3.5 mr-1.5" />
+                        <User className="h-4 w-4 mr-2" />
                         {user.fullName || user.email.split('@')[0]}
                       </Link>
                     )}
                   </Button>
                   <Button 
-                    variant="outline"
-                    size="sm" 
-                    className={cn(
-                      'flex-1 h-8 text-xs font-semibold',
-                      isSolidNav 
-                        ? 'border-border text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive' 
-                        : 'border-white/30 bg-white/95 text-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive shadow-sm backdrop-blur-sm'
-                    )}
+                    variant="ghost"
+                    className="w-full justify-center h-11 text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50"
                     onClick={() => {
                       logout();
                       closeMobileMenu();
@@ -636,38 +489,27 @@ export const MinimalNavbar = () => {
                   >
                     Logout
                   </Button>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="space-y-3 pt-2">
                   <Button 
-                    variant="outline" 
-                    size="sm" 
                     asChild 
-                    className={cn(
-                      'flex-1 h-8 text-xs font-medium',
-                      isSolidNav 
-                        ? 'border-border' 
-                        : 'border-white/30 text-white hover:bg-white/10 hover:border-white/40'
-                    )}
+                    className="w-full h-12 text-sm font-semibold bg-primary hover:bg-primary/90"
                   >
-                    <Link to="/login" onClick={closeMobileMenu}>
-                      <User className="h-3.5 w-3.5 mr-1.5" />
-                      Login
+                    <Link to="/auth?mode=signup" onClick={closeMobileMenu}>
+                      Sign Up
                     </Link>
                   </Button>
                   <Button 
-                    size="sm" 
+                    variant="ghost" 
                     asChild 
-                    className={cn(
-                      'flex-1 h-8 text-xs font-semibold',
-                      isSolidNav 
-                        ? 'bg-primary hover:bg-primary/90 shadow-md' 
-                        : 'bg-white/95 hover:bg-white text-foreground shadow-md border border-white/20'
-                    )}
+                    className="w-full h-11 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   >
-                    <Link to="/signup" onClick={closeMobileMenu}>Sign Up</Link>
+                    <Link to="/auth?mode=login" onClick={closeMobileMenu}>
+                      Already have an account? <span className="text-primary ml-1">Login</span>
+                    </Link>
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -676,5 +518,3 @@ export const MinimalNavbar = () => {
     </nav>
   );
 };
-
-

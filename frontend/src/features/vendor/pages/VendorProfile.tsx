@@ -1008,7 +1008,7 @@ export default function VendorProfile() {
                         ) : (
                           <div className="flex items-center gap-2 text-emerald-600">
                             <CheckCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">🎉 Excellent! Your profile is complete and optimized for visibility.</span>
+                            <span className="text-sm font-medium">Excellent! Your profile is complete and optimized for visibility.</span>
                           </div>
                         )}
                       </div>

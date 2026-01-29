@@ -128,21 +128,18 @@ const ForgotPassword = () => {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
       </div>
       
-      {/* Back to Login link */}
-      <Link 
-        to="/login" 
-        className="absolute top-6 left-6 flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group bg-white/80 backdrop-blur-sm px-3 py-2 rounded-full shadow-sm border border-border/50"
-      >
-        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-        <span>Login</span>
-      </Link>
+      {/* Back link integrated into card */}
       
       <Card className="w-full max-w-md shadow-2xl shadow-primary/5 border-0 bg-white/95 backdrop-blur-sm relative z-10">
         <CardHeader className="text-center pb-2">
-          <Link to="/" className="inline-flex items-center justify-center mb-4 group">
-            <span className="text-2xl font-bold text-[#5046E5] group-hover:opacity-80 transition-opacity">
-              cartevent<span className="text-[#7C6BFF]">.</span>
-            </span>
+          {/* Logo doubles as back button - click to go to login */}
+          <Link to="/login" className="inline-flex items-center justify-center mb-4 group">
+            <div className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:-translate-x-1 transition-all opacity-0 group-hover:opacity-100 -ml-6 translate-y-[2px]" />
+              <span className="text-2xl font-bold text-[#5046E5] group-hover:opacity-80 transition-opacity leading-none">
+                cartevent<span className="text-[#7C6BFF]">.</span>
+              </span>
+            </div>
           </Link>
           <div className="mx-auto w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-3">
             <KeyRound className="h-7 w-7 text-primary" />

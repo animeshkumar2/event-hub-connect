@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent } from '@/shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { 
   Loader2, ArrowRight, ArrowLeft, Camera, Utensils, Building2, 
@@ -168,6 +168,11 @@ export function TemplateSelectionModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+        {/* Visually hidden title for accessibility */}
+        <DialogTitle className="sr-only">
+          {step === 'choice' ? 'Create New Service' : step === 'category' ? 'Select Category' : `${categoryTemplates?.categoryName || 'Select'} Templates`}
+        </DialogTitle>
+        
         {/* Step 1: Choice - Template or Scratch */}
         {step === 'choice' && (
           <div className="p-6">

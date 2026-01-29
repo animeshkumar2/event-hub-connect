@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, Heart, Cake, Gift, Briefcase, Gem, Baby, Moon, Music, PartyPopper, LucideIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { eventTypes } from '@/shared/constants/mockData';
 import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
@@ -16,7 +16,9 @@ interface EventCard {
   image: string; // For background
   cardImage?: string; // For card image (optional, falls back to image)
   gradient: string;
-  icon: string;
+  icon: LucideIcon;
+  iconColor: string;
+  iconBg: string;
   stats: {
     label: string;
     value: string;
@@ -42,7 +44,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/haldi.webp`,
     cardImage: `${CDN_BASE}/mehendi.webp`,
     gradient: 'from-amber-900/80 via-yellow-800/70 to-amber-700/80',
-    icon: '💒',
+    icon: Heart,
+    iconColor: 'text-rose-500',
+    iconBg: 'bg-rose-50',
     stats: { label: 'Weddings Booked', value: '2,500+' },
     link: '/search?eventType=Wedding',
   },
@@ -54,7 +58,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/birthday2.webp`,
     cardImage: `${CDN_BASE}/birthday.webp`,
     gradient: 'from-blue-600/80 via-cyan-500/70 to-indigo-600/80',
-    icon: '🎂',
+    icon: Cake,
+    iconColor: 'text-pink-500',
+    iconBg: 'bg-pink-50',
     stats: { label: 'Birthdays Celebrated', value: '5,000+' },
     link: '/search?eventType=Birthday',
   },
@@ -66,7 +72,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/anniversary.webp`,
     cardImage: `${CDN_BASE}/anniversary.webp`,
     gradient: 'from-pink-700/80 via-rose-600/70 to-red-600/80',
-    icon: '💝',
+    icon: Gift,
+    iconColor: 'text-red-500',
+    iconBg: 'bg-red-50',
     stats: { label: 'Anniversaries', value: '800+' },
     link: '/search?eventType=Anniversary',
   },
@@ -78,7 +86,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/corporate.webp`,
     cardImage: `${CDN_BASE}/corporate.webp`,
     gradient: 'from-slate-800/80 via-gray-700/70 to-slate-600/80',
-    icon: '💼',
+    icon: Briefcase,
+    iconColor: 'text-slate-600',
+    iconBg: 'bg-slate-100',
     stats: { label: 'Corporate Events', value: '1,200+' },
     link: '/search?eventType=Corporate',
   },
@@ -90,7 +100,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/engagement.webp`,
     cardImage: `${CDN_BASE}/engagement.webp`,
     gradient: 'from-purple-700/80 via-pink-600/70 to-rose-600/80',
-    icon: '💍',
+    icon: Gem,
+    iconColor: 'text-purple-500',
+    iconBg: 'bg-purple-50',
     stats: { label: 'Engagements', value: '1,500+' },
     link: '/search?eventType=Engagement',
   },
@@ -102,7 +114,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/baby_shower.webp`,
     cardImage: `${CDN_BASE}/baby-shower2.webp`,
     gradient: 'from-pink-500/80 via-purple-500/70 to-indigo-500/80',
-    icon: '👶',
+    icon: Baby,
+    iconColor: 'text-pink-400',
+    iconBg: 'bg-pink-50',
     stats: { label: 'Baby Showers', value: '600+' },
     link: '/search?eventType=Baby Shower',
   },
@@ -114,7 +128,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/nightlife.webp`,
     cardImage: `${CDN_BASE}/nightlife.webp`,
     gradient: 'from-violet-900/80 via-purple-800/70 to-indigo-900/80',
-    icon: '🌙',
+    icon: Moon,
+    iconColor: 'text-violet-500',
+    iconBg: 'bg-violet-50',
     stats: { label: 'Nightlife Events', value: '400+' },
     link: '/search?eventType=Nightlife',
   },
@@ -126,7 +142,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/concert.webp`,
     cardImage: `${CDN_BASE}/concert.webp`,
     gradient: 'from-red-800/80 via-orange-700/70 to-yellow-600/80',
-    icon: '🎸',
+    icon: Music,
+    iconColor: 'text-orange-500',
+    iconBg: 'bg-orange-50',
     stats: { label: 'Concerts & Shows', value: '300+' },
     link: '/search?eventType=Concert',
   },
@@ -138,7 +156,9 @@ const eventCards: EventCard[] = [
     image: `${CDN_BASE}/corporate.webp`,
     cardImage: `${CDN_BASE}/corporate.webp`,
     gradient: 'from-gray-700/80 via-slate-600/70 to-gray-500/80',
-    icon: '🎉',
+    icon: PartyPopper,
+    iconColor: 'text-amber-500',
+    iconBg: 'bg-amber-50',
     stats: { label: 'Custom Events', value: 'Coming Soon' },
     link: '/search?eventType=Other',
   },
@@ -364,8 +384,8 @@ export const InteractiveEventShowcase = () => {
                       <div className="space-y-2 sm:space-y-3">
                         {/* Icon and Badge */}
                         <div className="flex items-center gap-2 sm:gap-2.5">
-                          <div className="text-2xl sm:text-3xl md:text-4xl">
-                            {card.icon}
+                          <div className={cn("p-2.5 rounded-xl", card.iconBg)}>
+                            <card.icon className={cn("h-5 w-5 sm:h-6 sm:w-6", card.iconColor)} />
                           </div>
                           <Badge className="bg-primary/10 text-primary border-primary/20 px-2 sm:px-2.5 py-0.5 text-xs font-medium">
                             {card.subtitle}
@@ -475,7 +495,7 @@ export const InteractiveEventShowcase = () => {
                   )}
                 >
                   <span className="flex items-center gap-1.5">
-                    {card?.icon && <span>{card.icon}</span>}
+                    {card?.icon && <card.icon className={cn("h-3.5 w-3.5", isActive ? card.iconColor : "text-current")} />}
                     <span className="whitespace-nowrap">{eventType}</span>
                   </span>
                 </button>

@@ -18,7 +18,17 @@ import {
   Package,
   Rocket,
   Target,
-  ChevronDown
+  ChevronDown,
+  Heart,
+  Briefcase,
+  Cake,
+  GraduationCap,
+  Music2,
+  Church,
+  Home,
+  PartyPopper,
+  Flame,
+  Sparkle
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/components/ui/dialog';
@@ -544,20 +554,20 @@ export default function VendorLandingPage() {
                 <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">We cover every occasion, every gathering.</p>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {[
-                    { emoji: "💒", label: "Weddings" },
-                    { emoji: "💼", label: "Corporate" },
-                    { emoji: "🎂", label: "Birthdays" },
-                    { emoji: "🎓", label: "Graduations" },
-                    { emoji: "💃", label: "Club Nights" },
-                    { emoji: "🙏", label: "Religious" },
-                    { emoji: "🏠", label: "Housewarmings" },
-                    { emoji: "🎉", label: "Parties" },
-                    { emoji: "🕯️", label: "Memorials" },
-                    { emoji: "✨", label: "...any event" },
+                    { icon: Heart, label: "Weddings", color: "text-rose-500", bg: "bg-rose-50" },
+                    { icon: Briefcase, label: "Corporate", color: "text-slate-600", bg: "bg-slate-100" },
+                    { icon: Cake, label: "Birthdays", color: "text-pink-500", bg: "bg-pink-50" },
+                    { icon: GraduationCap, label: "Graduations", color: "text-blue-500", bg: "bg-blue-50" },
+                    { icon: Music2, label: "Club Nights", color: "text-purple-500", bg: "bg-purple-50" },
+                    { icon: Church, label: "Religious", color: "text-amber-600", bg: "bg-amber-50" },
+                    { icon: Home, label: "Housewarmings", color: "text-emerald-500", bg: "bg-emerald-50" },
+                    { icon: PartyPopper, label: "Parties", color: "text-orange-500", bg: "bg-orange-50" },
+                    { icon: Flame, label: "Memorials", color: "text-gray-500", bg: "bg-gray-100" },
+                    { icon: Sparkle, label: "...any event", color: "text-primary", bg: "bg-primary/10" },
                   ].map((event, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-muted text-xs sm:text-sm hover:bg-primary/10 transition-colors cursor-default">
-                      <span>{event.emoji}</span>
-                      <span>{event.label}</span>
+                    <span key={i} className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full ${event.bg} text-xs sm:text-sm hover:opacity-80 transition-opacity cursor-default`}>
+                      <event.icon className={`h-3.5 w-3.5 ${event.color}`} />
+                      <span className="text-foreground/80">{event.label}</span>
                     </span>
                   ))}
                 </div>
