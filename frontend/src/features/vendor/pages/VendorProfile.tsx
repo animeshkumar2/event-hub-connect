@@ -94,29 +94,34 @@ const calculateProfileCompletion = (profile: any, portfolioImages: string[], loc
   return { checks, completed, completedCount, totalCount, level, levelColor, levelBg };
 };
 
-// Stat Card Component
+// Stat Card Component - Compact and creative
 const StatCard = ({ icon: Icon, label, value, color }: { 
   icon: any; label: string; value: string | number; color: string 
 }) => (
-  <div className={`relative overflow-hidden rounded-2xl p-4 ${color} group hover:scale-[1.02] transition-all duration-300`}>
-    <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
-    <Icon className="h-5 w-5 text-white/80 mb-2" />
-    <div className="text-2xl font-bold text-white">{value}</div>
-    <div className="text-sm text-white/70">{label}</div>
+  <div className={`relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-4 ${color} group hover:scale-[1.02] transition-all duration-300`}>
+    {/* Decorative elements */}
+    <div className="absolute top-0 right-0 w-12 sm:w-16 h-12 sm:h-16 bg-white/10 rounded-full -mr-6 sm:-mr-8 -mt-6 sm:-mt-8" />
+    <div className="absolute bottom-0 left-0 w-8 sm:w-12 h-8 sm:h-12 bg-white/5 rounded-full -ml-4 sm:-ml-6 -mb-4 sm:-mb-6" />
+    
+    <div className="relative">
+      <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white/90 mb-1.5 sm:mb-2" />
+      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white">{value}</div>
+      <div className="text-xs text-white/80 font-medium">{label}</div>
+    </div>
   </div>
 );
 
-// Quick Action Button
+// Quick Action Button - Compact on mobile
 const QuickAction = ({ icon: Icon, label, onClick, badge }: { 
   icon: any; label: string; onClick: () => void; badge?: string 
 }) => (
-  <button onClick={onClick} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-all group w-full text-left">
-    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+  <button onClick={onClick} className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-muted/50 hover:bg-muted transition-all group w-full text-left">
+    <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all flex-shrink-0">
       <Icon className="h-4 w-4" />
     </div>
-    <span className="flex-1 text-sm font-medium text-foreground">{label}</span>
-    {badge && <Badge variant="secondary" className="text-xs">{badge}</Badge>}
-    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+    <span className="flex-1 text-sm font-medium text-foreground truncate">{label}</span>
+    {badge && <Badge variant="secondary" className="text-xs h-5 px-1.5">{badge}</Badge>}
+    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
   </button>
 );
 
@@ -901,91 +906,99 @@ export default function VendorProfile() {
             </div>
 
             {/* Profile Card Overlay */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-20 relative z-10">
-              <div className="bg-card rounded-3xl shadow-2xl border border-border/50 overflow-hidden">
-                <div className="p-6 sm:p-8">
-                  <div className="flex flex-col sm:flex-row gap-6">
-                    {/* Profile Picture with Upload */}
-                    <div className="flex-shrink-0 relative group">
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden shadow-lg">
-                        {formData.profileImage ? (
-                          <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-white text-3xl sm:text-4xl font-bold">
-                            {formData.businessName?.charAt(0)?.toUpperCase() || 'V'}
-                          </div>
-                        )}
-                      </div>
-                      {/* Profile Picture Upload Button */}
-                      <button 
-                        onClick={() => profileInputRef.current?.click()}
-                        disabled={isUploadingProfile}
-                        className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110"
-                      >
-                        {isUploadingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                      </button>
-                      {/* Remove Profile Picture Button */}
-                      {formData.profileImage && (
-                        <button 
-                          onClick={handleRemoveProfileImage}
-                          disabled={isUploadingProfile}
-                          className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 transition-all hover:scale-110 opacity-0 group-hover:opacity-100"
-                          title="Remove profile photo"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
+            <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 -mt-16 sm:-mt-20 relative z-10">
+              <div className="bg-card rounded-2xl sm:rounded-3xl shadow-2xl border border-border/50 overflow-hidden">
+                <div className="p-4 sm:p-5 lg:p-8">
+                  {/* Mobile & Tablet: Stacked layout, Desktop: Side by side */}
+                  <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-start gap-3 mb-2">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{formData.businessName || 'Your Business'}</h1>
-                        {isVerified && (
-                          <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" /> Verified
-                          </Badge>
+                    {/* Left Section: Profile Info */}
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 lg:flex-1">
+                      {/* Profile Picture with Upload */}
+                      <div className="flex-shrink-0 relative group">
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-2xl overflow-hidden shadow-lg ring-4 ring-background">
+                          {formData.profileImage ? (
+                            <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-white text-3xl sm:text-4xl font-bold">
+                              {formData.businessName?.charAt(0)?.toUpperCase() || 'V'}
+                            </div>
+                          )}
+                        </div>
+                        {/* Profile Picture Upload Button */}
+                        <button 
+                          onClick={() => profileInputRef.current?.click()}
+                          disabled={isUploadingProfile}
+                          className="absolute -bottom-2 -right-2 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110"
+                        >
+                          {isUploadingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                        </button>
+                        {/* Remove Profile Picture Button */}
+                        {formData.profileImage && (
+                          <button 
+                            onClick={handleRemoveProfileImage}
+                            disabled={isUploadingProfile}
+                            className="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 transition-all hover:scale-110 opacity-0 group-hover:opacity-100"
+                            title="Remove profile photo"
+                          >
+                            <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          </button>
                         )}
                       </div>
                       
-                      <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-4">
-                        <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4" /> {categoryName}</span>
-                        {cityName && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" /> {cityName}</span>}
-                        {location && <span className="flex items-center gap-1.5"><Navigation className="h-4 w-4 text-primary" /> {serviceRadiusKm}km radius</span>}
-                      </div>
-
-                      {/* Enhanced Profile Strength Section */}
-                      <div className="bg-muted/50 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-semibold text-foreground">Profile Strength</span>
-                            <Badge variant="outline" className={`text-xs ${levelColor} border-current`}>{level}</Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{completedCount}/{totalCount} completed</span>
-                            <span className={`text-sm font-bold ${levelColor}`}>{completed}%</span>
-                          </div>
+                      {/* Business Info */}
+                      <div className="flex-1 min-w-0 text-center sm:text-left">
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-2">
+                          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{formData.businessName || 'Your Business'}</h1>
+                          {isVerified && (
+                            <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30 flex items-center gap-1 text-xs">
+                              <CheckCircle className="h-3 w-3" /> Verified
+                            </Badge>
+                          )}
                         </div>
                         
-                        <div className="relative h-3 bg-muted rounded-full overflow-hidden mb-3">
-                          <div className={`absolute inset-y-0 left-0 ${levelBg} transition-all duration-500 rounded-full`} style={{ width: `${completed}%` }} />
-                          {/* Milestone markers */}
-                          <div className="absolute inset-0 flex justify-between px-1">
-                            {[25, 50, 70, 90].map((milestone) => (
-                              <div key={milestone} className={`w-0.5 h-full ${completed >= milestone ? 'bg-white/50' : 'bg-muted-foreground/20'}`} style={{ marginLeft: `${milestone - 2}%` }} />
-                            ))}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-muted-foreground text-sm mb-3">
+                          <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4" /> {categoryName}</span>
+                          {cityName && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" /> {cityName}</span>}
+                          {location && <span className="flex items-center gap-1.5"><Navigation className="h-4 w-4 text-primary" /> {serviceRadiusKm}km</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Section: Profile Strength - Full width on mobile/tablet, side panel on desktop */}
+                    <div className="lg:w-80 xl:w-96">
+                      <div className="bg-gradient-to-br from-muted/80 to-muted/40 rounded-xl p-4 border border-border/50">
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-lg bg-primary/10">
+                              <TrendingUp className="h-4 w-4 text-primary" />
+                            </div>
+                            <span className="text-sm font-semibold text-foreground">Profile Strength</span>
                           </div>
+                          <Badge variant="outline" className={`text-xs ${levelColor} border-current`}>{level}</Badge>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div className="relative h-2.5 bg-muted rounded-full overflow-hidden mb-2">
+                          <div className={`absolute inset-y-0 left-0 ${levelBg} transition-all duration-500 rounded-full`} style={{ width: `${completed}%` }} />
+                        </div>
+                        
+                        {/* Completion Status */}
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                          <span>{completedCount}/{totalCount} completed</span>
+                          <span className={`font-semibold ${levelColor}`}>{completed}%</span>
                         </div>
                         
                         {completed < 100 ? (
                           <div className="space-y-2">
-                            <p className="text-xs text-muted-foreground mb-2">
+                            <p className="text-xs text-muted-foreground">
                               {completed < 50 ? '🚀 Complete your profile to attract more customers!' : 
                                completed < 70 ? '💪 Great progress! A few more steps to go.' :
                                completed < 90 ? '🎯 Almost there! Finish up for maximum visibility.' :
                                '✨ Just one more step to a perfect profile!'}
                             </p>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="space-y-1.5">
                               {checks.filter(c => !c.done).slice(0, 3).map((check, i) => (
                                 <button 
                                   key={i} 
@@ -997,18 +1010,19 @@ export default function VendorProfile() {
                                     else if (check.name.includes('Bio')) setActiveSection('edit');
                                     else setActiveSection('edit');
                                   }}
-                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-background border border-border hover:border-primary hover:bg-primary/5 transition-all text-xs group"
+                                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-background/80 border border-border hover:border-primary hover:bg-primary/5 transition-all text-xs group"
                                 >
-                                  <AlertCircle className="h-3 w-3 text-amber-500" />
-                                  <span className="text-muted-foreground group-hover:text-foreground">{check.tip}</span>
+                                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                                  <span className="text-muted-foreground group-hover:text-foreground text-left flex-1">{check.tip}</span>
+                                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
                                 </button>
                               ))}
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-emerald-600">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-sm font-medium">Excellent! Your profile is complete and optimized for visibility.</span>
+                          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3">
+                            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                            <span className="text-xs font-medium">Profile complete & optimized!</span>
                           </div>
                         )}
                       </div>
@@ -1021,7 +1035,7 @@ export default function VendorProfile() {
         )}
 
         {/* Main Content */}
-        <div className={`max-w-6xl mx-auto px-4 sm:px-6 ${isNewVendor ? 'pb-16' : 'py-8'}`}>
+        <div className={`max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 ${isNewVendor ? 'pb-16' : 'py-6 sm:py-8'}`}>
           {/* Mandatory Setup Section for New Vendors */}
           {isNewVendor && (
             <div className="max-w-2xl mx-auto">
@@ -1031,46 +1045,82 @@ export default function VendorProfile() {
 
           {/* Stats Grid - Only show for existing vendors */}
           {!isNewVendor && (
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 mb-5 sm:mb-6 lg:mb-8">
               <StatCard icon={MessageCircle} label="Pending Leads" value={stats.pendingLeads} color="bg-gradient-to-br from-blue-500 to-blue-600" />
-              <StatCard icon={CalendarCheck} label="Upcoming Bookings" value={stats.upcomingBookings} color="bg-gradient-to-br from-emerald-500 to-emerald-600" />
-              <StatCard icon={Star} label="Rating" value={stats.rating > 0 ? `${Number(stats.rating).toFixed(1)} (${stats.reviewCount})` : '—'} color="bg-gradient-to-br from-amber-500 to-orange-500" />
+              <StatCard icon={CalendarCheck} label="Upcoming" value={stats.upcomingBookings} color="bg-gradient-to-br from-emerald-500 to-emerald-600" />
+              <StatCard icon={Star} label="Rating" value={stats.rating > 0 ? `${Number(stats.rating).toFixed(1)}` : '—'} color="bg-gradient-to-br from-amber-500 to-orange-500" />
             </div>
           )}
 
           {/* Section Navigation - Only show for existing vendors */}
           {!isNewVendor && (
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-              {[
-                { id: 'overview', label: 'Overview', icon: Eye },
-                { id: 'edit', label: 'Edit Profile', icon: Edit3 },
-                { id: 'gallery', label: 'Gallery', icon: ImagePlus },
-                { id: 'location', label: 'Location', icon: MapPin },
-                { id: 'contact', label: 'Contact', icon: Phone },
-              ].map((tab) => (
-                <Button key={tab.id} variant={activeSection === tab.id ? 'default' : 'ghost'} 
-                  className={`flex-shrink-0 ${activeSection === tab.id ? 'bg-primary text-white' : ''}`}
-                  onClick={() => setActiveSection(tab.id as any)}>
-                  <tab.icon className="h-4 w-4 mr-2" /> {tab.label}
-                </Button>
-              ))}
+            <div className="mb-4 sm:mb-6">
+              {/* Mobile: Icon-only tabs in a centered row */}
+              <div className="flex sm:hidden justify-center gap-1 bg-muted/30 p-1 rounded-full mx-auto w-fit">
+                {[
+                  { id: 'overview', label: 'Overview', icon: Eye },
+                  { id: 'edit', label: 'Edit', icon: Edit3 },
+                  { id: 'gallery', label: 'Gallery', icon: ImagePlus },
+                  { id: 'location', label: 'Location', icon: MapPin },
+                  { id: 'contact', label: 'Contact', icon: Phone },
+                ].map((tab) => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveSection(tab.id as any)}
+                    className={`relative p-2.5 rounded-full transition-all ${
+                      activeSection === tab.id 
+                        ? 'bg-primary text-white shadow-md' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                    title={tab.label}
+                  >
+                    <tab.icon className="h-4 w-4" />
+                    {activeSection === tab.id && (
+                      <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-primary whitespace-nowrap">
+                        {tab.label}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Desktop: Full tabs with labels */}
+              <div className="hidden sm:flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {[
+                  { id: 'overview', label: 'Overview', icon: Eye },
+                  { id: 'edit', label: 'Edit', icon: Edit3 },
+                  { id: 'gallery', label: 'Gallery', icon: ImagePlus },
+                  { id: 'location', label: 'Location', icon: MapPin },
+                  { id: 'contact', label: 'Contact', icon: Phone },
+                ].map((tab) => (
+                  <Button key={tab.id} variant={activeSection === tab.id ? 'default' : 'ghost'} 
+                    size="sm"
+                    className={`flex-shrink-0 h-9 px-4 text-sm rounded-full ${activeSection === tab.id ? 'bg-primary text-white shadow-md' : 'bg-muted/50'}`}
+                    onClick={() => setActiveSection(tab.id as any)}>
+                    <tab.icon className="h-4 w-4 mr-2" /> 
+                    {tab.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
 
           {/* All Profile Sections - Only show for existing vendors */}
           {!isNewVendor && activeSection === 'overview' && (
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
+            <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 {/* About */}
-                <Card className="overflow-hidden border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> About</h3>
+                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+                  <CardContent className="p-4 sm:p-5">
+                    <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" /> About
+                    </h3>
                     {formData.bio ? (
-                      <p className="text-muted-foreground leading-relaxed">{formData.bio}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{formData.bio}</p>
                     ) : (
-                      <div className="text-center py-8 bg-muted/30 rounded-xl">
-                        <Edit3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-muted-foreground mb-3">Add a bio to tell customers about your business</p>
+                      <div className="text-center py-6 sm:py-8 bg-muted/30 rounded-xl">
+                        <Edit3 className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground mb-3">Add a bio to tell customers about your business</p>
                         <Button variant="outline" size="sm" onClick={() => setActiveSection('edit')}>Add Bio</Button>
                       </div>
                     )}
@@ -1078,24 +1128,28 @@ export default function VendorProfile() {
                 </Card>
 
                 {/* Portfolio Preview */}
-                <Card className="overflow-hidden border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold flex items-center gap-2"><ImagePlus className="h-5 w-5 text-primary" /> Portfolio ({portfolioImages.length})</h3>
-                      <Button variant="ghost" size="sm" onClick={() => setActiveSection('gallery')}>View All <ChevronRight className="h-4 w-4 ml-1" /></Button>
+                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                        <ImagePlus className="h-4 w-4 text-primary" /> Portfolio ({portfolioImages.length})
+                      </h3>
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-xs sm:text-sm" onClick={() => setActiveSection('gallery')}>
+                        View All <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
                     </div>
                     {portfolioImages.length > 0 ? (
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
                         {portfolioImages.slice(0, 6).map((img, i) => (
-                          <div key={i} className="aspect-square rounded-xl overflow-hidden group cursor-pointer" onClick={() => setActiveSection('gallery')}>
+                          <div key={i} className="aspect-square rounded-lg sm:rounded-xl overflow-hidden group cursor-pointer" onClick={() => setActiveSection('gallery')}>
                             <img src={img} alt={`Work ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 bg-muted/30 rounded-xl">
-                        <ImagePlus className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-muted-foreground mb-3">Showcase your work with portfolio images</p>
+                      <div className="text-center py-6 sm:py-8 bg-muted/30 rounded-xl">
+                        <ImagePlus className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground mb-3">Showcase your work with portfolio images</p>
                         <Button variant="outline" size="sm" onClick={() => setActiveSection('gallery')}>Add Images</Button>
                       </div>
                     )}
@@ -1103,35 +1157,60 @@ export default function VendorProfile() {
                 </Card>
               </div>
 
-              {/* Sidebar */}
-              <div className="space-y-6">
-                <Card className="overflow-hidden border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-                    <div className="space-y-2">
+              {/* Sidebar - Quick Actions */}
+              <div className="space-y-4 sm:space-y-6">
+                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+                  <CardContent className="p-4 sm:p-5">
+                    <h3 className="text-sm sm:text-base font-semibold mb-3 sm:mb-4">Quick Actions</h3>
+                    
+                    {/* Mobile: 4-column grid that fits all items */}
+                    <div className="grid grid-cols-4 gap-2 sm:hidden">
+                      {[
+                        { icon: Edit3, label: 'Edit', action: () => setActiveSection('edit') },
+                        { icon: ImagePlus, label: 'Gallery', action: () => setActiveSection('gallery'), badge: portfolioImages.length },
+                        { icon: MapPin, label: 'Location', action: () => setActiveSection('location') },
+                        { icon: Phone, label: 'Contact', action: () => setActiveSection('contact') },
+                      ].map((item, i) => (
+                        <button 
+                          key={i}
+                          onClick={item.action}
+                          className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-muted/50 hover:bg-muted transition-all"
+                        >
+                          <div className="relative">
+                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                              <item.icon className="h-4 w-4" />
+                            </div>
+                            {item.badge !== undefined && item.badge > 0 && (
+                              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold bg-amber-500 text-white rounded-full px-0.5">
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-medium text-foreground text-center leading-tight">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {/* Desktop: Vertical list */}
+                    <div className="hidden sm:grid gap-2">
                       <QuickAction icon={Edit3} label="Edit Profile" onClick={() => setActiveSection('edit')} />
                       <QuickAction icon={ImagePlus} label="Add Portfolio" onClick={() => setActiveSection('gallery')} badge={`${portfolioImages.length}`} />
                       <QuickAction icon={MapPin} label="Update Location" onClick={() => setActiveSection('location')} />
                       <QuickAction icon={Phone} label="Contact Info" onClick={() => setActiveSection('contact')} />
-                      {/* TODO: Add preview mode for vendors to see how their profile looks to customers
-                      <QuickAction icon={Globe} label="View Public Profile" onClick={() => window.open(`/vendors/${profileData.id}`, '_blank')} />
-                      */}
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Contact Info Card removed - accessible via sidebar navigation */}
               </div>
             </div>
           )}
 
           {/* Edit Profile Section */}
           {!isNewVendor && activeSection === 'edit' && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <CardContent className="p-6 sm:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold">Edit Profile</h3>
-                  <Button onClick={handleSave} disabled={isSaving || !isProfileDirty} className={`${isProfileDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
+            <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h3 className="text-base sm:text-xl font-semibold">Edit Profile</h3>
+                  <Button size="sm" onClick={handleSave} disabled={isSaving || !isProfileDirty} className={`text-xs sm:text-sm ${isProfileDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
                     {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     {isProfileDirty ? 'Save Changes' : 'No Changes'}
                   </Button>
@@ -1215,51 +1294,56 @@ export default function VendorProfile() {
 
           {/* Gallery Section */}
           {!isNewVendor && activeSection === 'gallery' && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <CardContent className="p-6 sm:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold">Portfolio Gallery</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Upload high-quality images to showcase your work 
-                      <span className={(portfolioImages.length + pendingPortfolioFiles.length) >= 3 ? 'text-emerald-500' : 'text-amber-500'}> ({portfolioImages.length + pendingPortfolioFiles.length}/3 minimum)</span>
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => portfolioInputRef.current?.click()} disabled={isUploadingPortfolio}>
-                      {isUploadingPortfolio ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImagePlus className="h-4 w-4 mr-2" />}
-                      Add Images
-                    </Button>
-                    <Button onClick={handleSave} disabled={isSaving || !isGalleryDirty} className={`${isGalleryDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
-                      {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                      {isGalleryDirty ? 'Save' : 'No Changes'}
-                    </Button>
+            <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
+                {/* Header - Stack on mobile */}
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-semibold">Portfolio Gallery</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        Showcase your best work 
+                        <span className={(portfolioImages.length + pendingPortfolioFiles.length) >= 3 ? 'text-emerald-500 font-medium' : 'text-amber-500 font-medium'}> ({portfolioImages.length + pendingPortfolioFiles.length}/3 min)</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9" onClick={() => portfolioInputRef.current?.click()} disabled={isUploadingPortfolio}>
+                        {isUploadingPortfolio ? <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" /> : <ImagePlus className="h-4 w-4 sm:mr-2" />}
+                        <span className="hidden sm:inline">Add Images</span>
+                        <span className="sm:hidden">Add</span>
+                      </Button>
+                      <Button size="sm" className={`flex-1 sm:flex-none h-9 ${isGalleryDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`} onClick={handleSave} disabled={isSaving || !isGalleryDirty}>
+                        {isSaving ? <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" /> : <Save className="h-4 w-4 sm:mr-2" />}
+                        <span className="hidden sm:inline">{isGalleryDirty ? 'Save Changes' : 'Saved'}</span>
+                        <span className="sm:hidden">{isGalleryDirty ? 'Save' : '✓'}</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Pending uploads notice */}
                 {pendingPortfolioFiles.length > 0 && (
-                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                    <p className="text-sm text-amber-700">
-                      {pendingPortfolioFiles.length} image(s) pending upload. Click <strong>Save</strong> to upload them.
+                  <div className="mb-4 p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                    <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-400">
+                      {pendingPortfolioFiles.length} image(s) pending. Tap <strong>Save</strong> to upload.
                     </p>
                   </div>
                 )}
 
                 {(portfolioImages.length > 0 || pendingPortfolioFiles.length > 0) ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
                     {/* Existing uploaded images */}
                     {portfolioImages.map((img, i) => (
-                      <div key={`uploaded-${i}`} className="aspect-square rounded-2xl overflow-hidden group relative bg-muted">
+                      <div key={`uploaded-${i}`} className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden group relative bg-muted">
                         <img src={img} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button size="sm" variant="destructive" onClick={() => { 
+                          <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => { 
                             setPortfolioImages(portfolioImages.filter((_, idx) => idx !== i)); 
                             setRemovedPortfolioUrls(prev => [...prev, img]);
                             toast.success('Image marked for removal. Click Save to confirm.'); 
                           }}>
-                            <X className="h-4 w-4 mr-1" /> Remove
+                            <X className="h-3.5 w-3.5 mr-1" /> Remove
                           </Button>
                         </div>
                       </div>
@@ -1267,39 +1351,40 @@ export default function VendorProfile() {
                     
                     {/* Pending images (not yet uploaded) */}
                     {pendingPortfolioFiles.map((file, i) => (
-                      <div key={`pending-${i}`} className="aspect-square rounded-2xl overflow-hidden group relative bg-muted border-2 border-dashed border-amber-400">
+                      <div key={`pending-${i}`} className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden group relative bg-muted border-2 border-dashed border-amber-400">
                         <img src={URL.createObjectURL(file)} alt={`Pending ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        <div className="absolute top-2 left-2">
-                          <span className="text-[10px] px-2 py-1 rounded-full bg-amber-500 text-white font-medium">Pending</span>
+                        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2">
+                          <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-amber-500 text-white font-medium">Pending</span>
                         </div>
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Button size="sm" variant="destructive" onClick={() => { 
+                          <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => { 
                             setPendingPortfolioFiles(pendingPortfolioFiles.filter((_, idx) => idx !== i)); 
                             toast.success('Image removed'); 
                           }}>
-                            <X className="h-4 w-4 mr-1" /> Remove
+                            <X className="h-3.5 w-3.5 mr-1" /> Remove
                           </Button>
                         </div>
                       </div>
                     ))}
                     
-                    <div className="aspect-square rounded-2xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all"
+                    {/* Add More Card */}
+                    <div className="aspect-square rounded-xl sm:rounded-2xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all active:scale-95"
                       onClick={() => portfolioInputRef.current?.click()}>
-                      <div className="text-center p-4">
-                        <ImagePlus className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground font-medium">Add More</p>
+                      <div className="text-center p-2 sm:p-4">
+                        <ImagePlus className="h-6 w-6 sm:h-10 sm:w-10 text-muted-foreground mx-auto mb-1 sm:mb-2" />
+                        <p className="text-xs sm:text-sm text-muted-foreground font-medium">Add More</p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-16 bg-muted/30 rounded-2xl">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <ImagePlus className="h-10 w-10 text-primary" />
+                  <div className="text-center py-10 sm:py-16 bg-muted/30 rounded-xl sm:rounded-2xl">
+                    <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                      <ImagePlus className="h-7 w-7 sm:h-10 sm:w-10 text-primary" />
                     </div>
-                    <h4 className="text-lg font-semibold mb-2">No portfolio images yet</h4>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">Upload at least 3 images of your best work to complete your profile</p>
-                    <Button onClick={() => portfolioInputRef.current?.click()} className="bg-gradient-to-r from-primary to-primary-glow">
-                      <ImagePlus className="h-4 w-4 mr-2" /> Upload Your First Image
+                    <h4 className="text-base sm:text-lg font-semibold mb-2">No portfolio images yet</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto px-4">Upload at least 3 images of your best work to complete your profile</p>
+                    <Button size="sm" onClick={() => portfolioInputRef.current?.click()} className="bg-gradient-to-r from-primary to-primary-glow">
+                      <ImagePlus className="h-4 w-4 mr-2" /> Upload Images
                     </Button>
                   </div>
                 )}
@@ -1309,84 +1394,125 @@ export default function VendorProfile() {
 
           {/* Contact Info Section */}
           {!isNewVendor && activeSection === 'contact' && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <CardContent className="p-6 sm:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <Phone className="h-5 w-5 text-primary" /> Contact Information
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">Help customers reach you easily</p>
+            <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
+                {/* Header - Stack on mobile */}
+                <div className="mb-5 sm:mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
+                        <Phone className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-xl font-semibold">Contact Information</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Help customers reach you</p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={handleSaveContact} 
+                      disabled={isSavingContact || !isContactDirty} 
+                      className={`w-full sm:w-auto h-9 ${isContactDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      {isSavingContact ? <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" /> : <Save className="h-4 w-4 sm:mr-2" />}
+                      <span className="sm:inline">{isContactDirty ? 'Save' : 'No Changes'}</span>
+                    </Button>
                   </div>
-                  <Button onClick={handleSaveContact} disabled={isSavingContact || !isContactDirty} className={`${isContactDirty ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
-                    {isSavingContact ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    {isContactDirty ? 'Save Contact Info' : 'No Changes'}
-                  </Button>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                {/* Main Content */}
+                <div className="space-y-5 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-6 lg:gap-8">
+                  {/* Left: Form Fields */}
+                  <div className="space-y-4 sm:space-y-5">
+                    {/* Phone - Read only */}
                     <div>
-                      <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" /> Phone Number
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Login credential</span>
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Phone
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Login</span>
                       </Label>
-                      <Input 
-                        value={user?.phone || formData.phone || ''} 
-                        disabled
-                        className="h-12 bg-muted/50 cursor-not-allowed" 
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">This is your registered phone number</p>
+                      <div className="h-10 sm:h-11 px-3 flex items-center bg-muted/50 rounded-lg border border-border/50 text-sm text-foreground">
+                        {user?.phone || formData.phone || 'Not set'}
+                      </div>
                     </div>
+                    
+                    {/* Email - Read only */}
                     <div>
-                      <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" /> Email Address
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Login credential</span>
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Email
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Login</span>
                       </Label>
-                      <Input 
-                        type="email"
-                        value={user?.email || formData.email || ''} 
-                        disabled
-                        className="h-12 bg-muted/50 cursor-not-allowed" 
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">This is your registered email address</p>
+                      <div className="h-10 sm:h-11 px-3 flex items-center bg-muted/50 rounded-lg border border-border/50 text-sm text-foreground truncate">
+                        {user?.email || formData.email || 'Not set'}
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-4">
+                    
+                    {/* Instagram - Editable */}
                     <div>
-                      <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                        <Instagram className="h-4 w-4 text-muted-foreground" /> Instagram Handle
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block flex items-center gap-2">
+                        <Instagram className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" /> Instagram
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
                       </Label>
                       <Input 
                         value={formData.instagram} 
                         onChange={(e) => setFormData({ ...formData, instagram: e.target.value })} 
                         placeholder="@yourbusiness" 
-                        className="h-12" 
+                        className="h-10 sm:h-11" 
                       />
                     </div>
+                    
+                    {/* Website - Editable */}
                     <div>
-                      <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-muted-foreground" /> Website
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block flex items-center gap-2">
+                        <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" /> Website
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
                       </Label>
                       <Input 
                         value={formData.website} 
                         onChange={(e) => setFormData({ ...formData, website: e.target.value })} 
                         placeholder="https://yourbusiness.com" 
-                        className="h-12" 
+                        className="h-10 sm:h-11" 
                       />
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 p-4 bg-muted/30 rounded-xl">
-                  <h4 className="font-medium mb-2 flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Why add contact info?</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Customers can reach you directly for inquiries</li>
-                    <li>• Builds trust and credibility with potential clients</li>
-                    <li>• Improves your profile completion score</li>
-                  </ul>
+                  {/* Right: Info Card */}
+                  <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                    <h4 className="text-sm sm:text-base font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500" /> Why add contact info?
+                    </h4>
+                    <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-muted-foreground">
+                      {[
+                        'Customers can reach you directly',
+                        'Builds trust with potential clients',
+                        'Improves profile completion score',
+                        'Social links boost credibility'
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 sm:gap-3">
+                          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    {/* Contact Summary */}
+                    {(formData.instagram || formData.website) && (
+                      <div className="mt-4 sm:mt-5 p-3 sm:p-4 bg-background rounded-lg sm:rounded-xl border border-border/50">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-foreground mb-2">
+                          <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" /> Your Social Links
+                        </div>
+                        {formData.instagram && (
+                          <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 mb-1">
+                            <Instagram className="h-3 w-3" /> {formData.instagram}
+                          </p>
+                        )}
+                        {formData.website && (
+                          <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 truncate">
+                            <Globe className="h-3 w-3" /> {formData.website}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1394,62 +1520,98 @@ export default function VendorProfile() {
 
           {/* Location Section */}
           {!isNewVendor && activeSection === 'location' && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <CardContent className="p-6 sm:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <Navigation className="h-5 w-5 text-primary" /> Service Location
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">Set your location to help customers find you</p>
+            <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
+                {/* Header - Stack on mobile */}
+                <div className="mb-5 sm:mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
+                        <Navigation className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-xl font-semibold">Service Location</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Help customers find you</p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={handleSaveLocation} 
+                      disabled={isSavingLocation || !location || !isLocationDirty} 
+                      className={`w-full sm:w-auto h-9 ${isLocationDirty && location ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      {isSavingLocation ? <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" /> : <Save className="h-4 w-4 sm:mr-2" />}
+                      <span className="sm:inline">{isLocationDirty ? 'Save' : 'No Changes'}</span>
+                    </Button>
                   </div>
-                  <Button onClick={handleSaveLocation} disabled={isSavingLocation || !location || !isLocationDirty} className={`${isLocationDirty && location ? 'bg-gradient-to-r from-primary to-primary-glow' : 'bg-muted text-muted-foreground'}`}>
-                    {isSavingLocation ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    {isLocationDirty ? 'Save Location' : 'No Changes'}
-                  </Button>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-8">
-                  <div className="space-y-6">
+                {/* Main Content - Single column on mobile */}
+                <div className="space-y-5 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-6 lg:gap-8">
+                  {/* Left: Form Fields */}
+                  <div className="space-y-4 sm:space-y-5">
+                    {/* City - Read only */}
                     <div>
-                      <Label className="text-sm font-medium mb-2 block">City</Label>
-                      <Input value={cityName} disabled className="h-12 bg-muted/50" />
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block text-muted-foreground">City</Label>
+                      <div className="h-10 sm:h-11 px-3 flex items-center bg-muted/50 rounded-lg border border-border/50 text-sm text-foreground">
+                        {cityName || 'Not set'}
+                      </div>
                     </div>
                     
-                    <LocationAutocomplete value={location} onChange={setLocation} placeholder="Search for your location..." label="Primary Service Location" />
+                    {/* Location Search */}
+                    <div>
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Primary Service Location</Label>
+                      <LocationAutocomplete 
+                        value={location} 
+                        onChange={setLocation} 
+                        placeholder="Search your area..." 
+                      />
+                    </div>
                     
-                    {/* Only show radius slider after location is set */}
+                    {/* Radius Slider - Only show after location is set */}
                     {location && (
-                      <div className="space-y-2 pt-2 border-t border-border/50">
+                      <div className="pt-4 border-t border-border/50">
                         <RadiusSlider 
                           value={serviceRadiusKm} 
                           onChange={setServiceRadiusKm} 
                           options={VENDOR_RADIUS_OPTIONS} 
-                          label="How far will you travel at no extra cost?" 
+                          label="Travel distance (no extra cost)" 
                         />
-                        <p className="text-xs text-muted-foreground pl-1">
-                          💡 Customers within this radius won't be charged travel fees
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
+                          <span>💡</span>
+                          <span>Customers within {serviceRadiusKm}km won't be charged travel fees</span>
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="bg-muted/30 rounded-2xl p-6">
-                    <h4 className="font-semibold mb-4 flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Why set your location?</h4>
-                    <ul className="space-y-3 text-sm text-muted-foreground">
-                      <li className="flex items-start gap-3"><CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" /><span>Appear in location-based searches</span></li>
-                      <li className="flex items-start gap-3"><CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" /><span>Customers see how far you can travel</span></li>
-                      <li className="flex items-start gap-3"><CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" /><span>Get matched with nearby customers</span></li>
-                      <li className="flex items-start gap-3"><CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" /><span>Build trust with local presence</span></li>
+                  {/* Right: Info Card */}
+                  <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                    <h4 className="text-sm sm:text-base font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500" /> Why set your location?
+                    </h4>
+                    <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-muted-foreground">
+                      {[
+                        'Appear in location-based searches',
+                        'Customers see how far you can travel',
+                        'Get matched with nearby customers',
+                        'Build trust with local presence'
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 sm:gap-3">
+                          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
                     </ul>
                     
+                    {/* Current Location Summary */}
                     {location && (
-                      <div className="mt-6 p-4 bg-background rounded-xl border border-border">
-                        <div className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
-                          <MapPin className="h-4 w-4 text-primary" /> Current Location
+                      <div className="mt-4 sm:mt-5 p-3 sm:p-4 bg-background rounded-lg sm:rounded-xl border border-border/50">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-foreground mb-1">
+                          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" /> Current Location
                         </div>
-                        <p className="text-sm text-muted-foreground">{location.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Service radius: {serviceRadiusKm} km</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{location.name}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Service radius: {serviceRadiusKm} km</p>
                       </div>
                     )}
                   </div>
