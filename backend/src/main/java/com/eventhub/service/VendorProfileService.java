@@ -22,12 +22,28 @@ public class VendorProfileService {
     private final VendorPastEventRepository vendorPastEventRepository;
     private final BookableSetupRepository bookableSetupRepository;
     private final AvailabilitySlotRepository availabilitySlotRepository;
+    private final UserProfileRepository userProfileRepository;
     
     @Transactional(readOnly = true)
     public Vendor getVendorProfile(UUID vendorId) {
         // Use optimized query with pre-loaded relationships
-        return vendorRepository.findByIdWithDetails(vendorId)
+        Vendor vendor = vendorRepository.findByIdWithDetails(vendorId)
                 .orElseThrow(() -> new NotFoundException("Vendor not found"));
+        
+        // If vendor's phone/email is empty, try to get from user profile
+        if ((vendor.getPhone() == null || vendor.getPhone().isEmpty()) ||
+            (vendor.getEmail() == null || vendor.getEmail().isEmpty())) {
+            userProfileRepository.findById(vendor.getUserId()).ifPresent(userProfile -> {
+                if (vendor.getPhone() == null || vendor.getPhone().isEmpty()) {
+                    vendor.setPhone(userProfile.getPhone());
+                }
+                if (vendor.getEmail() == null || vendor.getEmail().isEmpty()) {
+                    vendor.setEmail(userProfile.getEmail());
+                }
+            });
+        }
+        
+        return vendor;
     }
     
     public Vendor updateVendorProfile(UUID vendorId, Vendor updatedVendor) {

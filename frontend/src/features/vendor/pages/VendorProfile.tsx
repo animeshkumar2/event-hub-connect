@@ -907,8 +907,13 @@ export default function VendorProfile() {
 
             {/* Profile Card Overlay */}
             <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 -mt-16 sm:-mt-20 relative z-10">
-              <div className="bg-card rounded-2xl sm:rounded-3xl shadow-2xl border border-border/50 overflow-hidden">
-                <div className="p-4 sm:p-5 lg:p-8">
+              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl border border-primary/20 bg-gradient-to-br from-white via-primary/[0.03] to-violet-500/[0.08] dark:from-card dark:via-primary/[0.05] dark:to-violet-500/[0.1]">
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-primary/10 to-violet-500/10 rounded-full blur-3xl -mr-36 -mt-36" />
+                <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-violet-500/10 to-primary/5 rounded-full blur-3xl -ml-28 -mb-28" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/[0.02] rounded-full blur-3xl" />
+                
+                <div className="relative p-4 sm:p-5 lg:p-8">
                   {/* Mobile & Tablet: Stacked layout, Desktop: Side by side */}
                   <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
                     
@@ -967,9 +972,9 @@ export default function VendorProfile() {
 
                     {/* Right Section: Profile Strength - Full width on mobile/tablet, side panel on desktop */}
                     <div className="lg:w-80 xl:w-96">
-                      <div className="bg-gradient-to-br from-muted/80 to-muted/40 rounded-xl p-4 border border-border/50">
+                      <div className="relative overflow-hidden rounded-xl p-4 bg-white/80 dark:bg-card/90 backdrop-blur-sm border border-border/50 shadow-sm">
                         {/* Header */}
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="relative flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-lg bg-primary/10">
                               <TrendingUp className="h-4 w-4 text-primary" />
@@ -980,18 +985,18 @@ export default function VendorProfile() {
                         </div>
                         
                         {/* Progress Bar */}
-                        <div className="relative h-2.5 bg-muted rounded-full overflow-hidden mb-2">
+                        <div className="relative h-2.5 bg-muted/60 rounded-full overflow-hidden mb-2">
                           <div className={`absolute inset-y-0 left-0 ${levelBg} transition-all duration-500 rounded-full`} style={{ width: `${completed}%` }} />
                         </div>
                         
                         {/* Completion Status */}
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                        <div className="relative flex items-center justify-between text-xs text-muted-foreground mb-3">
                           <span>{completedCount}/{totalCount} completed</span>
                           <span className={`font-semibold ${levelColor}`}>{completed}%</span>
                         </div>
                         
                         {completed < 100 ? (
-                          <div className="space-y-2">
+                          <div className="relative space-y-2">
                             <p className="text-xs text-muted-foreground">
                               {completed < 50 ? '🚀 Complete your profile to attract more customers!' : 
                                completed < 70 ? '💪 Great progress! A few more steps to go.' :
@@ -1010,7 +1015,7 @@ export default function VendorProfile() {
                                     else if (check.name.includes('Bio')) setActiveSection('edit');
                                     else setActiveSection('edit');
                                   }}
-                                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-background/80 border border-border hover:border-primary hover:bg-primary/5 transition-all text-xs group"
+                                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-muted/40 border border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-xs group"
                                 >
                                   <AlertCircle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
                                   <span className="text-muted-foreground group-hover:text-foreground text-left flex-1">{check.tip}</span>
@@ -1020,7 +1025,7 @@ export default function VendorProfile() {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3">
+                          <div className="relative flex items-center gap-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-3">
                             <CheckCircle className="h-4 w-4 flex-shrink-0" />
                             <span className="text-xs font-medium">Profile complete & optimized!</span>
                           </div>
