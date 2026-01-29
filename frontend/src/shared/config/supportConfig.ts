@@ -26,6 +26,22 @@ export const SUPPORT_CONFIG = {
     }
   },
 
+  // Social Media Links
+  social: {
+    instagram: {
+      url: 'https://www.instagram.com/cartevent.india/',
+      handle: '@cartevent.india'
+    },
+    twitter: {
+      url: 'https://x.com/cartevent',
+      handle: '@cartevent'
+    },
+    facebook: {
+      url: '', // Will be added once page is created
+      handle: ''
+    }
+  },
+
   // Support Hours
   hours: {
     availability: '6:00 PM - 10:00 PM & 7:00 AM - 10:00 AM (IST)',

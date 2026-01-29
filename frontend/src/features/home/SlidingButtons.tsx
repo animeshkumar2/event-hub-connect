@@ -25,7 +25,7 @@ export const SlidingButtons = () => {
       <div className="px-4 space-y-3">
         {/* Vendor Signup */}
         <button
-          onClick={() => navigate('/signup?type=vendor')}
+          onClick={() => navigate('/join-vendors')}
           className={cn(
             "relative w-full px-5 py-4 rounded-2xl transition-all duration-300",
             "flex items-center justify-between gap-4",
@@ -87,6 +87,6 @@ export const buttonOptions = [
     label: 'Join as Vendor',
     subtitle: 'For Businesses',
     description: 'List your services and grow your business.',
-    path: '/signup?type=vendor',
+    path: '/join-vendors',
   },
 ];
