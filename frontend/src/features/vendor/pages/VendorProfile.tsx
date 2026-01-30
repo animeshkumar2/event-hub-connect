@@ -10,6 +10,9 @@ import { Progress } from '@/shared/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { InlineError } from '@/shared/components/InlineError';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
+import { ProfileImageUpload } from '@/shared/components/ProfileImageUpload';
+import { ImageViewer } from '@/shared/components/ImageViewer';
+import { ImageCropModal } from '@/shared/components/ImageCropModal';
 import { 
   Camera, CheckCircle, MapPin, Phone, Mail, Instagram, Save, Loader2, X, ImagePlus,
   Sparkles, Eye, Star, Edit3, ChevronRight, Globe, Building2, Navigation, Zap,
@@ -355,6 +358,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                   onChange={setServiceLocation}
                   placeholder="Search for your area (e.g., Koramangala, Bangalore)"
                   className="h-12"
+                  bangaloreOnly={true}
                 />
                 {serviceLocation && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -492,6 +496,9 @@ export default function VendorProfile() {
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isUploadingPortfolio, setIsUploadingPortfolio] = useState(false);
+  const [showCoverCropModal, setShowCoverCropModal] = useState(false);
+  const [coverCropSrc, setCoverCropSrc] = useState<string | null>(null);
+  const [showCoverViewer, setShowCoverViewer] = useState(false);
   const [location, setLocation] = useState<LocationDTO | null>(null);
   const [serviceRadiusKm, setServiceRadiusKm] = useState(25);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
@@ -670,7 +677,7 @@ export default function VendorProfile() {
         : { profileImage: imageUrl };
       const response = await vendorApi.updateProfile(updateData);
       if (response.success) {
-        toast.success(`${imageType === 'cover' ? 'Cover' : 'Profile'} image saved!`);
+        // Don't show toast here - caller handles it
         refetch();
       } else {
         throw new Error(response.message || 'Failed to save image');
@@ -724,8 +731,19 @@ export default function VendorProfile() {
       return;
     }
     
-    if (type === 'cover') setIsUploadingCover(true);
-    else if (type === 'profile') setIsUploadingProfile(true);
+    // For cover images, open crop modal first
+    if (type === 'cover') {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCoverCropSrc(reader.result as string);
+        setShowCoverCropModal(true);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+      return;
+    }
+    
+    if (type === 'profile') setIsUploadingProfile(true);
     else setIsUploadingPortfolio(true);
     
     try {
@@ -735,20 +753,14 @@ export default function VendorProfile() {
         : `vendors/${vendorId}/${type}`;
       
       // Get the old image URL to delete after successful upload
-      const oldImageUrl = type === 'cover' 
-        ? formData.coverImage 
-        : type === 'profile' 
+      const oldImageUrl = type === 'profile' 
           ? formData.profileImage 
           : null;
       
       // Upload to R2 via backend (compression happens on backend)
       const imageUrl = await uploadImage(file, folder);
       
-      if (type === 'cover') { 
-        setFormData(prev => ({ ...prev, coverImage: imageUrl })); 
-        // Auto-save cover image immediately
-        await autoSaveImage('cover', imageUrl);
-      } else if (type === 'profile') { 
+      if (type === 'profile') { 
         setFormData(prev => ({ ...prev, profileImage: imageUrl })); 
         // Auto-save profile image immediately
         await autoSaveImage('profile', imageUrl);
@@ -757,7 +769,7 @@ export default function VendorProfile() {
         toast.success('Image added! Click Save to apply.'); 
       }
       
-      // Delete old image from R2 after successful upload (for cover/profile only)
+      // Delete old image from R2 after successful upload (for profile only)
       if (oldImageUrl && oldImageUrl.includes('images.cartevent.com')) {
         try {
           await deleteImage(oldImageUrl);
@@ -772,10 +784,36 @@ export default function VendorProfile() {
       toast.error(error.message || 'Failed to upload image'); 
     }
     finally { 
-      if (type === 'cover') setIsUploadingCover(false);
-      else if (type === 'profile') setIsUploadingProfile(false);
+      if (type === 'profile') setIsUploadingProfile(false);
       else setIsUploadingPortfolio(false);
       e.target.value = ''; 
+    }
+  };
+
+  // Handle cover image crop completion
+  const handleCoverCropComplete = async (blob: Blob) => {
+    setIsUploadingCover(true);
+    try {
+      const file = new File([blob], 'cover-image.jpg', { type: 'image/jpeg' });
+      const vendorId = localStorage.getItem('vendor_id') || 'new';
+      const folder = `vendors/${vendorId}/cover`;
+      const oldImageUrl = formData.coverImage;
+      
+      const imageUrl = await uploadImage(file, folder);
+      setFormData(prev => ({ ...prev, coverImage: imageUrl }));
+      await autoSaveImage('cover', imageUrl);
+      
+      // Delete old image
+      if (oldImageUrl && oldImageUrl.includes('images.cartevent.com')) {
+        deleteImage(oldImageUrl).catch(console.warn);
+      }
+      
+      toast.success('Cover image updated!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to upload cover image');
+    } finally {
+      setIsUploadingCover(false);
+      setCoverCropSrc(null);
     }
   };
 
@@ -865,9 +903,9 @@ export default function VendorProfile() {
           </div>
         ) : (
           <div className="relative">
-            <div className="h-56 sm:h-64 md:h-80 lg:h-96 relative overflow-hidden">
+            <div className="h-64 sm:h-72 md:h-96 lg:h-[28rem] relative overflow-hidden">
               {formData.coverImage ? (
-                <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover object-top" />
+                <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover object-center" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-secondary/20 flex items-center justify-center">
                   <div className="text-center">
@@ -880,6 +918,12 @@ export default function VendorProfile() {
               
               {/* Cover Image Button - Always Visible */}
               <div className="absolute top-4 right-4 flex gap-2">
+                {formData.coverImage && (
+                  <Button size="sm" className="bg-black/70 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm border-0" onClick={() => setShowCoverViewer(true)}>
+                    <Eye className="h-4 w-4" />
+                    <span className="ml-2 hidden sm:inline">View</span>
+                  </Button>
+                )}
                 <Button size="sm" className="bg-black/70 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm border-0" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover}>
                   {isUploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   <span className="ml-2">{formData.coverImage ? 'Change Cover' : 'Add Cover'}</span>
@@ -901,36 +945,37 @@ export default function VendorProfile() {
                     
                     {/* Left Section: Profile Info */}
                     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-5 xl:flex-1">
-                      {/* Profile Picture with Upload - Large */}
-                      <div className="flex-shrink-0 relative group">
-                        <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 lg:w-52 lg:h-52 rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white dark:ring-background">
-                          {formData.profileImage ? (
-                            <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-white text-5xl sm:text-6xl md:text-7xl font-bold">
-                              {formData.businessName?.charAt(0)?.toUpperCase() || 'V'}
-                            </div>
-                          )}
-                        </div>
-                        {/* Profile Picture Upload Button */}
-                        <button 
-                          onClick={() => profileInputRef.current?.click()}
-                          disabled={isUploadingProfile}
-                          className="absolute -bottom-3 -right-3 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-primary text-white shadow-xl flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-110 border-4 border-white dark:border-background"
-                        >
-                          {isUploadingProfile ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : <Camera className="h-5 w-5 sm:h-6 sm:w-6" />}
-                        </button>
-                        {/* Remove Profile Picture Button */}
-                        {formData.profileImage && (
-                          <button 
-                            onClick={handleRemoveProfileImage}
-                            disabled={isUploadingProfile}
-                            className="absolute -top-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center hover:bg-red-600 transition-all hover:scale-110 opacity-0 group-hover:opacity-100 border-2 border-white"
-                            title="Remove profile photo"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
+                      {/* Profile Picture with Upload - Using ProfileImageUpload component */}
+                      <div className="flex-shrink-0">
+                        <ProfileImageUpload
+                          type="profile"
+                          size="2xl"
+                          imageUrl={formData.profileImage || null}
+                          onImageChange={async (file) => {
+                            if (file) {
+                              setIsUploadingProfile(true);
+                              try {
+                                const vendorId = localStorage.getItem('vendor_id') || 'new';
+                                const folder = `vendors/${vendorId}/profile`;
+                                const oldImageUrl = formData.profileImage;
+                                const imageUrl = await uploadImage(file, folder);
+                                setFormData(prev => ({ ...prev, profileImage: imageUrl }));
+                                await autoSaveImage('profile', imageUrl);
+                                // Delete old image
+                                if (oldImageUrl && oldImageUrl.includes('images.cartevent.com')) {
+                                  deleteImage(oldImageUrl).catch(console.warn);
+                                }
+                                toast.success('Profile image updated!');
+                              } catch (error: any) {
+                                toast.error(error.message || 'Failed to upload image');
+                              } finally {
+                                setIsUploadingProfile(false);
+                              }
+                            }
+                          }}
+                          onImageDelete={handleRemoveProfileImage}
+                          uploading={isUploadingProfile}
+                        />
                       </div>
                       
                       {/* Business Info */}
@@ -946,7 +991,7 @@ export default function VendorProfile() {
                         
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-muted-foreground text-sm sm:text-base">
                           <span className="flex items-center gap-1.5"><Building2 className="h-4 w-4 sm:h-5 sm:w-5" /> {categoryName}</span>
-                          {cityName && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 sm:h-5 sm:w-5" /> {cityName}</span>}
+                          {(location?.name || cityName) && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 sm:h-5 sm:w-5" /> {location?.name || cityName}</span>}
                           {location && <span className="flex items-center gap-1.5"><Navigation className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /> {serviceRadiusKm}km</span>}
                         </div>
                       </div>
@@ -1552,6 +1597,7 @@ export default function VendorProfile() {
                         value={location} 
                         onChange={setLocation} 
                         placeholder="Search your area..." 
+                        bangaloreOnly={true}
                       />
                     </div>
                     
@@ -1608,6 +1654,34 @@ export default function VendorProfile() {
           )}
         </div>
       </div>
+
+      {/* Cover Image Crop Modal */}
+      <ImageCropModal
+        open={showCoverCropModal}
+        onClose={() => {
+          setShowCoverCropModal(false);
+          setCoverCropSrc(null);
+        }}
+        imageSrc={coverCropSrc || ''}
+        onCropComplete={handleCoverCropComplete}
+        aspectRatio={16 / 9}
+        cropShape="rect"
+        title="Crop Cover Image"
+      />
+
+      {/* Cover Image Viewer */}
+      {formData.coverImage && (
+        <ImageViewer
+          open={showCoverViewer}
+          onClose={() => setShowCoverViewer(false)}
+          images={[formData.coverImage]}
+          title="Cover Image"
+          onEdit={() => {
+            setShowCoverViewer(false);
+            coverInputRef.current?.click();
+          }}
+        />
+      )}
     </VendorLayout>
   );
 }

@@ -858,7 +858,7 @@ const soundLightsItems: ListingTemplate[] = [
     includedItemsText: ['2 main speakers', '2 monitor speakers', 'Amplifier', '2 wireless microphones', 'Mixer console', 'Setup & operation'],
     excludedItemsText: ['Lighting equipment', 'Extra microphones', 'Recording equipment'],
     deliveryTime: 'same_day',
-    eventTypeIds: [1, 2, 3, 4, 5, 6],
+    eventTypeIds: [1, 2, 3, 4, 7, 8],  // Wedding, Birthday, Anniversary, Corporate, Nightlife, Concert
     categorySpecificData: {
       price: 15000,
       equipmentType: ['Sound System', 'Microphones', 'Mixer Console', 'Amplifiers'],
@@ -884,7 +884,7 @@ const soundLightsItems: ListingTemplate[] = [
     includedItemsText: ['Line array speakers', 'Subwoofers', 'Professional mixer', '4 wireless microphones', '2 technicians', 'Setup & operation'],
     excludedItemsText: ['Lighting equipment', 'Recording', 'Extra days'],
     deliveryTime: 'same_day',
-    eventTypeIds: [1, 3, 5],
+    eventTypeIds: [1, 3, 4, 7, 8],  // Wedding, Anniversary, Corporate, Nightlife, Concert
     categorySpecificData: {
       price: 35000,
       equipmentType: ['Sound System', 'Microphones', 'Mixer Console', 'Amplifiers'],
@@ -910,7 +910,7 @@ const soundLightsItems: ListingTemplate[] = [
     includedItemsText: ['12 LED par lights', '4 moving head lights', 'Truss system', 'DMX controller', 'Fog machine', 'Technician', 'Setup & operation'],
     excludedItemsText: ['Sound system', 'Laser lights', 'LED screen', 'Extra days'],
     deliveryTime: 'same_day',
-    eventTypeIds: [1, 2, 3, 5],
+    eventTypeIds: [1, 2, 3, 4, 7, 8],  // Wedding, Birthday, Anniversary, Corporate, Nightlife, Concert
     categorySpecificData: {
       price: 25000,
       equipmentType: ['LED Par Lights', 'Moving Head Lights', 'Stage Lighting'],

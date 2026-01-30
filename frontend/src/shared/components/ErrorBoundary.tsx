@@ -12,6 +12,21 @@ interface State {
   error: Error | null;
 }
 
+// Helper to detect chunk loading errors (happens after deployments)
+function isChunkLoadError(error: Error): boolean {
+  const message = error.message || '';
+  return (
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Loading chunk') ||
+    message.includes('Loading CSS chunk') ||
+    message.includes('ChunkLoadError') ||
+    (error.name === 'TypeError' && message.includes('fetch'))
+  );
+}
+
+// Storage key to prevent infinite reload loops
+const CHUNK_RELOAD_KEY = 'chunk_reload_attempted';
+
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -24,6 +39,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Auto-reload on chunk loading errors (happens after new deployments)
+    if (isChunkLoadError(error)) {
+      const lastReload = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+      const now = Date.now();
+      
+      // Only auto-reload if we haven't tried in the last 10 seconds
+      // This prevents infinite reload loops
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        console.log('Chunk load error detected, reloading to get latest version...');
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, now.toString());
+        window.location.reload();
+        return;
+      }
+    }
   }
 
   public render() {

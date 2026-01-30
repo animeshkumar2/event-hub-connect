@@ -296,7 +296,7 @@ export default function VendorDashboard() {
                     Welcome back, {vendorName}!
                   </h1>
                   {isActive && (
-                    <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 flex-shrink-0 text-xs">
+                    <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary hover:text-white hover:border-primary transition-all duration-200 cursor-default flex-shrink-0 text-xs shadow-sm">
                       Profile Live
                     </Badge>
                   )}

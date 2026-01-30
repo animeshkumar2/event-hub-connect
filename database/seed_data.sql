@@ -72,7 +72,7 @@ INSERT INTO event_type_categories (event_type_id, category_id)
 SELECT et.id, c.id
 FROM event_types et, categories c
 WHERE et.name = 'Engagement'
-AND c.id IN ('photo-video', 'decorator', 'caterer', 'mua', 'dj-entertainment', 'venue')
+AND c.id IN ('photo-video', 'decorator', 'caterer', 'mua', 'dj-entertainment', 'venue', 'sound-lights', 'artists')
 ON CONFLICT DO NOTHING;
 
 -- Baby Shower: Selected categories
@@ -80,7 +80,7 @@ INSERT INTO event_type_categories (event_type_id, category_id)
 SELECT et.id, c.id
 FROM event_types et, categories c
 WHERE et.name = 'Baby Shower'
-AND c.id IN ('photo-video', 'decorator', 'caterer', 'venue')
+AND c.id IN ('photo-video', 'decorator', 'caterer', 'venue', 'sound-lights')
 ON CONFLICT DO NOTHING;
 
 -- Nightlife & Parties: Party-focused categories

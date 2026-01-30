@@ -10,12 +10,14 @@ import com.eventhub.service.AuthService;
 import com.eventhub.service.PasswordResetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
     
     private final AuthService authService;
@@ -23,13 +25,18 @@ public class AuthController {
     
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthService.AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        long start = System.currentTimeMillis();
         AuthService.AuthResponse response = authService.register(request);
+        log.info("Register completed in {}ms for email: {}", System.currentTimeMillis() - start, request.getEmail());
         return ResponseEntity.ok(ApiResponse.success("Registration successful", response));
     }
     
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthService.AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        long start = System.currentTimeMillis();
+        log.info("Login request received for: {}", request.getIdentifier());
         AuthService.AuthResponse response = authService.login(request);
+        log.info("Login completed in {}ms for identifier: {}", System.currentTimeMillis() - start, request.getIdentifier());
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
     
