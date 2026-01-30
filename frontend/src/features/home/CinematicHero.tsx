@@ -14,26 +14,26 @@ export const CinematicHero = () => {
     setIsLoaded(true);
   }, []);
 
-  // Parallax effect on scroll - limited to hero section height
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!heroRef.current) return;
-      const heroHeight = heroRef.current.offsetHeight;
-      const scrolled = window.scrollY;
-      
-      // Only apply parallax within the hero section bounds
-      if (scrolled < heroHeight) {
-        const parallax = scrolled * 0.5;
-        heroRef.current.style.transform = `translateY(${parallax}px)`;
-      } else {
-        // Reset transform when scrolled past hero section
-        heroRef.current.style.transform = 'translateY(0)';
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // Parallax effect on scroll - DISABLED FOR TESTING
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     if (!heroRef.current) return;
+  //     const heroHeight = heroRef.current.offsetHeight;
+  //     const scrolled = window.scrollY;
+  //     
+  //     // Only apply parallax within the hero section bounds
+  //     if (scrolled < heroHeight) {
+  //       const parallax = scrolled * 0.5;
+  //       heroRef.current.style.transform = `translateY(${parallax}px)`;
+  //     } else {
+  //       // Reset transform when scrolled past hero section
+  //       heroRef.current.style.transform = 'translateY(0)';
+  //     }
+  //   };
+  //
+  //   window.addEventListener('scroll', handleScroll, { passive: true });
+  //   return () => window.removeEventListener('scroll', handleScroll);
+  // }, []);
 
   // Mouse move parallax effect
   useEffect(() => {
@@ -62,7 +62,7 @@ export const CinematicHero = () => {
   return (
     <section 
       ref={heroRef}
-      className="relative min-h-[85vh] md:min-h-[90vh] max-h-[90vh] overflow-hidden z-0"
+      className="relative min-h-[100svh] md:min-h-[90vh] overflow-hidden z-0"
       style={{
         isolation: 'isolate',
         willChange: 'transform',
@@ -140,7 +140,7 @@ export const CinematicHero = () => {
 
       {/* Content - Center Aligned */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-        <div className="flex items-center justify-center min-h-[85vh] md:min-h-[90vh] py-12 sm:py-16 md:py-20">
+        <div className="flex items-center justify-center min-h-[100svh] md:min-h-[90vh] py-16 sm:py-16 md:py-20 pb-24 sm:pb-16">
           <div 
             ref={textRef}
             className={cn(

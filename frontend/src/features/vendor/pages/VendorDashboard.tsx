@@ -47,12 +47,33 @@ export default function VendorDashboard() {
   const statsError = stats.error;
   const profileData = profile.data;
   const profileLoading = profile.loading || dataLoading;
+  const profileError = profile.error;
   const upcomingOrdersData = upcomingOrders.data;
   const ordersLoading = upcomingOrders.loading || dataLoading;
   const leadsData = leads.data;
   const leadsLoading = leads.loading || dataLoading;
   const listingsData = listings.data;
   const listingsLoading = listings.loading || dataLoading;
+
+  // Check if backend is down (all critical queries failed with network errors)
+  const isNetworkError = (error: any) => {
+    if (!error) return false;
+    const msg = error.message?.toLowerCase() || '';
+    return msg.includes('failed to fetch') || 
+           msg.includes('network') || 
+           msg.includes('connection') ||
+           msg.includes('err_connection') ||
+           msg.includes('typeerror');
+  };
+  
+  // Backend is down if both stats and profile queries failed
+  const isBackendDown = !dataLoading && !statsLoading && !profileLoading && 
+    (statsError || profileError) && 
+    (isNetworkError(statsError) || isNetworkError(profileError));
+  
+  // Also check if we have a vendor_id but no profile data came back (and not loading)
+  const hasVendorId = !!localStorage.getItem('vendor_id');
+  const noDataReturned = !dataLoading && !profileLoading && hasVendorId && !profileData && !statsData;
 
   // Transform stats data into card format
   const statsCards = useMemo(() => {
@@ -167,6 +188,21 @@ export default function VendorDashboard() {
         <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
           <BrandedLoader fullScreen={false} message="Preparing your command center..." />
         </div>
+      </VendorLayout>
+    );
+  }
+
+  // Show error when backend is down or all API calls failed
+  if (isBackendDown || noDataReturned) {
+    return (
+      <VendorLayout>
+        <InlineError
+          title="Unable to connect to server"
+          message="We're having trouble connecting to our servers. Please check your internet connection and try again."
+          error={statsError || profileError}
+          onRetry={() => window.location.reload()}
+          showHomeButton={false}
+        />
       </VendorLayout>
     );
   }

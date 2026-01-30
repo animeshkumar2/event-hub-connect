@@ -44,26 +44,68 @@ export function DeliveryTimeInput({ value, onChange, categoryId, compact = false
     return { timing: 'after', min: '', max: '', unit: 'days', isRange: false };
   };
 
-  const parsed = parseValue(value);
-  const [timing, setTiming] = useState(parsed.timing);
-  const [minValue, setMinValue] = useState(parsed.min);
-  const [maxValue, setMaxValue] = useState(parsed.max);
-  const [unit, setUnit] = useState(parsed.unit);
-  const [isRange, setIsRange] = useState(parsed.isRange);
+  const [timing, setTiming] = useState('after');
+  const [minValue, setMinValue] = useState('');
+  const [maxValue, setMaxValue] = useState('');
+  const [unit, setUnit] = useState('days');
+  const [isRange, setIsRange] = useState(false);
+  const [isInternalChange, setIsInternalChange] = useState(false);
 
+  // Sync state from external value prop (only when value changes externally)
   useEffect(() => {
-    if (!minValue) {
+    if (isInternalChange) {
+      setIsInternalChange(false);
+      return;
+    }
+    const parsed = parseValue(value);
+    setTiming(parsed.timing);
+    setMinValue(parsed.min);
+    setMaxValue(parsed.max);
+    setUnit(parsed.unit);
+    setIsRange(parsed.isRange);
+  }, [value]);
+
+  // Build and emit value when internal state changes
+  const emitChange = (newTiming: string, newMin: string, newMax: string, newUnit: string, newIsRange: boolean) => {
+    if (!newMin) {
       onChange('');
       return;
     }
 
-    const timeString = isRange && maxValue 
-      ? `${minValue}-${maxValue} ${unit}` 
-      : `${minValue} ${unit}`;
+    const timeString = newIsRange && newMax 
+      ? `${newMin}-${newMax} ${newUnit}` 
+      : `${newMin} ${newUnit}`;
     
-    onChange(`${timing}:${timeString}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timing, minValue, maxValue, unit, isRange]);
+    setIsInternalChange(true);
+    onChange(`${newTiming}:${timeString}`);
+  };
+
+  const handleTimingChange = (val: string) => {
+    setTiming(val);
+    emitChange(val, minValue, maxValue, unit, isRange);
+  };
+
+  const handleMinChange = (val: string) => {
+    setMinValue(val);
+    emitChange(timing, val, maxValue, unit, isRange);
+  };
+
+  const handleMaxChange = (val: string) => {
+    setMaxValue(val);
+    emitChange(timing, minValue, val, unit, isRange);
+  };
+
+  const handleUnitChange = (val: string) => {
+    setUnit(val);
+    emitChange(timing, minValue, maxValue, val, isRange);
+  };
+
+  const handleRangeToggle = (checked: boolean) => {
+    setIsRange(checked);
+    const newMax = checked ? maxValue : '';
+    setMaxValue(newMax);
+    emitChange(timing, minValue, newMax, unit, checked);
+  };
 
   if (compact) {
     return (

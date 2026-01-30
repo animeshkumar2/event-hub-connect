@@ -308,7 +308,7 @@ class ApiClient {
         data: data,
         message: 'Success'
       };
-    } catch (error) {
+    } catch (error: any) {
       // Track error metric for network failures
       const duration = Math.round(performance.now() - startTime);
       apiMetrics.add({
@@ -319,6 +319,20 @@ class ApiClient {
         timestamp: new Date(),
       });
       console.error('API request failed:', error);
+      
+      // Convert technical network errors to user-friendly messages
+      const errorMessage = error.message?.toLowerCase() || '';
+      if (errorMessage.includes('failed to fetch') || 
+          errorMessage.includes('networkerror') ||
+          errorMessage.includes('network request failed') ||
+          errorMessage.includes('err_connection') ||
+          errorMessage.includes('err_internet')) {
+        const friendlyError = new Error('Something went wrong. Please try again.');
+        (friendlyError as any).isNetworkError = true;
+        (friendlyError as any).originalError = error;
+        throw friendlyError;
+      }
+      
       throw error;
     }
   }

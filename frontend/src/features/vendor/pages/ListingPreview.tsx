@@ -290,6 +290,7 @@ export default function ListingPreview() {
     } else if (catId === 'mua') {
       hasPrice = categoryData?.bridalPrice && parseFloat(categoryData.bridalPrice) > 0;
     } else {
+      // All other categories use the generic 'price' field
       hasPrice = categoryData?.price && parseFloat(categoryData.price) > 0;
     }
     requirements.push({ id: 'price', label: 'Pricing details', met: hasPrice });
@@ -1023,7 +1024,7 @@ export default function ListingPreview() {
                       const hasPrice = 
                         (listing.categoryId === 'caterer' && p.pricePerPlateVeg && parseFloat(p.pricePerPlateVeg) > 0) ||
                         (listing.categoryId === 'mua' && p.bridalPrice && parseFloat(p.bridalPrice) > 0) ||
-                        (['photographer', 'photography-videography', 'venue', 'decorator', 'dj', 'dj-entertainment', 'sound-lights'].includes(listing.categoryId) && p.price && parseFloat(p.price) > 0);
+                        (['photographer', 'photography-videography', 'photo-video', 'venue', 'decorator', 'dj', 'dj-entertainment', 'sound-lights', 'live-music', 'cinematographer', 'videographer'].includes(listing.categoryId) && p.price && parseFloat(p.price) > 0);
                       
                       if (!hasPrice && listing.categoryId !== 'other') {
                         return (
