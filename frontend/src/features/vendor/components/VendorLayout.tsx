@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { VendorSidebar } from './VendorSidebar';
 import { Button } from '@/shared/components/ui/button';
+import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { Menu, WifiOff, RefreshCw } from 'lucide-react';
 import { vendorApi } from '@/shared/services/api';
 
@@ -90,11 +91,8 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
         )}
 
         <main className="min-h-screen bg-background transition-all duration-300 md:ml-64">
-          <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-4">
-            <div className="text-center">
-              <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Connecting to server...</p>
-            </div>
+          <div className="flex items-center justify-center min-h-screen">
+            <BrandedLoader fullScreen={false} />
           </div>
         </main>
       </div>
