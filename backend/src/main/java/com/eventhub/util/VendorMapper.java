@@ -42,6 +42,7 @@ public class VendorMapper {
         
         // Contact Info Fields
         dto.setPhone(vendor.getPhone());
+        dto.setAlternatePhone(vendor.getAlternatePhone());
         dto.setEmail(vendor.getEmail());
         dto.setInstagram(vendor.getInstagram());
         dto.setWebsite(vendor.getWebsite());

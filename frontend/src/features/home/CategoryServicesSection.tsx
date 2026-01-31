@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Camera, Palette, Music2, ChefHat, Hand, CalendarCheck, LucideIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, Camera, Palette, Music2, ChefHat, Building2, Theater, LucideIcon, CalendarCheck } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
@@ -13,66 +13,22 @@ interface Category {
 }
 
 const categories: Category[] = [
-  {
-    id: 'photographer',
-    name: 'Photographer',
-    icon: Camera,
-    searchPath: '/search?category=photographer&view=vendors',
-  },
-  {
-    id: 'decorator',
-    name: 'Decorator',
-    icon: Palette,
-    searchPath: '/search?category=decorator&view=vendors',
-  },
-  {
-    id: 'dj',
-    name: 'DJ / Sound & Lights',
-    icon: Music2,
-    searchPath: '/search?category=dj&view=vendors',
-  },
-  {
-    id: 'mua',
-    name: 'Makeup Artist',
-    icon: Sparkles,
-    searchPath: '/search?category=mua&view=vendors',
-  },
-  {
-    id: 'caterer',
-    name: 'Caterer',
-    icon: ChefHat,
-    searchPath: '/search?category=caterer&view=vendors',
-  },
-  {
-    id: 'mehendi',
-    name: 'Mehendi Artist',
-    icon: Hand,
-    searchPath: '/search?category=mehendi&view=vendors',
-  },
-  {
-    id: 'event-coordinator',
-    name: 'Event Planners',
-    icon: CalendarCheck,
-    searchPath: '/search?category=event-coordinator&view=vendors',
-  },
+  { id: 'photo-video', name: 'Photographer', icon: Camera, searchPath: '/search?category=photo-video&view=vendors' },
+  { id: 'decorator', name: 'Decorator', icon: Palette, searchPath: '/search?category=decorator&view=vendors' },
+  { id: 'dj', name: 'DJ / Sound & Lights', icon: Music2, searchPath: '/search?category=dj&view=vendors' },
+  { id: 'mua', name: 'Makeup Artist', icon: Sparkles, searchPath: '/search?category=mua&view=vendors' },
+  { id: 'caterer', name: 'Caterer', icon: ChefHat, searchPath: '/search?category=caterer&view=vendors' },
+  { id: 'artists', name: 'Mehendi Artist', icon: Theater, searchPath: '/search?category=artists&view=vendors' },
+  { id: 'venue', name: 'Event Planners', icon: CalendarCheck, searchPath: '/search?category=venue&view=vendors' },
 ];
 
-// CDN base URL for optimized images
-const CDN_BASE = 'https://images.cartevent.com/trivial-images/home-page';
-
-// Event images - CDN with local fallback
-const galleryImages = {
-  decor: `${CDN_BASE}/wedding-decor.webp`,
-  event: `${CDN_BASE}/event-background.webp`,
-  colorful: `${CDN_BASE}/colorful-decor.webp`,
-};
-
-// Local fallbacks
-const localFallbacks = {
-  decor: '/Aditi Rao Hydari\'s Dreamy Wedding Decor Setup at Alila Fort Bishangarh.jpeg',
-  event: '/Background event Photos - Download Free High-Quality Pictures _ Freepik.jpeg',
-  colorful: '/Rainbow Hued Décor Ideas That Wowed Us!.jpeg',
-};
+const galleryImages = [
+  { src: '/events/corporate.webp', alt: 'Corporate event' },
+  { src: '/events/birthday2.webp', alt: 'Birthday celebration' },
+  { src: '/events/concert.webp', alt: 'Concert' },
+  { src: '/events/engagement.webp', alt: 'Engagement' },
+  { src: '/events/haldi.webp', alt: 'Haldi ceremony' },
+];
 
 export const CategoryServicesSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
@@ -87,178 +43,184 @@ export const CategoryServicesSection = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            // Animate service cards with stagger
             const cards = entry.target.querySelectorAll('.service-card');
             cards.forEach((card, index) => {
               setTimeout(() => {
                 (card as HTMLElement).style.opacity = '1';
                 (card as HTMLElement).style.transform = 'translateY(0)';
-              }, index * 50);
+              }, index * 60);
             });
-            // Unobserve after animation to prevent re-triggering
             observer.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px 0px -100px 0px' }
+      { threshold: 0.1 }
     );
 
     observer.observe(section);
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
-
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imageKey: keyof typeof localFallbacks) => {
-    const img = e.currentTarget as HTMLImageElement;
-    // Prevent infinite loops by checking if already using fallback
-    if (img.dataset.fallbackUsed === 'true') return;
-    
-    img.dataset.fallbackUsed = 'true';
-    img.src = localFallbacks[imageKey];
-  };
 
   return (
     <section 
       ref={sectionRef}
-      className="relative pt-12 md:pt-20 pb-0 bg-gradient-to-b from-background via-muted/20 to-background overflow-hidden"
+      className="relative py-12 md:py-20 bg-gradient-to-b from-background to-muted/20 overflow-hidden"
     >
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <div className="mb-8 text-center animate-fade-in-up">
+      <div className="container mx-auto px-4">
+        {/* Section Heading */}
+        <div className="text-center mb-10 md:mb-14">
           <Badge className="mb-3 bg-primary/10 text-primary border-primary/20 px-3 py-1 text-xs font-medium">
             <Sparkles className="h-3 w-3 mr-1.5" />
-            Explore Categories
+            Explore Services
           </Badge>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-foreground mb-3 leading-tight">
-            Browse
-            <br />
-            <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
+            Browse{' '}
+            <span className="bg-gradient-to-r from-primary via-amber-500 to-orange-500 bg-clip-text text-transparent">
               Service Providers
             </span>
           </h2>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 items-start">
-          {/* Left Column - Services */}
-          <section className="flex flex-col order-2 lg:order-1">
-            {/* Services selection card */}
-            <div className="relative bg-primary/5 border border-primary/20 rounded-lg p-4 sm:p-6 md:p-8 shadow-sm min-h-[400px] sm:h-[436px] md:h-[576px] flex flex-col justify-center">
-              {/* Badge - Admin or Coming Soon - Centered on the card */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                <div className="relative">
-                  {hasFullAccess ? (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full blur-md opacity-75 animate-pulse"></div>
-                      <Badge className="relative bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
-                        Admin Access
-                      </Badge>
-                    </>
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-md opacity-75 animate-pulse"></div>
-                      <Badge className="relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-4 py-2 shadow-lg uppercase tracking-wider border-0">
-                        Coming Soon
-                      </Badge>
-                    </>
-                  )}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10 items-stretch max-w-6xl mx-auto">
+          
+          {/* Left Side - Services Card (Hero) */}
+          <div className="lg:col-span-3">
+            {/* Services Card */}
+            <div className="relative bg-gradient-to-br from-slate-50 via-primary/[0.02] to-secondary/[0.04] dark:from-slate-900 dark:via-primary/[0.05] dark:to-secondary/[0.08] border border-primary/10 rounded-2xl p-8 md:p-10 shadow-md shadow-primary/5">
+              {/* Coming Soon Badge */}
+              {!hasFullAccess && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-4 py-1.5 shadow-md uppercase tracking-wider border-0">
+                    Coming Soon
+                  </Badge>
+                </div>
+              )}
+              
+              <p className="text-lg text-muted-foreground mb-10 mt-2">
+                What are you looking for?
+              </p>
+              
+              {/* 3-column Services Grid with last item centered */}
+              <div className="space-y-10">
+                {/* First row - 3 items */}
+                <div className="grid grid-cols-3 gap-6">
+                  {categories.slice(0, 3).map((category) => (
+                    <div
+                      key={category.id}
+                      onClick={() => hasFullAccess && navigate(category.searchPath)}
+                      className={cn(
+                        "service-card flex flex-col items-center text-center p-4 rounded-xl transition-all duration-300",
+                        hasFullAccess 
+                          ? "cursor-pointer hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5" 
+                          : "opacity-60"
+                      )}
+                      style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
+                    >
+                      <div className="w-14 h-14 mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
+                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-sm font-medium text-foreground leading-tight">
+                        {category.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Second row - 3 items */}
+                <div className="grid grid-cols-3 gap-6">
+                  {categories.slice(3, 6).map((category) => (
+                    <div
+                      key={category.id}
+                      onClick={() => hasFullAccess && navigate(category.searchPath)}
+                      className={cn(
+                        "service-card flex flex-col items-center text-center p-4 rounded-xl transition-all duration-300",
+                        hasFullAccess 
+                          ? "cursor-pointer hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5" 
+                          : "opacity-60"
+                      )}
+                      style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
+                    >
+                      <div className="w-14 h-14 mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
+                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-sm font-medium text-foreground leading-tight">
+                        {category.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Third row - 1 item centered */}
+                <div className="flex justify-center">
+                  {categories.slice(6, 7).map((category) => (
+                    <div
+                      key={category.id}
+                      onClick={() => hasFullAccess && navigate(category.searchPath)}
+                      className={cn(
+                        "service-card flex flex-col items-center text-center p-4 rounded-xl transition-all duration-300 w-1/3",
+                        hasFullAccess 
+                          ? "cursor-pointer hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5" 
+                          : "opacity-60"
+                      )}
+                      style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
+                    >
+                      <div className="w-14 h-14 mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
+                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-sm font-medium text-foreground leading-tight">
+                        {category.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              
-              <h4 className="text-base sm:text-lg font-medium text-muted-foreground mb-4 sm:mb-6">
-                What are you looking for?
-              </h4>
-              {/* Grid container for service categories */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 flex-1">
-                {categories.map((category, index) => (
-                  <div
-                    key={category.id}
-                    onClick={() => hasFullAccess && navigate(category.searchPath)}
-                    className={cn(
-                      "service-card flex flex-col items-center justify-center text-center p-4 bg-muted/50 rounded-lg animate-on-scroll",
-                      hasFullAccess 
-                        ? "opacity-100 cursor-pointer hover:bg-primary/10 hover:scale-105 transition-all duration-300" 
-                        : "opacity-70",
-                      index === 6 && "sm:col-start-2" // Event Planners spans 2 columns on small screens
-                    )}
-                    style={{
-                      opacity: 0,
-                      transform: 'translateY(20px)',
-                      transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
-                    }}
-                  >
-                    <div 
-                      className="w-12 h-12 mb-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary-glow/20 p-2 transition-all duration-300 flex items-center justify-center"
-                      style={{
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(99, 102, 241, 0.1)',
-                      }}
-                    >
-                      <category.icon 
-                        className="w-6 h-6 text-primary transition-colors duration-300"
-                        style={{
-                          filter: 'drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3))',
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-foreground transition-colors">
-                      {category.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
-          </section>
+          </div>
 
-          {/* Right Column - Image Gallery */}
-          <aside className="grid grid-cols-2 grid-rows-2 gap-3 sm:gap-4 order-1 lg:order-2">
-            {/* Top image, spans full width */}
-            <div className="col-span-2 row-span-1">
-              <div className="relative w-full h-[200px] sm:h-[250px] md:h-[340px] rounded-xl overflow-hidden group">
-                <img
-                  alt="Dreamy wedding decor setup"
-                  src={galleryImages.decor}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  onError={(e) => handleImageError(e, 'decor')}
+          {/* Right Side - Image Collage */}
+          <div className="lg:col-span-2 grid grid-cols-2 gap-3 self-stretch">
+            {/* Left column */}
+            <div className="flex flex-col gap-3">
+              <div className="relative flex-1 min-h-[180px] rounded-2xl overflow-hidden group">
+                <img 
+                  src={galleryImages[0].src} 
+                  alt={galleryImages[0].alt} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                  loading="lazy" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+              <div className="relative flex-[1.4] min-h-[220px] rounded-2xl overflow-hidden group">
+                <img 
+                  src={galleryImages[2].src} 
+                  alt={galleryImages[2].alt} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                  loading="lazy" 
+                />
               </div>
             </div>
-
-            {/* Bottom left image */}
-            <div className="col-span-1 row-span-1">
-              <div className="relative w-full h-[140px] sm:h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
-                <img
-                  alt="Event background"
-                  src={galleryImages.event}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  onError={(e) => handleImageError(e, 'event')}
+            
+            {/* Right column */}
+            <div className="flex flex-col gap-3 pt-8">
+              <div className="relative flex-[1.2] min-h-[200px] rounded-2xl overflow-hidden group">
+                <img 
+                  src={galleryImages[1].src} 
+                  alt={galleryImages[1].alt} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                  loading="lazy" 
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+              <div className="relative flex-1 min-h-[180px] rounded-2xl overflow-hidden group">
+                <img 
+                  src={galleryImages[3].src} 
+                  alt={galleryImages[3].alt} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                  loading="lazy" 
+                />
               </div>
             </div>
-
-            {/* Bottom right image */}
-            <div className="col-span-1 row-span-1">
-              <div className="relative w-full h-[140px] sm:h-[170px] md:h-[220px] rounded-xl overflow-hidden group">
-                <img
-                  alt="Colorful décor ideas"
-                  src={galleryImages.colorful}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  onError={(e) => handleImageError(e, 'colorful')}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </div>
-            </div>
-          </aside>
+          </div>
         </div>
       </div>
     </section>
   );
 };
-

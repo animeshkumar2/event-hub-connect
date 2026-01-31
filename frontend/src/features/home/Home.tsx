@@ -5,11 +5,12 @@ import { MinimalNavbar } from '@/features/home/MinimalNavbar';
 import { CinematicHero } from '@/features/home/CinematicHero';
 import { InteractiveEventShowcase } from '@/features/home/InteractiveEventShowcase';
 import { CategoryServicesSection } from '@/features/home/CategoryServicesSection';
+import { FAQSection } from '@/features/home/FAQSection';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, CheckCircle2, Star, Zap, Shield, Award, ChevronDown } from 'lucide-react';
+import { ArrowRight, Sparkles, CheckCircle2, Star, Zap, Shield, Award, ChevronDown, Mail } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { SUPPORT_CONFIG } from '@/shared/config/supportConfig';
 
@@ -75,18 +76,11 @@ const Home = () => {
         { label: 'Commission Rates', to: '/join-vendors' },
       ],
     },
-    /* PHASE 1: Support section commented out - will add in Phase 2
     {
-      id: 'support',
-      title: 'Support',
-      links: [
-        { label: 'Help Center', to: '/help' },
-        { label: 'Contact Us', to: '/contact' },
-        { label: 'FAQ', to: '/faq' },
-        { label: 'Privacy Policy', to: '/privacy' },
-      ],
+      id: 'contact',
+      title: 'Contact Us',
+      isContact: true,
     },
-    */
   ];
 
   return (
@@ -189,6 +183,9 @@ const Home = () => {
       {/* Category Services Section */}
       <CategoryServicesSection />
 
+      {/* FAQ Section */}
+      <FAQSection />
+
       {/* Footer - Enhanced for mobile */}
       <footer className="border-t border-border py-10 md:py-12 bg-gradient-to-b from-muted/20 to-background">
         <div className="container mx-auto px-4">
@@ -236,6 +233,37 @@ const Home = () => {
 
             {footerSections.map((section) => {
               const isOpen = openSection === section.id;
+              
+              // Special rendering for Contact section
+              if (section.isContact) {
+                return (
+                  <div
+                    key={section.id}
+                    className="bg-white/40 md:bg-transparent border border-border/60 md:border-none rounded-xl md:rounded-none backdrop-blur-sm md:backdrop-blur-0 shadow-sm md:shadow-none"
+                  >
+                    <button
+                      className="w-full flex items-center justify-between px-4 py-3 md:px-0 md:py-0 md:pb-2 text-left"
+                      onClick={() => setOpenSection(isOpen ? null : section.id)}
+                      aria-expanded={isOpen}
+                    >
+                      <span className="font-semibold text-base">{section.title}</span>
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 text-muted-foreground transition-transform md:hidden',
+                          isOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                    <div className={cn('px-4 pb-3 md:px-0 md:pb-0 md:pt-1', isOpen ? 'block' : 'hidden md:block')}>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground py-1">
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span>support@cartevent.com</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
               return (
                 <div
                   key={section.id}
@@ -256,7 +284,7 @@ const Home = () => {
                   </button>
                   <div className={cn('px-4 pb-3 md:px-0 md:pb-0 md:pt-1', isOpen ? 'block' : 'hidden md:block')}>
                     <ul className="space-y-2 text-xs">
-                      {section.links.map((link) => (
+                      {section.links?.map((link) => (
                         <li key={link.label}>
                           <Link
                             to={link.to}

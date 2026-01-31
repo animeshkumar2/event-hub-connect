@@ -487,7 +487,7 @@ export default function VendorProfile() {
   const [activeSection, setActiveSection] = useState<'overview' | 'edit' | 'gallery' | 'location' | 'contact'>('overview');
   const [formData, setFormData] = useState({ 
     businessName: '', bio: '', coverImage: '', profileImage: '', portfolioImages: [] as string[],
-    phone: '', email: '', instagram: '', website: ''
+    phone: '', alternatePhone: '', email: '', instagram: '', website: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
@@ -519,6 +519,7 @@ export default function VendorProfile() {
         profileImage: profileData.profileImage || '',
         portfolioImages: profileData.portfolioImages || [],
         phone: profileData.phone || '',
+        alternatePhone: profileData.alternatePhone || '',
         email: profileData.email || '',
         instagram: profileData.instagram || '',
         website: profileData.website || '',
@@ -542,6 +543,7 @@ export default function VendorProfile() {
         profileImage: profileData.profileImage || '',
         portfolioImages: profileData.portfolioImages || [],
         phone: profileData.phone || '',
+        alternatePhone: profileData.alternatePhone || '',
         email: profileData.email || '',
         instagram: profileData.instagram || '',
         website: profileData.website || '',
@@ -570,6 +572,7 @@ export default function VendorProfile() {
   );
   
   const isContactDirty = originalFormData && (
+    formData.alternatePhone !== originalFormData.alternatePhone ||
     formData.instagram !== originalFormData.instagram ||
     formData.website !== originalFormData.website
   );
@@ -632,12 +635,13 @@ export default function VendorProfile() {
     try {
       const response = await vendorApi.updateProfile({
         phone: formData.phone, email: formData.email,
+        alternatePhone: formData.alternatePhone,
         instagram: formData.instagram, website: formData.website,
       });
       if (response.success) { 
         // Update original values to reflect saved state
         if (originalFormData) {
-          setOriginalFormData({ ...originalFormData, instagram: formData.instagram, website: formData.website });
+          setOriginalFormData({ ...originalFormData, alternatePhone: formData.alternatePhone, instagram: formData.instagram, website: formData.website });
         }
         toast.success('Contact info updated!'); 
         refetch(); 
@@ -1476,6 +1480,21 @@ export default function VendorProfile() {
                       <div className="h-10 sm:h-11 px-3 flex items-center bg-muted/50 rounded-lg border border-border/50 text-sm text-foreground truncate">
                         {user?.email || formData.email || 'Not set'}
                       </div>
+                    </div>
+                    
+                    {/* Alternate Phone - Editable */}
+                    <div>
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" /> Alternate Phone
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Optional</span>
+                      </Label>
+                      <Input 
+                        value={formData.alternatePhone} 
+                        onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })} 
+                        placeholder="9876543210" 
+                        className="h-10 sm:h-11"
+                        maxLength={10}
+                      />
                     </div>
                     
                     {/* Instagram - Editable */}
