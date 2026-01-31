@@ -1131,18 +1131,22 @@ export default function ListingPreview() {
                   <CardContent className="p-3">
                     {isEditMode ? (
                       <div className="space-y-3">
-                        {/* Delivery Time Section */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-1.5">
-                            <div className="p-1 rounded bg-blue-100">
-                              <Clock className="h-3 w-3 text-blue-600" />
+                        {/* Delivery Time Section - Hide for DJ category */}
+                        {listing.categoryId !== 'dj-entertainment' && (
+                          <>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-blue-100">
+                                  <Clock className="h-3 w-3 text-blue-600" />
+                                </div>
+                                <Label className="text-xs font-medium text-slate-700">Delivery Time</Label>
+                              </div>
+                              <DeliveryTimeInput value={editForm?.deliveryTime || ''} onChange={(v) => setEditForm((p: any) => ({ ...p, deliveryTime: v }))} />
                             </div>
-                            <Label className="text-xs font-medium text-slate-700">Delivery Time</Label>
-                          </div>
-                          <DeliveryTimeInput value={editForm?.deliveryTime || ''} onChange={(v) => setEditForm((p: any) => ({ ...p, deliveryTime: v }))} />
-                        </div>
 
-                        <div className="h-px bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
+                            <div className="h-px bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
+                          </>
+                        )}
 
                         {/* Service Mode Section */}
                         <div className="space-y-2">
@@ -1220,8 +1224,8 @@ export default function ListingPreview() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Delivery Time Card */}
-                        {listing.deliveryTime && (() => {
+                        {/* Delivery Time Card - Hide for DJ category */}
+                        {listing.categoryId !== 'dj-entertainment' && listing.deliveryTime && (() => {
                           const delivery = formatDeliveryTime(listing.deliveryTime);
                           return (
                             <div className="rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 p-3">

@@ -122,7 +122,8 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
     }
     
     // For ITEM type
-    if (!props.formData.deliveryTime?.trim()) {
+    // Delivery time not required for DJ category
+    if (props.formData.categoryId !== 'dj-entertainment' && !props.formData.deliveryTime?.trim()) {
       errors.push('Delivery time is required');
     }
     

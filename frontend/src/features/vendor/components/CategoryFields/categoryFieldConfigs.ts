@@ -576,7 +576,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
 
   'dj-entertainment': {
     categoryId: 'dj-entertainment',
-    pricingModel: 'per_hour',
+    pricingModel: 'per_event',
     showPackageDetails: true,
     fields: [
       {
@@ -585,14 +585,6 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         type: 'select',
         required: true,
         options: ['DJ', 'Live Band', 'Anchor/Emcee', 'Dancer/Performer', 'DJ + Anchor', 'DJ + Dancers']
-      },
-      {
-        name: 'pricingType',
-        label: 'Pricing Type',
-        type: 'radio',
-        required: true,
-        options: ['Per Hour', 'Per Event'],
-        defaultValue: 'Per Event'
       },
       {
         name: 'price',
@@ -606,11 +598,12 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
       },
       {
         name: 'durationHours',
-        label: 'Duration (Hours)',
+        label: 'Max Duration (Hours)',
         type: 'number',
         required: true,
         min: 1,
-        max: 24
+        max: 24,
+        helpText: 'Maximum hours included in this price'
       },
       {
         name: 'equipmentIncluded',

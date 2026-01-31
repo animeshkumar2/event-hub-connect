@@ -225,12 +225,14 @@ export const ListingFormStep2 = React.memo(function ListingFormStep2(props: Step
         </div>
       </div>
 
-      {/* Delivery Time */}
-      <DeliveryTimeInput
-        value={formData.deliveryTime}
-        onChange={(value) => setFormData({ ...formData, deliveryTime: value })}
-        categoryId={formData.categoryId}
-      />
+      {/* Delivery Time - Hide for DJ category (not applicable) */}
+      {formData.categoryId !== 'dj-entertainment' && (
+        <DeliveryTimeInput
+          value={formData.deliveryTime}
+          onChange={(value) => setFormData({ ...formData, deliveryTime: value })}
+          categoryId={formData.categoryId}
+        />
+      )}
 
       {/* Minimum Order - Only for Caterers */}
       {listingType === 'ITEM' && formData.categoryId === 'caterer' && (

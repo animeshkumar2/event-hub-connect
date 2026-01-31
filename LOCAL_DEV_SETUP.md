@@ -160,6 +160,52 @@ npm run dev
 
 ## Troubleshooting
 
+### 403 Forbidden Errors After Login
+
+If you're getting 403 errors when accessing the local dev backend, it's likely because your browser has a JWT token from production that doesn't work with the local dev backend (different JWT secrets).
+
+**Solution:**
+1. Open browser DevTools (F12)
+2. Go to Application → Local Storage
+3. Clear all items for `localhost:8080`
+4. Refresh the page and login again
+
+Alternatively, use an incognito/private window for local development.
+
+### Empty Database / No Data
+
+The local dev database is initialized with the schema but no seed data. You need to import data:
+
+**Option 1: Import from production (recommended)**
+```bash
+# Export from production Supabase
+PGPASSWORD='event@9060dbpassword' pg_dump \
+  -h aws-1-ap-south-1.pooler.supabase.com \
+  -p 6543 \
+  -U postgres.aoyvpquvjxofdkukmqty \
+  -d postgres \
+  --clean --if-exists --no-owner --no-privileges \
+  > full_backup.sql
+
+# Import to local dev
+PGPASSWORD='devpassword123' psql \
+  -h localhost \
+  -p 5433 \
+  -U postgres \
+  -d eventhub \
+  < full_backup.sql
+```
+
+**Option 2: Use seed data**
+```bash
+PGPASSWORD='devpassword123' psql \
+  -h localhost \
+  -p 5433 \
+  -U postgres \
+  -d eventhub \
+  < database/seed_data.sql
+```
+
 ### Port already in use
 ```bash
 # Find and kill process on port 8082
