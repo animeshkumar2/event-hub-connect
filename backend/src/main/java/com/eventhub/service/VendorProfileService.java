@@ -71,6 +71,9 @@ public class VendorProfileService {
         if (updatedVendor.getPhone() != null) {
             vendor.setPhone(updatedVendor.getPhone());
         }
+        if (updatedVendor.getAlternatePhone() != null) {
+            vendor.setAlternatePhone(updatedVendor.getAlternatePhone());
+        }
         if (updatedVendor.getEmail() != null) {
             vendor.setEmail(updatedVendor.getEmail());
         }

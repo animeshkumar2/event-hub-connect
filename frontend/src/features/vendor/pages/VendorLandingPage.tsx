@@ -28,7 +28,13 @@ import {
   Home,
   PartyPopper,
   Flame,
-  Sparkle
+  Sparkle,
+  Camera,
+  ChefHat,
+  Palette,
+  Building2,
+  Mic,
+  Brush
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/components/ui/dialog';
@@ -49,20 +55,12 @@ const FAQS = [
     a: "No. Listing on CartEvent does not guarantee inquiries, bookings, or visibility.",
   },
   {
-    q: "Who handles payments?",
-    a: "Customers pay vendors directly. CartEvent does not manage payments or refunds.",
-  },
-  {
     q: "Who is responsible if something goes wrong at an event?",
     a: "The vendor and customer. CartEvent is not involved in service delivery or disputes.",
   },
   {
     q: "Can CartEvent remove my listing?",
     a: "Yes. Listings or vendor accounts may be modified, suspended, or removed at any time.",
-  },
-  {
-    q: "Can my photos be used in marketing?",
-    a: "Yes. Content you upload may be used for marketing. You can request removal anytime.",
   },
   {
     q: "Can I contact customers outside the platform?",
@@ -198,7 +196,7 @@ export default function VendorLandingPage() {
               </div>
             ) : null}
             <p className="text-xs sm:text-sm text-muted-foreground mt-3 sm:mt-4 px-4">
-              ✓ No credit card required &nbsp;•&nbsp; ✓ Setup in 5 minutes &nbsp;•&nbsp; ✓ Cancel anytime
+              ✓ 100% Free to join &nbsp;•&nbsp; ✓ Setup in 5 minutes &nbsp;•&nbsp; ✓ Cancel anytime
             </p>
           </div>
         </div>
@@ -484,125 +482,80 @@ export default function VendorLandingPage() {
               If You're in Events, <span className="text-primary">You're In.</span>
             </h2>
             <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-              From wedding photographers to corporate caterers, balloon artists to event planners - 
-              if you provide any service for any event, CartEvent is for you.
+              Join India's growing event services marketplace. List your services, reach more customers, and grow your business.
             </p>
           </div>
 
-          {/* Three Pillars */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 md:mb-16">
-            {/* Any Service */}
-            <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group overflow-hidden">
-              <CardContent className="p-4 sm:p-6 md:p-8">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                  <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-2">Any Service</h3>
-                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">Whatever you do for events, list it here.</p>
-                <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  {["Photography & Video", "Catering & Food", "Decoration & Flowers", "DJ & Live Music", "Makeup & Styling", "Venues & Halls", "Anchoring & Entertainment", "...anything event-related"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2 text-muted-foreground">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            {/* Any Scale */}
-            <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group overflow-hidden">
-              <CardContent className="p-4 sm:p-6 md:p-8">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                  <Users className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-2">Any Scale</h3>
-                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">No minimum. No maximum. Everyone's welcome.</p>
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center text-base sm:text-lg flex-shrink-0">🪑</div>
-                    <div>
-                      <p className="font-medium text-xs sm:text-sm">20 chairs?</p>
-                      <p className="text-xs text-muted-foreground">List them.</p>
-                    </div>
+          {/* Services & Events - Visual Showcase */}
+          <div className="max-w-6xl mx-auto mb-8 sm:mb-12 md:mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+              
+              {/* Services Card */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-border/50 p-6 sm:p-8 shadow-sm hover:shadow-xl transition-shadow duration-300">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-600 text-sm font-medium mb-6">
+                    <Sparkles className="h-4 w-4" />
+                    Services
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center text-base sm:text-lg flex-shrink-0">💄</div>
-                    <div>
-                      <p className="font-medium text-xs sm:text-sm">Weekend makeup artist?</p>
-                      <p className="text-xs text-muted-foreground">List your services.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-muted/50">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 flex items-center justify-center text-base sm:text-lg flex-shrink-0">🏨</div>
-                    <div>
-                      <p className="font-medium text-xs sm:text-sm">500-person venue?</p>
-                      <p className="text-xs text-muted-foreground">List it too.</p>
-                    </div>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { icon: Camera, label: "Photography & Videography" },
+                      { icon: Palette, label: "Décor" },
+                      { icon: ChefHat, label: "Catering" },
+                      { icon: Building2, label: "Venue" },
+                      { icon: Sparkles, label: "Makeup & Styling" },
+                      { icon: Music2, label: "DJ & Entertainment" },
+                      { icon: Mic, label: "Sound & Lights" },
+                      { icon: Brush, label: "Artists & Performers" },
+                    ].map((service, i) => (
+                      <div 
+                        key={i} 
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border border-slate-200/50 dark:border-slate-600/50 hover:border-blue-300 hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 cursor-default"
+                      >
+                        <service.icon className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-foreground/80">{service.label}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Any Event */}
-            <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl group overflow-hidden">
-              <CardContent className="p-4 sm:p-6 md:p-8">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform shadow-lg">
-                  <Calendar className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" />
+              </div>
+              
+              {/* Events Card */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-border/50 p-6 sm:p-8 shadow-sm hover:shadow-xl transition-shadow duration-300">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-600 text-sm font-medium mb-6">
+                    <Calendar className="h-4 w-4" />
+                    Events
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      { icon: Heart, label: "Wedding", color: "hover:border-rose-300 hover:from-rose-50 hover:to-pink-50" },
+                      { icon: Cake, label: "Birthday", color: "hover:border-pink-300 hover:from-pink-50 hover:to-fuchsia-50" },
+                      { icon: Heart, label: "Anniversary", color: "hover:border-red-300 hover:from-red-50 hover:to-rose-50" },
+                      { icon: Briefcase, label: "Corporate", color: "hover:border-slate-400 hover:from-slate-100 hover:to-gray-100" },
+                      { icon: Heart, label: "Engagement", color: "hover:border-purple-300 hover:from-purple-50 hover:to-violet-50" },
+                      { icon: PartyPopper, label: "Baby Shower", color: "hover:border-blue-300 hover:from-blue-50 hover:to-sky-50" },
+                      { icon: Music2, label: "Nightlife", color: "hover:border-indigo-300 hover:from-indigo-50 hover:to-purple-50" },
+                      { icon: Sparkle, label: "Other", color: "hover:border-amber-300 hover:from-amber-50 hover:to-yellow-50" },
+                    ].map((event, i) => (
+                      <div 
+                        key={i} 
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border border-slate-200/50 dark:border-slate-600/50 ${event.color} transition-all duration-200 cursor-default`}
+                      >
+                        <event.icon className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-medium text-foreground/80">{event.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-2">Any Event</h3>
-                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">We cover every occasion, every gathering.</p>
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                  {[
-                    { icon: Heart, label: "Weddings", color: "text-rose-500", bg: "bg-rose-50" },
-                    { icon: Briefcase, label: "Corporate", color: "text-slate-600", bg: "bg-slate-100" },
-                    { icon: Cake, label: "Birthdays", color: "text-pink-500", bg: "bg-pink-50" },
-                    { icon: GraduationCap, label: "Graduations", color: "text-blue-500", bg: "bg-blue-50" },
-                    { icon: Music2, label: "Club Nights", color: "text-purple-500", bg: "bg-purple-50" },
-                    { icon: Church, label: "Religious", color: "text-amber-600", bg: "bg-amber-50" },
-                    { icon: Home, label: "Housewarmings", color: "text-emerald-500", bg: "bg-emerald-50" },
-                    { icon: PartyPopper, label: "Parties", color: "text-orange-500", bg: "bg-orange-50" },
-                    { icon: Flame, label: "Memorials", color: "text-gray-500", bg: "bg-gray-100" },
-                    { icon: Sparkle, label: "...any event", color: "text-primary", bg: "bg-primary/10" },
-                  ].map((event, i) => (
-                    <span key={i} className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full ${event.bg} text-xs sm:text-sm hover:opacity-80 transition-opacity cursor-default`}>
-                      <event.icon className={`h-3.5 w-3.5 ${event.color}`} />
-                      <span className="text-foreground/80">{event.label}</span>
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Side Hustle Message */}
-          <div className="max-w-3xl mx-auto">
-            <Card className="border-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
-              <CardContent className="p-4 sm:p-6 md:p-8 text-center">
-                <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium text-foreground/80 italic px-2">
-                  "Even if you're just starting out with a side hustle, CartEvent is the platform to grow."
-                </p>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Part-time vendors, freelancers, students, homemakers - everyone's welcome.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Early Vendor CTA */}
-      <section className="py-12 sm:py-16 md:py-20 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-2">Become an Early Vendor</h2>
-          <p className="text-primary-foreground/80 mb-6 sm:mb-8 max-w-2xl mx-auto text-sm sm:text-base px-2">
-            Be among the first 50 vendors in your city to get featured across our marketing campaigns. 
-            Early vendors get priority placement and exclusive benefits.
-          </p>
-          <Button size="lg" variant="secondary" className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto" onClick={handleGetStarted}>
-            Get Listed Now - It's Free
-            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
         </div>
       </section>
 
@@ -639,7 +592,7 @@ export default function VendorLandingPage() {
               </div>
             )}
 
-            {/* Request Ops Assistance Note */}
+            {/* Request Ops Assistance Note - Commented out for now
             <Card className="border-primary/20 bg-primary/5 mt-4 sm:mt-6">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-start gap-2 sm:gap-3">
@@ -651,29 +604,15 @@ export default function VendorLandingPage() {
                 </div>
               </CardContent>
             </Card>
+            */}
           </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-12 sm:py-16 md:py-20 bg-muted/30">
-        <div className="container mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-2">Ready to Grow Your Business?</h2>
-          <p className="text-muted-foreground mb-6 sm:mb-8 text-sm sm:text-base px-2">
-            Join CartEvent today and start receiving leads from customers in your city.
-          </p>
-          <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto" onClick={handleGetStarted}>
-            Get Listed Now - It's Free
-            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="py-6 sm:py-8 border-t">
         <div className="container mx-auto px-4 sm:px-6 text-center text-xs sm:text-sm text-muted-foreground">
-          <p className="text-base sm:text-lg font-semibold text-primary mb-2">Launching Soon</p>
-          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <a href="/vendor-terms" className="hover:text-foreground">Vendor T&C</a>
             <a href="/vendor-privacy" className="hover:text-foreground">Privacy Policy</a>
             <a href="mailto:support@cartevent.com" className="hover:text-foreground">Contact</a>

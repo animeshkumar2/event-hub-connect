@@ -36,6 +36,7 @@ public class VendorDTO {
     
     // Contact Info Fields
     private String phone;
+    private String alternatePhone;
     private String email;
     private String instagram;
     private String website;

@@ -85,6 +85,9 @@ public class Vendor {
     @Column(name = "phone", length = 20)
     private String phone;
     
+    @Column(name = "alternate_phone", length = 20)
+    private String alternatePhone;
+    
     @Column(name = "email", length = 255)
     private String email;
     
