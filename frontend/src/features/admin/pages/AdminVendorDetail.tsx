@@ -271,9 +271,22 @@ function ListingCard({ listing, onView, onEdit, onPreview, onAdminPage }: {
               <Button size="sm" variant="default" onClick={onEdit} className="h-7 text-xs bg-primary">
                 <Edit className="h-3 w-3 mr-1" /> Full Edit
               </Button>
-              <Button size="sm" variant="outline" onClick={onView} className="h-7 text-xs">
-                <Eye className="h-3 w-3 mr-1" /> Customer View
-              </Button>
+              {isDraft ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline" onClick={onEdit} className="h-7 text-xs text-amber-600 border-amber-300">
+                      <AlertCircle className="h-3 w-3 mr-1" /> Draft - Edit to Publish
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Drafts are not visible to customers. Edit and publish to make it live.</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button size="sm" variant="outline" onClick={onView} className="h-7 text-xs">
+                  <Eye className="h-3 w-3 mr-1" /> Customer View
+                </Button>
+              )}
               {onAdminPage && (
                 <Button size="sm" variant="ghost" onClick={onAdminPage} className="h-7 text-xs">
                   <Settings className="h-3 w-3 mr-1" /> Admin

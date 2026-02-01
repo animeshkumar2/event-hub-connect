@@ -416,9 +416,11 @@ export default function AdminListingFullEdit() {
               <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="h-7 text-xs border-amber-500/30 text-amber-800 hover:bg-amber-500/10">
                 <ArrowLeft className="h-3 w-3 mr-1" />Back
               </Button>
-              <Button variant="outline" size="sm" onClick={() => window.open(`/listing/${listing.id}`, '_blank')} className="h-7 text-xs border-amber-500/30 text-amber-800 hover:bg-amber-500/10">
-                <Eye className="h-3 w-3 mr-1" />Customer View
-              </Button>
+              {!listing.isDraft && (
+                <Button variant="outline" size="sm" onClick={() => window.open(`/listing/${listing.id}`, '_blank')} className="h-7 text-xs border-amber-500/30 text-amber-800 hover:bg-amber-500/10">
+                  <Eye className="h-3 w-3 mr-1" />Customer View
+                </Button>
+              )}
               <Button size="sm" onClick={saveChanges} disabled={isSaving} className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white">
                 {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
                 Save Changes
@@ -936,9 +938,16 @@ export default function AdminListingFullEdit() {
             <Card>
               <CardContent className="p-4 space-y-2">
                 <h3 className="text-sm font-semibold mb-2">Quick Actions</h3>
-                <Button variant="outline" className="w-full justify-start text-xs h-8" onClick={() => window.open(`/listing/${listing.id}`, '_blank')}>
-                  <Eye className="h-3 w-3 mr-2" /> View as Customer
-                </Button>
+                {listing.isDraft ? (
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                    <AlertCircle className="h-3 w-3 inline mr-1" />
+                    Draft listings are not visible to customers. Publish to enable customer view.
+                  </div>
+                ) : (
+                  <Button variant="outline" className="w-full justify-start text-xs h-8" onClick={() => window.open(`/listing/${listing.id}`, '_blank')}>
+                    <Eye className="h-3 w-3 mr-2" /> View as Customer
+                  </Button>
+                )}
                 <Button variant="outline" className="w-full justify-start text-xs h-8" onClick={() => navigate(`/admin/vendors/${listing.vendor?.id}`)}>
                   <Building2 className="h-3 w-3 mr-2" /> Go to Vendor
                 </Button>
