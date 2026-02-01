@@ -32,6 +32,12 @@ export const ImageUpload = ({
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    
+    // Always reset the file input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    
     if (!file) return
 
     // Validate file
@@ -139,6 +145,13 @@ export const MultipleImageUpload = ({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     
+    // Always reset the file input so the same files can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    
+    if (files.length === 0) return
+    
     if (files.length + previews.length > maxFiles) {
       toast({
         title: 'Too many files',
@@ -148,26 +161,42 @@ export const MultipleImageUpload = ({
       return
     }
 
-    // Validate all files
-    const invalidFiles = files.filter(file => !validateImageFile(file).valid)
-    if (invalidFiles.length > 0) {
-      toast({
-        title: 'Invalid files',
-        description: 'Some files are invalid. Please check file size and type.',
-        variant: 'destructive',
-      })
-      return
+    // Validate all files and collect errors
+    const validFiles: File[] = []
+    const errors: string[] = []
+    
+    for (const file of files) {
+      const validation = validateImageFile(file)
+      if (!validation.valid) {
+        errors.push(`${file.name}: ${validation.error}`)
+      } else {
+        validFiles.push(file)
+      }
     }
+    
+    // Show errors first
+    if (errors.length > 0) {
+      errors.forEach(err => {
+        toast({
+          title: 'Invalid file',
+          description: err,
+          variant: 'destructive',
+        })
+      })
+    }
+    
+    // Process valid files
+    if (validFiles.length === 0) return
 
     // Create previews
     const newPreviews: string[] = []
-    files.forEach(file => {
+    validFiles.forEach(file => {
       const reader = new FileReader()
       reader.onloadend = () => {
         newPreviews.push(reader.result as string)
-        if (newPreviews.length === files.length) {
+        if (newPreviews.length === validFiles.length) {
           setPreviews([...previews, ...newPreviews])
-          setSelectedFiles([...selectedFiles, ...files])
+          setSelectedFiles([...selectedFiles, ...validFiles])
         }
       }
       reader.readAsDataURL(file)

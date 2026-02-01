@@ -3,7 +3,7 @@ import { Upload, X, GripVertical, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
-import { validateImageFile } from '@/shared/utils/storage';
+import { validateImageFile, compressImage } from '@/shared/utils/storage';
 
 // Represents either an already-uploaded URL or a pending file
 export interface ImageItem {
@@ -126,50 +126,116 @@ export const ImageUpload = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle file selection - store locally, don't upload yet
-  const handleFileSelect = useCallback((files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  // State for compression loading
+  const [isCompressing, setIsCompressing] = useState(false);
 
-    const remainingSlots = maxImages - items.length;
-    if (remainingSlots <= 0) {
-      toast.error(`Maximum ${maxImages} images allowed`);
+  // Handle file selection - validate, compress, then store locally
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
+    console.log('📁 handleFileSelect called with files:', files?.length);
+    
+    if (!files || files.length === 0) {
+      console.log('📁 No files selected');
       return;
     }
 
-    const filesArray = Array.from(files).slice(0, remainingSlots);
-    const newItems: ImageItem[] = [];
+    // Convert FileList to array BEFORE any async operations
+    const filesArray = Array.from(files);
+    console.log('📁 Files to process:', filesArray.map(f => ({ name: f.name, size: f.size, type: f.type })));
+
+    // Reset the file input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    const remainingSlots = maxImages - items.length;
+    if (remainingSlots <= 0) {
+      toast.error(`Maximum ${maxImages} images allowed`, {
+        id: `max-images-${Date.now()}`,
+      });
+      return;
+    }
+
+    const filesToProcess = filesArray.slice(0, remainingSlots);
+    const validFiles: File[] = [];
     const errors: string[] = [];
 
-    for (const file of filesArray) {
+    // First pass: validate all files
+    for (const file of filesToProcess) {
+      console.log(`📁 Validating file: ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
       const validation = validateImageFile(file);
+      
       if (!validation.valid) {
-        errors.push(`${file.name}: ${validation.error}`);
+        console.log(`❌ Validation failed for ${file.name}: ${validation.error}`);
+        errors.push(validation.error || 'Invalid file');
         continue;
       }
 
-      // Create preview URL for display
-      const preview = URL.createObjectURL(file);
-      newItems.push({ type: 'file', file, preview });
+      console.log(`✅ Validation passed for ${file.name}`);
+      validFiles.push(file);
     }
 
-    if (newItems.length > 0) {
-      const updatedItems = [...items, ...newItems];
-      setItems(updatedItems);
-      
-      // Update parent with current URLs (pending files not included in images yet)
-      const currentUrls = updatedItems
-        .filter(item => item.type === 'url')
-        .map(item => item.url!);
-      onChange(currentUrls);
-      
-      // Notify about pending changes
-      notifyPendingChanges(updatedItems, pendingDeletes);
-      
-      toast.success(`Added ${newItems.length} image${newItems.length > 1 ? 's' : ''} (will upload on save)`);
-    }
-
+    // Show validation errors immediately
     if (errors.length > 0) {
-      errors.forEach(err => toast.error(err));
+      console.log('📁 Showing error toasts:', errors);
+      errors.forEach((err, idx) => {
+        toast.error(err, {
+          id: `upload-error-${Date.now()}-${idx}`,
+          duration: 5000,
+        });
+      });
+    }
+
+    // Process valid files - compress if needed
+    if (validFiles.length > 0) {
+      setIsCompressing(true);
+      const compressToastId = `compress-${Date.now()}`;
+      
+      // Show compressing toast for large files (>2MB)
+      const hasLargeFiles = validFiles.some(f => f.size > 2 * 1024 * 1024);
+      if (hasLargeFiles) {
+        toast.loading('Compressing images...', { id: compressToastId });
+      }
+
+      try {
+        const newItems: ImageItem[] = [];
+        
+        for (const file of validFiles) {
+          // Compress the file if needed
+          const compressedFile = await compressImage(file);
+          
+          // Create preview URL for display
+          const preview = URL.createObjectURL(compressedFile);
+          newItems.push({ type: 'file', file: compressedFile, preview });
+        }
+
+        // Dismiss compressing toast
+        if (hasLargeFiles) {
+          toast.dismiss(compressToastId);
+        }
+
+        console.log(`📁 Adding ${newItems.length} images to queue`);
+        const updatedItems = [...items, ...newItems];
+        setItems(updatedItems);
+        
+        // Update parent with current URLs (pending files not included in images yet)
+        const currentUrls = updatedItems
+          .filter(item => item.type === 'url')
+          .map(item => item.url!);
+        onChange(currentUrls);
+        
+        // Notify about pending changes
+        notifyPendingChanges(updatedItems, pendingDeletes);
+        
+        toast.success(`Added ${newItems.length} image${newItems.length > 1 ? 's' : ''} (will upload on save)`, {
+          id: `upload-success-${Date.now()}`,
+        });
+      } catch (error) {
+        console.error('❌ Compression failed:', error);
+        toast.dismiss(compressToastId);
+        toast.error('Failed to process images. Please try again.');
+      } finally {
+        setIsCompressing(false);
+      }
     }
   }, [items, maxImages, onChange, notifyPendingChanges, pendingDeletes]);
 
@@ -182,9 +248,9 @@ export const ImageUpload = ({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (disabled) return;
+    if (disabled || isCompressing) return;
     handleFileSelect(e.dataTransfer.files);
-  }, [disabled, handleFileSelect]);
+  }, [disabled, isCompressing, handleFileSelect]);
 
   // Remove image
   const handleRemove = useCallback((index: number) => {
@@ -257,11 +323,11 @@ export const ImageUpload = ({
         onDrop={handleDrop}
         className={cn(
           'border-2 border-dashed rounded-lg p-6 transition-all',
-          disabled
+          (disabled || isCompressing)
             ? 'border-muted bg-muted/50 cursor-not-allowed'
             : 'border-primary/30 hover:border-primary/50 bg-muted/20 hover:bg-muted/30 cursor-pointer'
         )}
-        onClick={() => !disabled && fileInputRef.current?.click()}
+        onClick={() => !disabled && !isCompressing && fileInputRef.current?.click()}
       >
         <input
           ref={fileInputRef}
@@ -269,17 +335,24 @@ export const ImageUpload = ({
           multiple
           accept="image/*"
           className="hidden"
-          disabled={disabled}
-          onChange={(e) => handleFileSelect(e.target.files)}
+          disabled={disabled || isCompressing}
+          onChange={(e) => {
+            console.log('📁 Input onChange triggered, files:', e.target.files?.length);
+            handleFileSelect(e.target.files);
+          }}
         />
         <div className="flex flex-col items-center justify-center gap-3">
-          <Upload className="h-8 w-8 text-primary" />
+          {isCompressing ? (
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          ) : (
+            <Upload className="h-8 w-8 text-primary" />
+          )}
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">
-              Click to upload or drag and drop
+              {isCompressing ? 'Compressing images...' : 'Click to upload or drag and drop'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              JPG, PNG, WEBP, GIF up to 5MB (auto-compressed)
+              JPG, PNG, WEBP, GIF up to 25MB (auto-compressed)
             </p>
             <p className="text-xs text-muted-foreground">
               {items.filter(item => !(item.type === 'url' && item.url && brokenUrls.has(item.url))).length} / {maxImages} images
