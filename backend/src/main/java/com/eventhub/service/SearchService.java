@@ -277,6 +277,7 @@ public class SearchService {
     /**
      * Search listings with location-based filtering.
      * Implements bidirectional matching: both customer and vendor must be within each other's radius.
+     * For venue category: uses listing's venue location instead of vendor profile location.
      */
     public List<Listing> searchListingsWithLocation(
             Integer eventTypeId,
@@ -308,17 +309,38 @@ public class SearchService {
         
         int effectiveSearchRadius = searchRadiusKm != null ? searchRadiusKm : 20;
         
-        // Filter by bidirectional location matching
+        // Filter by location matching
+        // For venue category: use listing's venue location
+        // For other categories: use vendor's profile location with bidirectional matching
         return listings.stream()
                 .filter(listing -> {
-                    Vendor vendor = listing.getVendor();
-                    if (vendor == null || vendor.getLocationLat() == null || vendor.getLocationLng() == null) {
-                        return false; // Exclude vendors without location
-                    }
+                    // Check if this is a venue category listing
+                    boolean isVenueCategory = listing.getListingCategory() != null && 
+                            "venue".equalsIgnoreCase(listing.getListingCategory().getId());
                     
-                    return distanceService.isBidirectionalMatch(
-                            vendor.getLocationLat(), vendor.getLocationLng(), vendor.getServiceRadiusKm(),
-                            customerLat, customerLng, effectiveSearchRadius);
+                    if (isVenueCategory) {
+                        // For venues: use listing's venue location (customers come to the venue)
+                        if (listing.getVenueLatitude() == null || listing.getVenueLongitude() == null) {
+                            return false; // Exclude venues without location
+                        }
+                        
+                        // Simple distance check - is venue within customer's search radius?
+                        double distance = distanceService.calculateDistance(
+                                listing.getVenueLatitude(), listing.getVenueLongitude(),
+                                customerLat, customerLng);
+                        
+                        return distance <= effectiveSearchRadius;
+                    } else {
+                        // For other categories: use vendor's profile location with bidirectional matching
+                        Vendor vendor = listing.getVendor();
+                        if (vendor == null || vendor.getLocationLat() == null || vendor.getLocationLng() == null) {
+                            return false; // Exclude vendors without location
+                        }
+                        
+                        return distanceService.isBidirectionalMatch(
+                                vendor.getLocationLat(), vendor.getLocationLng(), vendor.getServiceRadiusKm(),
+                                customerLat, customerLng, effectiveSearchRadius);
+                    }
                 })
                 .limit(limit != null ? limit : 12)
                 .collect(Collectors.toList());

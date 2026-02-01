@@ -122,6 +122,19 @@ public class Listing {
     @Column(name = "service_mode", length = 20)
     private ServiceMode serviceMode = ServiceMode.BOTH;
     
+    // Venue-specific location fields (only used when category = 'venue')
+    @Column(name = "venue_address", columnDefinition = "TEXT")
+    private String venueAddress;  // Full address for display
+    
+    @Column(name = "venue_city", length = 100)
+    private String venueCity;
+    
+    @Column(name = "venue_latitude", precision = 10, scale = 8)
+    private BigDecimal venueLatitude;
+    
+    @Column(name = "venue_longitude", precision = 11, scale = 8)
+    private BigDecimal venueLongitude;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     

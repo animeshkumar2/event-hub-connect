@@ -225,8 +225,8 @@ export const ListingFormStep2 = React.memo(function ListingFormStep2(props: Step
         </div>
       </div>
 
-      {/* Delivery Time - Hide for DJ category (not applicable) */}
-      {formData.categoryId !== 'dj-entertainment' && (
+      {/* Delivery Time - Hide for DJ and Venue categories (not applicable) */}
+      {formData.categoryId !== 'dj-entertainment' && formData.categoryId !== 'venue' && (
         <DeliveryTimeInput
           value={formData.deliveryTime}
           onChange={(value) => setFormData({ ...formData, deliveryTime: value })}

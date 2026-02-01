@@ -63,5 +63,11 @@ public class CreateItemRequest {
     
     // Mark as draft (incomplete listing)
     private Boolean isDraft;
+    
+    // Venue-specific location fields (required when categoryId = 'venue')
+    private String venueAddress;      // Full address for display
+    private String venueCity;         // City name
+    private BigDecimal venueLatitude; // For geo-search
+    private BigDecimal venueLongitude;
 }
 

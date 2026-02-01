@@ -220,14 +220,19 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
         name: editForm.name, description: editForm.description, price: parseFloat(editForm.price) || 0,
         images: finalImages, highlights: editForm.highlights.filter((h: string) => h.trim()),
         includedItemsText: editForm.includedItemsText, excludedItemsText: editForm.excludedItemsText,
-        extraChargesDetailed: editForm.extraChargesDetailed.filter((ec: any) => ec.name.trim() && ec.price).map((ec: any) => ({ name: ec.name, price: parseFloat(ec.price) || 0 })),
+        // For updates: send extraChargesJson directly (entity expects JSON string)
+        extraChargesJson: JSON.stringify(
+          editForm.extraChargesDetailed
+            .filter((ec: any) => ec.name.trim() && ec.price)
+            .map((ec: any) => ({ name: ec.name, price: parseFloat(ec.price) || 0 }))
+        ),
         deliveryTime: editForm.deliveryTime, customNotes: editForm.customNotes,
         serviceMode: editForm.serviceMode, openForNegotiation: editForm.openForNegotiation, eventTypeIds: editForm.eventTypeIds,
         includedItemIds: validItemIds, // Only include valid item IDs
       };
       const response = await vendorApi.updateListing(listing.id, payload);
       if (response.success) {
-        queryClient.setQueryData(['vendorListingDetails', listingId], { ...listing, ...payload, extraChargesJson: JSON.stringify(payload.extraChargesDetailed || []) });
+        queryClient.setQueryData(['vendorListingDetails', listingId], { ...listing, ...payload });
         setPendingImageChanges(null); setIsEditMode(false); setEditForm(null);
         toast.success('Package updated!');
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
@@ -245,7 +250,7 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
     if (isTemplateBased) {
       const { getTemplateById } = await import('@/shared/constants/listingTemplates');
       const originalTemplate = templateId ? getTemplateById(templateId) : null;
-      if (originalTemplate && listing.name === originalTemplate.name) { toast.error('Please customize the listing name before publishing'); return; }
+      if (originalTemplate && listing.name === originalTemplate.name) { toast.error('Rename your service before publishing'); return; }
     }
     setIsPublishing(true);
     try {

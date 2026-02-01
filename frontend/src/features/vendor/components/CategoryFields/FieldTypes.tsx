@@ -298,3 +298,73 @@ export const RadioFieldInput: React.FC<FieldInputProps> = ({
     </div>
   );
 };
+
+// Time Picker Input - Compact with Hour and AM/PM dropdowns
+export const TimeFieldInput: React.FC<FieldInputProps> = ({
+  field, value, onChange, error
+}) => {
+  // Parse existing value like "10:00 AM" or "2:00 PM"
+  const parseTime = (timeStr: string | undefined) => {
+    if (!timeStr) return { hour: '', period: 'AM' };
+    const match = timeStr.match(/^(\d{1,2}):00\s*(AM|PM)$/i);
+    if (match) {
+      return { hour: match[1], period: match[2].toUpperCase() };
+    }
+    return { hour: '', period: 'AM' };
+  };
+
+  const { hour, period } = parseTime(value);
+
+  const handleHourChange = (newHour: string) => {
+    if (newHour) {
+      onChange(field.name, `${newHour}:00 ${period}`);
+    } else {
+      onChange(field.name, '');
+    }
+  };
+
+  const handlePeriodChange = (newPeriod: string) => {
+    if (hour) {
+      onChange(field.name, `${hour}:00 ${newPeriod}`);
+    }
+  };
+
+  // Generate hour options (1-12)
+  const hourOptions = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-[10px] font-medium">
+        {field.label}
+        {field.required && <span className="text-red-500 ml-0.5">*</span>}
+      </Label>
+      <div className="flex gap-1.5">
+        <Select value={hour} onValueChange={handleHourChange}>
+          <SelectTrigger className={`h-7 text-xs flex-1 ${error ? 'border-red-500' : ''}`}>
+            <SelectValue placeholder="Hour" />
+          </SelectTrigger>
+          <SelectContent>
+            {hourOptions.map((h) => (
+              <SelectItem key={h} value={h} className="text-xs">
+                {h}:00
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={period} onValueChange={handlePeriodChange} disabled={!hour}>
+          <SelectTrigger className={`h-7 text-xs w-20 ${error ? 'border-red-500' : ''}`}>
+            <SelectValue placeholder="AM/PM" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="AM" className="text-xs">AM</SelectItem>
+            <SelectItem value="PM" className="text-xs">PM</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {field.helpText && (
+        <p className="text-[9px] text-muted-foreground">{field.helpText}</p>
+      )}
+      {error && <p className="text-[9px] text-red-500">{error}</p>}
+    </div>
+  );
+};

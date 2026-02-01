@@ -356,7 +356,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           icon={Building2}
           label={data.venueType || 'Venue'}
           value={data.price}
-          sublabel={data.pricingType || 'Per Day'}
+          sublabel="Starting price"
         />
         <div className="space-y-2">
           <StatCard icon={Users} label="Seating Capacity" value={data.capacitySeating} highlight />
@@ -368,18 +368,58 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
 
       {/* Venue Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {data.numberOfHalls && data.numberOfHalls > 0 && (
+          <StatCard icon={Building2} label="Halls/Spaces" value={data.numberOfHalls} highlight />
+        )}
         {data.areaSquareFeet && (
           <StatCard icon={Layers} label="Area" value={data.areaSquareFeet} suffix="sq ft" />
         )}
         {data.parkingCapacity && (
           <StatCard icon={Car} label="Parking" value={data.parkingCapacity} suffix="vehicles" />
         )}
-        {data.timingStart && data.timingEnd && (
-          <div className="col-span-2">
-            <InfoBox icon={Clock} label="Available" value={`${data.timingStart} - ${data.timingEnd}`} variant="info" />
-          </div>
-        )}
       </div>
+
+      {/* Session Type */}
+      {data.venueSession && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200/50">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 rounded-lg bg-violet-100">
+              <Clock className="h-4 w-4 text-violet-600" />
+            </div>
+            <p className="text-sm font-semibold text-violet-800">Session Type</p>
+          </div>
+          <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-violet-700 border border-violet-200">
+            {data.venueSession}
+          </span>
+        </div>
+      )}
+
+      {/* Rooms/Accommodation */}
+      {data.roomsAvailable && data.roomsAvailable > 0 && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 rounded-lg bg-blue-100">
+              <Building2 className="h-4 w-4 text-blue-600" />
+            </div>
+            <p className="text-sm font-semibold text-blue-800">Accommodation</p>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+              {data.roomsAvailable} rooms
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.acRooms > 0 && (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-blue-700 border border-blue-200">
+                {data.acRooms} AC Rooms
+              </span>
+            )}
+            {data.nonAcRooms > 0 && (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-blue-700 border border-blue-200">
+                {data.nonAcRooms} Non-AC Rooms
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Amenities */}
       {data.amenities && (
@@ -392,10 +432,13 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
         {data.cateringPolicy && (
           <InfoRow icon={Utensils} label="Catering" value={data.cateringPolicy} />
         )}
+        {data.decorationPolicy && (
+          <InfoRow icon={Palette} label="Decoration" value={data.decorationPolicy} />
+        )}
         {data.alcoholPolicy && (
           <InfoRow icon={PartyPopper} label="Alcohol" value={data.alcoholPolicy} />
         )}
-        <FeaturePill icon={Clock} label="Overnight Events" value={data.overnightAllowed} />
+        <FeaturePill icon={Car} label="Valet Parking" value={data.valetParking} />
         {data.peakSeasonSurcharge > 0 && (
           <InfoBox icon={ArrowUpRight} label="Peak season" value={`+${data.peakSeasonSurcharge}%`} variant="warning" />
         )}

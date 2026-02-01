@@ -7,7 +7,8 @@ import {
   SelectFieldInput,
   MultiSelectFieldInput,
   CheckboxFieldInput,
-  RadioFieldInput
+  RadioFieldInput,
+  TimeFieldInput
 } from './FieldTypes';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -93,10 +94,16 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = ({
   console.log('🎨 CategoryFieldRenderer values:', { categoryId, values, config: config?.categoryId });
 
   const handleFieldChange = React.useCallback((fieldName: string, value: any) => {
-    onChange((prev: Record<string, any>) => ({
-      ...prev,
-      [fieldName]: value
-    }));
+    onChange((prev: Record<string, any>) => {
+      const updates: Record<string, any> = { [fieldName]: value };
+      
+      // Reset price when venue session changes (forces user to enter new price)
+      if (fieldName === 'venueSession' && value !== prev.venueSession) {
+        updates.price = '';
+      }
+      
+      return { ...prev, ...updates };
+    });
   }, [onChange]);
 
   // Check if field should be visible based on dependencies
@@ -142,6 +149,8 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = ({
         return <CheckboxFieldInput {...commonProps} />;
       case 'radio':
         return <RadioFieldInput {...commonProps} />;
+      case 'time':
+        return <TimeFieldInput {...commonProps} />;
       default:
         return null;
     }
