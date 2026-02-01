@@ -22,6 +22,7 @@ import { ImageCropModal } from './ImageCropModal';
 import { ImageViewer } from './ImageViewer';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
+import { validateImageFile } from '@/shared/utils/storage';
 
 interface ProfileImageUploadProps {
   imageUrl: string | null;
@@ -72,16 +73,16 @@ export const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    
+    // Always reset input so the same file can be selected again
+    e.target.value = '';
+    
     if (!file) return;
 
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image must be less than 10MB');
+    // Validate file using shared validation
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || 'Invalid file');
       return;
     }
 
@@ -92,9 +93,6 @@ export const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({
       setShowCropModal(true);
     };
     reader.readAsDataURL(file);
-
-    // Reset input
-    e.target.value = '';
   }, []);
 
   const handleCropComplete = useCallback((blob: Blob) => {

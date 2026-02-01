@@ -149,6 +149,11 @@ const initialFormData = {
   minimumQuantity: 1,
   customNotes: '', // New field for "Anything Else to Add"
   serviceMode: 'BOTH' as ServiceMode, // Location system
+  // Venue-specific location fields
+  venueAddress: '',
+  venueCity: '',
+  venueLatitude: null as number | null,
+  venueLongitude: null as number | null,
 };
 
 export default function VendorListings() {
@@ -477,6 +482,11 @@ export default function VendorListings() {
         minimumQuantity: editingListing.minimumQuantity || 1,
         customNotes: editingListing.customNotes || '',
         serviceMode: editingListing.serviceMode || 'BOTH',
+        // Venue-specific location fields
+        venueAddress: editingListing.venueAddress || '',
+        venueCity: editingListing.venueCity || '',
+        venueLatitude: editingListing.venueLatitude || null,
+        venueLongitude: editingListing.venueLongitude || null,
       });
       setCategorySpecificData(parsedCategorySpecificData);
       setListingType(editingListing.type || 'PACKAGE');
@@ -572,6 +582,12 @@ export default function VendorListings() {
       toast.error('Please add at least one image before publishing');
       return;
     }
+    
+    // Validate venue location is required for venue category
+    if (formData.categoryId === 'venue' && (!formData.venueLatitude || !formData.venueLongitude)) {
+      toast.error('Please set the venue location before publishing');
+      return;
+    }
 
     // Validate event types are valid for selected category (ITEMS only)
     if (listingType === 'ITEM' && formData.categoryId && formData.categoryId !== 'other' && eventTypeCategories.length > 0) {
@@ -664,13 +680,19 @@ export default function VendorListings() {
         highlights: formData.highlights.filter(h => h.trim()), // Remove empty highlights
         deliveryTime: formData.deliveryTime,
         customNotes: formData.customNotes || undefined,
-        // Include both formats for extra charges, filter empty ones
-        extraChargesDetailed: formData.extraChargesDetailed
-          .filter(ec => ec.name.trim() && ec.price)
-          .map(ec => ({
-            name: ec.name,
-            price: parseFloat(ec.price) || 0
-          })),
+        // For creates: send extraChargesDetailed (DTO converts to JSON)
+        // For updates: send extraChargesJson directly (entity expects JSON string)
+        ...(editingListing ? {
+          extraChargesJson: JSON.stringify(
+            formData.extraChargesDetailed
+              .filter(ec => ec.name.trim() && ec.price)
+              .map(ec => ({ name: ec.name, price: parseFloat(ec.price) || 0 }))
+          ),
+        } : {
+          extraChargesDetailed: formData.extraChargesDetailed
+            .filter(ec => ec.name.trim() && ec.price)
+            .map(ec => ({ name: ec.name, price: parseFloat(ec.price) || 0 })),
+        }),
         extraCharges: formData.extraCharges,
         isActive: true, // Published listings should be active/visible
         isDraft: false, // Published listings are not drafts
@@ -679,7 +701,15 @@ export default function VendorListings() {
         categorySpecificData: listingType === 'ITEM' && formData.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0
           ? (editingListing ? JSON.stringify(categorySpecificData) : categorySpecificData)
           : undefined,
-        serviceMode: formData.serviceMode, // Location system
+        // For venue category, always set to CUSTOMER_VISITS (customers come to venue)
+        serviceMode: formData.categoryId === 'venue' ? 'CUSTOMER_VISITS' : formData.serviceMode,
+        // Venue-specific location fields (only for venue category)
+        ...(formData.categoryId === 'venue' && {
+          venueAddress: formData.venueAddress || undefined,
+          venueCity: formData.venueCity || undefined,
+          venueLatitude: formData.venueLatitude || undefined,
+          venueLongitude: formData.venueLongitude || undefined,
+        }),
       };
 
       // Process pending image changes (upload new files, prepare final URLs)
@@ -1117,10 +1147,19 @@ export default function VendorListings() {
         highlights: formData.highlights.filter(h => h.trim()),
         deliveryTime: formData.deliveryTime,
         customNotes: formData.customNotes || undefined,
-        extraChargesDetailed: formData.extraChargesDetailed.filter(ec => ec.name.trim()).map(ec => ({
-          name: ec.name,
-          price: parseFloat(ec.price) || 0
-        })),
+        // For creates: send extraChargesDetailed (DTO converts to JSON)
+        // For updates: send extraChargesJson directly (entity expects JSON string)
+        ...(editingListing ? {
+          extraChargesJson: JSON.stringify(
+            formData.extraChargesDetailed
+              .filter(ec => ec.name.trim())
+              .map(ec => ({ name: ec.name, price: parseFloat(ec.price) || 0 }))
+          ),
+        } : {
+          extraChargesDetailed: formData.extraChargesDetailed
+            .filter(ec => ec.name.trim())
+            .map(ec => ({ name: ec.name, price: parseFloat(ec.price) || 0 })),
+        }),
         extraCharges: formData.extraCharges,
         isActive: false, // Drafts should NOT be visible to customers
         isDraft: true, // Mark as draft
@@ -1129,7 +1168,15 @@ export default function VendorListings() {
         categorySpecificData: formData.categoryId !== 'other' 
           ? (editingListing ? JSON.stringify(categorySpecificData) : categorySpecificData) 
           : undefined,
-        serviceMode: formData.serviceMode, // Location system
+        // For venue category, always set to CUSTOMER_VISITS (customers come to venue)
+        serviceMode: formData.categoryId === 'venue' ? 'CUSTOMER_VISITS' : formData.serviceMode,
+        // Venue-specific location fields (only for venue category)
+        ...(formData.categoryId === 'venue' && {
+          venueAddress: formData.venueAddress || undefined,
+          venueCity: formData.venueCity || undefined,
+          venueLatitude: formData.venueLatitude || undefined,
+          venueLongitude: formData.venueLongitude || undefined,
+        }),
       };
 
       // Include/exclude items are available for both packages and items
@@ -1331,7 +1378,23 @@ export default function VendorListings() {
             if (!open) closeModal();
             else setShowCreateModal(open);
           }}>
-            <DialogContent className="bg-card border-border max-w-3xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl p-6">
+            <DialogContent 
+              className="bg-card border-border max-w-3xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl p-6"
+              onPointerDownOutside={(e) => {
+                // Prevent dialog from closing when clicking on portaled dropdowns (like LocationAutocomplete)
+                const target = e.target as HTMLElement;
+                if (target.closest('[data-location-dropdown]')) {
+                  e.preventDefault();
+                }
+              }}
+              onInteractOutside={(e) => {
+                // Prevent dialog from closing when interacting with portaled dropdowns
+                const target = e.target as HTMLElement;
+                if (target.closest('[data-location-dropdown]')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle className="text-foreground text-lg sm:text-xl">
                   {editingListing ? 'Edit Listing' : listingType === 'PACKAGE' ? 'Create Package' : 'Create Service'}

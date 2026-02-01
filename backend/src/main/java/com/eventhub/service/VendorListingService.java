@@ -11,6 +11,8 @@ import com.eventhub.exception.ValidationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class VendorListingService {
     
+    private static final Logger logger = LoggerFactory.getLogger(VendorListingService.class);
+    
     private final ListingRepository listingRepository;
     private final VendorRepository vendorRepository;
     private final CategoryRepository categoryRepository;
@@ -32,6 +36,7 @@ public class VendorListingService {
     private final OrderRepository orderRepository;
     private final PackageItemRepository packageItemRepository;
     private final ObjectMapper objectMapper;
+    private final ImageUploadService imageUploadService;
     
     /**
      * Create package listing
@@ -132,6 +137,14 @@ public class VendorListingService {
             }
         }
         
+        // Set venue location fields (only for venue category)
+        if ("venue".equalsIgnoreCase(request.getCategoryId())) {
+            listing.setVenueAddress(request.getVenueAddress());
+            listing.setVenueCity(request.getVenueCity());
+            listing.setVenueLatitude(request.getVenueLatitude());
+            listing.setVenueLongitude(request.getVenueLongitude());
+        }
+        
         // Set event types
         List<EventType> eventTypes = request.getEventTypeIds().stream()
                 .map(id -> eventTypeRepository.findById(id)
@@ -228,6 +241,14 @@ public class VendorListingService {
                 // Log error but don't fail the request
                 System.err.println("Failed to serialize category-specific data: " + e.getMessage());
             }
+        }
+        
+        // Set venue location fields (only for venue category)
+        if ("venue".equalsIgnoreCase(request.getCategoryId())) {
+            listing.setVenueAddress(request.getVenueAddress());
+            listing.setVenueCity(request.getVenueCity());
+            listing.setVenueLatitude(request.getVenueLatitude());
+            listing.setVenueLongitude(request.getVenueLongitude());
         }
         
         // Set event types
@@ -337,7 +358,22 @@ public class VendorListingService {
             listing.setServiceMode(updatedListing.getServiceMode());
         }
         
-        // Event types - update if provided
+        // Venue location fields (only for venue category)
+        if (listing.getListingCategory() != null && "venue".equalsIgnoreCase(listing.getListingCategory().getId())) {
+            if (updatedListing.getVenueAddress() != null) {
+                listing.setVenueAddress(updatedListing.getVenueAddress());
+            }
+            if (updatedListing.getVenueCity() != null) {
+                listing.setVenueCity(updatedListing.getVenueCity());
+            }
+            if (updatedListing.getVenueLatitude() != null) {
+                listing.setVenueLatitude(updatedListing.getVenueLatitude());
+            }
+            if (updatedListing.getVenueLongitude() != null) {
+                listing.setVenueLongitude(updatedListing.getVenueLongitude());
+            }
+        }
+                // Event types - update if provided
         if (updatedListing.getEventTypeIds() != null && !updatedListing.getEventTypeIds().isEmpty()) {
             System.out.println("📝 Updating event types to: " + updatedListing.getEventTypeIds());
             List<EventType> eventTypes = updatedListing.getEventTypeIds().stream()
@@ -462,7 +498,7 @@ public class VendorListingService {
         // If there are ANY orders referencing this listing, we MUST soft delete
         // Database constraint prevents hard delete
         if (hasAnyOrders) {
-            // Soft delete - mark as inactive
+            // Soft delete - mark as inactive (keep images for order history)
             listing.setIsActive(false);
             listingRepository.save(listing);
             return;
@@ -476,11 +512,37 @@ public class VendorListingService {
                 List<PackageItem> packageItems = packageItemRepository.findByItemListing(listing);
                 packageItemRepository.deleteAll(packageItems);
             }
+            
+            // Clean up images from R2/CDN
+            deleteListingImages(listing);
+            
             listingRepository.delete(listing);
         } else {
-            // Soft delete - mark as inactive
+            // Soft delete - mark as inactive (keep images)
             listing.setIsActive(false);
             listingRepository.save(listing);
+        }
+    }
+    
+    /**
+     * Delete all images associated with a listing from R2/CDN
+     */
+    private void deleteListingImages(Listing listing) {
+        List<String> images = listing.getImages();
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+        
+        logger.info("Cleaning up {} images for listing {}", images.size(), listing.getId());
+        
+        for (String imageUrl : images) {
+            try {
+                imageUploadService.deleteImage(imageUrl);
+            } catch (Exception e) {
+                // Log but don't fail the delete operation
+                logger.warn("Failed to delete image {} for listing {}: {}", 
+                    imageUrl, listing.getId(), e.getMessage());
+            }
         }
     }
     

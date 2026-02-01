@@ -14,6 +14,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       richColors={true}
       closeButton={true}
       duration={4000}
+      visibleToasts={5}
       className="toaster group"
       toastOptions={{
         classNames: {

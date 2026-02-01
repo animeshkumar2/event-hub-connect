@@ -561,8 +561,8 @@ export default function ListingDetail() {
                   </div>
                   <CardContent className="p-5">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {/* Delivery Time */}
-                      {listing.deliveryTime && (
+                      {/* Delivery Time - Hide for DJ and Venue categories */}
+                      {listing.categoryId !== 'dj-entertainment' && listing.categoryId !== 'venue' && listing.deliveryTime && (
                         <div className="group p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 hover:shadow-md transition-all">
                           <div className="inline-flex p-2 rounded-lg bg-blue-100 mb-2 group-hover:scale-110 transition-transform">
                             <Star className="h-4 w-4 text-blue-600" />
@@ -572,8 +572,8 @@ export default function ListingDetail() {
                         </div>
                       )}
                       
-                      {/* Service Mode */}
-                      {listing.serviceMode && (
+                      {/* Service Mode - Hide for venue category */}
+                      {listing.categoryId !== 'venue' && listing.serviceMode && (
                         <div className="group p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200/60 hover:shadow-md transition-all">
                           <div className="inline-flex p-2 rounded-lg bg-violet-100 mb-2 group-hover:scale-110 transition-transform">
                             <MapPin className="h-4 w-4 text-violet-600" />
@@ -635,6 +635,20 @@ export default function ListingDetail() {
                           </div>
                           <p className="text-xs font-medium text-rose-600/80 uppercase tracking-wide">Min. Qty</p>
                           <p className="text-sm font-bold text-rose-900 mt-0.5">{listing.minimumQuantity}</p>
+                        </div>
+                      )}
+                      
+                      {/* Venue Location - Only for venue category */}
+                      {listing.categoryId === 'venue' && listing.venueAddress && (
+                        <div className="group p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/60 hover:shadow-md transition-all col-span-2 sm:col-span-3">
+                          <div className="inline-flex p-2 rounded-lg bg-emerald-100 mb-2 group-hover:scale-110 transition-transform">
+                            <MapPin className="h-4 w-4 text-emerald-600" />
+                          </div>
+                          <p className="text-xs font-medium text-emerald-600/80 uppercase tracking-wide">Venue Location</p>
+                          <p className="text-sm font-bold text-emerald-900 mt-0.5">{listing.venueAddress}</p>
+                          {listing.venueCity && (
+                            <p className="text-xs text-emerald-700 mt-0.5">{listing.venueCity}</p>
+                          )}
                         </div>
                       )}
                     </div>

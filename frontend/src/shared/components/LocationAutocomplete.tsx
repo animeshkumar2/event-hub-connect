@@ -60,9 +60,10 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   useEffect(() => {
     if (showDropdown && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
+      // Use viewport coordinates for fixed positioning
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 4,
+        left: rect.left,
         width: rect.width,
       });
     }
@@ -85,14 +86,15 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close dropdown on scroll
+  // Update dropdown position on scroll (for fixed positioning)
   useEffect(() => {
     const handleScroll = () => {
       if (showDropdown && containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
+        // Use viewport coordinates for fixed positioning
         setDropdownPosition({
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX,
+          top: rect.bottom + 4,
+          left: rect.left,
           width: rect.width,
         });
       }
@@ -275,12 +277,14 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       {showDropdown && suggestions.length > 0 && createPortal(
         <div
           ref={dropdownRef}
+          data-location-dropdown="true"
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
-            zIndex: 9999,
+            zIndex: 99999,
+            pointerEvents: 'auto',
           }}
           className="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
         >
@@ -295,14 +299,28 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           {/* Scrollable list */}
           <div className="max-h-72 overflow-y-auto overscroll-contain">
             {suggestions.map((suggestion, index) => (
-              <button
+              <div
                 key={`${suggestion.latitude}-${suggestion.longitude}-${index}`}
-                type="button"
-                onClick={() => handleSelectSuggestion(suggestion)}
+                role="button"
+                tabIndex={0}
+                onMouseDown={(e) => {
+                  // Stop propagation to prevent dialog from intercepting
+                  e.stopPropagation();
+                }}
+                onClick={() => {
+                  console.log('📍 Location selected:', suggestion.shortName);
+                  handleSelectSuggestion(suggestion);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelectSuggestion(suggestion);
+                  }
+                }}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={`
                   w-full px-4 py-3.5 text-left flex items-start gap-3
-                  transition-colors duration-150
+                  transition-colors duration-150 cursor-pointer
                   ${highlightedIndex === index ? 'bg-rose-50' : 'hover:bg-gray-50'}
                   ${index !== suggestions.length - 1 ? 'border-b border-gray-100' : ''}
                 `}
@@ -321,7 +339,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
                     {suggestion.displayName}
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
           
@@ -338,12 +356,13 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       {/* No results message */}
       {showDropdown && suggestions.length === 0 && inputValue.length >= 2 && !isLoading && createPortal(
         <div
+          data-location-dropdown="true"
           style={{
-            position: 'absolute',
+            position: 'fixed',
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
-            zIndex: 9999,
+            zIndex: 99999,
           }}
           className="bg-white border border-gray-200 rounded-xl shadow-2xl p-4 text-center"
         >

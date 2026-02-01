@@ -4,7 +4,7 @@
 export interface FieldSchema {
   name: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'checkbox' | 'radio';
+  type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'checkbox' | 'radio' | 'time';
   required: boolean;
   placeholder?: string;
   helpText?: string;
@@ -247,7 +247,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
 
   'venue': {
     categoryId: 'venue',
-    pricingModel: 'per_day',
+    pricingModel: 'per_session',
     showPackageDetails: true,
     fields: [
       {
@@ -258,12 +258,12 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         options: ['Banquet Hall', 'Lawn/Garden', 'Farmhouse', 'Hotel', 'Resort', 'Terrace', 'Beach', 'Heritage Property', 'Other']
       },
       {
-        name: 'pricingType',
-        label: 'Pricing Type',
-        type: 'radio',
+        name: 'venueSession',
+        label: 'Session Type',
+        type: 'select',
         required: true,
-        options: ['Per Day', 'Per Hour'],
-        defaultValue: 'Per Day'
+        options: ['Morning-Lunch (6 AM - 3 PM)', 'Evening-Dinner (4 PM - 12 AM)', 'Full Day'],
+        helpText: 'Which session is this listing for?'
       },
       {
         name: 'price',
@@ -272,8 +272,15 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         required: true,
         unit: '₹',
         min: 1000,
-        helpText: 'Your base price for this listing',
-        fullWidth: false
+        helpText: 'Price for this session'
+      },
+      {
+        name: 'numberOfHalls',
+        label: 'Number of Halls/Spaces',
+        type: 'number',
+        required: false,
+        min: 1,
+        helpText: 'Total halls or event spaces'
       },
       {
         name: 'capacitySeating',
@@ -281,7 +288,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         type: 'number',
         required: true,
         min: 10,
-        helpText: 'Maximum guests with seating arrangement'
+        helpText: 'Max guests with seating'
       },
       {
         name: 'capacityStanding',
@@ -289,30 +296,59 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         type: 'number',
         required: false,
         min: 10,
-        helpText: 'Maximum guests for cocktail/standing events'
+        helpText: 'Max guests for cocktail events'
       },
       {
         name: 'areaSquareFeet',
-        label: 'Area',
+        label: 'Area (sq ft)',
         type: 'number',
         required: false,
         min: 100,
         unit: 'sq ft'
       },
       {
+        name: 'roomsAvailable',
+        label: 'Rooms Available',
+        type: 'number',
+        required: false,
+        min: 0,
+        helpText: 'Total rooms for accommodation'
+      },
+      {
+        name: 'acRooms',
+        label: 'AC Rooms',
+        type: 'number',
+        required: false,
+        min: 0,
+        dependsOn: 'roomsAvailable'
+      },
+      {
+        name: 'nonAcRooms',
+        label: 'Non-AC Rooms',
+        type: 'number',
+        required: false,
+        min: 0,
+        dependsOn: 'roomsAvailable'
+      },
+      {
         name: 'parkingCapacity',
-        label: 'Parking Capacity (Vehicles)',
+        label: 'Parking (Vehicles)',
         type: 'number',
         required: false,
         min: 0
+      },
+      {
+        name: 'valetParking',
+        label: 'Valet Parking Available',
+        type: 'checkbox',
+        required: false
       },
       {
         name: 'amenities',
         label: 'Amenities Included',
         type: 'multiselect',
         required: false,
-        options: ['Air Conditioning', 'Parking', 'Valet Parking', 'Power Backup', 'Restrooms', 'Green Room', 'Stage', 'Dance Floor', 'WiFi', 'Sound System', 'Projector'],
-        placeholder: 'e.g., Elevator, Wheelchair Access',
+        options: ['Air Conditioning', 'Parking', 'Power Backup', 'Restrooms', 'Green Room', 'Stage', 'Dance Floor', 'WiFi', 'Sound System', 'Projector', 'Swimming Pool', 'Elevator', 'Wheelchair Access'],
         fullWidth: true
       },
       {
@@ -323,33 +359,19 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         options: ['In-house Only', 'Outside Allowed', 'Both Options Available']
       },
       {
+        name: 'decorationPolicy',
+        label: 'Decoration Policy',
+        type: 'select',
+        required: false,
+        options: ['In-house Only', 'Outside Decorators Allowed', 'Both Options Available'],
+        helpText: 'Can customers bring own decorators?'
+      },
+      {
         name: 'alcoholPolicy',
         label: 'Alcohol Policy',
         type: 'select',
         required: true,
         options: ['Allowed', 'Not Allowed', 'Allowed with License']
-      },
-      {
-        name: 'timingStart',
-        label: 'Available From (Time)',
-        type: 'text',
-        required: false,
-        placeholder: 'e.g., 09:00 AM',
-        helpText: 'Earliest booking time'
-      },
-      {
-        name: 'timingEnd',
-        label: 'Available Until (Time)',
-        type: 'text',
-        required: false,
-        placeholder: 'e.g., 02:00 AM',
-        helpText: 'Latest event end time'
-      },
-      {
-        name: 'overnightAllowed',
-        label: 'Overnight Events Allowed',
-        type: 'checkbox',
-        required: false
       },
       {
         name: 'peakSeasonSurcharge',
@@ -359,7 +381,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         min: 0,
         max: 100,
         unit: '%',
-        helpText: 'Additional charge during peak season'
+        helpText: 'Extra charge during peak season'
       }
     ]
   },

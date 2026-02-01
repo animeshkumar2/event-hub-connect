@@ -27,6 +27,7 @@ import { CategorySpecificDisplay } from '@/features/listing/CategorySpecificDisp
 import { CategoryFieldRenderer } from '@/features/vendor/components/CategoryFields';
 import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInput';
 import { ServiceModeSelector } from '@/shared/components/ServiceModeSelector';
+import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
 import { VendorPackagePreview } from './VendorPackagePreview';
 
 interface ExtraCharge { name: string; price: number; }
@@ -230,6 +231,11 @@ export default function ListingPreview() {
       extraChargesDetailed, deliveryTime: listing.deliveryTime || '', customNotes: listing.customNotes || '',
       serviceMode: listing.serviceMode || 'BOTH', openForNegotiation: listing.openForNegotiation || false,
       eventTypeIds, minimumQuantity: listing.minimumQuantity || 0,
+      // Venue location fields
+      venueAddress: listing.venueAddress || '',
+      venueCity: listing.venueCity || '',
+      venueLatitude: listing.venueLatitude || null,
+      venueLongitude: listing.venueLongitude || null,
     });
     setCategorySpecificData(parsedCategoryData);
     setIsEditMode(true);
@@ -294,6 +300,12 @@ export default function ListingPreview() {
       hasPrice = categoryData?.price && parseFloat(categoryData.price) > 0;
     }
     requirements.push({ id: 'price', label: 'Pricing details', met: hasPrice });
+    
+    // 4. Venue location is required for venue category
+    if (catId === 'venue') {
+      const hasVenueLocation = !!(data?.venueLatitude && data?.venueLongitude);
+      requirements.push({ id: 'venueLocation', label: 'Venue location', met: hasVenueLocation });
+    }
     
     return requirements;
   }, [pendingImageChanges]);
@@ -379,14 +391,28 @@ export default function ListingPreview() {
         name: editForm.name, description: editForm.description, price: parseFloat(finalPrice) || 0,
         images: finalImages, highlights: editForm.highlights.filter((h: string) => h.trim()),
         includedItemsText: editForm.includedItemsText, excludedItemsText: editForm.excludedItemsText,
-        extraChargesDetailed: editForm.extraChargesDetailed.filter((ec: any) => ec.name.trim() && ec.price).map((ec: any) => ({ name: ec.name, price: parseFloat(ec.price) || 0 })),
+        // For updates: send extraChargesJson directly (entity expects JSON string)
+        extraChargesJson: JSON.stringify(
+          editForm.extraChargesDetailed
+            .filter((ec: any) => ec.name.trim() && ec.price)
+            .map((ec: any) => ({ name: ec.name, price: parseFloat(ec.price) || 0 }))
+        ),
         deliveryTime: editForm.deliveryTime, customNotes: editForm.customNotes,
-        serviceMode: editForm.serviceMode, openForNegotiation: editForm.openForNegotiation,
+        // For venue category, always set to CUSTOMER_VISITS (customers come to venue)
+        serviceMode: listing.categoryId === 'venue' ? 'CUSTOMER_VISITS' : editForm.serviceMode, 
+        openForNegotiation: editForm.openForNegotiation,
         eventTypeIds: editForm.eventTypeIds,
         minimumQuantity: listing.categoryId === 'caterer' ? (editForm.minimumQuantity || 0) : undefined,
         categorySpecificData: isItem && listing.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0 ? JSON.stringify(categorySpecificData) : undefined,
         // Explicitly preserve draft status - don't accidentally publish
         isDraft: listing.isDraft,
+        // Venue location fields (only for venue category)
+        ...(listing.categoryId === 'venue' && {
+          venueAddress: editForm.venueAddress || undefined,
+          venueCity: editForm.venueCity || undefined,
+          venueLatitude: editForm.venueLatitude || undefined,
+          venueLongitude: editForm.venueLongitude || undefined,
+        }),
       };
       
       console.log('💾 Saving listing payload:', { 
@@ -401,7 +427,6 @@ export default function ListingPreview() {
         const updatedListing = {
           ...listing,
           ...payload,
-          extraChargesJson: JSON.stringify(payload.extraChargesDetailed || []),
         };
         queryClient.setQueryData(['vendorListingDetails', listingId], updatedListing);
         
@@ -515,7 +540,7 @@ export default function ListingPreview() {
       const { getTemplateById } = await import('@/shared/constants/listingTemplates');
       const originalTemplate = templateId ? getTemplateById(templateId) : null;
       if (originalTemplate && listing.name === originalTemplate.name) {
-        toast.error('Please customize the listing name before publishing');
+        toast.error('Rename your service before publishing');
         return;
       }
     }
@@ -1131,8 +1156,8 @@ export default function ListingPreview() {
                   <CardContent className="p-3">
                     {isEditMode ? (
                       <div className="space-y-3">
-                        {/* Delivery Time Section - Hide for DJ category */}
-                        {listing.categoryId !== 'dj-entertainment' && (
+                        {/* Delivery Time Section - Hide for DJ and Venue categories */}
+                        {listing.categoryId !== 'dj-entertainment' && listing.categoryId !== 'venue' && (
                           <>
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5">
@@ -1148,18 +1173,22 @@ export default function ListingPreview() {
                           </>
                         )}
 
-                        {/* Service Mode Section */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-1.5">
-                            <div className="p-1 rounded bg-violet-100">
-                              <MapPin className="h-3 w-3 text-violet-600" />
+                        {/* Service Mode Section - Hide for venue category (customers always come to venue) */}
+                        {listing.categoryId !== 'venue' && (
+                          <>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-violet-100">
+                                  <MapPin className="h-3 w-3 text-violet-600" />
+                                </div>
+                                <Label className="text-xs font-medium text-slate-700">Service Mode</Label>
+                              </div>
+                              <ServiceModeSelector value={editForm?.serviceMode || 'BOTH'} onChange={(v) => setEditForm((p: any) => ({ ...p, serviceMode: v }))} label="" />
                             </div>
-                            <Label className="text-xs font-medium text-slate-700">Service Mode</Label>
-                          </div>
-                          <ServiceModeSelector value={editForm?.serviceMode || 'BOTH'} onChange={(v) => setEditForm((p: any) => ({ ...p, serviceMode: v }))} label="" />
-                        </div>
 
-                        <div className="h-px bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
+                            <div className="h-px bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
+                          </>
+                        )}
 
                         {/* Negotiation Toggle */}
                         <div 
@@ -1221,11 +1250,73 @@ export default function ListingPreview() {
                             </div>
                           </>
                         )}
+
+                        {/* Venue Location - Only for venue category */}
+                        {listing.categoryId === 'venue' && (
+                          <>
+                            <div className="h-px bg-gradient-to-r from-slate-200 via-slate-100 to-transparent" />
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-emerald-100">
+                                  <MapPin className="h-3 w-3 text-emerald-600" />
+                                </div>
+                                <Label className="text-xs font-medium text-slate-700">Venue Location <span className="text-red-500">*</span></Label>
+                              </div>
+                              <p className="text-[10px] text-slate-500 mb-2">
+                                Enter the exact location of this venue to help customers find you
+                              </p>
+                              <LocationAutocomplete
+                                value={editForm?.venueLatitude && editForm?.venueLongitude ? {
+                                  name: editForm.venueAddress || '',
+                                  latitude: editForm.venueLatitude,
+                                  longitude: editForm.venueLongitude,
+                                } : null}
+                                onChange={(location: LocationDTO | null) => {
+                                  if (location) {
+                                    const parts = location.name.split(',').map(p => p.trim());
+                                    const city = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+                                    setEditForm((p: any) => ({
+                                      ...p,
+                                      venueAddress: location.name,
+                                      venueCity: city,
+                                      venueLatitude: location.latitude,
+                                      venueLongitude: location.longitude,
+                                    }));
+                                  } else {
+                                    setEditForm((p: any) => ({
+                                      ...p,
+                                      venueAddress: '',
+                                      venueCity: '',
+                                      venueLatitude: null,
+                                      venueLongitude: null,
+                                    }));
+                                  }
+                                }}
+                                placeholder="Search venue address..."
+                                required
+                                bangaloreOnly={true}
+                              />
+                              {editForm?.venueAddress && (
+                                <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                                  <p className="text-xs text-green-700">
+                                    ✓ Location set: {editForm.venueAddress}
+                                  </p>
+                                </div>
+                              )}
+                              {!editForm?.venueLatitude && (
+                                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Venue location is required for publishing
+                                </p>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Delivery Time Card - Hide for DJ category */}
-                        {listing.categoryId !== 'dj-entertainment' && listing.deliveryTime && (() => {
+                        {/* Delivery Time Card - Hide for DJ and Venue categories */}
+                        {listing.categoryId !== 'dj-entertainment' && listing.categoryId !== 'venue' && listing.deliveryTime && (() => {
                           const delivery = formatDeliveryTime(listing.deliveryTime);
                           return (
                             <div className="rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 p-3">
@@ -1240,8 +1331,8 @@ export default function ListingPreview() {
                           );
                         })()}
                         
-                        {/* Service Mode Card */}
-                        {listing.serviceMode && (() => {
+                        {/* Service Mode Card - Hide for venue category */}
+                        {listing.categoryId !== 'venue' && listing.serviceMode && (() => {
                           const mode = getServiceModeWithDescription(listing.serviceMode);
                           const modeIcons = {
                             'CUSTOMER_VISITS': MapPin,
@@ -1302,6 +1393,22 @@ export default function ListingPreview() {
                               <p className="text-[10px] font-medium text-amber-600/80 uppercase">Min Order</p>
                             </div>
                             <p className="text-xs font-bold text-amber-900">{listing.minimumQuantity} plates</p>
+                          </div>
+                        )}
+
+                        {/* Venue Location - Only for venue category */}
+                        {listing.categoryId === 'venue' && listing.venueAddress && (
+                          <div className="col-span-2 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/60 p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="p-1 rounded bg-emerald-100">
+                                <MapPin className="h-3 w-3 text-emerald-600" />
+                              </div>
+                              <p className="text-[10px] font-medium text-emerald-600/80 uppercase">Venue Location</p>
+                            </div>
+                            <p className="text-xs font-bold text-emerald-900">{listing.venueAddress}</p>
+                            {listing.venueCity && (
+                              <p className="text-[10px] text-emerald-700 mt-0.5">{listing.venueCity}</p>
+                            )}
                           </div>
                         )}
                       </div>

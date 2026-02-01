@@ -107,9 +107,13 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
       if (!props.formData.eventTypeIds || props.formData.eventTypeIds.length === 0) {
         errors.push('Select at least one event type');
       }
+      // Venue location is required for venue category
+      if (props.formData.categoryId === 'venue' && (!props.formData.venueLatitude || !props.formData.venueLongitude)) {
+        errors.push('Venue location is required');
+      }
     }
     return errors;
-  }, [props.formData.name, props.formData.categoryId, props.formData.customCategoryName, props.formData.eventTypeIds, props.listingType]);
+  }, [props.formData.name, props.formData.categoryId, props.formData.customCategoryName, props.formData.eventTypeIds, props.formData.venueLatitude, props.formData.venueLongitude, props.listingType]);
 
   const getStep2Errors = React.useCallback((): string[] => {
     const errors: string[] = [];
@@ -122,8 +126,8 @@ export const ListingFormWizard = React.memo(function ListingFormWizard(props: Li
     }
     
     // For ITEM type
-    // Delivery time not required for DJ category
-    if (props.formData.categoryId !== 'dj-entertainment' && !props.formData.deliveryTime?.trim()) {
+    // Delivery time not required for DJ and Venue categories
+    if (props.formData.categoryId !== 'dj-entertainment' && props.formData.categoryId !== 'venue' && !props.formData.deliveryTime?.trim()) {
       errors.push('Delivery time is required');
     }
     

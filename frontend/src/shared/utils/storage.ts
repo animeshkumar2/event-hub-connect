@@ -223,7 +223,17 @@ const ALLOWED_IMAGE_TYPES = [
 ];
 
 /**
- * Validate image file
+ * Max file size before compression (25MB)
+ */
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+/**
+ * Target size after compression (~2MB for good quality)
+ */
+const TARGET_COMPRESSED_SIZE = 2 * 1024 * 1024;
+
+/**
+ * Validate image file (before compression)
  */
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
   // Check file type
@@ -241,13 +251,96 @@ export const validateImageFile = (file: File): { valid: boolean; error?: string 
     return { valid: false, error: 'Unsupported image format. Use JPG, PNG, WebP, or GIF.' };
   }
 
-  // Check file size (5MB limit - backend will compress)
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  if (file.size > maxSize) {
-    return { valid: false, error: 'Image must be less than 5MB' };
+  // Check file size (25MB limit - will be compressed)
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: 'Image must be less than 25MB' };
   }
 
   return { valid: true };
+};
+
+/**
+ * Compress an image file using Canvas API
+ * Returns compressed file if original > 2MB, otherwise returns original
+ */
+export const compressImage = async (
+  file: File,
+  maxWidth: number = 2048,
+  maxHeight: number = 2048,
+  quality: number = 0.85
+): Promise<File> => {
+  // Skip compression for small files or GIFs (to preserve animation)
+  if (file.size <= TARGET_COMPRESSED_SIZE || file.type === 'image/gif') {
+    return file;
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    img.onload = () => {
+      try {
+        // Calculate new dimensions maintaining aspect ratio
+        let { width, height } = img;
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw image on canvas
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Convert to blob with compression
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to compress image'));
+              return;
+            }
+
+            // Create new file with original name
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.[^.]+$/, '.jpg'), // Convert to jpg
+              { type: 'image/jpeg' }
+            );
+
+            console.log(`🗜️ Compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error('Failed to load image for compression'));
+    };
+
+    // Load image from file
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+/**
+ * Compress multiple images
+ */
+export const compressImages = async (files: File[]): Promise<File[]> => {
+  const compressed: File[] = [];
+  for (const file of files) {
+    const result = await compressImage(file);
+    compressed.push(result);
+  }
+  return compressed;
 };
 
 // Legacy exports for backward compatibility

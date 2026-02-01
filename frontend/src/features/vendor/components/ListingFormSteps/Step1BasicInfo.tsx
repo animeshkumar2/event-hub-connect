@@ -3,7 +3,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Badge } from '@/shared/components/ui/badge';
-import { Package, Box, LucideIcon } from 'lucide-react';
+import { Package, Box, LucideIcon, MapPin } from 'lucide-react';
+import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
 
 interface CoreCategory {
   id: string;
@@ -191,6 +192,61 @@ export function ListingFormStep1({
               </div>
             )}
           </div>
+
+          {/* Venue Location - Only for venue category */}
+          {formData.categoryId === 'venue' && (
+            <div className="space-y-4 p-4 border border-primary/30 rounded-lg bg-primary/5">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <Label className="text-foreground font-medium">Venue Location *</Label>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Enter the exact location of this venue. This helps customers find venues near them.
+              </p>
+              
+              <LocationAutocomplete
+                value={formData.venueLatitude && formData.venueLongitude ? {
+                  name: formData.venueAddress || '',
+                  latitude: formData.venueLatitude,
+                  longitude: formData.venueLongitude,
+                } : null}
+                onChange={(location: LocationDTO | null) => {
+                  if (location) {
+                    // Extract city from the location name (usually last part before country)
+                    const parts = location.name.split(',').map(p => p.trim());
+                    const city = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+                    
+                    setFormData({
+                      ...formData,
+                      venueAddress: location.name,
+                      venueCity: city,
+                      venueLatitude: location.latitude,
+                      venueLongitude: location.longitude,
+                    });
+                  } else {
+                    setFormData({
+                      ...formData,
+                      venueAddress: '',
+                      venueCity: '',
+                      venueLatitude: null,
+                      venueLongitude: null,
+                    });
+                  }
+                }}
+                placeholder="Search venue address..."
+                required
+                bangaloreOnly={true}
+              />
+              
+              {formData.venueAddress && (
+                <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    ✓ Location set: {formData.venueAddress}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-foreground">Event Types *</Label>
