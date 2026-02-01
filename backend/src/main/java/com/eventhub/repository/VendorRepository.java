@@ -94,31 +94,28 @@ public interface VendorRepository extends JpaRepository<Vendor, UUID> {
            nativeQuery = true)
     List<Object[]> getVendorsByCityNative();
     
-    // Optimized query for admin vendor list - using native query to avoid type casting issues
-    // Native query properly handles null search parameter and type casting
-    @Query(value = "SELECT DISTINCT v.* FROM vendors v " +
-           "LEFT JOIN categories vc ON vc.id = v.vendor_category_id " +
-           "WHERE (:search IS NULL OR CAST(v.business_name AS TEXT) ILIKE '%' || CAST(:search AS TEXT) || '%') " +
-           "AND (:category IS NULL OR v.vendor_category_id = :category) " +
-           "AND (:city IS NULL OR v.city_name = :city) " +
-           "AND (:isVerified IS NULL OR v.is_verified = :isVerified) " +
-           "AND (:isActive IS NULL OR v.is_active = :isActive) " +
-           "ORDER BY v.created_at DESC",
-           countQuery = "SELECT COUNT(DISTINCT v.id) FROM vendors v " +
-           "LEFT JOIN categories vc ON vc.id = v.vendor_category_id " +
-           "WHERE (:search IS NULL OR CAST(v.business_name AS TEXT) ILIKE '%' || CAST(:search AS TEXT) || '%') " +
-           "AND (:category IS NULL OR v.vendor_category_id = :category) " +
-           "AND (:city IS NULL OR v.city_name = :city) " +
-           "AND (:isVerified IS NULL OR v.is_verified = :isVerified) " +
-           "AND (:isActive IS NULL OR v.is_active = :isActive)",
-           nativeQuery = true)
-    org.springframework.data.domain.Page<Vendor> findAllWithFilters(
-        @Param("search") String search,
+    // Simple query for admin vendor list - no search filter to avoid bytea casting issues
+    // Search filtering will be done in the service layer if needed
+    @Query("SELECT DISTINCT v FROM Vendor v " +
+           "LEFT JOIN FETCH v.vendorCategory " +
+           "LEFT JOIN FETCH v.city " +
+           "WHERE (:category IS NULL OR v.vendorCategory.id = :category) " +
+           "AND (:city IS NULL OR v.cityName = :city) " +
+           "AND (:isVerified IS NULL OR v.isVerified = :isVerified) " +
+           "AND (:isActive IS NULL OR v.isActive = :isActive) " +
+           "ORDER BY v.createdAt DESC")
+    List<Vendor> findAllWithFiltersNoSearch(
         @Param("category") String category,
         @Param("city") String city,
         @Param("isVerified") Boolean isVerified,
-        @Param("isActive") Boolean isActive,
-        org.springframework.data.domain.Pageable pageable
+        @Param("isActive") Boolean isActive
     );
+    
+    // Full query with JOIN FETCH for eager loading - no pagination due to Hibernate limitation
+    @Query("SELECT DISTINCT v FROM Vendor v " +
+           "LEFT JOIN FETCH v.vendorCategory " +
+           "LEFT JOIN FETCH v.city " +
+           "ORDER BY v.createdAt DESC")
+    List<Vendor> findAllWithEagerLoading();
 }
 

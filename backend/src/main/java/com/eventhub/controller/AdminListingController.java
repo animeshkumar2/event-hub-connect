@@ -1,7 +1,9 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.model.EventType;
 import com.eventhub.model.Listing;
+import com.eventhub.repository.EventTypeRepository;
 import com.eventhub.repository.ListingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 public class AdminListingController {
     
     private final ListingRepository listingRepository;
+    private final EventTypeRepository eventTypeRepository;
     
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Listing>>> getAllListings(
@@ -84,9 +87,61 @@ public class AdminListingController {
     
     @GetMapping("/{listingId}")
     public ResponseEntity<ApiResponse<Listing>> getListing(@PathVariable UUID listingId) {
-        Listing listing = listingRepository.findById(listingId)
+        // Use eager loading query to avoid LazyInitializationException
+        Listing listing = listingRepository.findByIdWithVendorAndCategory(listingId)
                 .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Listing not found"));
+        
+        // Populate eventTypeIds for JSON serialization
+        if (listing.getEventTypes() != null) {
+            List<Integer> eventTypeIds = listing.getEventTypes().stream()
+                    .map(EventType::getId)
+                    .toList();
+            listing.setEventTypeIds(eventTypeIds);
+        }
+        
         return ResponseEntity.ok(ApiResponse.success(listing));
+    }
+    
+    @PutMapping("/{listingId}")
+    public ResponseEntity<ApiResponse<Listing>> updateListing(
+            @PathVariable UUID listingId,
+            @RequestBody Listing listingUpdate) {
+        Listing existing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Listing not found"));
+        
+        // Update all editable fields
+        if (listingUpdate.getName() != null) existing.setName(listingUpdate.getName());
+        if (listingUpdate.getDescription() != null) existing.setDescription(listingUpdate.getDescription());
+        if (listingUpdate.getPrice() != null) existing.setPrice(listingUpdate.getPrice());
+        if (listingUpdate.getImages() != null) existing.setImages(listingUpdate.getImages());
+        if (listingUpdate.getHighlights() != null) existing.setHighlights(listingUpdate.getHighlights());
+        if (listingUpdate.getIncludedItemsText() != null) existing.setIncludedItemsText(listingUpdate.getIncludedItemsText());
+        if (listingUpdate.getExcludedItemsText() != null) existing.setExcludedItemsText(listingUpdate.getExcludedItemsText());
+        if (listingUpdate.getDeliveryTime() != null) existing.setDeliveryTime(listingUpdate.getDeliveryTime());
+        if (listingUpdate.getExtraChargesJson() != null) existing.setExtraChargesJson(listingUpdate.getExtraChargesJson());
+        if (listingUpdate.getExtraCharges() != null) existing.setExtraCharges(listingUpdate.getExtraCharges());
+        if (listingUpdate.getCategorySpecificData() != null) existing.setCategorySpecificData(listingUpdate.getCategorySpecificData());
+        if (listingUpdate.getCustomNotes() != null) existing.setCustomNotes(listingUpdate.getCustomNotes());
+        if (listingUpdate.getUnit() != null) existing.setUnit(listingUpdate.getUnit());
+        if (listingUpdate.getMinimumQuantity() != null) existing.setMinimumQuantity(listingUpdate.getMinimumQuantity());
+        if (listingUpdate.getIsActive() != null) existing.setIsActive(listingUpdate.getIsActive());
+        if (listingUpdate.getIsDraft() != null) existing.setIsDraft(listingUpdate.getIsDraft());
+        if (listingUpdate.getIsPopular() != null) existing.setIsPopular(listingUpdate.getIsPopular());
+        if (listingUpdate.getIsTrending() != null) existing.setIsTrending(listingUpdate.getIsTrending());
+        if (listingUpdate.getOpenForNegotiation() != null) existing.setOpenForNegotiation(listingUpdate.getOpenForNegotiation());
+        if (listingUpdate.getServiceMode() != null) existing.setServiceMode(listingUpdate.getServiceMode());
+        
+        // Handle event types update
+        if (listingUpdate.getEventTypeIds() != null && !listingUpdate.getEventTypeIds().isEmpty()) {
+            List<EventType> eventTypes = listingUpdate.getEventTypeIds().stream()
+                    .map(id -> eventTypeRepository.findById(id)
+                            .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Event type not found: " + id)))
+                    .toList();
+            existing.setEventTypes(eventTypes);
+        }
+        
+        Listing saved = listingRepository.save(existing);
+        return ResponseEntity.ok(ApiResponse.success("Listing updated successfully", saved));
     }
     
     @PutMapping("/{listingId}/status")

@@ -59,12 +59,19 @@ public class AdminVendorService {
         dto.setReviewCount(vendor.getReviewCount());
         dto.setStartingPrice(vendor.getStartingPrice());
         dto.setCoverImage(vendor.getCoverImage());
+        dto.setProfileImage(vendor.getProfileImage());
         dto.setPortfolioImages(vendor.getPortfolioImages());
         dto.setCoverageRadius(vendor.getCoverageRadius());
         dto.setIsVerified(vendor.getIsVerified());
         dto.setIsActive(vendor.getIsActive());
         dto.setCreatedAt(vendor.getCreatedAt());
         dto.setUpdatedAt(vendor.getUpdatedAt());
+        
+        // Location System Fields
+        dto.setLocationName(vendor.getLocationName());
+        dto.setLocationLat(vendor.getLocationLat());
+        dto.setLocationLng(vendor.getLocationLng());
+        dto.setServiceRadiusKm(vendor.getServiceRadiusKm());
         
         // User Info
         if (vendor.getUserId() != null) {
@@ -76,8 +83,19 @@ public class AdminVendorService {
         }
         
         // Statistics - optimized queries (no entity loading, direct counts)
-        dto.setTotalListings(listingRepository.countByVendorIdAndIsActiveTrue(vendorId));
-        dto.setActiveListings(listingRepository.countByVendorIdAndIsActiveTrue(vendorId));
+        // Total listings = all listings for this vendor (including drafts and inactive)
+        long totalListings = listingRepository.countByVendorId(vendorId);
+        long activeListings = listingRepository.countByVendorIdAndIsActiveTrueAndIsDraftFalse(vendorId);
+        long draftListings = listingRepository.countByVendorIdAndIsDraftTrue(vendorId);
+        
+        log.info("=== VENDOR {} STATISTICS ===", vendorId);
+        log.info("Total listings count from DB: {}", totalListings);
+        log.info("Active (non-draft) listings count from DB: {}", activeListings);
+        log.info("Draft listings count from DB: {}", draftListings);
+        
+        dto.setTotalListings(totalListings);
+        dto.setActiveListings(activeListings);
+        dto.setDraftListings(draftListings);
         
         // Use direct count queries instead of loading all entities
         dto.setTotalOrders(orderRepository.countByVendorId(vendorId));
@@ -100,7 +118,8 @@ public class AdminVendorService {
         
         // Related Data - use pagination and limit to avoid loading too much
         // Only load what's needed for display (lazy loading approach)
-        List<Listing> listings = listingRepository.findByVendorIdOptimized(vendorId);
+        // Use findByVendorIdWithEventTypes to ensure all fields are loaded properly
+        List<Listing> listings = listingRepository.findByVendorIdWithEventTypes(vendorId);
         dto.setListings(listings.stream()
             .limit(20) // Reduced from 50 to 20 for faster loading
             .map(this::mapToListingSummary)
@@ -179,8 +198,22 @@ public class AdminVendorService {
         dto.setName(listing.getName());
         dto.setType(listing.getType() != null ? listing.getType().name() : null);
         dto.setPrice(listing.getPrice());
-        dto.setIsActive(listing.getIsActive());
+        dto.setIsActive(listing.getIsActive() != null ? listing.getIsActive() : true);
+        // Ensure isDraft is never null - default to false if null
+        dto.setIsDraft(listing.getIsDraft() != null ? listing.getIsDraft() : false);
+        dto.setDescription(listing.getDescription());
+        dto.setImages(listing.getImages());
         dto.setCreatedAt(listing.getCreatedAt());
+        
+        // Debug logging - detailed
+        log.info("=== LISTING MAPPING ===");
+        log.info("Listing ID: {}", listing.getId());
+        log.info("Listing Name: {}", listing.getName());
+        log.info("Raw isActive from entity: {}", listing.getIsActive());
+        log.info("Raw isDraft from entity: {}", listing.getIsDraft());
+        log.info("DTO isActive (after null check): {}", dto.getIsActive());
+        log.info("DTO isDraft (after null check): {}", dto.getIsDraft());
+        
         return dto;
     }
     

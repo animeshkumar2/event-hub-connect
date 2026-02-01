@@ -7,12 +7,15 @@ import com.eventhub.repository.VendorRepository;
 import com.eventhub.service.AdminVendorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/vendors")
@@ -31,26 +34,58 @@ public class AdminVendorController {
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Boolean isVerified,
             @RequestParam(required = false) Boolean isActive) {
+        
+        // Get all vendors with eager loading to avoid LazyInitializationException
+        List<Vendor> allVendors = vendorRepository.findAllWithFiltersNoSearch(
+            category, city, isVerified, isActive);
+        
+        // Apply search filter in Java (to avoid bytea casting issues in PostgreSQL)
+        if (search != null && !search.trim().isEmpty()) {
+            String searchLower = search.toLowerCase();
+            allVendors = allVendors.stream()
+                .filter(v -> v.getBusinessName() != null && 
+                            v.getBusinessName().toLowerCase().contains(searchLower))
+                .collect(Collectors.toList());
+        }
+        
+        // Manual pagination
+        int totalElements = allVendors.size();
+        int start = page * size;
+        int end = Math.min(start + size, totalElements);
+        
+        List<Vendor> pageContent = start < totalElements 
+            ? allVendors.subList(start, end) 
+            : List.of();
+        
         Pageable pageable = PageRequest.of(page, size);
-        // Use optimized query with filters and JOIN FETCH to avoid N+1 queries
-        // Note: Search is case-sensitive in JPQL to avoid bytea casting issues
-        // For case-insensitive search, we'd need to filter in application layer or use native query
-        Page<Vendor> vendors = vendorRepository.findAllWithFilters(
-            search, category, city, isVerified, isActive, pageable);
-        return ResponseEntity.ok(ApiResponse.success(vendors));
+        Page<Vendor> vendorPage = new PageImpl<>(pageContent, pageable, totalElements);
+        
+        return ResponseEntity.ok(ApiResponse.success(vendorPage));
     }
     
     @GetMapping("/{vendorId}")
     public ResponseEntity<ApiResponse<Vendor>> getVendor(@PathVariable UUID vendorId) {
-        Vendor vendor = vendorRepository.findById(vendorId)
+        Vendor vendor = vendorRepository.findByIdWithDetails(vendorId)
                 .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Vendor not found"));
         return ResponseEntity.ok(ApiResponse.success(vendor));
     }
     
     @GetMapping("/{vendorId}/details")
-    public ResponseEntity<ApiResponse<VendorDetailDTO>> getVendorDetails(@PathVariable UUID vendorId) {
+    public ResponseEntity<ApiResponse<VendorDetailDTO>> getVendorDetails(
+            @PathVariable UUID vendorId,
+            @RequestParam(required = false, defaultValue = "false") boolean refresh) {
+        // If refresh is requested, evict cache first
+        if (refresh) {
+            adminVendorService.evictVendorCache(vendorId);
+        }
         VendorDetailDTO details = adminVendorService.getVendorDetails(vendorId);
         return ResponseEntity.ok(ApiResponse.success("Vendor details retrieved", details));
+    }
+    
+    @PostMapping("/{vendorId}/refresh-cache")
+    public ResponseEntity<ApiResponse<String>> refreshVendorCache(@PathVariable UUID vendorId) {
+        adminVendorService.evictVendorCache(vendorId);
+        return ResponseEntity.ok(ApiResponse.success("Cache cleared for vendor", "Cache evicted"));
     }
     
     @PutMapping("/{vendorId}/verify")

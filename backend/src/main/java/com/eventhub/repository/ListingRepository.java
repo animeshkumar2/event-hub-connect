@@ -148,6 +148,12 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId AND l.isActive = true")
     long countByVendorIdAndIsActiveTrue(@Param("vendorId") UUID vendorId);
     
+    @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId AND l.isActive = true AND (l.isDraft = false OR l.isDraft IS NULL)")
+    long countByVendorIdAndIsActiveTrueAndIsDraftFalse(@Param("vendorId") UUID vendorId);
+    
+    @Query("SELECT COUNT(l) FROM Listing l WHERE l.vendor.id = :vendorId AND l.isDraft = true")
+    long countByVendorIdAndIsDraftTrue(@Param("vendorId") UUID vendorId);
+    
     @Query("SELECT COUNT(l) FROM Listing l WHERE l.isActive = true")
     long countByIsActiveTrue();
     

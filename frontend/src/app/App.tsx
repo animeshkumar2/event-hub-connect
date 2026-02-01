@@ -75,6 +75,8 @@ const AdminDashboard = lazy(() => import("@/features/admin/pages/AdminDashboard"
 const AdminVendorsList = lazy(() => import("@/features/admin/pages/AdminVendorsList"));
 const AdminVendorDetail = lazy(() => import("@/features/admin/pages/AdminVendorDetail"));
 const AdminListingsList = lazy(() => import("@/features/admin/pages/AdminListingsList"));
+const AdminListingEdit = lazy(() => import("@/features/admin/pages/AdminListingEdit"));
+const AdminListingFullEdit = lazy(() => import("@/features/admin/pages/AdminListingFullEdit"));
 const AdminApiPerformance = lazy(() => import("@/features/admin/pages/AdminApiPerformance"));
 
 // Loading fallback component
@@ -373,6 +375,16 @@ const App = () => (
             <Route path="/admin/listings" element={
               <Suspense fallback={<LoadingFallback />}>
                 <AdminListingsList />
+              </Suspense>
+            } />
+            <Route path="/admin/listings/:listingId/edit" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminListingEdit />
+              </Suspense>
+            } />
+            <Route path="/admin/listings/:listingId/full-edit" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminListingFullEdit />
               </Suspense>
             } />
             <Route path="/admin/api-performance" element={

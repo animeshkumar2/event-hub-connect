@@ -23,12 +23,19 @@ public class VendorDetailDTO {
     private Integer reviewCount;
     private BigDecimal startingPrice;
     private String coverImage;
+    private String profileImage;
     private List<String> portfolioImages;
     private Integer coverageRadius;
     private Boolean isVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Location System Fields
+    private String locationName;
+    private BigDecimal locationLat;
+    private BigDecimal locationLng;
+    private Integer serviceRadiusKm;
     
     // User Info
     private String userEmail;
@@ -38,6 +45,7 @@ public class VendorDetailDTO {
     // Statistics
     private Long totalListings;
     private Long activeListings;
+    private Long draftListings;
     private Long totalOrders;
     private Long completedOrders;
     private Long pendingOrders;
@@ -62,8 +70,31 @@ public class VendorDetailDTO {
         private String name;
         private String type; // package or item
         private BigDecimal price;
-        private Boolean isActive;
+        private Boolean active;
+        private Boolean draft;
+        private String description;
+        private List<String> images;
         private LocalDateTime createdAt;
+        
+        // Custom setters to accept isActive/isDraft from service layer
+        public void setIsActive(Boolean isActive) {
+            this.active = isActive;
+        }
+        
+        public void setIsDraft(Boolean isDraft) {
+            this.draft = isDraft;
+        }
+        
+        // Explicit getters for Jackson serialization with correct JSON property names
+        @com.fasterxml.jackson.annotation.JsonProperty("isActive")
+        public Boolean getIsActive() {
+            return active;
+        }
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("isDraft")
+        public Boolean getIsDraft() {
+            return draft;
+        }
     }
     
     @Data
