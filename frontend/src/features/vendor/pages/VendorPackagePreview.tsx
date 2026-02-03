@@ -25,6 +25,7 @@ import { publicApi, vendorApi } from '@/shared/services/api';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 import { CategorySpecificDisplay } from '@/features/listing/CategorySpecificDisplay';
+import { getTemplateById } from '@/shared/constants/listingTemplates';
 
 // Category icon mapping
 const getCategoryIcon = (categoryId: string) => {
@@ -149,6 +150,12 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
   // Check if template-based
   const isTemplateBased = useMemo(() => listing?.customNotes?.startsWith('__TEMPLATE__:'), [listing?.customNotes]);
   const templateId = useMemo(() => isTemplateBased && listing?.customNotes ? listing.customNotes.replace('__TEMPLATE__:', '') : null, [isTemplateBased, listing?.customNotes]);
+  
+  // Get original template for name comparison
+  const originalTemplate = useMemo(() => {
+    if (!templateId) return null;
+    return getTemplateById(templateId);
+  }, [templateId]);
 
   // Toggle service expansion
   const toggleService = (itemId: string) => setExpandedServices(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
@@ -187,20 +194,72 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
     setPendingImageChanges(null);
   }, []);
 
+  // Publish readiness checker for packages
+  const getPackagePublishRequirements = useCallback((listingData: any, formData?: any) => {
+    const requirements: { id: string; label: string; met: boolean }[] = [];
+    const data = formData || listingData;
+    
+    // 1. Name is required
+    const hasName = data?.name && data.name.trim().length > 0;
+    requirements.push({ id: 'name', label: 'Package name', met: hasName });
+    
+    // 2. At least 1 image
+    let imageCount = data?.images?.length || 0;
+    if (pendingImageChanges) {
+      const existingUrls = pendingImageChanges.finalOrder.filter((item: any) => typeof item === 'string').length;
+      const newFiles = pendingImageChanges.filesToUpload.length;
+      imageCount = existingUrls + newFiles;
+    }
+    requirements.push({ id: 'images', label: 'At least 1 photo', met: imageCount > 0 });
+    
+    // 3. Price is required
+    const hasPrice = data?.price && parseFloat(data.price) > 0;
+    requirements.push({ id: 'price', label: 'Package price', met: hasPrice });
+    
+    // 4. Minimum 2 services
+    const validItemIds = (data?.includedItemIds || []).filter((id: string) => 
+      allVendorItems.some((item: any) => item.id === id)
+    );
+    requirements.push({ id: 'services', label: 'Min. 2 services', met: validItemIds.length >= 2 });
+    
+    // 5. For template-based packages, name must be changed
+    if (originalTemplate && listingData?.isDraft) {
+      const nameChanged = data?.name !== originalTemplate.name;
+      requirements.push({ id: 'templateRename', label: 'Rename package name', met: nameChanged });
+    }
+    
+    return requirements;
+  }, [pendingImageChanges, allVendorItems, originalTemplate]);
+  
+  // Check if ready to publish
+  const publishRequirements = useMemo(() => {
+    if (!listing) return [];
+    return getPackagePublishRequirements(listing, isEditMode ? editForm : null);
+  }, [listing, editForm, isEditMode, getPackagePublishRequirements]);
+  
+  const canPublish = useMemo(() => publishRequirements.every(r => r.met), [publishRequirements]);
+  const missingRequirements = useMemo(() => publishRequirements.filter(r => !r.met), [publishRequirements]);
+
   // Save changes
   const saveChanges = useCallback(async () => {
     if (!listing || !editForm) return;
+    
+    // Always require a name
+    if (!editForm.name?.trim()) {
+      toast.error('Please add a name to save');
+      return;
+    }
+    
+    // For template-based drafts, ONLY require name to be changed (other requirements are for publish only)
+    if (listing.isDraft && originalTemplate && editForm.name === originalTemplate.name) {
+      toast.error('Rename your package before saving');
+      return;
+    }
     
     // Get valid item IDs (items that actually exist)
     const validItemIds = (editForm.includedItemIds || []).filter((id: string) => 
       allVendorItems.some((item: any) => item.id === id)
     );
-    
-    // Validate minimum 2 services for package
-    if (validItemIds.length < 2) {
-      toast.error('A package must have at least 2 services');
-      return;
-    }
     
     setIsSaving(true);
     try {
@@ -241,17 +300,18 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
       } else toast.error(response.message || 'Failed to update');
     } catch (err: any) { toast.error(err.message || 'Failed to update'); }
     finally { setIsSaving(false); }
-  }, [listing, editForm, pendingImageChanges, listingId, queryClient, allVendorItems]);
+  }, [listing, editForm, pendingImageChanges, listingId, queryClient, allVendorItems, canPublish, missingRequirements]);
 
   // Publish listing
   const publishListing = useCallback(async () => {
     if (!listing) return;
-    if (!listing.images || listing.images.length === 0) { toast.error('Please add at least one photo before publishing'); return; }
-    if (isTemplateBased) {
-      const { getTemplateById } = await import('@/shared/constants/listingTemplates');
-      const originalTemplate = templateId ? getTemplateById(templateId) : null;
-      if (originalTemplate && listing.name === originalTemplate.name) { toast.error('Rename your service before publishing'); return; }
+    
+    // Check all publish requirements
+    if (!canPublish) {
+      missingRequirements.forEach(r => toast.error(`Missing: ${r.label}`));
+      return;
     }
+    
     setIsPublishing(true);
     try {
       const response = await vendorApi.updateListing(listing.id, { isDraft: false, isActive: true, customNotes: isTemplateBased ? '' : listing.customNotes });
@@ -375,6 +435,32 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
       {listing.isDraft && !isEditMode && (
         <div className="bg-blue-50 border-b border-blue-200 py-1.5 px-4">
           <p className="text-[11px] text-blue-700 text-center">📝 This is a draft. Add photos and customize, then publish to go live.</p>
+        </div>
+      )}
+
+      {/* Publish Requirements Task List */}
+      {listing.isDraft && publishRequirements.length > 0 && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-200 py-2 px-4">
+          <div className="max-w-6xl mx-auto flex items-center justify-center gap-3 flex-wrap">
+            {publishRequirements.map((req) => (
+              <div
+                key={req.id}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                  req.met
+                    ? "bg-white/80 border-green-300 text-green-700"
+                    : "bg-white border-amber-300 text-amber-700"
+                )}
+              >
+                {req.met ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <AlertCircle className="h-3.5 w-3.5" />
+                )}
+                {req.label}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -830,7 +916,7 @@ export function VendorPackagePreview({ listing, listingId, onBack }: VendorPacka
                             <div className="grid grid-cols-3 gap-2">
                               {item.deliveryTime && <div className="p-2 rounded-lg bg-slate-50 text-center"><Clock className="h-4 w-4 text-slate-400 mx-auto mb-1" /><p className="text-[10px] text-slate-500">Delivery</p><p className="text-xs font-medium">{item.deliveryTime}</p></div>}
                               {item.serviceMode && <div className="p-2 rounded-lg bg-slate-50 text-center"><MapPin className="h-4 w-4 text-slate-400 mx-auto mb-1" /><p className="text-[10px] text-slate-500">Service Mode</p><p className="text-xs font-medium">{item.serviceMode === 'VENDOR_TRAVELS' ? 'They come to you' : item.serviceMode === 'CUSTOMER_VISITS' ? 'Visit them' : 'Both options'}</p></div>}
-                              <div className="p-2 rounded-lg bg-slate-50 text-center"><IndianRupee className="h-4 w-4 text-slate-400 mx-auto mb-1" /><p className="text-[10px] text-slate-500">Negotiable</p><p className="text-xs font-medium">{item.openForNegotiation ? 'Yes' : 'Fixed'}</p></div>
+                              <div className="p-2 rounded-lg bg-slate-50 text-center"><IndianRupee className="h-4 w-4 text-slate-400 mx-auto mb-1" /><p className="text-[10px] text-slate-500">Pricing</p><p className="text-xs font-medium">{item.openForNegotiation ? 'Negotiable' : 'Non-negotiable'}</p></div>
                             </div>
                             {item.categorySpecificData && <CategorySpecificDisplay categoryId={item.categoryId} categorySpecificData={item.categorySpecificData} />}
                           </div>

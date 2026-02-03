@@ -5,11 +5,12 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { ArrowRight, Loader2, Sparkles, CheckCircle } from 'lucide-react';
+import { ArrowRight, Loader2, Sparkles, CheckCircle, Crown, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { vendorProfessions, cities } from '@/shared/constants/mockData';
 import { vendorApi } from '@/shared/services/api';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { getVendorPermissionInfo, getAllowedCategoryNames, LISTING_CATEGORY_NAMES } from '@/shared/constants/vendorCategoryPermissions';
 
 export default function VendorOnboarding() {
   const navigate = useNavigate();
@@ -152,16 +153,71 @@ export default function VendorOnboarding() {
                   <SelectValue placeholder="Select your profession" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vendorProfessions.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{cat.icon}</span>
-                        <span>{cat.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
+                  {vendorProfessions.map((cat) => {
+                    const isEventPlanner = cat.id === 'event-planner';
+                    return (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{cat.icon}</span>
+                          <span>{cat.name}</span>
+                          {isEventPlanner && (
+                            <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium">
+                              ALL ACCESS
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              
+              {/* Dynamic info box showing what services they can offer */}
+              {category && (
+                <div className={`mt-3 p-3 rounded-xl border transition-all ${
+                  category === 'event-planner' 
+                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200' 
+                    : 'bg-primary/5 border-primary/20'
+                }`}>
+                  {category === 'event-planner' ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm font-semibold text-amber-800">Event Planner - All Access</span>
+                      </div>
+                      <p className="text-xs text-amber-700">
+                        As an Event Planner, you can offer <span className="font-semibold">all types of services</span> - 
+                        Photography, Décor, Catering, Venue, Makeup, DJ, Sound & Lights, and Artists.
+                      </p>
+                      <p className="text-[10px] text-amber-600 italic">
+                        Perfect for full-service event management businesses
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium text-foreground">Services you can offer:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {getAllowedCategoryNames(category).map((catName, idx) => (
+                          <span 
+                            key={idx}
+                            className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium"
+                          >
+                            {catName}
+                          </span>
+                        ))}
+                      </div>
+                      {getAllowedCategoryNames(category).length > 1 && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Related services you can offer alongside your main profession
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* City */}

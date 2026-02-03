@@ -611,7 +611,7 @@ export default function ListingDetail() {
                             "text-sm font-bold mt-0.5",
                             listing.openForNegotiation ? "text-emerald-900" : "text-slate-700"
                           )}>
-                            {listing.openForNegotiation ? 'Negotiable' : 'Fixed'}
+                            {listing.openForNegotiation ? 'Negotiable' : 'Non-negotiable'}
                           </p>
                         </div>
                       )}

@@ -16,7 +16,7 @@ import { ImageCropModal } from '@/shared/components/ImageCropModal';
 import { 
   Camera, CheckCircle, MapPin, Phone, Mail, Instagram, Save, Loader2, X, ImagePlus,
   Sparkles, Eye, Star, Edit3, ChevronRight, Globe, Building2, Navigation, Zap,
-  MessageCircle, CalendarCheck, User, Plus, AlertCircle, TrendingUp, ArrowRight
+  MessageCircle, CalendarCheck, User, Plus, AlertCircle, TrendingUp, ArrowRight, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useVendorProfile, useVendorDashboardStats } from '@/shared/hooks/useApi';
@@ -26,47 +26,60 @@ import { RadiusSlider, VENDOR_RADIUS_OPTIONS } from '@/shared/components/RadiusS
 import { categories, cities, vendorProfessions } from '@/shared/constants/mockData';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { uploadImage, validateImageFile, deleteImage, deleteImages } from '@/shared/utils/storage';
+import { getVendorPermissionInfo, getAllowedCategoryNames } from '@/shared/constants/vendorCategoryPermissions';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 // Profile completion calculator - uses real data with accurate checks
-const calculateProfileCompletion = (profile: any, portfolioImages: string[], location: LocationDTO | null) => {
-  const checks = [
+const calculateProfileCompletion = (profile: any, portfolioImages: string[], location: LocationDTO | null, isArtist: boolean = false) => {
+  const baseChecks = [
     { 
       name: 'Business Name', 
       done: !!profile?.businessName && profile.businessName.length >= 3, 
-      weight: 15,
+      weight: isArtist ? 18 : 15,
       tip: 'Add your business name',
       icon: Building2
     },
     { 
       name: 'Profile Photo', 
       done: !!profile?.profileImage, 
-      weight: 15,
+      weight: isArtist ? 18 : 15,
       tip: 'Upload a profile photo',
       icon: User
     },
     { 
       name: 'Cover Image', 
       done: !!profile?.coverImage, 
-      weight: 10,
+      weight: isArtist ? 12 : 10,
       tip: 'Add a cover image',
       icon: Camera
     },
     { 
       name: 'Bio Description', 
       done: !!profile?.bio && profile.bio.length >= 50, 
-      weight: 15,
+      weight: isArtist ? 18 : 15,
       tip: 'Write at least 50 characters about your business',
       icon: Edit3
     },
     { 
       name: 'Portfolio Images', 
       done: portfolioImages.length >= 3, 
-      weight: 20,
+      weight: isArtist ? 22 : 20,
       tip: `Add ${Math.max(0, 3 - portfolioImages.length)} more image${3 - portfolioImages.length !== 1 ? 's' : ''} (${portfolioImages.length}/3)`,
       icon: ImagePlus
     },
+    { 
+      name: 'Contact Info', 
+      done: !!profile?.phone || !!profile?.email, 
+      weight: isArtist ? 12 : 10,
+      tip: 'Add phone or email',
+      icon: Phone
+    },
+  ];
+  
+  // Only add location check for non-artists
+  const checks = isArtist ? baseChecks : [
+    ...baseChecks.slice(0, 5),
     { 
       name: 'Service Location', 
       done: !!location || (!!profile?.locationName && !!profile?.locationLat), 
@@ -74,13 +87,7 @@ const calculateProfileCompletion = (profile: any, portfolioImages: string[], loc
       tip: 'Set your service location',
       icon: MapPin
     },
-    { 
-      name: 'Contact Info', 
-      done: !!profile?.phone || !!profile?.email, 
-      weight: 10,
-      tip: 'Add phone or email',
-      icon: Phone
-    },
+    baseChecks[5], // Contact Info
   ];
   const completed = checks.filter(c => c.done).reduce((sum, c) => sum + c.weight, 0);
   const completedCount = checks.filter(c => c.done).length;
@@ -165,16 +172,17 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
   const phone = user?.phone || signupPhone || '';
   const email = user?.email || signupEmail || '';
 
-  const isFormValid = businessName.trim() !== '' && category !== '' && city !== '' &&
-    serviceLocation !== null; // Location is now mandatory
+  // Artists don't need location - they can be from any city
+  const isArtistCategory = category === 'artists';
   
-  // Calculate progress - now 4 steps
-  const filledFields = [
-    businessName.trim(), 
-    category, 
-    city,
-    serviceLocation
-  ].filter(Boolean).length;
+  const isFormValid = businessName.trim() !== '' && category !== '' && city !== '' &&
+    (isArtistCategory || serviceLocation !== null); // Location not required for artists
+  
+  // Calculate progress - 4 steps for most, 3 for artists (no location step)
+  const filledFields = isArtistCategory
+    ? [businessName.trim(), category, city].filter(Boolean).length
+    : [businessName.trim(), category, city, serviceLocation].filter(Boolean).length;
+  const totalSteps = isArtistCategory ? 3 : 4;
 
   const handleSubmit = async () => {
     if (!isFormValid) {
@@ -233,13 +241,13 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 Complete Your Profile
               </h2>
               <p className="text-white/80 text-sm mt-1">
-                Just 4 quick steps to start receiving leads
+                Just {totalSteps} quick steps to start receiving leads
               </p>
             </div>
             
             {/* Progress Steps */}
             <div className="flex items-center gap-2">
-              {[1, 2, 3, 4].map((step) => (
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
                 <div key={step} className="flex items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                     step <= filledFields 
@@ -252,7 +260,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                       step
                     )}
                   </div>
-                  {step < 4 && (
+                  {step < totalSteps && (
                     <div className={`w-6 h-0.5 ${step < filledFields ? 'bg-white' : 'bg-white/20'}`} />
                   )}
                 </div>
@@ -324,69 +332,133 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                   <SelectValue placeholder="Select your profession" />
                 </SelectTrigger>
                 <SelectContent>
-                  {vendorProfessions.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <span className="flex items-center gap-2"><span>{cat.icon}</span><span>{cat.name}</span></span>
-                    </SelectItem>
-                  ))}
+                  {vendorProfessions.map((cat) => {
+                    const isEventPlanner = cat.id === 'event-planner';
+                    return (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{cat.icon}</span>
+                          <span>{cat.name}</span>
+                          {isEventPlanner && (
+                            <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium">
+                              ALL ACCESS
+                            </span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          {/* Step 4: Service Location - Mandatory */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-                serviceLocation 
-                  ? 'bg-primary text-white' 
-                  : 'bg-primary/10 text-primary'
-              }`}>
-                {serviceLocation ? <CheckCircle className="h-3.5 w-3.5" /> : '4'}
-              </div>
-              <Label className="text-sm font-semibold text-foreground">Where do you provide services?</Label>
-            </div>
-            
-            <div className="space-y-4 ml-8">
-              {/* Location Autocomplete */}
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" /> Primary Service Location
-                </Label>
-                <LocationAutocomplete
-                  value={serviceLocation}
-                  onChange={setServiceLocation}
-                  placeholder="Search for your area (e.g., Koramangala, Bangalore)"
-                  className="h-12"
-                  bangaloreOnly={true}
-                />
-                {serviceLocation && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-emerald-500" />
-                    {serviceLocation.name}
-                  </p>
-                )}
-              </div>
               
-              {/* Coverage Radius - Only show after location is set */}
-              {serviceLocation && (
-                <div className="space-y-3 pt-2 border-t border-border/50">
-                  <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <Navigation className="h-3.5 w-3.5" /> How far will you travel at no extra cost?
-                  </Label>
-                  <RadiusSlider
-                    value={coverageRadius}
-                    onChange={setCoverageRadius}
-                    options={VENDOR_RADIUS_OPTIONS}
-                    label=""
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    💡 Customers within {coverageRadius}km won't be charged travel fees
-                  </p>
+              {/* Dynamic info box showing what services they can offer */}
+              {category && (
+                <div className={`mt-2 p-3 rounded-xl border transition-all ${
+                  category === 'event-planner' 
+                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200' 
+                    : 'bg-primary/5 border-primary/20'
+                }`}>
+                  {category === 'event-planner' ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm font-semibold text-amber-800">All Access</span>
+                      </div>
+                      <p className="text-xs text-amber-700">
+                        Offer all types of event services
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-medium text-foreground">Services you can offer:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {getAllowedCategoryNames(category).map((catName, idx) => (
+                          <span 
+                            key={idx}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
+                          >
+                            {catName}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Step 4: Service Location - Hidden for Artists */}
+          {!isArtistCategory && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                  serviceLocation 
+                    ? 'bg-primary text-white' 
+                    : 'bg-primary/10 text-primary'
+                }`}>
+                  {serviceLocation ? <CheckCircle className="h-3.5 w-3.5" /> : '4'}
+                </div>
+                <Label className="text-sm font-semibold text-foreground">Where do you provide services?</Label>
+              </div>
+              
+              <div className="space-y-4 ml-8">
+                {/* Bangalore Launch Notice */}
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border border-amber-200/50 dark:border-amber-500/20">
+                  <span className="text-base flex-shrink-0">🚀</span>
+                  <div>
+                    <p className="text-xs font-medium text-amber-800 dark:text-amber-400">
+                      Launching in Bangalore first!
+                    </p>
+                    <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 mt-0.5">
+                      Select your area (e.g., Koramangala, Indiranagar). More cities coming soon.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Location Autocomplete */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" /> Primary Service Location
+                  </Label>
+                  <LocationAutocomplete
+                    value={serviceLocation}
+                    onChange={setServiceLocation}
+                    placeholder="Search your area in Bangalore..."
+                    className="h-12"
+                    bangaloreOnly={true}
+                  />
+                  {serviceLocation && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-emerald-500" />
+                      {serviceLocation.name}
+                    </p>
+                  )}
+                </div>
+                
+                {/* Coverage Radius - Only show after location is set */}
+                {serviceLocation && (
+                  <div className="space-y-3 pt-2 border-t border-border/50">
+                    <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Navigation className="h-3.5 w-3.5" /> How far will you travel at no extra cost?
+                    </Label>
+                    <RadiusSlider
+                      value={coverageRadius}
+                      onChange={setCoverageRadius}
+                      options={VENDOR_RADIUS_OPTIONS}
+                      label=""
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      💡 Customers within {coverageRadius}km won't be charged travel fees
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Optional Section */}
           <details className="group pt-2">
@@ -458,7 +530,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               ) : (
-                <>Complete all 4 steps above</>
+                <>Complete all {totalSteps} steps above</>
               )}
             </Button>
             
@@ -865,6 +937,10 @@ export default function VendorProfile() {
   const categoryName = profileData?.customCategoryName || profileData?.vendorCategory?.name || profileData?.categoryName || 'Vendor';
   const cityName = profileData?.cityName || '';
   
+  // Check if vendor is an artist - they don't need location
+  const vendorCategoryId = profileData?.categoryId || profileData?.vendorCategory?.id || '';
+  const isVendorArtist = vendorCategoryId === 'artists';
+  
   // Use formData for real-time profile completion (reflects unsaved changes)
   const profileForCompletion = profileData ? {
     ...profileData,
@@ -876,8 +952,8 @@ export default function VendorProfile() {
     email: formData.email,
   } : null;
   const { checks, completed, completedCount, totalCount, level, levelColor, levelBg } = profileForCompletion 
-    ? calculateProfileCompletion(profileForCompletion, portfolioImages, location)
-    : { checks: [], completed: 0, completedCount: 0, totalCount: 7, level: 'Not Started', levelColor: 'text-gray-400', levelBg: 'bg-gray-400' };
+    ? calculateProfileCompletion(profileForCompletion, portfolioImages, location, isVendorArtist)
+    : { checks: [], completed: 0, completedCount: 0, totalCount: isVendorArtist ? 6 : 7, level: 'Not Started', levelColor: 'text-gray-400', levelBg: 'bg-gray-400' };
   
   // Real stats from dashboard API
   const stats = {
@@ -1097,7 +1173,7 @@ export default function VendorProfile() {
                   { id: 'overview', label: 'Overview', icon: Eye },
                   { id: 'edit', label: 'Edit', icon: Edit3 },
                   { id: 'gallery', label: 'Gallery', icon: ImagePlus },
-                  { id: 'location', label: 'Location', icon: MapPin },
+                  ...(!isVendorArtist ? [{ id: 'location', label: 'Location', icon: MapPin }] : []),
                   { id: 'contact', label: 'Contact', icon: Phone },
                 ].map((tab) => (
                   <button 
@@ -1126,7 +1202,7 @@ export default function VendorProfile() {
                   { id: 'overview', label: 'Overview', icon: Eye },
                   { id: 'edit', label: 'Edit', icon: Edit3 },
                   { id: 'gallery', label: 'Gallery', icon: ImagePlus },
-                  { id: 'location', label: 'Location', icon: MapPin },
+                  ...(!isVendorArtist ? [{ id: 'location', label: 'Location', icon: MapPin }] : []),
                   { id: 'contact', label: 'Contact', icon: Phone },
                 ].map((tab) => (
                   <Button key={tab.id} variant={activeSection === tab.id ? 'default' : 'ghost'} 
@@ -1204,7 +1280,7 @@ export default function VendorProfile() {
                       {[
                         { icon: Edit3, label: 'Edit Profile', action: () => setActiveSection('edit') },
                         { icon: ImagePlus, label: 'Gallery', action: () => setActiveSection('gallery'), badge: portfolioImages.length },
-                        { icon: MapPin, label: 'Location', action: () => setActiveSection('location') },
+                        ...(!isVendorArtist ? [{ icon: MapPin, label: 'Location', action: () => setActiveSection('location') }] : []),
                         { icon: Phone, label: 'Contact', action: () => setActiveSection('contact') },
                       ].map((item, i) => (
                         <button 
@@ -1231,7 +1307,7 @@ export default function VendorProfile() {
                     <div className="hidden sm:grid gap-2">
                       <QuickAction icon={Edit3} label="Edit Profile" onClick={() => setActiveSection('edit')} />
                       <QuickAction icon={ImagePlus} label="Add Portfolio" onClick={() => setActiveSection('gallery')} badge={`${portfolioImages.length}`} />
-                      <QuickAction icon={MapPin} label="Update Location" onClick={() => setActiveSection('location')} />
+                      {!isVendorArtist && <QuickAction icon={MapPin} label="Update Location" onClick={() => setActiveSection('location')} />}
                       <QuickAction icon={Phone} label="Contact Info" onClick={() => setActiveSection('contact')} />
                     </div>
                   </CardContent>
@@ -1569,8 +1645,8 @@ export default function VendorProfile() {
             </Card>
           )}
 
-          {/* Location Section */}
-          {!isNewVendor && activeSection === 'location' && (
+          {/* Location Section - Hidden for Artists */}
+          {!isNewVendor && !isVendorArtist && activeSection === 'location' && (
             <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 {/* Header - Stack on mobile */}
@@ -1601,6 +1677,19 @@ export default function VendorProfile() {
                 <div className="space-y-5 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-6 lg:gap-8">
                   {/* Left: Form Fields */}
                   <div className="space-y-4 sm:space-y-5">
+                    {/* Bangalore Launch Notice */}
+                    <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border border-amber-200/50 dark:border-amber-500/20">
+                      <span className="text-base flex-shrink-0">🚀</span>
+                      <div>
+                        <p className="text-xs font-medium text-amber-800 dark:text-amber-400">
+                          Launching in Bangalore first!
+                        </p>
+                        <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 mt-0.5">
+                          Select your area (e.g., Koramangala, Indiranagar). More cities coming soon.
+                        </p>
+                      </div>
+                    </div>
+                    
                     {/* City - Read only */}
                     <div>
                       <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block text-muted-foreground">City</Label>
@@ -1615,7 +1704,7 @@ export default function VendorProfile() {
                       <LocationAutocomplete 
                         value={location} 
                         onChange={setLocation} 
-                        placeholder="Search your area..." 
+                        placeholder="Search your area in Bangalore..." 
                         bangaloreOnly={true}
                       />
                     </div>

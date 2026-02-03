@@ -3,7 +3,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Badge } from '@/shared/components/ui/badge';
-import { Package, Box, LucideIcon, MapPin } from 'lucide-react';
+import { Package, Box, LucideIcon, MapPin, X } from 'lucide-react';
 import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
 
 interface CoreCategory {
@@ -308,6 +308,92 @@ export function ListingFormStep1({
                     })}
                   </div>
                 )}
+                
+                {/* Custom Event Type Input - shown when "Other" is selected */}
+                {(() => {
+                  const otherEventType = availableEventTypes.find((et: any) => 
+                    et.name === 'Other' || et.displayName === 'Other'
+                  );
+                  const isOtherSelected = otherEventType && formData.eventTypeIds.includes(otherEventType.id);
+                  
+                  if (!isOtherSelected) return null;
+                  
+                  // Parse custom event types - handle both array and legacy string format
+                  const customTypes: string[] = (() => {
+                    const val = formData.customEventTypeName;
+                    if (!val) return [];
+                    if (Array.isArray(val)) return val;
+                    // Try parsing as JSON array
+                    try {
+                      const parsed = JSON.parse(val);
+                      if (Array.isArray(parsed)) return parsed;
+                    } catch {}
+                    // Legacy: single string or comma-separated
+                    return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+                  })();
+                  
+                  return (
+                    <div className="mt-3 p-3 border border-amber-200 rounded-lg bg-amber-50/50">
+                      <Label className="text-sm font-medium text-amber-800">
+                        What type of events? *
+                      </Label>
+                      <p className="text-xs text-amber-600 mb-2">
+                        Add the event types you're targeting (press Enter to add)
+                      </p>
+                      
+                      {/* Display existing custom event types as tags */}
+                      {customTypes.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {customTypes.map((type, idx) => (
+                            <div 
+                              key={idx}
+                              className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800"
+                            >
+                              <span className="text-xs font-medium">{type}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newTypes = customTypes.filter((_, i) => i !== idx);
+                                  setFormData({ 
+                                    ...formData, 
+                                    customEventTypeName: newTypes.length > 0 ? newTypes : '' 
+                                  });
+                                }}
+                                className="p-0.5 hover:bg-amber-200 rounded-full transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Input for adding new custom event types */}
+                      <Input
+                        placeholder="Type event name and press Enter..."
+                        className="bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const value = input.value.trim();
+                            if (value && !customTypes.includes(value)) {
+                              const newTypes = [...customTypes, value];
+                              setFormData({ 
+                                ...formData, 
+                                customEventTypeName: newTypes 
+                              });
+                              input.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <p className="text-[10px] text-amber-500 mt-1">
+                        💡 Common examples: Haldi, Mehendi, Sangeet, Reception, House Warming, Puja, Retirement Party, Farewell, Graduation
+                      </p>
+                    </div>
+                  );
+                })()}
               </>
             ) : (
               <div className="p-4 border border-border rounded-lg bg-muted/30">

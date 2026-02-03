@@ -64,6 +64,7 @@ import { ListingFormWizard } from '@/features/vendor/components/ListingFormWizar
 import { ServiceModeSelector, ServiceMode, getServiceModeLabel } from '@/shared/components/ServiceModeSelector';
 import { TemplateSelectionModal } from '@/features/vendor/components/TemplateSelectionModal';
 import { CATEGORY_TEMPLATES } from '@/shared/constants/listingTemplates';
+import { getAllowedCategoriesForVendor } from '@/shared/constants/vendorCategoryPermissions';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -136,6 +137,7 @@ const initialFormData = {
   price: '',
   categoryId: '',
   customCategoryName: '',
+  customEventTypeName: '', // Custom event type name when "Other" is selected
   eventTypeIds: [] as number[],
   images: [] as string[],
   highlights: [] as string[],
@@ -294,6 +296,31 @@ export default function VendorListings() {
   const vendorCategoryId = profileData?.vendorCategory?.id || profileData?.categoryId || '';
   const vendorCategoryName = profileData?.vendorCategory?.name || profileData?.categoryName || '';
   const vendorCoreCategoryId = getCoreCategoryId(vendorCategoryId);
+
+  // Filter categories based on vendor's allowed categories
+  const allowedCoreCategories = React.useMemo(() => {
+    if (!vendorCategoryId) return coreCategories; // Show all if no vendor category
+    
+    const allowedCategoryIds = getAllowedCategoriesForVendor(vendorCategoryId);
+    if (allowedCategoryIds.length === 0) return coreCategories; // Fallback to all
+    
+    // Map vendor permission category IDs to core category IDs
+    // The permission system uses IDs like 'photo-video', 'decorator', etc.
+    // We need to map these to the coreCategories IDs
+    const categoryIdMapping: Record<string, string> = {
+      'photo-video': 'photography-videography',
+      'decorator': 'decorator',
+      'caterer': 'caterer',
+      'venue': 'venue',
+      'mua': 'mua',
+      'dj-entertainment': 'dj-entertainment',
+      'sound-lights': 'sound-lights',
+      'artists': 'artists',
+    };
+    
+    const mappedAllowedIds = allowedCategoryIds.map(id => categoryIdMapping[id] || id);
+    return coreCategories.filter(cat => mappedAllowedIds.includes(cat.id));
+  }, [vendorCategoryId]);
 
   // Get category name helper - converts DB category to core category name
   const getCategoryName = React.useCallback((categoryId: string) => {
@@ -469,6 +496,7 @@ export default function VendorListings() {
         price: editingListing.price?.toString() || '',
         categoryId: coreCategoryId,
         customCategoryName: editingListing.customCategoryName || '',
+        customEventTypeName: editingListing.customEventTypeName || '',
         eventTypeIds: eventTypeIds,
         images: editingListing.images || [],
         highlights: editingListing.highlights || [],
@@ -669,12 +697,26 @@ export default function VendorListings() {
         }
       }
       
+      // Check if "Other" event type is selected by name (not hardcoded ID)
+      const otherEventType = eventTypesData?.find((et: any) => et.name === 'Other' || et.displayName === 'Other');
+      const isOtherEventTypeSelected = otherEventType && formData.eventTypeIds.includes(otherEventType.id);
+      
+      // Serialize custom event type names as JSON array if it's an array
+      const serializedCustomEventTypeName = (() => {
+        if (!isOtherEventTypeSelected) return undefined;
+        const val = formData.customEventTypeName;
+        if (!val || (Array.isArray(val) && val.length === 0)) return undefined;
+        if (Array.isArray(val)) return JSON.stringify(val);
+        return val; // Already a string
+      })();
+      
       const payload: any = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(finalPrice), // Use extracted price
         categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
+        customEventTypeName: serializedCustomEventTypeName,
         eventTypeIds: eventTypeIds,
         images: formData.images, // Will be updated below if there are pending changes
         highlights: formData.highlights.filter(h => h.trim()), // Remove empty highlights
@@ -1087,9 +1129,20 @@ export default function VendorListings() {
       return;
     }
 
-    if (!formData.name) {
-      toast.error('Please add at least a name to save as draft');
+    if (!formData.name?.trim()) {
+      toast.error('Please add a name to save as draft');
       return;
+    }
+    
+    // For template-based listings being edited, require name to be changed from template name
+    if (editingListing?.customNotes?.startsWith('__TEMPLATE__:')) {
+      const templateId = editingListing.customNotes.replace('__TEMPLATE__:', '');
+      const { getTemplateById } = await import('@/shared/constants/listingTemplates');
+      const originalTemplate = getTemplateById(templateId);
+      if (originalTemplate && formData.name === originalTemplate.name) {
+        toast.error('Rename your service before saving');
+        return;
+      }
     }
     
     // For ITEMS, require category and event types
@@ -1134,12 +1187,26 @@ export default function VendorListings() {
       }
       
       // Save as draft - keep isActive true so vendor can still see it, but mark as draft
+      // Check if "Other" event type is selected by name (not hardcoded ID)
+      const otherEventTypeForDraft = eventTypesData?.find((et: any) => et.name === 'Other' || et.displayName === 'Other');
+      const isOtherEventTypeSelectedForDraft = otherEventTypeForDraft && formData.eventTypeIds.includes(otherEventTypeForDraft.id);
+      
+      // Serialize custom event type names as JSON array if it's an array
+      const serializedCustomEventTypeNameForDraft = (() => {
+        if (!isOtherEventTypeSelectedForDraft) return undefined;
+        const val = formData.customEventTypeName;
+        if (!val || (Array.isArray(val) && val.length === 0)) return undefined;
+        if (Array.isArray(val)) return JSON.stringify(val);
+        return val; // Already a string
+      })();
+      
       const payload: any = {
         name: formData.name,
         description: formData.description || 'Draft - description pending',
         price: finalPrice ? parseFloat(finalPrice) : 0.01, // 0.01 marks draft if no price
         categoryId: dbCategoryId, // Send DB category ID to backend
         customCategoryName: formData.categoryId === 'other' ? formData.customCategoryName : undefined,
+        customEventTypeName: serializedCustomEventTypeNameForDraft,
         // For packages without items, send a dummy event type to pass backend validation
         // This will be replaced when items are added
         eventTypeIds: formData.eventTypeIds.length > 0 ? formData.eventTypeIds : (listingType === 'PACKAGE' ? [1] : []), // Use event type ID 1 as placeholder for packages
@@ -1331,23 +1398,23 @@ export default function VendorListings() {
 
             {/* Package Deal Card */}
             <button 
-              onClick={() => items.length > 0 ? handleCreateListing('PACKAGE') : toast.info('Create at least one service first to bundle them into a package')}
-              disabled={items.length === 0}
-              className={`group relative p-4 rounded-xl border-2 border-dashed transition-all text-left ${items.length > 0 ? 'border-primary/40 hover:border-primary bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-card hover:shadow-lg' : 'border-muted bg-muted/30 opacity-60 cursor-not-allowed'}`}
+              onClick={() => items.length >= 2 ? handleCreateListing('PACKAGE') : toast.info('Create at least 2 services first to bundle them into a package')}
+              disabled={items.length < 2}
+              className={`group relative p-4 rounded-xl border-2 border-dashed transition-all text-left ${items.length >= 2 ? 'border-primary/40 hover:border-primary bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-card hover:shadow-lg' : 'border-muted bg-muted/30 opacity-60 cursor-not-allowed'}`}
             >
               <div className="flex items-start gap-3">
-                <div className={`p-2.5 rounded-xl shadow-sm transition-transform ${items.length > 0 ? 'bg-gradient-to-br from-primary to-violet-600 group-hover:scale-110' : 'bg-muted-foreground/30'}`}>
+                <div className={`p-2.5 rounded-xl shadow-sm transition-transform ${items.length >= 2 ? 'bg-gradient-to-br from-primary to-violet-600 group-hover:scale-110' : 'bg-muted-foreground/30'}`}>
                   <Package className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className={`font-semibold text-sm transition-colors ${items.length > 0 ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground'}`}>Create Package Deal</h3>
+                  <h3 className={`font-semibold text-sm transition-colors ${items.length >= 2 ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground'}`}>Create Package Deal</h3>
                   <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                     Bundle services at a special price
                   </p>
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between">
-                {items.length > 0 ? (
+                {items.length >= 2 ? (
                   <>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">Higher Value</Badge>
                     <span className="text-[10px] text-primary font-medium group-hover:translate-x-1 transition-transform flex items-center gap-1">
@@ -1356,7 +1423,7 @@ export default function VendorListings() {
                   </>
                 ) : (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-amber-600 border-amber-300 bg-amber-50">
-                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Add services first
+                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Min. 2 services required
                   </Badge>
                 )}
               </div>
@@ -1370,6 +1437,9 @@ export default function VendorListings() {
           onOpenChange={setShowTemplateModal}
           onStartBlank={handleStartBlank}
           onRefetch={refetch}
+          vendorCategoryId={vendorCategoryId}
+          eventTypesData={eventTypesData || []}
+          eventTypeCategories={eventTypeCategories}
         />
 
         {/* Create/Edit Listing Dialog */}
@@ -1424,7 +1494,7 @@ export default function VendorListings() {
                 categoriesData={categoriesData}
                 items={items}
                 availableEventTypes={availableEventTypes}
-                coreCategories={coreCategories}
+                coreCategories={allowedCoreCategories}
                 eventTypeCategories={eventTypeCategories}
                 getCategoryName={getCategoryName}
                 getAllDbCategoryIds={getAllDbCategoryIds}

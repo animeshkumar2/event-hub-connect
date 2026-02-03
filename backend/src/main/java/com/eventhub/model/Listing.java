@@ -117,6 +117,9 @@ public class Listing {
     @Column(name = "custom_notes", columnDefinition = "TEXT")
     private String customNotes;  // Additional notes, terms, customization options, etc.
     
+    @Column(name = "custom_event_type_name", length = 100)
+    private String customEventTypeName;  // Custom event type name when "Other" is selected
+    
     // Location System - Service Mode
     @Enumerated(EnumType.STRING)
     @Column(name = "service_mode", length = 20)
