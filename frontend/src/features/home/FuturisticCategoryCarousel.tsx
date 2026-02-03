@@ -51,7 +51,7 @@ const categories: Category[] = [
     description: 'Beautiful henna designs',
   },
   {
-    id: 'event-coordinator',
+    id: 'event-planner',
     name: 'Event Planner',
     image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=1000&fit=crop&q=80',
     description: 'Complete event management',

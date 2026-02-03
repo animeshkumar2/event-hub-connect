@@ -67,10 +67,10 @@ public class AuthService {
         }
         
         // Validate password strength
-        if (request.getPassword().length() < 8) {
+        if (request.getPassword().length() < 6) {
             throw new AuthException(
                 AuthException.WEAK_PASSWORD,
-                "Password must be at least 8 characters long"
+                "Password must be at least 6 characters long"
             );
         }
         

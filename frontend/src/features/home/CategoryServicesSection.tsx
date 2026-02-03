@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Camera, Palette, Music2, ChefHat, Building2, Theater, LucideIcon, CalendarCheck } from 'lucide-react';
+import { Sparkles, Camera, Palette, Music2, ChefHat, Building2, Theater, LucideIcon, CalendarCheck, ClipboardList } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
@@ -19,7 +19,7 @@ const categories: Category[] = [
   { id: 'mua', name: 'Makeup Artist', icon: Sparkles, searchPath: '/search?category=mua&view=vendors' },
   { id: 'caterer', name: 'Caterer', icon: ChefHat, searchPath: '/search?category=caterer&view=vendors' },
   { id: 'artists', name: 'Mehendi Artist', icon: Theater, searchPath: '/search?category=artists&view=vendors' },
-  { id: 'venue', name: 'Event Planners', icon: CalendarCheck, searchPath: '/search?category=venue&view=vendors' },
+  { id: 'event-planner', name: 'Event Planner', icon: ClipboardList, searchPath: '/search?category=event-planner&view=vendors' },
 ];
 
 const galleryImages = [

@@ -19,6 +19,7 @@ const vendorCategories = [
   { id: 'live-music', name: 'Live Music', icon: Mic2, iconColor: 'text-red-500', iconBg: 'bg-red-50' },
   { id: 'anchors', name: 'Anchors', icon: Mic, iconColor: 'text-indigo-500', iconBg: 'bg-indigo-50' },
   { id: 'event-coordinator', name: 'Event Coordinators', icon: ClipboardList, iconColor: 'text-emerald-500', iconBg: 'bg-emerald-50' },
+  { id: 'event-planner', name: 'Event Planner', icon: ClipboardList, iconColor: 'text-cyan-500', iconBg: 'bg-cyan-50' },
 ];
 
 // Event types with Lucide icons

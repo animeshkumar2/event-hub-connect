@@ -29,7 +29,8 @@ INSERT INTO categories (id, name, display_name, icon) VALUES
 ('mua', 'Makeup & Styling', 'Makeup & Styling', '�'),
 ('dj-entertainment', 'DJ & Entertainment', 'DJ & Entertainment', '�'),
 ('sound-lights', 'Sound & Lights', 'Sound & Lights', '�'),
-('artists', 'Artists & Performers', 'Artists & Performers', '�')
+('artists', 'Artists & Performers', 'Artists & Performers', '�'),
+('event-planner', 'Event Planner', 'Event Planner', '📋')
 ON CONFLICT (id) DO NOTHING;
 
 -- =====================================================

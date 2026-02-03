@@ -43,6 +43,8 @@ const getCategoryIcon = (categoryId: string) => {
       return Music;
     case 'sound-lights':
       return Speaker;
+    case 'event-planner':
+      return MoreHorizontal;
     default:
       return MoreHorizontal;
   }

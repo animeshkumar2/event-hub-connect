@@ -584,6 +584,7 @@ const VendorDetails = () => {
                             'sound-lights': 'dj',
                             caterer: 'corporate',
                             mua: 'wedding',
+                            'event-planner': 'wedding',
                           };
                           const theme = themeMap[vendor.category] || 'wedding';
                           
@@ -723,6 +724,7 @@ const VendorDetails = () => {
                           'sound-lights': 'dj',
                           caterer: 'corporate',
                           mua: 'wedding',
+                          'event-planner': 'wedding',
                         };
                         const theme = themeMap[vendor.category] || 'wedding';
                         const isHighlighted = highlightedPackageId === pkg.id;

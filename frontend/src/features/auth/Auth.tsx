@@ -79,21 +79,17 @@ const Auth = ({ mode: propMode }: AuthProps) => {
     
     let score = 0;
     const checks = {
-      length: password.length >= 8,
+      length: password.length >= 6,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[^A-Za-z0-9]/.test(password),
     };
 
     if (checks.length) score++;
     if (checks.uppercase) score++;
     if (checks.lowercase) score++;
-    if (checks.number) score++;
-    if (checks.special) score++;
 
-    if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
-    if (score <= 3) return { score, label: 'Medium', color: 'bg-yellow-500' };
+    if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' };
+    if (score === 2) return { score, label: 'Medium', color: 'bg-yellow-500' };
     return { score, label: 'Strong', color: 'bg-green-500' };
   };
 
@@ -101,10 +97,9 @@ const Auth = ({ mode: propMode }: AuthProps) => {
   const passwordRequirements = useMemo(() => {
     const password = formData.password;
     return [
-      { label: 'At least 8 characters', met: password.length >= 8 },
+      { label: 'At least 6 characters', met: password.length >= 6 },
       { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
       { label: 'One lowercase letter', met: /[a-z]/.test(password) },
-      { label: 'One number', met: /[0-9]/.test(password) },
     ];
   }, [formData.password]);
 
@@ -212,7 +207,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       formData.name.trim() !== '' &&
       formData.email.trim() !== '' &&
       isValidEmail(formData.email) &&
-      formData.password.length >= 8 &&
+      formData.password.length >= 6 &&
       formData.confirmPassword === formData.password &&
       formData.phone.trim() !== '' &&
       isValidPhone(formData.phone)
@@ -453,7 +448,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
       } else if (errorCode === 'INVALID_PHONE_FORMAT') {
         setFieldErrors({ identifier: errorMessage });
       } else if (errorCode === 'WEAK_PASSWORD') {
-        setFieldErrors({ password: "Password must be at least 8 characters" });
+        setFieldErrors({ password: "Password must be at least 6 characters" });
       } else {
         // Show generic error in toast
         toast({
@@ -824,14 +819,25 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                   placeholder={mode === "login" ? "Enter your password" : "Create a strong password"}
                   value={formData.password}
                   onChange={(e) => {
-                    setFormData({ ...formData, password: e.target.value });
-                    if (fieldErrors.password) {
+                    const newPassword = e.target.value;
+                    setFormData({ ...formData, password: newPassword });
+                    // Clear password error when user types and password meets minimum length
+                    if (fieldErrors.password && newPassword.length >= 6) {
+                      setFieldErrors({ ...fieldErrors, password: undefined });
+                    }
+                  }}
+                  onBlur={() => {
+                    // Only show error on blur if password is entered but too short
+                    if (mode === "signup" && formData.password && formData.password.length > 0 && formData.password.length < 6) {
+                      setFieldErrors({ ...fieldErrors, password: "Password must be at least 6 characters" });
+                    } else if (fieldErrors.password && formData.password.length >= 6) {
+                      // Clear error if password is now valid
                       setFieldErrors({ ...fieldErrors, password: undefined });
                     }
                   }}
                   required
                   disabled={isLoading}
-                  minLength={mode === "signup" ? 8 : undefined}
+                  minLength={mode === "signup" ? 6 : undefined}
                   className={`h-11 rounded-xl border-border/60 focus:border-primary pr-10 ${fieldErrors.password ? "border-red-500 focus:border-red-500" : ""}`}
                 />
                 <button
@@ -859,7 +865,7 @@ const Auth = ({ mode: propMode }: AuthProps) => {
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div 
                         className={`h-full transition-all duration-300 ${passwordStrength.color}`}
-                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                        style={{ width: `${(passwordStrength.score / 3) * 100}%` }}
                       />
                     </div>
                     <span className={`text-xs font-medium ${

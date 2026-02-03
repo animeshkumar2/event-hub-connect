@@ -27,24 +27,21 @@ const ResetPassword = () => {
     if (!pwd) return { score: 0, label: '', color: '' };
     
     let score = 0;
-    if (pwd.length >= 8) score++;
+    if (pwd.length >= 6) score++;
     if (/[A-Z]/.test(pwd)) score++;
     if (/[a-z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
 
-    if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' };
-    if (score <= 3) return { score, label: 'Medium', color: 'bg-yellow-500' };
+    if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' };
+    if (score === 2) return { score, label: 'Medium', color: 'bg-yellow-500' };
     return { score, label: 'Strong', color: 'bg-green-500' };
   };
 
   const passwordStrength = getPasswordStrength(password);
 
   const passwordRequirements = [
-    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'At least 6 characters', met: password.length >= 6 },
     { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
     { label: 'One lowercase letter', met: /[a-z]/.test(password) },
-    { label: 'One number', met: /[0-9]/.test(password) },
   ];
 
   // Validate token on mount
@@ -81,10 +78,10 @@ const ResetPassword = () => {
       return;
     }
 
-    if (password.length < 8) {
+    if (password.length < 6) {
       toast({
         title: "Error",
-        description: "Password must be at least 8 characters",
+        description: "Password must be at least 6 characters",
         variant: "destructive",
       });
       return;
@@ -190,12 +187,12 @@ const ResetPassword = () => {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="At least 8 characters"
+                  placeholder="At least 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  minLength={8}
+                  minLength={6}
                   className="h-11 rounded-xl border-border/60 focus:border-primary pr-10"
                 />
                 <button
@@ -216,7 +213,7 @@ const ResetPassword = () => {
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div 
                         className={`h-full transition-all duration-300 ${passwordStrength.color}`}
-                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                        style={{ width: `${(passwordStrength.score / 3) * 100}%` }}
                       />
                     </div>
                     <span className="text-xs font-medium text-muted-foreground">
@@ -277,7 +274,7 @@ const ResetPassword = () => {
             <Button 
               type="submit" 
               className="w-full h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all" 
-              disabled={isLoading || password.length < 8 || password !== confirmPassword}
+              disabled={isLoading || password.length < 6 || password !== confirmPassword}
             >
               {isLoading ? (
                 <>
