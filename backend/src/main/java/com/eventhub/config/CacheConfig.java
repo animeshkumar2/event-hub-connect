@@ -14,15 +14,12 @@ public class CacheConfig {
     
     @Bean
     public CacheManager cacheManager() {
-        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager(
-            "platformStats",           // Legacy - keep for backward compatibility
-            "publicPlatformStats",     // Public stats cache
-            "adminDashboardStats",     // Admin dashboard stats cache
-            "vendorDetails"            // Vendor details cache
+        return new ConcurrentMapCacheManager(
+            "platformStats",
+            "publicPlatformStats",
+            "adminDashboardStats",
+            "vendorDetails"
         );
-        // Set TTL to 5 minutes for platform stats (refresh every 5 min)
-        cacheManager.setAllowNullValues(false);
-        return cacheManager;
     }
     
     // Evict public platform stats cache every 5 minutes to keep data fresh
@@ -38,12 +35,11 @@ public class CacheConfig {
     public void evictAdminDashboardStatsCache() {
         // Cache eviction handled by annotation
     }
+    
+    // Evict vendor details cache every 10 minutes to prevent unbounded growth
+    @Scheduled(fixedRate = 600000) // 10 minutes
+    @CacheEvict(value = "vendorDetails", allEntries = true)
+    public void evictVendorDetailsCache() {
+        // Cache eviction handled by annotation
+    }
 }
-
-
-
-
-
-
-
-
