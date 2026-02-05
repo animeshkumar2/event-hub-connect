@@ -1,0 +1,11 @@
+# OCI Configuration - Generated Thu Feb  5 20:45:36 IST 2026
+
+COMPARTMENT_ID=""
+AVAILABILITY_DOMAIN=""
+SHAPE="VM.Standard.A1.Flex"
+OCPUS=2
+MEMORY_IN_GBS=12
+IMAGE_ID=""
+SUBNET_ID=""
+DISPLAY_NAME="my-backend-server"
+SSH_PUBLIC_KEY_PATH="/Users/pichotiy2501/.ssh/id_rsa.pub"

@@ -22,19 +22,27 @@ COPY --from=build /app/target/*.jar app.jar
 # Expose port
 EXPOSE 8080
 
-# JVM settings optimized for 512MB container
-# - MaxRAMPercentage: Use 75% of container memory for heap
+# JVM settings optimized for 512MB container with memory leak prevention
+# - MaxRAMPercentage: Use 70% of container memory for heap (leave room for metaspace, native)
 # - UseG1GC: Better for containers, lower pause times
+# - G1HeapRegionSize: Smaller regions for better memory management
+# - MaxGCPauseMillis: Target max GC pause time
 # - UseStringDeduplication: Reduce memory for duplicate strings
 # - +UseContainerSupport: Respect container memory limits
+# - MaxMetaspaceSize: Limit metaspace to prevent unbounded growth
+# - SoftRefLRUPolicyMSPerMB: Aggressive soft reference cleanup
 ENV JAVA_OPTS="-XX:+UseContainerSupport \
-    -XX:MaxRAMPercentage=75.0 \
+    -XX:MaxRAMPercentage=70.0 \
     -XX:InitialRAMPercentage=50.0 \
     -XX:+UseG1GC \
+    -XX:G1HeapRegionSize=1m \
+    -XX:MaxGCPauseMillis=200 \
     -XX:+UseStringDeduplication \
     -XX:+OptimizeStringConcat \
-    -Xss256k"
+    -XX:MaxMetaspaceSize=128m \
+    -XX:SoftRefLRUPolicyMSPerMB=50 \
+    -Xss256k \
+    -XX:+ExitOnOutOfMemoryError"
 
 # Run the application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-
