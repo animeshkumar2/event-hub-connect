@@ -71,8 +71,6 @@ services:
       - eventhub-network
 
 volumes:
-  postgres_dev_data:
-
-networks:
+  postgres_dev_data:networks:
   eventhub-network:
     driver: bridge

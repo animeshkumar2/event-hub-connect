@@ -91,9 +91,31 @@ export function useVendorProfileCompletion(): VendorProfileCompletionStatus {
     return { completionPercentage, missingFields, canCreateListing, hasMandatoryFields };
   }, [profileData]);
 
+  // Don't mark as incomplete until we've actually checked the profile
+  // This prevents showing "Complete Profile" prompt during initial load
+  const isComplete = useMemo(() => {
+    // If still loading, don't make a decision yet
+    if (isLoading || authLoading) {
+      return true; // Return true during loading to prevent premature prompt
+    }
+    
+    // If no vendor ID, definitely not complete
+    if (!vendorId) {
+      return false;
+    }
+    
+    // If we have vendor ID but no profile data yet, assume complete to avoid flash
+    // (This happens when API call is in progress)
+    if (!profileData) {
+      return true; // Optimistic - wait for data to load
+    }
+    
+    // Now we have data, check actual completion status
+    return completionStatus.canCreateListing;
+  }, [vendorId, profileData, completionStatus.canCreateListing, isLoading, authLoading]);
+
   return {
-    // Profile is "complete" for access purposes once mandatory fields are filled
-    isComplete: !!vendorId && completionStatus.canCreateListing,
+    isComplete,
     vendorId,
     isLoading: isLoading || authLoading,
     completionPercentage: completionStatus.completionPercentage,

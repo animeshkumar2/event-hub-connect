@@ -682,19 +682,43 @@ export const vendorApi = {
   deletePastEvent: (eventId: string) => apiClient.delete<any>(`/vendors/past-events/${eventId}`),
   
   // Availability
-  getAvailability: (startDate?: string, endDate?: string) => {
+  getAvailability: (startDate?: string, endDate?: string, categoryId?: string) => {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (categoryId) params.append('categoryId', categoryId);
     return apiClient.get<any[]>(`/vendors/availability?${params.toString()}`);
   },
+  getDayDetails: (date: string) =>
+    apiClient.get<any[]>(`/vendors/availability/day/${date}`),
+  getBookingCounts: (startDate: string, endDate: string) =>
+    apiClient.get<Record<string, Record<string, number>>>(`/vendors/availability/booking-counts?startDate=${startDate}&endDate=${endDate}`),
   createAvailabilitySlots: (date: string, timeSlots: any[]) =>
     apiClient.post<any[]>(`/vendors/availability?date=${date}`, timeSlots),
   updateSlot: (slotId: string, status: string) =>
     apiClient.put<any>(`/vendors/availability/${slotId}`, { status }),
+  updateSlotDetails: (slotId: string, data: { status?: string; notes?: string; timeSlotType?: string }) =>
+    apiClient.put<any>(`/vendors/availability/${slotId}/details`, data),
   deleteSlot: (slotId: string) => apiClient.delete<any>(`/vendors/availability/${slotId}`),
-  bulkUpdateAvailability: (startDate: string, endDate: string, status: string) =>
-    apiClient.post<number>('/vendors/availability/bulk', { startDate, endDate, status }),
+  bulkUpdateAvailability: (startDate: string, endDate: string, status: string, categoryId?: string, notes?: string) =>
+    apiClient.post<number>('/vendors/availability/bulk', { startDate, endDate, status, categoryId, notes }),
+  blockDay: (date: string, categoryId?: string, notes?: string) => {
+    const payload: any = { date };
+    if (categoryId) payload.categoryId = categoryId;
+    if (notes) payload.notes = notes;
+    return apiClient.post<number>('/vendors/availability/block-day', payload);
+  },
+  unblockDay: (date: string, categoryId?: string) => {
+    const payload: any = { date };
+    if (categoryId) payload.categoryId = categoryId;
+    return apiClient.post<number>('/vendors/availability/unblock-day', payload);
+  },
+  blockTimeSlot: (date: string, timeSlotType: string, categoryId?: string, notes?: string) =>
+    apiClient.post<number>('/vendors/availability/block-time-slot', { date, timeSlotType, categoryId, notes }),
+  unblockTimeSlot: (date: string, timeSlotType: string, categoryId?: string) =>
+    apiClient.post<number>('/vendors/availability/unblock-time-slot', { date, timeSlotType, categoryId }),
+  blockCustomTime: (date: string, fromTime: string, toTime: string, categoryId?: string, notes?: string) =>
+    apiClient.post<number>('/vendors/availability/block-custom-time', { date, fromTime, toTime, categoryId, notes }),
   
   // Bookable Setups
   getBookableSetups: () => apiClient.get<any[]>('/vendors/bookable-setups'),

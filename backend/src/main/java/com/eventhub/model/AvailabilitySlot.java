@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "availability_slots", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"vendor_id", "date", "time_slot"})
+    @UniqueConstraint(columnNames = {"vendor_id", "date", "time_slot", "category_id"})
 })
 @Data
 @NoArgsConstructor
@@ -30,11 +30,32 @@ public class AvailabilitySlot {
     private LocalDate date;
     
     @Column(name = "time_slot", nullable = false, length = 10)
-    private String timeSlot; // HH:MM format
+    private String timeSlot; // HH:MM format or slot type
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SlotStatus status = SlotStatus.AVAILABLE;
+    
+    // Category-specific availability (null means all categories)
+    @Column(name = "category_id", length = 50)
+    private String categoryId;
+    
+    // Link to specific listing (optional)
+    @Column(name = "listing_id")
+    private UUID listingId;
+    
+    // Time slot type for predefined slots
+    @Enumerated(EnumType.STRING)
+    @Column(name = "time_slot_type", length = 20)
+    private TimeSlotType timeSlotType = TimeSlotType.FULL_DAY;
+    
+    // Link to order when booked
+    @Column(name = "order_id")
+    private UUID orderId;
+    
+    // Vendor notes for blocked dates
+    @Column(name = "notes")
+    private String notes;
     
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -55,6 +76,13 @@ public class AvailabilitySlot {
     
     public enum SlotStatus {
         AVAILABLE, BOOKED, BUSY, BLOCKED
+    }
+    
+    public enum TimeSlotType {
+        MORNING,    // 6AM - 12PM
+        AFTERNOON,  // 12PM - 5PM
+        EVENING,    // 5PM - 11PM
+        FULL_DAY    // Entire day
     }
 }
 
