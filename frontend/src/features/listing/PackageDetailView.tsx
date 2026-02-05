@@ -603,7 +603,7 @@ export function PackageDetailView({ listing, isOwner, reviews = [] }: PackageDet
                                   <IndianRupee className="h-4 w-4 text-slate-400 mx-auto mb-1" />
                                   <p className="text-[10px] text-slate-500">Negotiable</p>
                                   <p className="text-xs font-medium">
-                                    {item.openForNegotiation ? 'Yes' : 'Fixed'}
+                                    {item.openForNegotiation ? 'Yes' : 'Non-negotiable'}
                                   </p>
                                 </div>
                               </div>

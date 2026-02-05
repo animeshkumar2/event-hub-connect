@@ -236,14 +236,14 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           />
           <div className="space-y-2">
             <StatCard icon={ImageIcon} label="Edited Photos" value={data.editedPhotos} highlight />
-            {data.teamSize && (
+            {data.teamSize > 0 && (
               <StatCard icon={Users} label="Team Size" value={data.teamSize} />
             )}
           </div>
         </div>
 
         {/* Duration */}
-        {data.durationHours && (
+        {data.durationHours > 0 && (
           <InfoBox icon={Clock} label="Duration" value={`${data.durationHours} hrs`} variant="info" />
         )}
 
@@ -286,7 +286,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           value={data.pricePerPlateVeg}
           sublabel="/plate"
         />
-        {data.pricePerPlateNonVeg && (
+        {data.pricePerPlateNonVeg > 0 && (
           <HeroPricing
             icon={Utensils}
             label="Non-Veg"
@@ -299,7 +299,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
       {/* Guest Capacity & Style */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatCard icon={Users} label="Min Guests" value={data.minGuests} highlight />
-        {data.maxGuests && <StatCard icon={Users} label="Max" value={data.maxGuests} />}
+        {data.maxGuests > 0 && <StatCard icon={Users} label="Max" value={data.maxGuests} />}
         {data.serviceStyle && (
           <div className="col-span-2">
             <InfoBox icon={PartyPopper} label="Style" value={data.serviceStyle} />
@@ -360,7 +360,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
         />
         <div className="space-y-2">
           <StatCard icon={Users} label="Seating Capacity" value={data.capacitySeating} highlight />
-          {data.capacityStanding && (
+          {data.capacityStanding > 0 && (
             <StatCard icon={Users} label="Standing Capacity" value={data.capacityStanding} />
           )}
         </div>
@@ -368,13 +368,13 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
 
       {/* Venue Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {data.numberOfHalls && data.numberOfHalls > 0 && (
+        {data.numberOfHalls > 0 && (
           <StatCard icon={Building2} label="Halls/Spaces" value={data.numberOfHalls} highlight />
         )}
-        {data.areaSquareFeet && (
+        {data.areaSquareFeet > 0 && (
           <StatCard icon={Layers} label="Area" value={data.areaSquareFeet} suffix="sq ft" />
         )}
-        {data.parkingCapacity && (
+        {data.parkingCapacity > 0 && (
           <StatCard icon={Car} label="Parking" value={data.parkingCapacity} suffix="vehicles" />
         )}
       </div>
@@ -457,10 +457,10 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           sublabel="Starting price"
         />
         <div className="md:col-span-2 grid grid-cols-2 gap-2">
-          {data.coverageArea && (
+          {data.coverageArea > 0 && (
             <StatCard icon={Layers} label="Coverage Area" value={data.coverageArea} suffix="sq ft" highlight />
           )}
-          {data.tableCenterpieces && (
+          {data.tableCenterpieces > 0 && (
             <StatCard icon={Flower2} label="Centerpieces" value={data.tableCenterpieces} />
           )}
         </div>
@@ -491,7 +491,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
     <div className="space-y-4">
       {/* Pricing Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {data.bridalPrice && (
+        {data.bridalPrice > 0 && (
           <HeroPricing
             icon={Crown}
             label="Bridal"
@@ -499,7 +499,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
             sublabel="Premium bridal package"
           />
         )}
-        {data.familyPrice && (
+        {data.familyPrice > 0 && (
           <div className="p-4 rounded-xl bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200/50">
             <div className="flex items-center gap-2 mb-2">
               <Heart className="h-4 w-4 text-rose-500" />
@@ -512,7 +512,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
             <p className="text-xs text-rose-500 mt-1">per person</p>
           </div>
         )}
-        {data.guestPrice && (
+        {data.guestPrice > 0 && (
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
             <div className="flex items-center gap-2 mb-2">
               <Users className="h-4 w-4 text-slate-500" />
@@ -542,10 +542,10 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
         {data.productsUsed && (
           <InfoRow icon={Star} label="Products/Brands" value={data.productsUsed} />
         )}
-        {data.numberOfLooks && (
+        {data.numberOfLooks > 0 && (
           <InfoRow icon={Eye} label="Looks Included" value={`${data.numberOfLooks} looks`} />
         )}
-        {data.touchupHours && (
+        {data.touchupHours > 0 && (
           <InfoRow icon={Clock} label="Touch-up Service" value={`${data.touchupHours} hours`} />
         )}
       </div>
@@ -558,7 +558,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           value={data.trialIncluded}
           description={data.trialPrice ? `₹${data.trialPrice} extra` : 'Included'}
         />
-        {data.travelIncludedKm && (
+        {data.travelIncludedKm > 0 && (
           <InfoBox icon={Car} label="Travel" value={`${data.travelIncludedKm}km free`} variant="info" />
         )}
       </div>
@@ -576,16 +576,16 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           sublabel={data.pricingType || 'Per Event'}
         />
         <div className="grid grid-cols-2 gap-2">
-          {data.durationHours && (
+          {data.durationHours > 0 && (
             <StatCard icon={Clock} label="Duration" value={data.durationHours} suffix="hrs" highlight />
           )}
-          {data.soundSystemWattage && (
+          {data.soundSystemWattage > 0 && (
             <StatCard icon={Volume2} label="Sound Power" value={data.soundSystemWattage} suffix="W" />
           )}
-          {data.teamSize && (
+          {data.teamSize > 0 && (
             <StatCard icon={Users} label="Team Size" value={data.teamSize} />
           )}
-          {data.extraHourPrice && (
+          {data.extraHourPrice > 0 && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/50">
               <div className="flex items-center gap-2">
                 <Timer className="h-4 w-4 text-amber-600" />
@@ -629,16 +629,16 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
           sublabel="Per day"
         />
         <div className="grid grid-cols-2 gap-2">
-          {data.durationDays && (
+          {data.durationDays > 0 && (
             <StatCard icon={Clock} label="Duration" value={data.durationDays} suffix="days" highlight />
           )}
-          {data.coverageArea && (
+          {data.coverageArea > 0 && (
             <StatCard icon={Layers} label="Coverage" value={data.coverageArea} suffix="sq ft" />
           )}
-          {data.powerRequirement && (
+          {data.powerRequirement > 0 && (
             <StatCard icon={Zap} label="Power" value={data.powerRequirement} suffix="KW" />
           )}
-          {data.teamSize && (
+          {data.teamSize > 0 && (
             <StatCard icon={Users} label="Technicians" value={data.teamSize} />
           )}
         </div>
@@ -653,7 +653,7 @@ export const CategorySpecificDisplay = ({ categoryId, categorySpecificData }: Ca
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
         <FeaturePill icon={CheckCircle2} label="Setup Included" value={data.setupIncluded} />
         <FeaturePill icon={CheckCircle2} label="Dismantling Included" value={data.dismantlingIncluded} />
-        {data.extraDayPrice && (
+        {data.extraDayPrice > 0 && (
           <InfoBox icon={Timer} label="Extra Day" value={`₹${Number(data.extraDayPrice).toLocaleString('en-IN')}`} variant="warning" />
         )}
       </div>

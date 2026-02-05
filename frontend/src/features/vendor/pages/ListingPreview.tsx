@@ -29,6 +29,7 @@ import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInpu
 import { ServiceModeSelector } from '@/shared/components/ServiceModeSelector';
 import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
 import { VendorPackagePreview } from './VendorPackagePreview';
+import { getTemplateById } from '@/shared/constants/listingTemplates';
 
 interface ExtraCharge { name: string; price: number; }
 
@@ -135,6 +136,12 @@ export default function ListingPreview() {
     return listing.customNotes.replace('__TEMPLATE__:', '');
   }, [isTemplateBased, listing?.customNotes]);
   
+  // Get original template for name comparison
+  const originalTemplate = useMemo(() => {
+    if (!templateId) return null;
+    return getTemplateById(templateId);
+  }, [templateId]);
+  
   const { data: bundledItemsData } = useQuery({
     queryKey: ['bundledItems', listing?.includedItemIds],
     queryFn: async () => {
@@ -231,6 +238,8 @@ export default function ListingPreview() {
       extraChargesDetailed, deliveryTime: listing.deliveryTime || '', customNotes: listing.customNotes || '',
       serviceMode: listing.serviceMode || 'BOTH', openForNegotiation: listing.openForNegotiation || false,
       eventTypeIds, minimumQuantity: listing.minimumQuantity || 0,
+      // Custom event type name (when "Other" is selected)
+      customEventTypeName: listing.customEventTypeName || '',
       // Venue location fields
       venueAddress: listing.venueAddress || '',
       venueCity: listing.venueCity || '',
@@ -307,8 +316,39 @@ export default function ListingPreview() {
       requirements.push({ id: 'venueLocation', label: 'Venue location', met: hasVenueLocation });
     }
     
+    // 5. For template-based listings, name must be changed from template name
+    if (originalTemplate && listingData?.isDraft) {
+      const nameChanged = data?.name !== originalTemplate.name;
+      requirements.push({ id: 'templateRename', label: 'Rename service name', met: nameChanged });
+    }
+    
+    // 6. Custom event type is required when "Other" event type is selected
+    const otherEventType = eventTypes.find((et: any) => et.name === 'Other' || et.displayName === 'Other');
+    const selectedEventTypeIds = data?.eventTypeIds || listingData?.eventTypeIds || [];
+    const isOtherSelected = otherEventType && selectedEventTypeIds.includes(otherEventType.id);
+    if (isOtherSelected) {
+      // Check if custom event types exist (handle both array and string formats)
+      const val = data?.customEventTypeName;
+      let hasCustomEventType = false;
+      if (val) {
+        if (Array.isArray(val)) {
+          hasCustomEventType = val.length > 0;
+        } else if (typeof val === 'string') {
+          // Try parsing as JSON array
+          try {
+            const parsed = JSON.parse(val);
+            hasCustomEventType = Array.isArray(parsed) && parsed.length > 0;
+          } catch {
+            // Legacy string format
+            hasCustomEventType = val.trim().length > 0;
+          }
+        }
+      }
+      requirements.push({ id: 'customEventType', label: 'Custom event type', met: hasCustomEventType });
+    }
+    
     return requirements;
-  }, [pendingImageChanges]);
+  }, [pendingImageChanges, originalTemplate, eventTypes]);
   
   // Check if ready to publish
   const publishRequirements = useMemo(() => {
@@ -322,8 +362,19 @@ export default function ListingPreview() {
   const saveChanges = useCallback(async () => {
     if (!listing || !editForm) return;
     
+    // Always require a name, even for drafts
+    if (!editForm.name?.trim()) {
+      toast.error('Please add a name to save');
+      return;
+    }
+    
+    // For template-based drafts, ONLY require name to be changed (other requirements are for publish only)
+    if (listing.isDraft && originalTemplate && editForm.name === originalTemplate.name) {
+      toast.error('Rename your service before saving');
+      return;
+    }
+    
     // For PUBLISHED listings, require all validations to pass
-    // For DRAFT listings, allow saving incomplete
     if (!listing.isDraft && !canPublish) {
       toast.error('Please complete all required fields before saving');
       missingRequirements.forEach(r => toast.error(`Missing: ${r.label}`));
@@ -402,6 +453,18 @@ export default function ListingPreview() {
         serviceMode: listing.categoryId === 'venue' ? 'CUSTOMER_VISITS' : editForm.serviceMode, 
         openForNegotiation: editForm.openForNegotiation,
         eventTypeIds: editForm.eventTypeIds,
+        // Custom event type names - only send if "Other" event type is selected
+        // Serialize as JSON array string for storage
+        customEventTypeName: (() => {
+          const otherEventType = eventTypes.find((et: any) => et.name === 'Other' || et.displayName === 'Other');
+          const isOtherSelected = otherEventType && (editForm.eventTypeIds || []).includes(otherEventType.id);
+          if (!isOtherSelected) return undefined;
+          const val = editForm.customEventTypeName;
+          if (!val || (Array.isArray(val) && val.length === 0)) return undefined;
+          // If it's an array, serialize to JSON string
+          if (Array.isArray(val)) return JSON.stringify(val);
+          return val; // Already a string
+        })(),
         minimumQuantity: listing.categoryId === 'caterer' ? (editForm.minimumQuantity || 0) : undefined,
         categorySpecificData: isItem && listing.categoryId !== 'other' && Object.keys(categorySpecificData).length > 0 ? JSON.stringify(categorySpecificData) : undefined,
         // Explicitly preserve draft status - don't accidentally publish
@@ -528,21 +591,10 @@ export default function ListingPreview() {
   const publishListing = useCallback(async () => {
     if (!listing) return;
     
-    // Check publish requirements
+    // Check publish requirements (includes template rename check)
     if (!canPublish) {
       missingRequirements.forEach(r => toast.error(`Missing: ${r.label}`));
       return;
-    }
-    
-    // Validation: If template-based, name must be changed
-    if (isTemplateBased) {
-      // Import template names to check
-      const { getTemplateById } = await import('@/shared/constants/listingTemplates');
-      const originalTemplate = templateId ? getTemplateById(templateId) : null;
-      if (originalTemplate && listing.name === originalTemplate.name) {
-        toast.error('Rename your service before publishing');
-        return;
-      }
     }
     
     setIsPublishing(true);
@@ -1379,7 +1431,7 @@ export default function ListingPreview() {
                             "text-xs font-bold",
                             listing.openForNegotiation ? "text-emerald-900" : "text-slate-700"
                           )}>
-                            {listing.openForNegotiation ? 'Negotiable' : 'Fixed'}
+                            {listing.openForNegotiation ? 'Negotiable' : 'Non-negotiable'}
                           </p>
                         </div>
                         
@@ -1462,10 +1514,15 @@ export default function ListingPreview() {
                           {eventTypes.map((et: any) => {
                             const sel = (editForm?.eventTypeIds || []).includes(et.id);
                             const isLastSelected = sel && (editForm?.eventTypeIds || []).length === 1;
-                            const eventIcons: Record<number, string> = {
-                              1: '💒', 2: '🎂', 3: '💝', 4: '🏢', 5: '💍',
-                              6: '👶', 7: '🌙', 8: '🎵', 9: '✨'
+                            const eventIcons: Record<string, string> = {
+                              'Wedding': '💒', 'Birthday': '🎂', 'Anniversary': '💝', 
+                              'Corporate': '🏢', 'Corporate Event': '🏢',
+                              'Engagement': '💍', 'Baby Shower': '👶', 
+                              'Nightlife': '🌙', 'Nightlife & Parties': '🌙',
+                              'Concert': '🎵', 'Concerts & Live Shows': '🎵',
+                              'Other': '✨'
                             };
+                            const icon = eventIcons[et.name] || eventIcons[et.displayName] || '🎉';
                             return (
                               <button
                                 key={et.id}
@@ -1485,7 +1542,7 @@ export default function ListingPreview() {
                                     <CheckCircle2 className="h-3 w-3 text-violet-600" />
                                   </div>
                                 )}
-                                <div className="text-base mb-0.5">{eventIcons[et.id] || '🎉'}</div>
+                                <div className="text-base mb-0.5">{icon}</div>
                                 <p className={cn(
                                   "text-[10px] font-medium truncate",
                                   sel ? "text-violet-800" : "text-slate-700"
@@ -1494,6 +1551,93 @@ export default function ListingPreview() {
                             );
                           })}
                         </div>
+                        
+                        {/* Custom Event Type Input - shown when "Other" is selected */}
+                        {(() => {
+                          const otherEventType = eventTypes.find((et: any) => 
+                            et.name === 'Other' || et.displayName === 'Other'
+                          );
+                          const isOtherSelected = otherEventType && (editForm?.eventTypeIds || []).includes(otherEventType.id);
+                          
+                          if (!isOtherSelected) return null;
+                          
+                          // Parse custom event types - handle both array and legacy string format
+                          const customTypes: string[] = (() => {
+                            const val = editForm?.customEventTypeName;
+                            if (!val) return [];
+                            if (Array.isArray(val)) return val;
+                            // Try parsing as JSON array
+                            try {
+                              const parsed = JSON.parse(val);
+                              if (Array.isArray(parsed)) return parsed;
+                            } catch {}
+                            // Legacy: single string or comma-separated
+                            return val.split(',').map((s: string) => s.trim()).filter(Boolean);
+                          })();
+                          
+                          return (
+                            <div className="p-3 border border-amber-200 rounded-lg bg-amber-50/50">
+                              <Label className="text-xs font-medium text-amber-800">
+                                What type of events? *
+                              </Label>
+                              <p className="text-[10px] text-amber-600 mb-2">
+                                Add the event types you're targeting (press Enter to add)
+                              </p>
+                              
+                              {/* Display existing custom event types as tags */}
+                              {customTypes.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                  {customTypes.map((type, idx) => (
+                                    <div 
+                                      key={idx}
+                                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800"
+                                    >
+                                      <span className="text-xs font-medium">{type}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newTypes = customTypes.filter((_, i) => i !== idx);
+                                          setEditForm((p: any) => ({ 
+                                            ...p, 
+                                            customEventTypeName: newTypes.length > 0 ? newTypes : '' 
+                                          }));
+                                        }}
+                                        className="p-0.5 hover:bg-amber-200 rounded-full transition-colors"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Input for adding new custom event types */}
+                              <Input
+                                placeholder="Type event name and press Enter..."
+                                className="h-8 text-xs bg-white"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const input = e.currentTarget;
+                                    const value = input.value.trim();
+                                    if (value && !customTypes.includes(value)) {
+                                      const newTypes = [...customTypes, value];
+                                      setEditForm((p: any) => ({ 
+                                        ...p, 
+                                        customEventTypeName: newTypes 
+                                      }));
+                                      input.value = '';
+                                    }
+                                  }
+                                }}
+                              />
+                              <p className="text-[9px] text-amber-500 mt-1">
+                                💡 Examples: Haldi, Mehendi, Sangeet, Reception, House Warming, Puja
+                              </p>
+                            </div>
+                          );
+                        })()}
+                        
                         {(editForm?.eventTypeIds || []).length === 1 && (
                           <div className="flex items-center gap-1.5 p-2 rounded-lg bg-amber-50 border border-amber-200">
                             <AlertCircle className="h-3 w-3 text-amber-600" />
@@ -1508,6 +1652,38 @@ export default function ListingPreview() {
                             1: '💒', 2: '🎂', 3: '💝', 4: '🏢', 5: '💍',
                             6: '👶', 7: '🌙', 8: '🎵', 9: '✨'
                           };
+                          // For "Other" event type, show custom types as separate badges
+                          const isOther = id === 9 || eventTypeNames[id] === 'Other';
+                          
+                          if (isOther && listing.customEventTypeName) {
+                            // Parse custom event types
+                            let customTypes: string[] = [];
+                            const val = listing.customEventTypeName;
+                            if (Array.isArray(val)) {
+                              customTypes = val;
+                            } else {
+                              try {
+                                const parsed = JSON.parse(val);
+                                if (Array.isArray(parsed)) customTypes = parsed;
+                                else customTypes = [val];
+                              } catch {
+                                // Legacy: single string or comma-separated
+                                customTypes = val.split(',').map((s: string) => s.trim()).filter(Boolean);
+                              }
+                            }
+                            
+                            // Return multiple badges for custom types
+                            return customTypes.map((customType, idx) => (
+                              <div 
+                                key={`${id}-${idx}`}
+                                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 px-2 py-1.5"
+                              >
+                                <span className="text-sm">✨</span>
+                                <span className="text-xs font-medium text-amber-800">{customType}</span>
+                              </div>
+                            ));
+                          }
+                          
                           return (
                             <div 
                               key={id} 

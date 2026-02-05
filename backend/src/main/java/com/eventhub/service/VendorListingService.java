@@ -98,6 +98,8 @@ public class VendorListingService {
         listing.setPrice(request.getPrice());
         listing.setListingCategory(category);
         listing.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
+        // Store custom event type name if "Other" event type (ID 9) is selected
+        listing.setCustomEventTypeName(request.getEventTypeIds() != null && request.getEventTypeIds().contains(9) ? request.getCustomEventTypeName() : null);
         listing.setHighlights(request.getHighlights());
         listing.setIncludedItemsText(request.getIncludedItemsText());
         listing.setIncludedItemIds(request.getIncludedItemIds());
@@ -203,6 +205,8 @@ public class VendorListingService {
         listing.setPrice(request.getPrice());
         listing.setListingCategory(category);
         listing.setCustomCategoryName("other".equalsIgnoreCase(request.getCategoryId()) ? request.getCustomCategoryName() : null);
+        // Store custom event type name if "Other" event type (ID 9) is selected
+        listing.setCustomEventTypeName(request.getEventTypeIds() != null && request.getEventTypeIds().contains(9) ? request.getCustomEventTypeName() : null);
         listing.setHighlights(request.getHighlights());
         listing.setIncludedItemsText(request.getIncludedItemsText());
         listing.setExcludedItemsText(request.getExcludedItemsText());
@@ -301,6 +305,11 @@ public class VendorListingService {
             listing.getListingCategory() != null && 
             "other".equalsIgnoreCase(listing.getListingCategory().getId())) {
             listing.setCustomCategoryName(updatedListing.getCustomCategoryName());
+        }
+        
+        // Custom event type name - update if provided
+        if (updatedListing.getCustomEventTypeName() != null) {
+            listing.setCustomEventTypeName(updatedListing.getCustomEventTypeName());
         }
         
         // Package-specific fields

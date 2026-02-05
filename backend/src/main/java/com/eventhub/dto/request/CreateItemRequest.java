@@ -25,6 +25,8 @@ public class CreateItemRequest {
     
     private String customCategoryName; // Required when categoryId is "other"
     
+    private String customEventTypeName; // Custom event type name when "Other" event type is selected
+    
     @NotNull(message = "At least one event type is required")
     @Size(min = 1, message = "At least one event type is required")
     private List<Integer> eventTypeIds;

@@ -11,25 +11,29 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Force unbuffered output for logging
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 # ============================================================================
 # CONFIGURATION - EDIT THESE VALUES
 # ============================================================================
 
 CONFIG = {
     # Required OCI parameters
-    "compartment_id": "your-compartment-ocid",
-    "availability_domain": "your-ad-name",  # e.g., "aBCD:AP-MUMBAI-1-AD-1"
-    "shape": "VM.Standard.A1.Flex",  # or "VM.Standard.E2.1.Micro" for AMD
-    "ocpus": 2,  # For A1: 1-4, For AMD: 1
-    "memory_in_gbs": 12,  # For A1: 6-24, For AMD: 1
-    "image_id": "your-image-ocid",  # Ubuntu/Oracle Linux image OCID
-    "subnet_id": "your-subnet-ocid",
-    "display_name": "my-instance",
-    "ssh_public_key_path": str(Path.home() / ".ssh" / "id_rsa.pub"),
+    "compartment_id": "ocid1.tenancy.oc1..aaaaaaaavnasb5ttptgxsxdflt2u4jsigwypk6tzwzaj3czkx63rirpam3qq",
+    "availability_domain": "hTYR:AP-MUMBAI-1-AD-1",
+    "shape": "VM.Standard.A1.Flex",  # ARM - 4 OCPUs, 24GB free
+    "ocpus": 4,  # Max free tier
+    "memory_in_gbs": 24,  # Max free tier
+    "image_id": "ocid1.image.oc1.ap-mumbai-1.aaaaaaaahzcec4tjbvlvkptojwrc5zo4zazgdnwwyg5f5ayjpkreigtzwpxa",
+    "subnet_id": "ocid1.subnet.oc1.ap-mumbai-1.aaaaaaaaopp3m77slokaqosnqbxtizpxomii4cjnd5ly6ld3otr6wtcfpvjq",
+    "display_name": "cartevent-backend",
+    "ssh_public_key_path": str(Path.home() / ".ssh" / "oci_key.pub"),
     
     # Retry settings
-    "max_retries": 1000,  # 0 = infinite
-    "retry_interval": 60,  # seconds
+    "max_retries": 0,  # 0 = infinite retries
+    "retry_interval": 60,  # seconds between retries
     "try_multiple_ads": True,  # Try all ADs in region if one fails
 }
 
