@@ -295,11 +295,12 @@ export default function ListingPreview() {
     }
     requirements.push({ id: 'images', label: 'At least 1 photo', met: imageCount > 0 });
     
-    // 3. Price is required
+    // 3. Price is required (must be set, not 0)
     let hasPrice = false;
     const catId = listingData?.categoryId;
     if (catId === 'other') {
-      hasPrice = true; // Skip price check for 'other' category
+      // For 'other' category, check the generic price field
+      hasPrice = categoryData?.price && parseFloat(categoryData.price) > 0;
     } else if (catId === 'caterer') {
       hasPrice = categoryData?.pricePerPlateVeg && parseFloat(categoryData.pricePerPlateVeg) > 0;
     } else if (catId === 'mua') {
@@ -308,7 +309,7 @@ export default function ListingPreview() {
       // All other categories use the generic 'price' field
       hasPrice = categoryData?.price && parseFloat(categoryData.price) > 0;
     }
-    requirements.push({ id: 'price', label: 'Pricing details', met: hasPrice });
+    requirements.push({ id: 'price', label: 'Set your pricing', met: hasPrice });
     
     // 4. Venue location is required for venue category
     if (catId === 'venue') {
