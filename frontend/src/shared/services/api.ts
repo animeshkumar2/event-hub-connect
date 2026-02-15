@@ -148,11 +148,17 @@ class ApiClient {
     }
 
     try {
+      // Add timeout to prevent hanging forever when backend is down
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      
       const response = await fetch(url, {
         ...options,
         headers,
+        signal: controller.signal,
       });
       
+      clearTimeout(timeoutId);
       const duration = Math.round(performance.now() - startTime);
 
       // Handle 401 Unauthorized - try to refresh token
@@ -320,6 +326,13 @@ class ApiClient {
       });
       console.error('API request failed:', error);
       
+      // Handle timeout/abort errors
+      if (error.name === 'AbortError') {
+        const timeoutError = new Error('Request timed out. Please check your connection and try again.');
+        (timeoutError as any).isTimeoutError = true;
+        throw timeoutError;
+      }
+      
       // Convert technical network errors to user-friendly messages
       const errorMessage = error.message?.toLowerCase() || '';
       if (errorMessage.includes('failed to fetch') || 
@@ -327,7 +340,7 @@ class ApiClient {
           errorMessage.includes('network request failed') ||
           errorMessage.includes('err_connection') ||
           errorMessage.includes('err_internet')) {
-        const friendlyError = new Error('Something went wrong. Please try again.');
+        const friendlyError = new Error('Unable to connect to server. Please try again.');
         (friendlyError as any).isNetworkError = true;
         (friendlyError as any).originalError = error;
         throw friendlyError;
