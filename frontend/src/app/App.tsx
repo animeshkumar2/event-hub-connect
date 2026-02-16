@@ -46,7 +46,7 @@ import OrderDetails from "@/features/user/pages/OrderDetails";
 const VendorOnboarding = lazy(() => import("@/features/vendor/pages/VendorOnboarding"));
 const VendorDashboard = lazy(() => import("@/features/vendor/pages/VendorDashboard"));
 const VendorProfile = lazy(() => import("@/features/vendor/pages/VendorProfile"));
-const VendorCalendar = lazy(() => import("@/features/vendor/pages/VendorCalendar"));
+const VendorCalendar = lazy(() => import("@/features/vendor/pages/VendorCalendarEnhanced"));
 const VendorLeads = lazy(() => import("@/features/vendor/pages/VendorLeads"));
 const VendorListings = lazy(() => import("@/features/vendor/pages/VendorListings"));
 const VendorListingsDrafts = lazy(() => import("@/features/vendor/pages/VendorListingsDrafts"));

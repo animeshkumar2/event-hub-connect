@@ -87,11 +87,17 @@ CREATE TABLE public.availability_slots (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
     vendor_id uuid NOT NULL,
     date date NOT NULL,
-    time_slot character varying(10) NOT NULL,
+    time_slot character varying(20) NOT NULL,
     status character varying(20) DEFAULT 'AVAILABLE'::character varying NOT NULL,
+    category_id character varying(50),
+    listing_id uuid,
+    time_slot_type character varying(20) DEFAULT 'FULL_DAY'::character varying,
+    order_id uuid,
+    notes text,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
-    CONSTRAINT availability_slots_status_check CHECK (((status)::text = ANY (ARRAY[('AVAILABLE'::character varying)::text, ('BOOKED'::character varying)::text, ('BUSY'::character varying)::text, ('BLOCKED'::character varying)::text])))
+    CONSTRAINT availability_slots_status_check CHECK (((status)::text = ANY (ARRAY[('AVAILABLE'::character varying)::text, ('BOOKED'::character varying)::text, ('BUSY'::character varying)::text, ('BLOCKED'::character varying)::text]))),
+    CONSTRAINT availability_slots_time_slot_type_check CHECK (((time_slot_type)::text = ANY (ARRAY[('MORNING'::character varying)::text, ('AFTERNOON'::character varying)::text, ('EVENING'::character varying)::text, ('FULL_DAY'::character varying)::text])))
 );
 
 
