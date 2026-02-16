@@ -274,24 +274,40 @@ export default function VendorCalendarEnhanced() {
       });
       
       // Determine day status based on slots
-      // Blocked = unavailable/booked (vendor manually blocks when unavailable)
+      // When viewing "All Services", a day is only "blocked" if EVERY vendor category
+      // has all 3 standard time slots (MORNING, AFTERNOON, EVENING) blocked.
+      // If only some categories are blocked, it's "partial".
       let status: 'available' | 'partial' | 'blocked' = 'available';
       const blockedSlots = slots.filter(s => s.status === 'BLOCKED' || s.status === 'BOOKED').length;
       const totalSlots = slots.length;
       
-      // Priority: blocked > partial > available
-      if (totalSlots > 0) {
-        // If all slots are blocked, day is fully blocked/unavailable
-        if (blockedSlots === totalSlots) {
-          status = 'blocked';
-        }
-        // If some slots are blocked (but not all), day is partial
-        else if (blockedSlots > 0) {
-          status = 'partial';
-        }
-        // Otherwise available
-        else {
-          status = 'available';
+      if (totalSlots > 0 && blockedSlots > 0) {
+        const vendorCategoryCount = categoryFilters.length;
+        if (vendorCategoryCount > 1) {
+          // Multiple categories: check if ALL categories are fully blocked
+          const standardTypes: TimeSlotType[] = ['MORNING', 'AFTERNOON', 'EVENING'];
+          let allCategoriesFullyBlocked = true;
+          for (const cat of categoryFilters) {
+            const catSlots = slots.filter(s => s.categoryId === cat.id);
+            const catBlockedTypes = new Set(
+              catSlots
+                .filter(s => s.status === 'BLOCKED' || s.status === 'BOOKED')
+                .map(s => s.timeSlotType)
+            );
+            const hasAllStandardBlocked = standardTypes.every(t => catBlockedTypes.has(t));
+            if (!hasAllStandardBlocked) {
+              allCategoriesFullyBlocked = false;
+              break;
+            }
+          }
+          status = allCategoriesFullyBlocked ? 'blocked' : 'partial';
+        } else {
+          // Single category or no filters: use simple logic
+          if (blockedSlots === totalSlots && blockedSlots >= 3) {
+            status = 'blocked';
+          } else {
+            status = 'partial';
+          }
         }
       } else {
         status = 'available';
@@ -304,7 +320,7 @@ export default function VendorCalendarEnhanced() {
       current = addDays(current, 1);
     }
     return calendar;
-  }, [currentMonth, availabilityData, upcomingOrders]);
+  }, [currentMonth, availabilityData, upcomingOrders, categoryFilters]);
 
   // Filter calendar data based on active category filters and recalculate status
   const filteredCalendarData = useMemo(() => {
@@ -990,10 +1006,10 @@ export default function VendorCalendarEnhanced() {
                               }}
                               disabled={isSubmitting || isPastDate(selectedDay.date)}
                               className={cn(
-                                "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all",
+                                "flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all border",
                                 allSlotsBlocked 
-                                  ? "text-green-600 hover:bg-green-50 dark:text-green-400"
-                                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400"
+                                  ? "text-green-600 border-green-200 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:border-green-800 dark:bg-green-950/30"
+                                  : "text-red-600 border-red-200 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:border-red-800 dark:bg-red-950/30"
                               )}
                             >
                               {isSubmitting ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : allSlotsBlocked ? (
@@ -1031,8 +1047,10 @@ export default function VendorCalendarEnhanced() {
                                     onClick={() => handleSlotAction(selectedDay.dateStr, slotType, category.id || undefined, isBlocked ? 'unblock' : 'block')}
                                     disabled={isLoading || isPastDate(selectedDay.date)}
                                     className={cn(
-                                      "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all",
-                                      isBlocked ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"
+                                      "flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all border",
+                                      isBlocked 
+                                        ? "text-green-600 border-green-200 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:border-green-800 dark:bg-green-950/30" 
+                                        : "text-gray-600 border-gray-200 bg-gray-50 hover:bg-gray-100 dark:text-gray-300 dark:border-gray-700 dark:bg-gray-800/50"
                                     )}
                                   >
                                     {isLoading ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : isBlocked ? (
