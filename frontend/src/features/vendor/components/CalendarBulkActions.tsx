@@ -1,7 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/shared/components/ui/card';
+import { useState } from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/shared/components/ui/dialog';
 import { Label } from '@/shared/components/ui/label';
 import { Input } from '@/shared/components/ui/input';
@@ -20,7 +18,7 @@ import {
   AlertCircle,
   CalendarRange
 } from 'lucide-react';
-import { format, addDays, addWeeks, addMonths, startOfWeek, endOfWeek, eachDayOfInterval, getDay, differenceInDays, parseISO, isValid } from 'date-fns';
+import { format, addWeeks, startOfWeek, endOfWeek, eachDayOfInterval, getDay, differenceInDays, parseISO, isValid } from 'date-fns';
 import { toast } from 'sonner';
 import { vendorApi } from '@/shared/services/api';
 import { cn } from '@/shared/lib/utils';
@@ -138,22 +136,18 @@ export function CalendarBulkActions({ categoryFilters, onRefresh }: CalendarBulk
   };
 
   return (
-    <Card className="bg-muted/30">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-muted-foreground">Quick Actions:</span>
-          
-          {/* Block Date Range - Enhanced UI */}
-          <Dialog open={isBlockRangeOpen} onOpenChange={setIsBlockRangeOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs">
-                <CalendarDays className="h-3 w-3 mr-1" />
-                Block Date Range
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
-              {/* Beautiful Header */}
-              <div className="relative bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 px-6 py-5 text-white">
+    <div className="flex items-center gap-1">
+      {/* Block Date Range */}
+      <Dialog open={isBlockRangeOpen} onOpenChange={setIsBlockRangeOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" className="h-7 w-7 sm:w-auto sm:px-2" title="Block Date Range">
+            <CalendarDays className="h-3 w-3 sm:mr-1" />
+            <span className="hidden sm:inline text-[11px]">Block Range</span>
+          </Button>
+        </DialogTrigger>
+            <DialogContent className="max-w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="relative bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 px-4 sm:px-6 py-4 sm:py-5 text-white">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMiAyLTQgMi00czIgMiAyIDQtMiA0LTIgNC0yLTItMi00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
                 <div className="relative flex items-center gap-3">
                   <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm">
@@ -166,7 +160,7 @@ export function CalendarBulkActions({ categoryFilters, onRefresh }: CalendarBulk
                 </div>
               </div>
               
-              <div className="p-6 space-y-5">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                 {/* Date Range Selection */}
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold flex items-center gap-2">
@@ -282,7 +276,7 @@ export function CalendarBulkActions({ categoryFilters, onRefresh }: CalendarBulk
               </div>
               
               {/* Footer */}
-              <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t">
+              <div className="flex items-center justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900/50 border-t">
                 <Button 
                   variant="ghost" 
                   onClick={() => {
@@ -317,9 +311,9 @@ export function CalendarBulkActions({ categoryFilters, onRefresh }: CalendarBulk
           {/* Set Weekly Pattern */}
           <Dialog open={isWeeklyPatternOpen} onOpenChange={setIsWeeklyPatternOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 text-xs">
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Set Weekly Pattern
+              <Button variant="outline" size="icon" className="h-7 w-7 sm:w-auto sm:px-2" title="Set Weekly Pattern">
+                <RefreshCw className="h-3 w-3 sm:mr-1" />
+                <span className="hidden sm:inline text-[11px]">Weekly Pattern</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -414,7 +408,5 @@ export function CalendarBulkActions({ categoryFilters, onRefresh }: CalendarBulk
             </DialogContent>
           </Dialog>
         </div>
-      </CardContent>
-    </Card>
   );
 }

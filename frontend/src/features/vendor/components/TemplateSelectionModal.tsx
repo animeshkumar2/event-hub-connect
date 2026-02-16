@@ -204,6 +204,7 @@ export function TemplateSelectionModal({
   }, [eventTypesData, eventTypeCategories, selectedTemplate]);
   
   const formatPrice = (price: number, unit?: string) => {
+    if (price === 0) return 'Set your price';
     const formatted = price.toLocaleString('en-IN');
     return unit ? `₹${formatted}/${unit}` : `₹${formatted}`;
   };
@@ -300,7 +301,7 @@ export function TemplateSelectionModal({
         || selectedTemplate.categorySpecificData?.pricePerPlateVeg 
         || selectedTemplate.categorySpecificData?.bridalPrice 
         || selectedTemplate.displayPrice 
-        || 0;
+        || 1; // Minimum placeholder price for draft - vendor must set real price before publishing
       
       const payload = {
         name: selectedTemplate.name,
@@ -575,7 +576,7 @@ export function TemplateSelectionModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-semibold text-sm text-foreground">{template.name}</span>
-                          <span className="font-bold text-sm text-emerald-600 flex-shrink-0">
+                          <span className={`font-bold text-sm flex-shrink-0 ${template.displayPrice === 0 ? 'text-orange-500' : 'text-emerald-600'}`}>
                             {formatPrice(template.displayPrice, template.priceUnit)}
                           </span>
                         </div>

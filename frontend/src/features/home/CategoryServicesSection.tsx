@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Camera, Palette, Music2, ChefHat, Building2, Theater, LucideIcon, CalendarCheck, ClipboardList } from 'lucide-react';
+import { Sparkles, Camera, Palette, Music2, ChefHat, Theater, LucideIcon, ClipboardList, Lightbulb, Mic } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { cn } from '@/shared/lib/utils';
 import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
@@ -8,18 +8,20 @@ import { usePreLaunch } from '@/shared/contexts/PreLaunchContext';
 interface Category {
   id: string;
   name: string;
+  shortName: string; // For mobile
   icon: LucideIcon;
   searchPath: string;
 }
 
 const categories: Category[] = [
-  { id: 'photo-video', name: 'Photographer', icon: Camera, searchPath: '/search?category=photo-video&view=vendors' },
-  { id: 'decorator', name: 'Decorator', icon: Palette, searchPath: '/search?category=decorator&view=vendors' },
-  { id: 'dj', name: 'DJ / Sound & Lights', icon: Music2, searchPath: '/search?category=dj&view=vendors' },
-  { id: 'mua', name: 'Makeup Artist', icon: Sparkles, searchPath: '/search?category=mua&view=vendors' },
-  { id: 'caterer', name: 'Caterer', icon: ChefHat, searchPath: '/search?category=caterer&view=vendors' },
-  { id: 'artists', name: 'Mehendi Artist', icon: Theater, searchPath: '/search?category=artists&view=vendors' },
-  { id: 'event-planner', name: 'Event Planner', icon: ClipboardList, searchPath: '/search?category=event-planner&view=vendors' },
+  { id: 'photo-video', name: 'Photographers', shortName: 'Photo', icon: Camera, searchPath: '/search?category=photo-video&view=vendors' },
+  { id: 'decorator', name: 'Decorators', shortName: 'Décor', icon: Palette, searchPath: '/search?category=decorator&view=vendors' },
+  { id: 'caterer', name: 'Caterers', shortName: 'Caterers', icon: ChefHat, searchPath: '/search?category=caterer&view=vendors' },
+  { id: 'mua', name: 'Makeup Artists', shortName: 'Makeup', icon: Sparkles, searchPath: '/search?category=mua&view=vendors' },
+  { id: 'dj', name: 'DJs', shortName: 'DJs', icon: Music2, searchPath: '/search?category=dj&view=vendors' },
+  { id: 'sound-lights', name: 'Sound & Lights', shortName: 'Lights', icon: Lightbulb, searchPath: '/search?category=sound-lights&view=vendors' },
+  { id: 'artists', name: 'Performers', shortName: 'Artists', icon: Theater, searchPath: '/search?category=artists&view=vendors' },
+  { id: 'event-planner', name: 'Planners', shortName: 'Planners', icon: ClipboardList, searchPath: '/search?category=event-planner&view=vendors' },
 ];
 
 const galleryImages = [
@@ -96,79 +98,87 @@ export const CategoryServicesSection = () => {
                 </div>
               )}
               
-              <p className="text-lg text-muted-foreground mb-10 mt-2">
+              <p className="text-lg text-muted-foreground mb-6 sm:mb-10 mt-2">
                 What are you looking for?
               </p>
               
-              {/* 3-column Services Grid with last item centered */}
-              <div className="space-y-10">
-                {/* First row - 3 items */}
-                <div className="grid grid-cols-3 gap-6">
-                  {categories.slice(0, 3).map((category) => (
+              {/* Mobile: Horizontal scroll carousel */}
+              <div className="sm:hidden -mx-8 px-4">
+                <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory">
+                  {categories.map((category) => (
                     <div
                       key={category.id}
                       onClick={() => hasFullAccess && navigate(category.searchPath)}
                       className={cn(
-                        "service-card flex flex-col items-center text-center p-4 rounded-xl transition-all duration-300",
+                        "service-card flex-shrink-0 flex flex-col items-center text-center p-4 rounded-2xl transition-all duration-300 snap-start",
+                        "bg-white/80 backdrop-blur-sm border border-primary/10 shadow-sm min-w-[100px]",
+                        hasFullAccess 
+                          ? "cursor-pointer active:scale-95" 
+                          : "opacity-60"
+                      )}
+                      style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
+                    >
+                      <div className="w-14 h-14 mb-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-inner">
+                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-xs font-semibold text-foreground whitespace-nowrap">
+                        {category.shortName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-muted-foreground mt-2">
+                  Swipe to explore →
+                </p>
+              </div>
+
+              {/* Desktop: 4-column grid */}
+              <div className="hidden sm:block space-y-6 sm:space-y-8">
+                {/* First row - 4 items */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                  {categories.slice(0, 4).map((category) => (
+                    <div
+                      key={category.id}
+                      onClick={() => hasFullAccess && navigate(category.searchPath)}
+                      className={cn(
+                        "service-card flex flex-col items-center text-center p-3 sm:p-4 rounded-xl transition-all duration-300",
                         hasFullAccess 
                           ? "cursor-pointer hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5" 
                           : "opacity-60"
                       )}
                       style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
                     >
-                      <div className="w-14 h-14 mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
-                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mb-2 sm:mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
+                        <category.icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary" strokeWidth={1.5} />
                       </div>
-                      <span className="text-sm font-medium text-foreground leading-tight">
-                        {category.name}
+                      <span className="text-xs sm:text-sm font-medium text-foreground leading-tight">
+                        <span className="hidden sm:inline">{category.name}</span>
+                        <span className="sm:hidden">{category.shortName}</span>
                       </span>
                     </div>
                   ))}
                 </div>
                 
-                {/* Second row - 3 items */}
-                <div className="grid grid-cols-3 gap-6">
-                  {categories.slice(3, 6).map((category) => (
+                {/* Second row - 4 items */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                  {categories.slice(4, 8).map((category) => (
                     <div
                       key={category.id}
                       onClick={() => hasFullAccess && navigate(category.searchPath)}
                       className={cn(
-                        "service-card flex flex-col items-center text-center p-4 rounded-xl transition-all duration-300",
+                        "service-card flex flex-col items-center text-center p-3 sm:p-4 rounded-xl transition-all duration-300",
                         hasFullAccess 
                           ? "cursor-pointer hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5" 
                           : "opacity-60"
                       )}
                       style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
                     >
-                      <div className="w-14 h-14 mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
-                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 mb-2 sm:mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
+                        <category.icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary" strokeWidth={1.5} />
                       </div>
-                      <span className="text-sm font-medium text-foreground leading-tight">
-                        {category.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Third row - 1 item centered */}
-                <div className="flex justify-center">
-                  {categories.slice(6, 7).map((category) => (
-                    <div
-                      key={category.id}
-                      onClick={() => hasFullAccess && navigate(category.searchPath)}
-                      className={cn(
-                        "service-card flex flex-col items-center text-center p-4 rounded-xl transition-all duration-300 w-1/3",
-                        hasFullAccess 
-                          ? "cursor-pointer hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5" 
-                          : "opacity-60"
-                      )}
-                      style={{ opacity: 0, transform: 'translateY(12px)', transition: 'all 0.4s ease-out' }}
-                    >
-                      <div className="w-14 h-14 mb-3 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
-                        <category.icon className="w-7 h-7 text-primary" strokeWidth={1.5} />
-                      </div>
-                      <span className="text-sm font-medium text-foreground leading-tight">
-                        {category.name}
+                      <span className="text-xs sm:text-sm font-medium text-foreground leading-tight">
+                        <span className="hidden sm:inline">{category.name}</span>
+                        <span className="sm:hidden">{category.shortName}</span>
                       </span>
                     </div>
                   ))}

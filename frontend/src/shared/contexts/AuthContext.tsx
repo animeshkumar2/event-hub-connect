@@ -156,11 +156,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         startTokenRefreshTimer(newToken);
         
         console.log('✅ Token refreshed successfully');
+      } else {
+        // Response was not successful - logout
+        console.error('❌ Token refresh returned unsuccessful response');
+        logout();
       }
     } catch (error: any) {
       console.error('❌ Token refresh failed:', error);
-      // Don't logout immediately - let the 401 interceptor handle it
-      // This gives the user a chance to save their work
+      // Check if it's an auth error (401/403) - if so, logout immediately
+      const errorMessage = error.message?.toLowerCase() || '';
+      if (errorMessage.includes('401') || 
+          errorMessage.includes('403') || 
+          errorMessage.includes('expired') || 
+          errorMessage.includes('invalid') ||
+          errorMessage.includes('refresh token')) {
+        console.log('🚪 Session expired, logging out...');
+        logout();
+      }
+      // For network errors, don't logout - user might just be offline temporarily
     }
   };
 
@@ -178,6 +191,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (storedRole === 'ADMIN' && userData.role !== 'ADMIN') {
           userData.role = 'ADMIN';
         }
+        
+        // Check if token is already expired before setting state
+        try {
+          const decoded = jwtDecode<{ exp: number }>(storedToken);
+          const expiresAt = decoded.exp * 1000;
+          const now = Date.now();
+          const timeUntilExpiry = expiresAt - now;
+          
+          // If token expired more than 5 minutes ago, try refresh immediately
+          if (timeUntilExpiry < -5 * 60 * 1000) {
+            console.log('⚠️ Token expired more than 5 minutes ago. Attempting refresh...');
+            // Set minimal state to allow refresh to work
+            setToken(storedToken);
+            setRefreshToken(storedRefreshToken);
+            setUser(userData);
+            apiClient.setToken(storedToken);
+            setIsLoading(false);
+            
+            // Attempt refresh - if it fails, it will logout
+            refreshAccessToken();
+            return;
+          }
+        } catch (decodeError) {
+          console.error('Error decoding token:', decodeError);
+          // Invalid token format - clear and logout
+          batchLocalStorageUpdate({
+            'auth_token': null,
+            'refresh_token': null,
+            'user_data': null,
+            'user_id': null,
+            'vendor_id': null,
+            'user_role': null,
+            'onboarding_skipped': null,
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         setToken(storedToken);
         setRefreshToken(storedRefreshToken);
         setUser(userData);

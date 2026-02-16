@@ -67,6 +67,7 @@ const VendorHelp = lazy(() => import("@/features/vendor/pages/VendorHelp"));
 const VendorLandingPage = lazy(() => import("@/features/vendor/pages/VendorLandingPage"));
 const VendorTerms = lazy(() => import("@/features/vendor/pages/VendorTerms"));
 const VendorPrivacy = lazy(() => import("@/features/vendor/pages/VendorPrivacy"));
+const ClaimListing = lazy(() => import("@/features/vendor/pages/ClaimListing"));
 const TestImageUpload = lazy(() => import("@/features/vendor/TestImageUpload"));
 
 // Admin pages
@@ -78,6 +79,7 @@ const AdminListingsList = lazy(() => import("@/features/admin/pages/AdminListing
 const AdminListingEdit = lazy(() => import("@/features/admin/pages/AdminListingEdit"));
 const AdminListingFullEdit = lazy(() => import("@/features/admin/pages/AdminListingFullEdit"));
 const AdminApiPerformance = lazy(() => import("@/features/admin/pages/AdminApiPerformance"));
+const GenerateClaimLink = lazy(() => import("@/features/admin/pages/GenerateClaimLink"));
 
 // Loading fallback component
 const LoadingFallback = () => <BrandedLoader message="Getting things ready..." />;
@@ -103,6 +105,11 @@ function PrefetchCriticalData() {
   const queryClient = useQueryClient();
   
   useEffect(() => {
+    // Skip prefetch on claim pages - they don't need this data
+    if (window.location.pathname.startsWith('/claim')) {
+      return;
+    }
+    
     // Prefetch eventTypes, categories, and stats in parallel immediately on app load
     // This ensures they're available when user navigates to pages
     Promise.all([
@@ -183,6 +190,14 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/launching-soon" element={<LaunchingSoonPage />} />
+            
+            {/* Claim Listing - Hidden route, only accessible via direct URL */}
+            <Route path="/claim/:token" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ClaimListing />
+              </Suspense>
+            } />
+            
             <Route path="/join-vendors" element={
               <Suspense fallback={<LoadingFallback />}>
                 <VendorLandingPage />
@@ -390,6 +405,11 @@ const App = () => (
             <Route path="/admin/api-performance" element={
               <Suspense fallback={<LoadingFallback />}>
                 <AdminApiPerformance />
+              </Suspense>
+            } />
+            <Route path="/admin/generate-claim-link" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <GenerateClaimLink />
               </Suspense>
             } />
             

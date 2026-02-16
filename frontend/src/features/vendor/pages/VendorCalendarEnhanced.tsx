@@ -1,17 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { VendorLayout } from '@/features/vendor/components/VendorLayout';
-import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/shared/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
-import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
+import { Sheet, SheetContent } from '@/shared/components/ui/sheet';
+import { TooltipProvider } from '@/shared/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { Input } from '@/shared/components/ui/input';
-import { Label } from '@/shared/components/ui/label';
 import { 
-  ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Loader2, X, Ban, Check, Eye, Clock,
-  Sun, Sunset, Moon, CalendarDays, Filter, List, Grid3X3, ExternalLink
+  ChevronLeft, ChevronRight, RefreshCw, Loader2, X, Ban, Check, Eye, Clock,
+  Sun, Sunset, Moon, CalendarDays
 } from 'lucide-react';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { toast } from 'sonner';
@@ -21,8 +18,6 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths, isToday, addDay
 import { cn } from '@/shared/lib/utils';
 import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/useVendorProfile';
 import CompleteProfilePrompt from '@/shared/components/CompleteProfilePrompt';
-import { CalendarWeekView } from '@/features/vendor/components/CalendarWeekView';
-import { CalendarListView } from '@/features/vendor/components/CalendarListView';
 import { CalendarBulkActions } from '@/features/vendor/components/CalendarBulkActions';
 
 // Types
@@ -127,7 +122,9 @@ export default function VendorCalendarEnhanced() {
   const [categoryFilters, setCategoryFilters] = useState<CategoryFilter[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [slotActionLoading, setSlotActionLoading] = useState<string | null>(null);
-  const [showCustomTimeDialog, setShowCustomTimeDialog] = useState(false);
+  const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [customTimeCategory, setCustomTimeCategory] = useState<string | null>(null);
   const [customTimeData, setCustomTimeData] = useState({ fromTime: '', toTime: '', categoryId: '', notes: '' });
 
   // Fetch data
@@ -396,7 +393,17 @@ export default function VendorCalendarEnhanced() {
   const handleDayClick = useCallback((day: CalendarDay) => {
     setSelectedDay(day);
     setIsPanelOpen(true);
-  }, []);
+    // Open the active category filter, or first category if "All Services"
+    const activeCat = categoryFilters.length > 0 && !categoryFilters.every(f => f.active)
+      ? categoryFilters.find(f => f.active)
+      : null;
+    if (activeCat) {
+      setExpandedCategory(activeCat.id);
+    } else {
+      const cats = categoryFilters.length > 0 ? categoryFilters : [{ id: '', name: 'All Services', icon: '📦', active: true }];
+      setExpandedCategory(cats[0]?.id ?? '');
+    }
+  }, [categoryFilters]);
 
   // Toggle category filter - when clicking a category, show only that category
   const toggleCategoryFilter = useCallback((categoryId: string) => {
@@ -508,6 +515,12 @@ export default function VendorCalendarEnhanced() {
       return;
     }
     
+    // Validate from < to
+    if (customTimeData.fromTime >= customTimeData.toTime) {
+      toast.error('Start time must be before end time');
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       await vendorApi.blockCustomTime(
@@ -518,7 +531,7 @@ export default function VendorCalendarEnhanced() {
         customTimeData.notes || undefined
       );
       toast.success(`Time slot ${customTimeData.fromTime} - ${customTimeData.toTime} blocked successfully`);
-      setShowCustomTimeDialog(false);
+      setCustomTimeCategory(null);
       setCustomTimeData({ fromTime: '', toTime: '', categoryId: '', notes: '' });
       refetchAvailability();
       if (selectedDay) {
@@ -532,6 +545,15 @@ export default function VendorCalendarEnhanced() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Check if a date is in the past (before today)
+  const isPastDate = (date: Date): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d < today;
   };
 
   // Get status color
@@ -672,269 +694,239 @@ export default function VendorCalendarEnhanced() {
   return (
     <VendorLayout>
       <TooltipProvider delayDuration={200}>
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="p-2 sm:p-4 md:p-6 space-y-2 sm:space-y-3 md:space-y-4">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground">My Calendar</h1>
-              <p className="text-muted-foreground text-sm mt-1">Manage your availability and bookings</p>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">My Calendar</h1>
+              <p className="text-muted-foreground text-xs mt-0.5 hidden sm:block">Manage your availability and bookings</p>
             </div>
-            <div className="flex items-center gap-2">
-              {/* View Mode Toggle - Week and List temporarily disabled */}
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="hidden md:block">
-                <TabsList className="h-9">
-                  <TabsTrigger value="month" className="h-8 px-3 text-xs"><Grid3X3 className="h-4 w-4 mr-1.5" />Month</TabsTrigger>
-                  {/* <TabsTrigger value="week" className="h-8 px-3 text-xs"><CalendarDays className="h-4 w-4 mr-1.5" />Week</TabsTrigger> */}
-                  {/* <TabsTrigger value="list" className="h-8 px-3 text-xs"><List className="h-4 w-4 mr-1.5" />List</TabsTrigger> */}
-                </TabsList>
-              </Tabs>
-              <Button variant="outline" size="sm" onClick={() => { refetchAvailability(); toast.success('Calendar refreshed'); }} disabled={availabilityLoading} className="h-9 px-3">
-                <RefreshCw className={cn("h-4 w-4", availabilityLoading && "animate-spin")} />
-                <span className="ml-2 hidden sm:inline">Refresh</span>
+            <div className="flex items-center gap-1">
+              <CalendarBulkActions categoryFilters={categoryFilters} onRefresh={refetchAvailability} />
+              <Button variant="ghost" size="icon" onClick={() => { refetchAvailability(); toast.success('Calendar refreshed'); }} disabled={availabilityLoading} className="h-8 w-8">
+                <RefreshCw className={cn("h-3.5 w-3.5", availabilityLoading && "animate-spin")} />
               </Button>
             </div>
           </div>
 
-          {/* Category Filters - Enhanced UI */}
+          {/* Category Filters - horizontal scroll chips */}
           {categoryFilters.length > 0 && (
-            <div className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700 p-3">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-primary/10">
-                    <Filter className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">Filter by Service</span>
-                </div>
-                {!categoryFilters.every(f => f.active) && (
-                  <button 
-                    className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-                    onClick={() => setCategoryFilters(prev => prev.map(f => ({ ...f, active: true })))}
-                  >
-                    Reset
-                  </button>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide -mx-2 px-2">
+              <button 
+                className={cn(
+                  "h-7 px-2.5 text-[11px] font-medium rounded-full transition-all whitespace-nowrap shrink-0",
+                  categoryFilters.every(f => f.active) 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "bg-muted text-muted-foreground hover:text-foreground"
                 )}
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
+                onClick={() => setCategoryFilters(prev => prev.map(f => ({ ...f, active: true })))}
+              >
+                All
+              </button>
+              {categoryFilters.map(filter => (
                 <button 
+                  key={filter.id} 
                   className={cn(
-                    "h-8 px-3 text-xs font-semibold rounded-lg transition-all duration-150",
-                    categoryFilters.every(f => f.active) 
+                    "h-7 px-2.5 text-[11px] font-medium rounded-full transition-all flex items-center gap-1 whitespace-nowrap shrink-0",
+                    filter.active && !categoryFilters.every(f => f.active)
                       ? "bg-primary text-primary-foreground shadow-sm" 
-                      : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-primary/50 hover:text-primary"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
                   )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setCategoryFilters(prev => prev.map(f => ({ ...f, active: true })));
-                  }}
+                  onClick={() => toggleCategoryFilter(filter.id)}
                 >
-                  All Services
+                  <span className="text-xs">{filter.icon}</span>
+                  <span>{filter.name}</span>
                 </button>
-                {categoryFilters.map(filter => (
-                  <button 
-                    key={filter.id} 
-                    className={cn(
-                      "h-8 px-3 text-xs font-semibold rounded-lg transition-all duration-150 flex items-center gap-1.5",
-                      filter.active && !categoryFilters.every(f => f.active)
-                        ? "bg-primary text-primary-foreground shadow-sm" 
-                        : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-primary/50 hover:text-primary"
-                    )}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleCategoryFilter(filter.id);
-                    }}
-                  >
-                    <span className="text-sm">{filter.icon}</span>
-                    <span>{filter.name}</span>
-                    {filter.active && !categoryFilters.every(f => f.active) && (
-                      <X className="h-3 w-3 ml-0.5 opacity-70" />
-                    )}
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
           )}
 
-          {/* Bulk Actions */}
-          <CalendarBulkActions categoryFilters={categoryFilters} onRefresh={refetchAvailability} />
-
-          {/* Navigation */}
+          {/* Navigation - clean and minimal */}
           <div className="flex items-center justify-between">
-            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(viewMode === 'week' ? subWeeks(currentMonth, 1) : subMonths(currentMonth, 1))} disabled={availabilityLoading} className="h-8">
-              <ChevronLeft className="h-4 w-4" /><span className="hidden sm:inline ml-1">Prev</span>
-            </Button>
-            <div className="text-center">
-              <h2 className="text-lg font-semibold flex items-center gap-2 justify-center">
-                {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                {viewMode === 'week' ? <>Week of {format(startOfWeek(currentMonth), 'MMM d, yyyy')}</> : <>{months[currentMonth.getMonth()]} {currentMonth.getFullYear()}</>}
-              </h2>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-6" onClick={() => setCurrentMonth(new Date())}>Today</Button>
+            <button onClick={() => { setOpenPopoverIdx(null); setCurrentMonth(viewMode === 'week' ? subWeeks(currentMonth, 1) : subMonths(currentMonth, 1)); }} disabled={availabilityLoading} className="p-1.5 rounded-lg hover:bg-muted active:bg-muted/80 transition-colors disabled:opacity-50">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              {availabilityLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+              <span className="text-sm sm:text-base font-semibold">
+                {viewMode === 'week' ? format(startOfWeek(currentMonth), 'MMM d, yyyy') : <>{months[currentMonth.getMonth()]} {currentMonth.getFullYear()}</>}
+              </span>
+              <button className="text-[10px] text-primary font-medium hover:underline" onClick={() => setCurrentMonth(new Date())}>Today</button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(viewMode === 'week' ? addWeeks(currentMonth, 1) : addMonths(currentMonth, 1))} disabled={availabilityLoading} className="h-8">
-              <span className="hidden sm:inline mr-1">Next</span><ChevronRight className="h-4 w-4" />
-            </Button>
+            <button onClick={() => { setOpenPopoverIdx(null); setCurrentMonth(viewMode === 'week' ? addWeeks(currentMonth, 1) : addMonths(currentMonth, 1)); }} disabled={availabilityLoading} className="p-1.5 rounded-lg hover:bg-muted active:bg-muted/80 transition-colors disabled:opacity-50">
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-3 md:gap-6 text-xs flex-wrap">
-            <div className="flex items-center gap-1.5"><div className="h-4 w-4 rounded bg-green-500/20 border border-green-500/40" /><span className="text-muted-foreground">Available</span></div>
-            <div className="flex items-center gap-1.5"><div className="h-4 w-4 rounded bg-yellow-500/20 border border-yellow-500/40" /><span className="text-muted-foreground">Partial</span></div>
-            <div className="flex items-center gap-1.5"><div className="h-4 w-4 rounded bg-gray-500/20 border border-gray-500/40" /><span className="text-muted-foreground">Blocked</span></div>
+          {/* Legend - inline, subtle */}
+          <div className="hidden sm:flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500/50 inline-block" />Available</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-yellow-500/50 inline-block" />Partial</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-gray-400/50 inline-block" />Blocked</span>
           </div>
 
           {/* Calendar Grid - Month View */}
           {viewMode === 'month' && (
-            <Card className="relative overflow-hidden">
-              {availabilityLoading && <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10" />}
-              <CardContent className="p-2 md:p-4">
-                {/* Day Headers */}
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {days.map(day => (<div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">{day}</div>))}
-                </div>
-                
-                {/* Calendar Days */}
-                <div className="grid grid-cols-7 gap-1">
-                  {filteredCalendarData.map((day, idx) => (
-                    <Tooltip key={idx}>
-                      <TooltipTrigger asChild>
-                        <button onClick={() => day.isCurrentMonth && handleDayClick(day)} disabled={!day.isCurrentMonth}
-                          className={cn(
-                            "relative h-16 md:h-20 rounded-lg border transition-all duration-150 flex flex-col items-center justify-start pt-1 md:pt-2",
-                            !day.isCurrentMonth && "opacity-30 cursor-not-allowed",
-                            day.isCurrentMonth && "cursor-pointer hover:ring-2 hover:ring-primary/50",
-                            day.isCurrentMonth && getStatusColor(day.status),
-                            day.isToday && "ring-2 ring-primary ring-offset-1",
-                            selectedDay?.dateStr === day.dateStr && "ring-2 ring-primary"
-                          )}>
-                          <span className={cn("text-sm font-medium", day.isToday && "bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center")}>
-                            {day.date.getDate()}
-                          </span>
-                          {day.isCurrentMonth && renderCategoryBadges(day)}
-                          {day.isCurrentMonth && day.status !== 'available' && (
-                            <div className="absolute bottom-1 right-1">
-                              {day.status === 'blocked' && <Ban className="h-3 w-3 text-gray-500" />}
-                              {day.status === 'partial' && <span className="text-[10px]">◐</span>}
-                            </div>
-                          )}
-                          {day.orders.length > 0 && (
-                            <Badge variant="secondary" className="absolute top-0.5 right-0.5 h-4 min-w-4 px-1 text-[9px] bg-primary text-primary-foreground">{day.orders.length}</Badge>
-                          )}
-                        </button>
-                      </TooltipTrigger>
-                      {day.isCurrentMonth && (
-                        <TooltipContent side="right" className="w-80 p-0 overflow-hidden" sideOffset={5}>
-                          {/* Header with date */}
-                          <div className="bg-gradient-to-r from-primary/90 to-primary px-4 py-3 text-primary-foreground">
-                            <div className="font-bold text-sm">{format(day.date, 'EEEE')}</div>
-                            <div className="text-xs opacity-90">{format(day.date, 'MMMM d, yyyy')}</div>
+            <div className="relative rounded-lg sm:border sm:bg-card sm:shadow-sm overflow-hidden">
+              {availabilityLoading && <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 rounded-lg" />}
+              <div className="sm:p-3 md:p-4">
+              
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 mb-1">
+                {['S','M','T','W','T','F','S'].map((d, i) => (
+                  <div key={i} className="text-center text-[11px] font-medium text-muted-foreground py-1.5">
+                    <span className="sm:hidden">{d}</span>
+                    <span className="hidden sm:inline">{days[i]}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-[3px] sm:gap-1">
+                {filteredCalendarData.map((day, idx) => (
+                  <Popover key={idx} open={openPopoverIdx === idx} onOpenChange={(open) => setOpenPopoverIdx(open ? idx : null)}>
+                    <PopoverTrigger asChild>
+                      <button 
+                        onClick={(e) => { 
+                          e.preventDefault(); 
+                          if (!day.isCurrentMonth || isPastDate(day.date)) return;
+                          if (window.innerWidth < 640) {
+                            handleDayClick(day);
+                          } else {
+                            setOpenPopoverIdx(openPopoverIdx === idx ? null : idx);
+                          }
+                        }} 
+                        disabled={!day.isCurrentMonth || isPastDate(day.date)}
+                        className={cn(
+                          "relative aspect-square sm:aspect-auto sm:h-16 md:h-20 rounded-md sm:rounded-lg border transition-all duration-100 flex flex-col items-center justify-center sm:justify-start sm:pt-2",
+                          !day.isCurrentMonth && "opacity-20",
+                          day.isCurrentMonth && isPastDate(day.date) && "opacity-30 bg-muted/30 border-transparent",
+                          day.isCurrentMonth && !isPastDate(day.date) && "cursor-pointer active:scale-[0.92] hover:ring-2 hover:ring-primary/40",
+                          day.isCurrentMonth && !isPastDate(day.date) && day.status === 'available' && "bg-green-50/80 dark:bg-green-950/20 border-green-200/60 dark:border-green-800/40",
+                          day.isCurrentMonth && !isPastDate(day.date) && day.status === 'partial' && "bg-amber-50/80 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-800/40",
+                          day.isCurrentMonth && !isPastDate(day.date) && day.status === 'blocked' && "bg-gray-100/80 dark:bg-gray-800/30 border-gray-300/60 dark:border-gray-700/40",
+                          selectedDay?.dateStr === day.dateStr && "ring-2 ring-primary shadow-sm"
+                        )}>
+                        <span className={cn(
+                          "text-xs sm:text-sm font-medium leading-none",
+                          day.isToday && "bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-[11px] sm:text-xs font-bold shadow-sm"
+                        )}>
+                          {day.date.getDate()}
+                        </span>
+                        
+                        {/* Status indicator */}
+                        {day.isCurrentMonth && !isPastDate(day.date) && day.status !== 'available' && (
+                          <div className="absolute bottom-0.5 sm:bottom-1 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-1">
+                            {day.status === 'blocked' && <><span className="sm:hidden block h-1.5 w-1.5 rounded-full bg-gray-400" /><Ban className="hidden sm:block h-3 w-3 text-gray-400" /></>}
+                            {day.status === 'partial' && <><span className="sm:hidden block h-1.5 w-1.5 rounded-full bg-amber-400" /><span className="hidden sm:inline text-[10px]">◐</span></>}
+                          </div>
+                        )}
+                        {day.isCurrentMonth && (
+                          <div className="hidden sm:contents">{renderCategoryBadges(day)}</div>
+                        )}
+                        {day.orders.length > 0 && (
+                          <Badge variant="secondary" className="absolute -top-0.5 -right-0.5 sm:top-0.5 sm:right-0.5 h-3.5 sm:h-4 min-w-3.5 sm:min-w-4 px-0.5 sm:px-1 text-[8px] sm:text-[9px] bg-primary text-primary-foreground shadow-sm">{day.orders.length}</Badge>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                      {day.isCurrentMonth && !isPastDate(day.date) && (
+                        <PopoverContent className="w-56 p-0 overflow-hidden rounded-lg shadow-lg" sideOffset={5}>
+                          <div className="px-3 py-2 bg-primary text-primary-foreground flex items-center justify-between">
+                            <span className="font-medium text-xs">{format(day.date, 'EEE, MMM d')}</span>
+                            <span className={cn(
+                              "px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase",
+                              day.status === 'available' && "bg-green-400/30",
+                              day.status === 'partial' && "bg-yellow-400/30",
+                              day.status === 'blocked' && "bg-white/20"
+                            )}>{day.status}</span>
                           </div>
                           
-                          <div className="p-3 space-y-3">
-                            {/* Blocked Slots Section */}
-                            {day.slots.filter(s => s.status === 'BLOCKED').length > 0 && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                  <Ban className="h-3.5 w-3.5" />
-                                  <span>Blocked Slots</span>
-                                </div>
-                                <div className="space-y-1.5">
-                                  {(() => {
-                                    // Group blocked slots by category
-                                    const blockedByCategory: Record<string, string[]> = {};
-                                    day.slots.filter(s => s.status === 'BLOCKED').forEach(slot => {
-                                      const catId = slot.categoryId || 'all';
-                                      const catName = catId === 'all' ? 'All Services' : 
-                                        (categoriesMap.get(catId)?.name || categoryFilters.find(f => f.id === catId)?.name || catId);
-                                      const timeLabel = TIME_SLOT_INFO[slot.timeSlotType]?.label || slot.timeSlotType;
-                                      if (!blockedByCategory[catName]) blockedByCategory[catName] = [];
-                                      blockedByCategory[catName].push(timeLabel);
-                                    });
-                                    
-                                    return Object.entries(blockedByCategory).map(([catName, times], i) => {
-                                      const catId = catName === 'All Services' ? 'all' : 
-                                        (categoryFilters.find(f => f.name === catName)?.id || 'all');
-                                      const catData = categoriesMap.get(catId);
-                                      const filterData = categoryFilters.find(f => f.id === catId);
-                                      const icon = catId === 'all' ? '🚫' : 
-                                        (isValidIcon(catData?.icon) ? catData!.icon : 
-                                         isValidIcon(filterData?.icon) ? filterData!.icon : 
-                                         getCategoryIcon(catId, catName));
-                                      
-                                      return (
-                                        <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                                          <span className="text-base mt-0.5">{icon}</span>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-xs text-gray-800 dark:text-gray-200">{catName}</div>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                              {times.map((time, j) => (
-                                                <span key={j} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                                                  <Clock className="h-2.5 w-2.5" />
-                                                  {time}
-                                                </span>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    });
-                                  })()}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Action Buttons */}
-                            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                              {/* Block/Unblock Entire Day */}
-                              {day.status === 'blocked' ? (
-                                <Button 
-                                  size="sm" 
-                                  className="w-full h-8 text-xs font-medium bg-green-600 hover:bg-green-700 text-white"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUnblockDay(day.dateStr);
-                                  }}
-                                  disabled={isSubmitting}
-                                >
-                                  {isSubmitting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
-                                  Unblock Entire Day
-                                </Button>
-                              ) : (
-                                <Button 
-                                  size="sm" 
-                                  className="w-full h-8 text-xs font-medium bg-gray-700 hover:bg-gray-800 text-white dark:bg-gray-600 dark:hover:bg-gray-500"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleBlockDay(day.dateStr);
-                                  }}
-                                  disabled={isSubmitting}
-                                >
-                                  {isSubmitting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Ban className="h-3.5 w-3.5 mr-1.5" />}
-                                  Block Entire Day
-                                </Button>
-                              )}
+                          <div className="p-2 space-y-1.5">
+                            {/* Only show blocked slots */}
+                            {(() => {
+                              const blockedSlots = day.slots.filter(s => s.status === 'BLOCKED' || s.status === 'BOOKED');
+                              if (blockedSlots.length === 0) return (
+                                <p className="text-[11px] text-muted-foreground text-center py-1">No blocked slots</p>
+                              );
                               
-                              {/* View & Manage */}
-                              <Button 
-                                size="sm" 
-                                className="w-full h-8 text-xs font-medium"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDayClick(day);
-                                }}
-                              >
-                                <Eye className="h-3.5 w-3.5 mr-1.5" />
-                                View & Manage Slots
-                              </Button>
+                              // Group by category
+                              const grouped: Record<string, string[]> = {};
+                              blockedSlots.forEach(slot => {
+                                const catId = slot.categoryId || 'all';
+                                const cat = categoriesMap.get(catId);
+                                const filter = categoryFilters.find(f => f.id === catId);
+                                const name = catId === 'all' ? 'All' : (cat?.name || filter?.name || catId);
+                                const icon = catId === 'all' ? '🚫' : (isValidIcon(cat?.icon) ? cat!.icon : getCategoryIcon(catId, name));
+                                const key = `${icon} ${name}`;
+                                if (!grouped[key]) grouped[key] = [];
+                                const timeLabel = (slot.timeSlot && slot.timeSlot.includes('-') && !['MORNING','AFTERNOON','EVENING','FULL_DAY'].includes(slot.timeSlot))
+                                  ? slot.timeSlot.replace('-', ' – ')
+                                  : (TIME_SLOT_INFO[slot.timeSlotType as TimeSlotType]?.label || slot.timeSlotType);
+                                grouped[key].push(timeLabel);
+                              });
+                              
+                              return Object.entries(grouped).map(([catLabel, times]) => (
+                                <div key={catLabel} className="flex items-center justify-between gap-2 text-[11px]">
+                                  <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{catLabel}</span>
+                                  <span className="text-gray-400 dark:text-gray-500 shrink-0">{times.join(', ')}</span>
+                                </div>
+                              ));
+                            })()}
+                            
+                            {/* Actions */}
+                            <div className="flex gap-1 pt-1 border-t border-gray-100 dark:border-gray-800">
+                              {!isPastDate(day.date) && (
+                                (() => {
+                                  const activeCat = categoryFilters.length > 0 && !categoryFilters.every(f => f.active)
+                                    ? categoryFilters.find(f => f.active) : null;
+                                  return (
+                                    <>
+                                      {day.slots.some(s => s.status === 'BLOCKED') && (
+                                        <button onClick={async (e) => { 
+                                          e.stopPropagation(); 
+                                          // Unblock standard slots
+                                          await handleUnblockDay(day.dateStr, activeCat?.id);
+                                          // Also delete any custom blocked slots
+                                          const customSlots = day.slots.filter(s => 
+                                            (s.status === 'BLOCKED' || s.status === 'BOOKED') &&
+                                            s.timeSlot && s.timeSlot.includes('-') && 
+                                            !['MORNING','AFTERNOON','EVENING','FULL_DAY'].includes(s.timeSlot) &&
+                                            (!activeCat || s.categoryId === activeCat.id || !s.categoryId)
+                                          );
+                                          for (const slot of customSlots) {
+                                            try { await vendorApi.deleteSlot(slot.id); } catch {}
+                                          }
+                                          if (customSlots.length > 0) refetchAvailability();
+                                        }}
+                                          disabled={isSubmitting}
+                                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded text-[11px] font-medium text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
+                                          <Check className="h-3 w-3" />Unblock
+                                        </button>
+                                      )}
+                                      {day.status !== 'blocked' && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleBlockDay(day.dateStr, activeCat?.id); }}
+                                          disabled={isSubmitting}
+                                          className="flex-1 flex items-center justify-center gap-1 h-7 rounded text-[11px] font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
+                                          <Ban className="h-3 w-3" />Block
+                                        </button>
+                                      )}
+                                    </>
+                                  );
+                                })()
+                              )}
+                              <button onClick={(e) => { e.stopPropagation(); setOpenPopoverIdx(null); handleDayClick(day); }}
+                                className="flex-1 flex items-center justify-center gap-1 h-7 rounded text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90">
+                                <Eye className="h-3 w-3" />Manage
+                              </button>
                             </div>
                           </div>
-                        </TooltipContent>
+                        </PopoverContent>
                       )}
-                    </Tooltip>
+                  </Popover>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              </div>
+            </div>
           )}
 
           {/* Week View - Temporarily Disabled */}
@@ -943,294 +935,240 @@ export default function VendorCalendarEnhanced() {
           {/* List View - Temporarily Disabled */}
           {/* {viewMode === 'list' && <CalendarListView calendarData={filteredCalendarData} onDayClick={handleDayClick} onBlockDay={handleBlockDay} onUnblockDay={handleUnblockDay} isSubmitting={isSubmitting} />} */}
 
-          {/* Slide-Out Panel - Enhanced UI */}
+          {/* Slide-Out Panel */}
           <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
-            <SheetContent className="w-full sm:max-w-lg p-0 overflow-hidden border-l-0 shadow-2xl">
+            <SheetContent side="right" className="w-full sm:max-w-sm p-0 overflow-hidden border-l-0 shadow-2xl [&>button]:text-white [&>button]:hover:text-white/80 [&>button]:opacity-100">
               {selectedDay && (
                 <div className="h-full flex flex-col">
-                  {/* Beautiful Header with Gradient */}
-                  <div className="relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-purple-600" />
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTRzMiAyIDIgNC0yIDQtMiA0LTItMi0yLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
-                    <div className="relative px-6 py-8">
-                      <button 
-                        onClick={() => setIsPanelOpen(false)}
-                        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                      >
-                        <X className="h-5 w-5 text-white" />
-                      </button>
-                      
-                      <div className="space-y-1">
-                        <p className="text-white/70 text-sm font-medium uppercase tracking-wider">
-                          {format(selectedDay.date, 'EEEE')}
-                        </p>
-                        <h2 className="text-white text-3xl font-bold">
-                          {format(selectedDay.date, 'MMMM d')}
-                        </h2>
-                        <p className="text-white/60 text-sm">{format(selectedDay.date, 'yyyy')}</p>
-                      </div>
-                      
-                      {/* Status Badge */}
-                      <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm">
-                        {selectedDay.status === 'available' && <Check className="h-4 w-4 text-green-300" />}
-                        {selectedDay.status === 'partial' && <Clock className="h-4 w-4 text-yellow-300" />}
-                        {selectedDay.status === 'blocked' && <Ban className="h-4 w-4 text-gray-300" />}
-                        <span className="text-white font-medium capitalize">{selectedDay.status}</span>
+                  {/* Header */}
+                  <div className="bg-primary px-4 py-3 flex items-center gap-3 shrink-0">
+                    <div className="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-white/15">
+                      <span className="text-white text-lg font-bold leading-none">{selectedDay.date.getDate()}</span>
+                      <span className="text-white/60 text-[9px] uppercase">{format(selectedDay.date, 'MMM')}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-white text-sm font-semibold">{format(selectedDay.date, 'EEEE')}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={cn(
+                          "px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase",
+                          selectedDay.status === 'available' && "bg-green-400/30 text-green-100",
+                          selectedDay.status === 'partial' && "bg-yellow-400/30 text-yellow-100",
+                          selectedDay.status === 'blocked' && "bg-white/20 text-white/70"
+                        )}>{selectedDay.status}</span>
                       </div>
                     </div>
                   </div>
                   
                   {/* Scrollable Content */}
-                  <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
-                    {/* Time Slot Management */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-1 rounded-full bg-primary" />
-                        <h3 className="font-bold text-lg">Manage Time Slots</h3>
-                      </div>
-                      
-                      {/* Category Sections */}
-                      {(categoryFilters.length > 0 ? categoryFilters : [{ id: '', name: 'All Services', icon: '📦', active: true }]).map((category, catIdx) => {
+                  <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5 bg-gray-50 dark:bg-gray-950">
+                    {/* Category Sections */}
+                    {(categoryFilters.length > 0 ? categoryFilters : [{ id: '', name: 'All Services', icon: '📦', active: true }]).map((category, catIdx) => {
                         const categoryBlockedSlots = selectedDay.slots.filter(s => 
                           (s.categoryId === category.id || (!s.categoryId && !category.id)) && 
                           (s.status === 'BLOCKED' || s.status === 'BOOKED')
                         ).length;
                         const allSlotsBlocked = categoryBlockedSlots >= DEFAULT_TIME_SLOTS.length;
+                        const availableCount = DEFAULT_TIME_SLOTS.length - categoryBlockedSlots;
                         
                         return (
-                        <div key={category.id || 'all'} className="space-y-3">
-                          {/* Category Header with Block Day Button */}
-                          <div className="flex items-center justify-between px-1">
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                                <span className="text-xl">{category.icon}</span>
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm">{category.name}</h4>
-                                <p className="text-xs text-muted-foreground">
-                                  {DEFAULT_TIME_SLOTS.length - categoryBlockedSlots} slots available
-                                </p>
-                              </div>
+                        <div key={category.id || 'all'} className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                          {/* Category Header - clickable to expand/collapse */}
+                          <div className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                            onClick={() => setExpandedCategory(prev => prev === (category.id || '') ? null : (category.id || ''))}>
+                            <div className="flex items-center gap-2">
+                              <ChevronRight className={cn("h-3.5 w-3.5 text-gray-400 transition-transform", expandedCategory === (category.id || '') && "rotate-90")} />
+                              <span className="text-sm">{category.icon}</span>
+                              <span className="font-medium text-xs">{category.name}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {allSlotsBlocked ? '(blocked)' : `${availableCount}/${DEFAULT_TIME_SLOTS.length}`}
+                              </span>
                             </div>
-                            {/* Block/Unblock Day for this Category */}
                             <button
-                              onClick={() => allSlotsBlocked 
+                              onClick={(e) => { e.stopPropagation(); allSlotsBlocked 
                                 ? handleUnblockDay(selectedDay.dateStr, category.id || undefined)
-                                : handleBlockDay(selectedDay.dateStr, category.id || undefined)
-                              }
-                              disabled={isSubmitting}
+                                : handleBlockDay(selectedDay.dateStr, category.id || undefined);
+                              }}
+                              disabled={isSubmitting || isPastDate(selectedDay.date)}
                               className={cn(
-                                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all",
                                 allSlotsBlocked 
-                                  ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                  ? "text-green-600 hover:bg-green-50 dark:text-green-400"
+                                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400"
                               )}
                             >
-                              {isSubmitting ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : allSlotsBlocked ? (
-                                <>
-                                  <Check className="h-3 w-3" />
-                                  <span>Unblock Day</span>
-                                </>
+                              {isSubmitting ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : allSlotsBlocked ? (
+                                <><Check className="h-2.5 w-2.5" />Unblock All</>
                               ) : (
-                                <>
-                                  <Ban className="h-3 w-3" />
-                                  <span>Block Day</span>
-                                </>
+                                <><Ban className="h-2.5 w-2.5" />Block All</>
                               )}
                             </button>
                           </div>
                           
-                          {/* Time Slots Grid */}
-                          <div className="grid gap-2">
-                            {DEFAULT_TIME_SLOTS.map((slotType, slotIdx) => {
+                          {/* Collapsible Time Slots */}
+                          {expandedCategory === (category.id || '') && (
+                          <>
+                          <div className="border-t border-gray-100 dark:border-gray-800">
+                            {DEFAULT_TIME_SLOTS.map((slotType) => {
                               const slotInfo = TIME_SLOT_INFO[slotType];
-                              const { status, slot, order } = getSlotStatus(selectedDay, slotType, category.id || undefined);
+                              const { status } = getSlotStatus(selectedDay, slotType, category.id || undefined);
                               const slotKey = `${selectedDay.dateStr}-${slotType}-${category.id || 'all'}`;
                               const isLoading = slotActionLoading === slotKey;
                               const isBlocked = status === 'BLOCKED' || status === 'BOOKED';
                               
                               return (
-                                <div 
-                                  key={slotType} 
-                                  className={cn(
-                                    "group relative overflow-hidden rounded-xl border-2 transition-all duration-300",
-                                    isBlocked && "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50",
-                                    !isBlocked && "border-green-300 bg-white dark:border-green-800 dark:bg-gray-900 hover:border-green-400 hover:shadow-md"
-                                  )}
-                                  style={{ animationDelay: `${(catIdx * 3 + slotIdx) * 50}ms` }}
-                                >
-                                  <div className="flex items-center justify-between p-4">
-                                    {/* Left: Time Info */}
-                                    <div className="flex items-center gap-3">
-                                      <div className={cn(
-                                        "flex items-center justify-center w-12 h-12 rounded-xl",
-                                        isBlocked && "bg-gray-200 dark:bg-gray-700",
-                                        !isBlocked && "bg-gradient-to-br from-green-100 to-emerald-50 dark:from-green-900/40 dark:to-emerald-900/20"
-                                      )}>
-                                        <div className={cn(
-                                          "text-lg",
-                                          isBlocked && "text-gray-500",
-                                          !isBlocked && "text-green-600"
-                                        )}>
-                                          {slotInfo.icon}
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <p className={cn(
-                                          "font-semibold",
-                                          isBlocked && "text-gray-600 dark:text-gray-400",
-                                          !isBlocked && "text-gray-900 dark:text-white"
-                                        )}>
-                                          {slotInfo.label}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">{slotInfo.time}</p>
-                                      </div>
+                                <div key={slotType} className={cn(
+                                  "flex items-center justify-between px-3 py-1.5 border-b border-gray-50 dark:border-gray-800/50 last:border-b-0",
+                                  isBlocked && "bg-gray-50/50 dark:bg-gray-800/20"
+                                )}>
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn("text-xs", isBlocked ? "text-gray-300" : "text-green-500")}>
+                                      {slotInfo.icon}
                                     </div>
-                                    
-                                    {/* Right: Status & Action */}
-                                    <div className="flex items-center gap-2">
-                                      {isBlocked ? (
-                                        <button
-                                          onClick={() => handleSlotAction(selectedDay.dateStr, slotType, category.id || undefined, 'unblock')}
-                                          disabled={isLoading}
-                                          className={cn(
-                                            "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all",
-                                            "bg-white border-2 border-gray-300 text-gray-700 hover:border-green-400 hover:bg-green-50 hover:text-green-700",
-                                            "dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:border-green-500 dark:hover:bg-green-900/30 dark:hover:text-green-400"
-                                          )}
-                                        >
-                                          {isLoading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <>
-                                              <Check className="h-4 w-4" />
-                                              <span>Unblock</span>
-                                            </>
-                                          )}
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => handleSlotAction(selectedDay.dateStr, slotType, category.id || undefined, 'block')}
-                                          disabled={isLoading}
-                                          className={cn(
-                                            "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all",
-                                            "bg-gray-100 border-2 border-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-800",
-                                            "dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                          )}
-                                        >
-                                          {isLoading ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <>
-                                              <Ban className="h-4 w-4" />
-                                              <span>Block</span>
-                                            </>
-                                          )}
-                                        </button>
-                                      )}
-                                    </div>
+                                    <span className={cn("text-xs", isBlocked ? "text-gray-400 line-through" : "font-medium")}>{slotInfo.label}</span>
+                                    <span className="text-[10px] text-muted-foreground">{slotInfo.time}</span>
                                   </div>
-                                  
-                                  {/* Blocked Overlay Pattern */}
-                                  {isBlocked && (
-                                    <div className="absolute inset-0 pointer-events-none opacity-5">
-                                      <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,currentColor_10px,currentColor_11px)]" />
-                                    </div>
-                                  )}
+                                  <button
+                                    onClick={() => handleSlotAction(selectedDay.dateStr, slotType, category.id || undefined, isBlocked ? 'unblock' : 'block')}
+                                    disabled={isLoading || isPastDate(selectedDay.date)}
+                                    className={cn(
+                                      "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all",
+                                      isBlocked ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"
+                                    )}
+                                  >
+                                    {isLoading ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : isBlocked ? (
+                                      <><Check className="h-2.5 w-2.5" />Unblock</>
+                                    ) : (
+                                      <><Ban className="h-2.5 w-2.5" />Block</>
+                                    )}
+                                  </button>
                                 </div>
                               );
                             })}
                           </div>
                           
-                          {/* Custom Time Slot Option */}
-                          <Dialog open={showCustomTimeDialog} onOpenChange={setShowCustomTimeDialog}>
-                            <DialogTrigger asChild>
-                              <button className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary transition-colors">
-                                <Clock className="h-4 w-4" />
-                                <span className="font-medium text-sm">Block Custom Time</span>
-                              </button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>Block Custom Time Slot</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="fromTime">From Time</Label>
-                                  <Input
-                                    id="fromTime"
-                                    type="time"
-                                    value={customTimeData.fromTime}
-                                    onChange={(e) => setCustomTimeData(prev => ({ ...prev, fromTime: e.target.value }))}
-                                    placeholder="09:00"
-                                  />
-                                  <p className="text-xs text-muted-foreground">Start time (24-hour format)</p>
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="toTime">To Time</Label>
-                                  <Input
-                                    id="toTime"
-                                    type="time"
-                                    value={customTimeData.toTime}
-                                    onChange={(e) => setCustomTimeData(prev => ({ ...prev, toTime: e.target.value }))}
-                                    placeholder="17:00"
-                                  />
-                                  <p className="text-xs text-muted-foreground">End time (24-hour format)</p>
-                                </div>
-                                {categoryFilters.length > 0 && (
-                                  <div className="space-y-2">
-                                    <Label htmlFor="category">Category (Optional)</Label>
-                                    <select
-                                      id="category"
-                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                      value={customTimeData.categoryId}
-                                      onChange={(e) => setCustomTimeData(prev => ({ ...prev, categoryId: e.target.value }))}
+                          {/* Custom Blocked Slots */}
+                          {(() => {
+                            const customSlots = selectedDay.slots.filter(s => {
+                              const matchesCat = s.categoryId === category.id || (!s.categoryId && !category.id);
+                              const isCustom = s.timeSlot && s.timeSlot.includes('-') && !['MORNING','AFTERNOON','EVENING','FULL_DAY'].includes(s.timeSlot);
+                              return matchesCat && isCustom && (s.status === 'BLOCKED' || s.status === 'BOOKED');
+                            });
+                            if (customSlots.length === 0) return null;
+                            return (
+                              <div className="border-t border-gray-100 dark:border-gray-800">
+                                {customSlots.map((slot) => (
+                                  <div key={slot.id} className="flex items-center justify-between px-3 py-1.5 border-b border-gray-50 dark:border-gray-800/50 last:border-b-0 bg-red-50/30 dark:bg-red-900/10">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-3 w-3 text-red-400" />
+                                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">{slot.timeSlot.replace('-', ' – ')}</span>
+                                      <span className="text-[9px] text-muted-foreground">Custom</span>
+                                    </div>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          setSlotActionLoading(slot.id);
+                                          await vendorApi.deleteSlot(slot.id);
+                                          toast.success('Custom slot unblocked');
+                                          refetchAvailability();
+                                          const response = await vendorApi.getDayDetails(selectedDay.dateStr);
+                                          if (response.success && response.data) {
+                                            setSelectedDay(prev => prev ? { ...prev, slots: response.data } : null);
+                                          }
+                                        } catch (err: any) {
+                                          toast.error(err.message || 'Failed to unblock');
+                                        } finally {
+                                          setSlotActionLoading(null);
+                                        }
+                                      }}
+                                      disabled={slotActionLoading === slot.id || isPastDate(selectedDay.date)}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-green-600 hover:bg-green-50"
                                     >
-                                      <option value="">All Services</option>
-                                      {categoryFilters.map(cat => (
-                                        <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-                                      ))}
-                                    </select>
+                                      {slotActionLoading === slot.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <><Check className="h-2.5 w-2.5" />Unblock</>}
+                                    </button>
                                   </div>
-                                )}
-                                <div className="space-y-2">
-                                  <Label htmlFor="notes">Notes (Optional)</Label>
-                                  <Input
-                                    id="notes"
-                                    value={customTimeData.notes}
-                                    onChange={(e) => setCustomTimeData(prev => ({ ...prev, notes: e.target.value }))}
-                                    placeholder="Reason for blocking..."
-                                  />
-                                </div>
-                                <div className="flex gap-3 pt-4">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      setShowCustomTimeDialog(false);
-                                      setCustomTimeData({ fromTime: '', toTime: '', categoryId: '', notes: '' });
-                                    }}
-                                    className="flex-1 h-11"
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    onClick={handleBlockCustomTime}
-                                    disabled={isSubmitting || !customTimeData.fromTime || !customTimeData.toTime}
-                                    className="flex-1 h-11 bg-primary hover:bg-primary/90"
-                                  >
-                                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
-                                    Block Time
-                                  </Button>
-                                </div>
+                                ))}
                               </div>
-                            </DialogContent>
-                          </Dialog>
+                            );
+                          })()}
+                          
+                          {/* Inline Custom Time */}
+                          <div className="px-3 py-1.5 border-t border-gray-100 dark:border-gray-800">
+                            {customTimeCategory === (category.id || '') ? (
+                              <div className="flex items-center gap-1.5">
+                                <Input
+                                  type="time"
+                                  value={customTimeData.fromTime}
+                                  onChange={(e) => setCustomTimeData(prev => ({ ...prev, fromTime: e.target.value }))}
+                                  className="h-7 text-[11px] flex-1 px-2"
+                                />
+                                <span className="text-[10px] text-gray-400">to</span>
+                                <Input
+                                  type="time"
+                                  value={customTimeData.toTime}
+                                  onChange={(e) => setCustomTimeData(prev => ({ ...prev, toTime: e.target.value }))}
+                                  className="h-7 text-[11px] flex-1 px-2"
+                                />
+                                <button
+                                  onClick={async () => {
+                                    if (selectedDay && customTimeData.fromTime && customTimeData.toTime) {
+                                      // Validate from < to
+                                      if (customTimeData.fromTime >= customTimeData.toTime) {
+                                        toast.error('Start time must be before end time');
+                                        return;
+                                      }
+                                      setCustomTimeData(prev => ({ ...prev, categoryId: category.id || '' }));
+                                      // Call block directly with current data
+                                      setIsSubmitting(true);
+                                      try {
+                                        await vendorApi.blockCustomTime(
+                                          selectedDay.dateStr,
+                                          customTimeData.fromTime,
+                                          customTimeData.toTime,
+                                          category.id || undefined,
+                                          undefined
+                                        );
+                                        toast.success(`${customTimeData.fromTime} – ${customTimeData.toTime} blocked`);
+                                        setCustomTimeCategory(null);
+                                        setCustomTimeData({ fromTime: '', toTime: '', categoryId: '', notes: '' });
+                                        refetchAvailability();
+                                        const response = await vendorApi.getDayDetails(selectedDay.dateStr);
+                                        if (response.success && response.data) {
+                                          setSelectedDay(prev => prev ? { ...prev, slots: response.data } : null);
+                                        }
+                                      } catch (error: any) {
+                                        toast.error(error.message || 'Failed to block custom time');
+                                      } finally {
+                                        setIsSubmitting(false);
+                                      }
+                                    }
+                                  }}
+                                  disabled={isSubmitting || !customTimeData.fromTime || !customTimeData.toTime}
+                                  className="flex items-center gap-0.5 px-2 py-1 rounded text-[10px] font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-50 shrink-0"
+                                >
+                                  {isSubmitting ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Ban className="h-2.5 w-2.5" />}
+                                  Block
+                                </button>
+                                <button
+                                  onClick={() => { setCustomTimeCategory(null); setCustomTimeData({ fromTime: '', toTime: '', categoryId: '', notes: '' }); }}
+                                  className="p-1 rounded text-gray-400 hover:text-gray-600 shrink-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => { setCustomTimeCategory(category.id || ''); setCustomTimeData({ fromTime: '', toTime: '', categoryId: category.id || '', notes: '' }); }}
+                                className="w-full flex items-center justify-center gap-1.5 py-1 rounded border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:border-primary hover:text-primary transition-colors text-[10px]"
+                              >
+                                <Clock className="h-3 w-3" />Custom Time
+                              </button>
+                            )}
+                          </div>
+                          </>
+                          )}
                         </div>
                         );
                       })}
-                    </div>
                   </div>
                 </div>
               )}

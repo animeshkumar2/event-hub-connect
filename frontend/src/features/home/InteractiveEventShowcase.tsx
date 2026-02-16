@@ -167,23 +167,68 @@ const eventCards: EventCard[] = [
 export const InteractiveEventShowcase = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [userInteracted, setUserInteracted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { hasFullAccess } = usePreLaunch();
 
-  // Auto-rotate cards every 5 seconds (disabled for scrolling)
+  // Reset auto-scroll after user interaction (resume after 8 seconds of no activity)
+  const handleUserInteraction = () => {
+    setUserInteracted(true);
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    interactionTimeoutRef.current = setTimeout(() => {
+      setUserInteracted(false);
+    }, 8000);
+  };
+
+  // Cleanup timeout on unmount
   useEffect(() => {
-    if (isPaused) return;
-    // Disable auto-rotation when using scroll
-    // const interval = setInterval(() => {
-    //   setActiveIndex((prev) => (prev + 1) % eventCards.length);
-    // }, 5000);
-    // return () => clearInterval(interval);
-  }, [isPaused, eventCards.length]);
+    return () => {
+      if (interactionTimeoutRef.current) {
+        clearTimeout(interactionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Auto-rotate cards every 5 seconds
+  useEffect(() => {
+    if (isPaused || userInteracted) return;
+    
+    const interval = setInterval(() => {
+      if (!scrollRef.current) return;
+      
+      const container = scrollRef.current;
+      const firstCard = container.querySelector('.flex-shrink-0') as HTMLElement;
+      if (!firstCard) return;
+      
+      const containerStyle = window.getComputedStyle(container);
+      const gap = parseInt(containerStyle.gap) || 16;
+      const cardWidth = firstCard.offsetWidth + gap;
+      
+      // Check if we're at the last card
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const isAtEnd = container.scrollLeft >= maxScroll - 10;
+      
+      if (isAtEnd) {
+        // Scroll back to first card
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+        setActiveIndex(0);
+      } else {
+        // Scroll to next card
+        container.scrollBy({ left: cardWidth, behavior: 'smooth' });
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isPaused, userInteracted]);
 
   const activeCard = eventCards[activeIndex];
 
   const scroll = (direction: 'left' | 'right') => {
+    handleUserInteraction();
     if (!scrollRef.current) return;
     const container = scrollRef.current;
     // Get the first card element to calculate proper width
@@ -202,6 +247,7 @@ export const InteractiveEventShowcase = () => {
   };
 
   const handleScroll = () => {
+    handleUserInteraction();
     if (!scrollRef.current) return;
     const scrollLeft = scrollRef.current.scrollLeft;
     const firstCard = scrollRef.current.querySelector('.flex-shrink-0') as HTMLElement;
@@ -215,6 +261,7 @@ export const InteractiveEventShowcase = () => {
   };
 
   const goToSlide = (index: number) => {
+    handleUserInteraction();
     if (!scrollRef.current) return;
     const cardWidth = scrollRef.current.offsetWidth;
     scrollRef.current.scrollTo({
@@ -242,8 +289,6 @@ export const InteractiveEventShowcase = () => {
   return (
     <section 
       className="relative py-8 sm:py-12 md:py-20 overflow-x-hidden bg-gradient-to-b from-background to-muted/30"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
       ref={(el) => {
         if (!el) return;
         const observer = new IntersectionObserver(
@@ -337,6 +382,8 @@ export const InteractiveEventShowcase = () => {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
             className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory w-full"
             style={{ 
               scrollSnapType: 'x mandatory', 
