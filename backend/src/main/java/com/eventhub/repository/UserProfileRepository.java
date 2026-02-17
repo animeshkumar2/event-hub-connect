@@ -21,6 +21,13 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> 
     
     @Query("SELECT COUNT(u) FROM UserProfile u WHERE u.createdAt >= :date")
     long countByCreatedAtAfter(@Param("date") LocalDateTime date);
+    
+    // Find vendor-role users who haven't completed onboarding (no vendor record yet)
+    @Query(value = "SELECT u.* FROM user_profiles u WHERE u.role = 'VENDOR' " +
+           "AND u.id NOT IN (SELECT v.user_id FROM vendors v) " +
+           "ORDER BY u.created_at DESC",
+           nativeQuery = true)
+    java.util.List<UserProfile> findVendorUsersWithoutVendorProfile();
 }
 
 

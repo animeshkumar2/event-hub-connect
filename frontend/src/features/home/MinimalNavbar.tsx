@@ -305,19 +305,18 @@ export const MinimalNavbar = () => {
             </Link>
             */}
 
-            {/* For Vendors - Keep this active for Phase 1 */}
-            {/* For Vendors - Keep this active for Phase 1 */}
+            {/* List your services - Vendor CTA */}
             {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
               <Link
                 to="/join-vendors"
                 className={cn(
-                  'text-xs font-medium transition-all duration-200 px-3 py-2 rounded-md',
+                  'text-xs font-semibold transition-all duration-200 px-4 py-2 rounded-full border-2',
                 isSolidNav 
-                    ? 'text-foreground hover:text-primary hover:bg-primary/5' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                    ? 'text-primary border-primary hover:bg-primary hover:text-white' 
+                    : 'text-white border-white/80 hover:bg-white hover:text-primary'
                 )}
               >
-                For Vendors
+                List your services
               </Link>
             )}
 
@@ -440,7 +439,7 @@ export const MinimalNavbar = () => {
         {mobileMenuOpen && (
           <div className="md:hidden absolute left-0 right-0 top-full bg-white shadow-lg border-t z-50">
             <div className="px-4 py-4 space-y-4">
-              {/* For Vendors Link - styled as a card */}
+              {/* List your services - Vendor CTA (mobile) */}
               {(!user || (user.role !== 'VENDOR' && user.role !== 'vendor')) && (
                 <Link
                   to="/join-vendors"
@@ -452,7 +451,7 @@ export const MinimalNavbar = () => {
                       <Sparkles className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <span className="block text-sm font-semibold text-gray-900">For Vendors</span>
+                      <span className="block text-sm font-semibold text-gray-900">List your services</span>
                       <span className="block text-xs text-gray-500">Grow your business with us</span>
                     </div>
                   </div>

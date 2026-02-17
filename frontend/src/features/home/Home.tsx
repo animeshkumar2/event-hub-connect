@@ -68,7 +68,7 @@ const Home = () => {
     },
     {
       id: 'vendors',
-      title: 'For Vendors',
+      title: 'List your services',
       links: [
         { label: 'Become a Vendor', to: '/signup' },
         { label: 'Vendor Login', to: '/login' },

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Badge } from '@/shared/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { 
   ArrowLeft, 
   Search, 
@@ -12,7 +13,11 @@ import {
   XCircle,
   Eye,
   RefreshCw,
-  Filter
+  Clock,
+  UserCircle,
+  ChevronDown,
+  ChevronRight,
+  FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -34,6 +39,14 @@ interface Vendor {
   createdAt: string;
 }
 
+interface PendingVendor {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+}
+
 interface VendorsResponse {
   content: Vendor[];
   totalElements: number;
@@ -44,17 +57,52 @@ interface VendorsResponse {
 
 export default function AdminVendorsList() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [pendingVendors, setPendingVendors] = useState<PendingVendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [size] = useState(20);
+  const [size] = useState(100); // Fetch all for grouping
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+  const [pendingOpen, setPendingOpen] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchVendors();
+    fetchPendingVendors();
   }, [page, searchQuery]);
+
+  // Group vendors by category
+  const groupedVendors = useMemo(() => {
+    const groups: Record<string, Vendor[]> = {};
+    vendors.forEach((vendor) => {
+      const category = vendor.customCategoryName || vendor.vendorCategory?.name || 'Uncategorized';
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(vendor);
+    });
+    // Sort categories alphabetically
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [vendors]);
+
+  // Open all categories by default when vendors load
+  useEffect(() => {
+    if (groupedVendors.length > 0 && openCategories.size === 0) {
+      setOpenCategories(new Set(groupedVendors.map(([cat]) => cat)));
+    }
+  }, [groupedVendors]);
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
+
+  const expandAll = () => setOpenCategories(new Set(groupedVendors.map(([cat]) => cat)));
+  const collapseAll = () => setOpenCategories(new Set());
 
   const fetchVendors = async () => {
     try {
@@ -64,9 +112,7 @@ export default function AdminVendorsList() {
       const url = `${API_BASE_URL}/admin/vendors?page=${page}&size=${size}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
       
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (!response.ok) {
@@ -97,6 +143,22 @@ export default function AdminVendorsList() {
     e.preventDefault();
     setPage(0);
     fetchVendors();
+  };
+
+  const fetchPendingVendors = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api';
+      const response = await fetch(`${API_BASE_URL}/admin/vendors/pending-onboarding`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) setPendingVendors(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching pending vendors:', error);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -132,11 +194,11 @@ export default function AdminVendorsList() {
               <div>
                 <h1 className="text-2xl font-bold">All Vendors</h1>
                 <p className="text-sm text-muted-foreground">
-                  {totalElements} total vendors
+                  {totalElements} onboarded · {groupedVendors.length} categories{pendingVendors.length > 0 ? ` · ${pendingVendors.length} pending` : ''}
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={fetchVendors} size="sm">
+            <Button variant="outline" onClick={() => { fetchVendors(); fetchPendingVendors(); }} size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -144,16 +206,10 @@ export default function AdminVendorsList() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 space-y-4">
         {/* Search */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Search Vendors
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card>
+          <CardContent className="p-4">
             <form onSubmit={handleSearch} className="flex gap-2">
               <Input
                 placeholder="Search by business name..."
@@ -169,7 +225,71 @@ export default function AdminVendorsList() {
           </CardContent>
         </Card>
 
-        {/* Vendors List */}
+        {/* Expand/Collapse All */}
+        {groupedVendors.length > 1 && (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={expandAll} className="text-xs">
+              Expand All
+            </Button>
+            <span className="text-muted-foreground text-xs">|</span>
+            <Button variant="ghost" size="sm" onClick={collapseAll} className="text-xs">
+              Collapse All
+            </Button>
+          </div>
+        )}
+
+        {/* Pending Onboarding */}
+        {pendingVendors.length > 0 && (
+          <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
+            <Card className="border-amber-200 bg-amber-50/30 overflow-hidden">
+              <CollapsibleTrigger asChild>
+                <button className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-amber-50/60 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    {pendingOpen ? <ChevronDown className="h-4 w-4 text-amber-600" /> : <ChevronRight className="h-4 w-4 text-amber-600" />}
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <span className="font-semibold text-amber-800 text-sm">Pending Onboarding</span>
+                    <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-100 text-xs ml-1">
+                      {pendingVendors.length}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-amber-600">Signed up but profile incomplete</span>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="border-t border-amber-200 divide-y divide-amber-100">
+                  {pendingVendors.map((pv) => (
+                    <div key={pv.userId} className="flex items-center justify-between px-5 py-3 hover:bg-amber-50/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                          <UserCircle className="h-4 w-4 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{pv.fullName || 'No name'}</p>
+                          <div className="flex gap-2 text-xs text-muted-foreground">
+                            {pv.phone && <span>{pv.phone}</span>}
+                            {pv.email && <span>· {pv.email}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {pv.createdAt && (
+                          <span className="text-xs text-muted-foreground hidden sm:inline">
+                            {format(new Date(pv.createdAt), 'MMM d, yyyy')}
+                          </span>
+                        )}
+                        <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 text-xs">
+                          Pending
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
+        {/* Category-grouped Vendors */}
         {vendors.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -178,59 +298,76 @@ export default function AdminVendorsList() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {vendors.map((vendor) => (
-              <Card key={vendor.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold">{vendor.businessName}</h3>
-                        {vendor.isVerified && (
-                          <Badge variant="default" className="bg-green-500">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Verified
+          <div className="space-y-3">
+            {groupedVendors.map(([category, categoryVendors]) => {
+              const isOpen = openCategories.has(category);
+              return (
+                <Collapsible key={category} open={isOpen} onOpenChange={() => toggleCategory(category)}>
+                  <Card className="overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <button className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          {isOpen ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          <FolderOpen className="h-4 w-4 text-primary" />
+                          <span className="font-semibold text-sm">{category}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {categoryVendors.length}
                           </Badge>
-                        )}
-                        {!vendor.isActive && (
-                          <Badge variant="destructive">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Inactive
-                          </Badge>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {categoryVendors.filter(v => v.isVerified).length > 0 && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {categoryVendors.filter(v => v.isVerified).length} verified
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="border-t divide-y">
+                        {categoryVendors.map((vendor) => (
+                          <div key={vendor.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="font-medium text-sm truncate">{vendor.businessName}</span>
+                                {vendor.isVerified && (
+                                  <Badge variant="default" className="bg-green-500 text-xs px-1.5 py-0">
+                                    <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                    Verified
+                                  </Badge>
+                                )}
+                                {!vendor.isActive && (
+                                  <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                    <XCircle className="h-2.5 w-2.5 mr-0.5" />
+                                    Inactive
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                {vendor.cityName && <span>{vendor.cityName}</span>}
+                                <span>{vendor.rating.toFixed(1)} ⭐ ({vendor.reviewCount})</span>
+                                <span>{formatCurrency(vendor.startingPrice)}</span>
+                                <span>{format(new Date(vendor.createdAt), 'MMM d, yyyy')}</span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/admin/vendors/${vendor.id}`)}
+                              className="ml-3 flex-shrink-0"
+                            >
+                              <Eye className="h-3.5 w-3.5 mr-1.5" />
+                              View
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                      
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
-                        <span>
-                          Category: {vendor.customCategoryName || vendor.vendorCategory?.name || 'N/A'}
-                        </span>
-                        {vendor.cityName && (
-                          <span>City: {vendor.cityName}</span>
-                        )}
-                        <span>
-                          Rating: {vendor.rating.toFixed(1)} ⭐ ({vendor.reviewCount} reviews)
-                        </span>
-                        <span>
-                          Starting Price: {formatCurrency(vendor.startingPrice)}
-                        </span>
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground">
-                        Created: {format(new Date(vendor.createdAt), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                    
-                    <Button
-                      onClick={() => navigate(`/admin/vendors/${vendor.id}`)}
-                      className="ml-4"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })}
           </div>
         )}
 
@@ -260,10 +397,3 @@ export default function AdminVendorsList() {
     </div>
   );
 }
-
-
-
-
-
-
-
