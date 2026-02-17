@@ -727,23 +727,45 @@ export default function ListingDetail() {
             <ScrollReveal animation="fadeInUp" delay={800}>
               <section>
               <Card>
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xs font-semibold mb-1">Meet your vendor</h2>
-                      <p className="text-[11px] font-medium">{listing.vendorName}</p>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    {/* Vendor Profile Image */}
+                    <div className="relative shrink-0">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-[#5950b3] to-[#7867dc]">
+                        {listing.vendorProfileImage ? (
+                          <img 
+                            src={listing.vendorProfileImage} 
+                            alt={listing.vendorName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-lg font-bold text-white">
+                              {listing.vendorName?.charAt(0)?.toUpperCase() || 'V'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Vendor Info */}
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-xs text-slate-500 mb-0.5">Meet your vendor</h2>
+                      <p className="text-sm font-semibold text-slate-900 truncate">{listing.vendorName}</p>
                       {listing.vendorRating !== undefined && listing.vendorRating !== null && (
-                        <div className="flex items-center gap-1 mt-0.5 text-[10px]">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span className="font-medium">{listing.vendorRating.toFixed(1)}</span>
-                          {listing.vendorReviewCount && (
-                            <span className="text-slate-400">({listing.vendorReviewCount})</span>
+                        <div className="flex items-center gap-1 mt-1 text-xs">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span className="font-medium text-slate-700">{listing.vendorRating.toFixed(1)}</span>
+                          {listing.vendorReviewCount !== undefined && listing.vendorReviewCount !== null && (
+                            <span className="text-slate-400">({listing.vendorReviewCount} reviews)</span>
                           )}
                         </div>
                       )}
                     </div>
-                    <Link to={`/vendor/${listing.vendorId}`}>
-                      <Button variant="outline" size="sm" className="h-7 text-[10px]">
+                    
+                    {/* View Profile Button */}
+                    <Link to={`/vendors/${listing.vendorId}`}>
+                      <Button variant="outline" size="sm" className="h-8 text-xs rounded-lg">
                         View Profile
                       </Button>
                     </Link>
