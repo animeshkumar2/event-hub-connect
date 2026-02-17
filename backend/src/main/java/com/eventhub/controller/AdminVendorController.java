@@ -2,7 +2,9 @@ package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
 import com.eventhub.dto.response.VendorDetailDTO;
+import com.eventhub.model.UserProfile;
 import com.eventhub.model.Vendor;
+import com.eventhub.repository.UserProfileRepository;
 import com.eventhub.repository.VendorRepository;
 import com.eventhub.service.AdminVendorService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 public class AdminVendorController {
     
     private final VendorRepository vendorRepository;
+    private final UserProfileRepository userProfileRepository;
     private final AdminVendorService adminVendorService;
     
     @GetMapping
@@ -63,14 +66,42 @@ public class AdminVendorController {
         return ResponseEntity.ok(ApiResponse.success(vendorPage));
     }
     
-    @GetMapping("/{vendorId}")
+    // DTO for vendor users who haven't completed onboarding
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    public static class PendingVendorDTO {
+        private UUID userId;
+        private String fullName;
+        private String email;
+        private String phone;
+        private String createdAt;
+    }
+    
+    @GetMapping("/pending-onboarding")
+    public ResponseEntity<ApiResponse<List<PendingVendorDTO>>> getPendingOnboardingVendors() {
+        List<UserProfile> pendingUsers = userProfileRepository.findVendorUsersWithoutVendorProfile();
+        
+        List<PendingVendorDTO> result = pendingUsers.stream()
+            .map(u -> new PendingVendorDTO(
+                u.getId(),
+                u.getFullName(),
+                u.getEmail(),
+                u.getPhone(),
+                u.getCreatedAt() != null ? u.getCreatedAt().toString() : null
+            ))
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+    
+    @GetMapping("/{vendorId:[0-9a-fA-F\\-]{36}}")
     public ResponseEntity<ApiResponse<Vendor>> getVendor(@PathVariable UUID vendorId) {
         Vendor vendor = vendorRepository.findByIdWithDetails(vendorId)
                 .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Vendor not found"));
         return ResponseEntity.ok(ApiResponse.success(vendor));
     }
     
-    @GetMapping("/{vendorId}/details")
+    @GetMapping("/{vendorId:[0-9a-fA-F\\-]{36}}/details")
     public ResponseEntity<ApiResponse<VendorDetailDTO>> getVendorDetails(
             @PathVariable UUID vendorId,
             @RequestParam(required = false, defaultValue = "false") boolean refresh) {
@@ -82,13 +113,13 @@ public class AdminVendorController {
         return ResponseEntity.ok(ApiResponse.success("Vendor details retrieved", details));
     }
     
-    @PostMapping("/{vendorId}/refresh-cache")
+    @PostMapping("/{vendorId:[0-9a-fA-F\\-]{36}}/refresh-cache")
     public ResponseEntity<ApiResponse<String>> refreshVendorCache(@PathVariable UUID vendorId) {
         adminVendorService.evictVendorCache(vendorId);
         return ResponseEntity.ok(ApiResponse.success("Cache cleared for vendor", "Cache evicted"));
     }
     
-    @PutMapping("/{vendorId}/verify")
+    @PutMapping("/{vendorId:[0-9a-fA-F\\-]{36}}/verify")
     public ResponseEntity<ApiResponse<Vendor>> verifyVendor(@PathVariable UUID vendorId) {
         Vendor vendor = vendorRepository.findById(vendorId)
                 .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Vendor not found"));
@@ -98,7 +129,7 @@ public class AdminVendorController {
         return ResponseEntity.ok(ApiResponse.success("Vendor verified", vendor));
     }
     
-    @PutMapping("/{vendorId}/status")
+    @PutMapping("/{vendorId:[0-9a-fA-F\\-]{36}}/status")
     public ResponseEntity<ApiResponse<Vendor>> updateVendorStatus(
             @PathVariable UUID vendorId,
             @RequestBody UpdateStatusRequest request) {
