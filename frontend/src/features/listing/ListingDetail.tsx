@@ -33,6 +33,7 @@ import { PremiumChatWindow } from '@/features/vendor/PremiumChatWindow';
 
 import { CategorySpecificDisplay } from './CategorySpecificDisplay';
 import { PackageDetailView } from './PackageDetailView';
+import { RequestCallbackModal } from './RequestCallbackModal';
 
 // Type for extra charges
 interface ExtraCharge {
@@ -797,7 +798,18 @@ export default function ListingDetail() {
           {/* Right Column - Booking Widget - Compact */}
           {!isOwner && (
           <div className="lg:col-span-1 order-first lg:order-last">
-            <div className="sticky top-16 space-y-2">
+            <div className="lg:sticky lg:top-20 space-y-2">
+              {/* Request Callback - Primary CTA */}
+              {listing && (
+                <RequestCallbackModal
+                  listingId={listing.id || listingId || ''}
+                  listingName={listing.name || ''}
+                  vendorId={listing.vendorId || ''}
+                  vendorName={listing.vendorName || ''}
+                  category={listing.customCategoryName || listing.categoryName || ''}
+                />
+              )}
+              
               {/* Chat/Offer Button - Compact */}
               {listing && (listing.openForNegotiation !== false) && (() => {
                 const finalListingId = listing?.id 
