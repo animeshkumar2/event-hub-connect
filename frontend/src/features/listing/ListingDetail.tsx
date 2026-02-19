@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/features/home/Navbar';
 import { BookingWidget } from './BookingWidget';
-import { PackageCard } from '@/features/search/PackageCard';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
@@ -90,22 +89,13 @@ export default function ListingDetail() {
   // If forceCustomerView is true, show customer view even if user is owner
   const isOwner = forceCustomerView ? false : isOwnerRaw;
 
-  // Fetch vendor listings for similar listings
+  // Fetch vendor listings for linked items in packages
   const { data: vendorListingsData } = useVendorListings(vendorId || null);
-  // vendorListingsData is already the unwrapped array from useVendorListings
   const vendorListings = Array.isArray(vendorListingsData) ? vendorListingsData : ((vendorListingsData as any)?.data || vendorListingsData || []);
 
   // Fetch reviews
   const { data: reviewsData } = useVendorReviews(vendorId || null, 0, 5);
   const reviews = (reviewsData as any)?.data?.content || [];
-
-  // Similar listings (same vendor, different listing)
-  const similarListings = useMemo(() => {
-    if (!vendorListings || !listing) return [];
-    return vendorListings
-      .filter((l: any) => l.id !== listing.id)
-      .slice(0, 6);
-  }, [vendorListings, listing]);
 
   // Backend returns lowercase 'package' or 'item', but also handle uppercase
   const isPackage = listing?.type?.toLowerCase() === 'package' || listing?.type === 'PACKAGE';
@@ -776,45 +766,6 @@ export default function ListingDetail() {
             </ScrollReveal>
             )}
 
-            {/* Similar Listings - Compact */}
-            {similarListings.length > 0 && !isOwner && (
-              <ScrollReveal animation="fadeInUp" delay={900}>
-                <section>
-                <div className="mb-2">
-                  <h2 className="text-sm font-semibold">More from {listing.vendorName}</h2>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {similarListings.slice(0, 3).map((similarListing: any) => (
-                    <PackageCard
-                      key={similarListing.id}
-                      package={{
-                        id: similarListing.id,
-                        packageId: similarListing.id,
-                        name: similarListing.name,
-                        packageName: similarListing.name,
-                        description: similarListing.description || '',
-                        price: similarListing.price,
-                        images: similarListing.images || [],
-                        vendorId: similarListing.vendorId,
-                        vendorName: similarListing.vendorName || listing.vendorName,
-                        vendorCity: listing.vendorCity,
-                        vendorCoverageRadius: listing.vendorCoverageRadius || 0,
-                        vendorRating: listing.vendorRating,
-                        vendorReviewCount: listing.vendorReviewCount,
-                        category: similarListing.customCategoryName || similarListing.categoryName || listing.categoryName,
-                        type: similarListing.type?.toLowerCase() || 'item',
-                        deliveryTime: similarListing.deliveryTime,
-                        isPopular: similarListing.isPopular,
-                        isTrending: similarListing.isTrending,
-                        availability: 'available',
-                        includedItems: similarListing.includedItemsText || [],
-                      }}
-                    />
-                  ))}
-                </div>
-                </section>
-              </ScrollReveal>
-            )}
           </div>
 
           {/* Right Column - Booking Widget - Compact */}

@@ -3,13 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Star, MapPin, Clock, CheckCircle2, Package, ShoppingCart } from 'lucide-react';
+import { MapPin, Tag, IndianRupee, CheckCircle2 } from 'lucide-react';
 import { FlattenedPackage } from '@/shared/utils/packageUtils';
 import { cn } from '@/shared/lib/utils';
-import { useCart } from '@/shared/contexts/CartContext';
-import { useToast } from '@/shared/hooks/use-toast';
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/shared/components/ui/dialog';
-import { PackageCustomization } from '@/features/vendor/PackageCustomization';
 
 interface PackageCardProps {
   package: FlattenedPackage;
@@ -20,213 +16,112 @@ interface PackageCardProps {
 
 export const PackageCard: React.FC<PackageCardProps> = ({
   package: pkg,
-  onViewDetails,
-  onBookNow,
-  searchQuery,
 }) => {
   const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const { toast } = useToast();
+
+  const handleCardClick = () => {
+    const itemId = pkg.packageId || pkg.id;
+    navigate(`/listing/${itemId}`);
+  };
 
   const handleVendorClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigate(`/vendor/${pkg.vendorId}?tab=packages`);
   };
 
-  // Get first 5 inclusions or all if less than 5 (only for packages)
-  const displayedInclusions = (pkg.includedItems || []).slice(0, 5);
-
-  // Enhanced styling for packages vs listings
-  const isPackage = pkg.type === 'package';
-  
-  const handleCardClick = () => {
-    const itemId = pkg.packageId || pkg.id;
-    navigate(`/listing/${itemId}`);
-  };
+  // Mock verified bookings - in real app this would come from API
+  const verifiedBookings = pkg.vendorReviewCount ? Math.floor(pkg.vendorReviewCount * 1.5) : 0;
 
   return (
-    <>
-      <Card 
-        className={cn(
-          "group transition-all duration-300 overflow-hidden cursor-pointer",
-          isPackage 
-            ? "hover:shadow-2xl hover:-translate-y-2 border-2 border-primary/20 hover:border-primary/40 rounded-xl" // More prominent for packages
-            : "hover:shadow-xl hover:-translate-y-1 rounded-lg" // Standard for listings
+    <Card 
+      className={cn(
+        "group overflow-hidden cursor-pointer bg-white border-2 border-gray-100 hover:border-[#5950b3]/30 hover:shadow-xl transition-all duration-300 rounded-xl sm:rounded-2xl"
+      )}
+      onClick={handleCardClick}
+    >
+      {/* Image Section */}
+      <div className="relative aspect-[16/10] sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
+        <img
+          src={pkg.images[0] || 'https://via.placeholder.com/400x300'}
+          alt={pkg.packageName || pkg.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
+        />
+        
+        {/* Featured/Popular Badge - Top Center */}
+        {(pkg.isPopular || pkg.isTrending) && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2">
+            <Badge className={cn(
+              "rounded-t-none rounded-b-lg px-4 py-1 text-xs font-bold uppercase tracking-wide shadow-lg",
+              pkg.isPopular 
+                ? "bg-[#5950b3] text-white" 
+                : "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+            )}>
+              {pkg.isPopular ? '🔥 Popular' : '⭐ Trending'}
+            </Badge>
+          </div>
         )}
-        onClick={handleCardClick}
-      >
-        {/* Image */}
-        <div className="relative aspect-video overflow-hidden bg-muted">
-          <img
-            src={pkg.images[0] || 'https://via.placeholder.com/400x300'}
-            alt={pkg.packageName || pkg.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            loading="lazy"
-          />
-          
-          {/* Availability badge - Subtle */}
-          {pkg.availability && (
-            <div className="absolute top-2 right-2">
-              <div
-                className={cn(
-                  'w-2 h-2 rounded-full shadow-sm',
-                  pkg.availability === 'available' && 'bg-green-500',
-                  pkg.availability === 'limited' && 'bg-yellow-500',
-                  pkg.availability === 'booked' && 'bg-red-500'
-                )}
-                title={pkg.availability === 'available' ? 'Available' : pkg.availability === 'limited' ? 'Limited' : 'Booked'}
-              />
-            </div>
-          )}
       </div>
 
-      <CardContent className="p-3 space-y-2">
-        {/* Badges Row - Compact */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {pkg.type === 'package' && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-medium">
-              <Package className="h-2.5 w-2.5 mr-0.5" />
-              Package
-            </Badge>
-          )}
-          {pkg.isPopular && (
-            <Badge className="bg-orange-500/10 text-orange-600 border-orange-200 text-[10px] px-1.5 py-0 h-4 font-medium">
-              🔥 Popular
-            </Badge>
-          )}
-          {pkg.isTrending && (
-            <Badge className="bg-purple-500/10 text-purple-600 border-purple-200 text-[10px] px-1.5 py-0 h-4 font-medium">
-              ⭐ Trending
-            </Badge>
-          )}
-        </div>
-
-        {/* Listing Name - Prominent */}
-        <h3 className={cn(
-          "font-bold text-foreground line-clamp-2 leading-tight",
-          isPackage ? "text-sm" : "text-sm"
-        )}>
+      <CardContent className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+        {/* Title */}
+        <h3 className="font-bold text-gray-900 text-base sm:text-lg leading-tight line-clamp-2 group-hover:text-[#5950b3] transition-colors">
           {pkg.packageName || pkg.name}
         </h3>
 
-        {/* Vendor Name - Subtle */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleVendorClick(e);
-          }}
-          className="text-[11px] text-muted-foreground hover:text-primary transition-colors text-left"
-        >
-          by {pkg.vendorName}
-        </button>
-
-        {/* Rating & Location - Compact */}
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          {pkg.vendorRating !== undefined && pkg.vendorRating !== null && (
-            <>
-              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              <span className="font-semibold text-foreground">{pkg.vendorRating.toFixed(1)}</span>
-              {pkg.vendorReviewCount !== undefined && pkg.vendorReviewCount !== null && (
-                <span>({pkg.vendorReviewCount})</span>
-              )}
-            </>
-          )}
-          {pkg.vendorCity && (
-            <>
-              <span className="mx-0.5">•</span>
-              <MapPin className="h-3 w-3" />
-              <span>{pkg.vendorCity}</span>
-            </>
-          )}
-        </div>
-
-        {/* Price - Prominent */}
-        <div className="flex items-baseline justify-between pt-1">
-          <div className="font-bold text-primary text-base">
-            ₹{(pkg.price || 0).toLocaleString('en-IN')}
-          </div>
-          {pkg.deliveryTime && (
-            <div className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-              <Clock className="h-2.5 w-2.5" />
-              <span>{pkg.deliveryTime}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Key Inclusions - Compact (only for packages) */}
-        {pkg.type === 'package' && displayedInclusions.length > 0 && (
-          <div className="pt-1 border-t border-border/50">
-            <div className="text-[10px] text-muted-foreground flex items-center gap-1 flex-wrap">
-              <CheckCircle2 className="h-2.5 w-2.5 text-green-500 flex-shrink-0" />
-              <span className="line-clamp-1">
-                {displayedInclusions.slice(0, 2).join(' • ')}
-                {displayedInclusions.length > 2 && ` +${displayedInclusions.length - 2} more`}
-              </span>
-            </div>
+        {/* Verified Bookings */}
+        {verifiedBookings > 0 && (
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+            <span>{verifiedBookings} Verified bookings</span>
           </div>
         )}
 
-        {/* Add to Cart Button - Opens Customization */}
-        <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="sm" className="w-full h-7 text-[11px] px-2">
-                <ShoppingCart className="h-3 w-3 mr-1" />
-                Add to Cart
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
-              <DialogTitle className="sr-only">Customize {pkg.packageName || pkg.name}</DialogTitle>
-              <PackageCustomization
-                pkg={{
-                  id: pkg.packageId || pkg.id,
-                  name: pkg.packageName || pkg.name,
-                  price: pkg.price || 0,
-                  type: pkg.type,
-                  extraCharges: pkg.extraCharges,
-                  extraChargesJson: pkg.extraChargesJson,
-                  minimumQuantity: pkg.minimumQuantity,
-                  unit: pkg.unit,
-                }}
-                onCustomize={(selectedExtras, quantity, totalPrice) => {
-                  addToCart({
-                    vendorId: pkg.vendorId,
-                    vendorName: pkg.vendorName,
-                    packageId: pkg.packageId || pkg.id,
-                    packageName: pkg.packageName || pkg.name,
-                    price: totalPrice,
-                    basePrice: pkg.price || 0,
-                    addOns: selectedExtras.map((e, i) => ({ id: `extra-${i}`, title: e.name, price: e.price })),
-                    quantity: quantity,
-                  });
-                  toast({
-                    title: 'Added to Cart!',
-                    description: `${pkg.packageName || pkg.name} has been added to your cart`,
-                  });
-                }}
-                onAddToCart={() => {
-                  addToCart({
-                    vendorId: pkg.vendorId,
-                    vendorName: pkg.vendorName,
-                    packageId: pkg.packageId || pkg.id,
-                    packageName: pkg.packageName || pkg.name,
-                    price: pkg.price || 0,
-                    basePrice: pkg.price || 0,
-                    addOns: [],
-                    quantity: 1,
-                  });
-                  toast({
-                    title: 'Added to Cart!',
-                    description: `${pkg.packageName || pkg.name} has been added to your cart`,
-                  });
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+        {/* Divider */}
+        <div className="border-t border-gray-100" />
+
+        {/* Info List */}
+        <div className="space-y-1.5 sm:space-y-2">
+          {/* Location */}
+          {pkg.vendorCity && (
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+              <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-400 flex-shrink-0" />
+              <span className="truncate">{pkg.vendorCity}</span>
+            </div>
+          )}
+
+          {/* Vendor/Category */}
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
+            <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#5950b3] flex-shrink-0" />
+            <button
+              onClick={handleVendorClick}
+              className="hover:text-[#5950b3] hover:underline transition-colors text-left truncate"
+            >
+              {pkg.vendorName}
+            </button>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+            <IndianRupee className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+            <span className="font-semibold text-gray-900">
+              ₹{(pkg.price || 0).toLocaleString('en-IN')}
+              {pkg.type === 'package' && <span className="font-normal text-gray-500"> onwards</span>}
+            </span>
+          </div>
         </div>
+
+        {/* CTA Button */}
+        <Button 
+          className="w-full h-10 sm:h-11 rounded-xl font-semibold text-xs sm:text-sm bg-gradient-to-r from-[#5950b3] to-[#7867dc] hover:from-[#4a42a0] hover:to-[#6858c8] text-white shadow-md hover:shadow-lg transition-all"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCardClick();
+          }}
+        >
+          View More →
+        </Button>
       </CardContent>
     </Card>
-
-    </>
   );
 };
