@@ -2,6 +2,8 @@
 
 A comprehensive event planning platform connecting customers with vendors for weddings, corporate events, and more. Visit [cartevent.com](https://www.cartevent.com)
 
+<!-- SEO and indexing setup complete -->
+
 ## 📁 Project Structure
 
 ```
