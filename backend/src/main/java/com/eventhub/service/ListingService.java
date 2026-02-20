@@ -85,6 +85,7 @@ public class ListingService {
         dto.setId(listing.getId());
         dto.setVendorId(listing.getVendor().getId());
         dto.setVendorName(listing.getVendor().getBusinessName());
+        dto.setVendorProfileImage(listing.getVendor().getProfileImage());
         dto.setType(listing.getType().name().toLowerCase());
         dto.setName(listing.getName());
         dto.setDescription(listing.getDescription());

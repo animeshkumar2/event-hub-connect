@@ -25,6 +25,7 @@ public class ListingMapper {
             dto.setVendorId(vendor.getId());
             dto.setVendorName(vendor.getBusinessName());
             dto.setVendorCity(vendor.getCity() != null ? vendor.getCity().getName() : vendor.getCityName());
+            dto.setVendorProfileImage(vendor.getProfileImage());
             // Use vendor's stored rating and review count (updated by review service)
             dto.setVendorRating(vendor.getRating() != null ? vendor.getRating().doubleValue() : null);
             dto.setVendorReviewCount(vendor.getReviewCount() != null ? vendor.getReviewCount() : 0);
