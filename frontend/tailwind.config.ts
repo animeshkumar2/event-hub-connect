@@ -24,6 +24,12 @@ export default {
         body: ["Inter", "sans-serif"],
       },
       colors: {
+        brand: {
+          DEFAULT: "#5950b3",
+          light: "#7867dc",
+          dark: "#2d2660",
+          mid: "#3d3578",
+        },
         vendor: {
           dark: "hsl(var(--vendor-dark))",
           sidebar: "hsl(var(--vendor-sidebar))",
