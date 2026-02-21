@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/components/ui/button';
@@ -8,6 +9,8 @@ import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Label } from '@/shared/components/ui/label';
 import { Checkbox } from '@/shared/components/ui/checkbox';
+import { ListingGuide } from '@/features/vendor/components/VendorTour';
+
 import { Separator } from '@/shared/components/ui/separator';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { ImageUpload, PendingImageChanges } from '@/shared/components/ImageUpload';
@@ -17,7 +20,7 @@ import {
   Star, MapPin, Clock, CheckCircle2, XCircle, ArrowLeft, User, Users, Package,
   AlertCircle, IndianRupee, Loader2, Save, X, Plus, Pencil, Eye,
   ShoppingCart, CalendarIcon, Lock, Camera, Trash2, Sparkles,
-  ChevronDown, ChevronUp, Gift, FileText, Calendar, PartyPopper, Zap
+  ChevronDown, ChevronUp, Gift, FileText, Calendar, PartyPopper, Zap, ArrowRight, Rocket
 } from 'lucide-react';
 import { useVendorListingDetails, useEventTypes } from '@/shared/hooks/useApi';
 import { publicApi, vendorApi } from '@/shared/services/api';
@@ -90,6 +93,7 @@ export default function ListingPreview() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showPublishCelebration, setShowPublishCelebration] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [categorySpecificData, setCategorySpecificData] = useState<Record<string, any>>({});
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -114,6 +118,14 @@ export default function ListingPreview() {
     includedExcluded: false,
     additionalNotes: false,
   });
+  const expandAllDetailSections = useCallback(() => {
+    setExpandedSections({
+      serviceDetails: true,
+      eventTypes: true,
+      includedExcluded: true,
+      additionalNotes: true,
+    });
+  }, []);
   
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -261,6 +273,24 @@ export default function ListingPreview() {
     }
   }, [searchParams, listing, isEditMode, enterEditMode, setSearchParams]);
 
+  useEffect(() => {
+    const handleEnterEditMode = () => {
+      if (!isEditMode) enterEditMode();
+    };
+    const handleExpandAllDetails = () => {
+      if (!isEditMode) enterEditMode();
+      expandAllDetailSections();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('listing-guide:enter-edit-mode', handleEnterEditMode);
+    window.addEventListener('listing-guide:expand-all-details', handleExpandAllDetails);
+    return () => {
+      window.removeEventListener('listing-guide:enter-edit-mode', handleEnterEditMode);
+      window.removeEventListener('listing-guide:expand-all-details', handleExpandAllDetails);
+    };
+  }, [isEditMode, enterEditMode, expandAllDetailSections]);
+
   const cancelEditMode = useCallback(() => {
     setIsEditMode(false); setEditForm(null); setCategorySpecificData({});
     setDraftHighlight(''); setShowHighlightInput(false); setEditingHighlightIndex(null);
@@ -372,6 +402,17 @@ export default function ListingPreview() {
     // For template-based drafts, ONLY require name to be changed (other requirements are for publish only)
     if (listing.isDraft && originalTemplate && editForm.name === originalTemplate.name) {
       toast.error('Rename your service before saving');
+      return;
+    }
+    
+    // For venue category, require venue location even for drafts
+    if (listing.categoryId === 'venue' && !editForm.venueLatitude && !editForm.venueAddress) {
+      toast.error('Please set the venue location before saving');
+      setExpandedSections(prev => ({ ...prev, serviceDetails: true }));
+      setTimeout(() => {
+        const venueField = document.querySelector('[data-listing-guide="preview-more-details"]');
+        if (venueField) venueField.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
       return;
     }
     
@@ -505,6 +546,13 @@ export default function ListingPreview() {
         // Show success toast
         toast.success(listing.isDraft ? 'Draft saved!' : 'Listing updated!');
         
+        // Advance listing guide from save-draft → publish
+        const guidePhase = localStorage.getItem('vendor_listing_guide_phase');
+        if (guidePhase === 'save-draft') {
+          localStorage.setItem('vendor_listing_guide_phase', 'publish');
+          window.dispatchEvent(new CustomEvent('listing-guide:advance-to-publish'));
+        }
+        
         // Refetch queries to ensure fresh data everywhere
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
         queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
@@ -609,13 +657,12 @@ export default function ListingPreview() {
       
       const response = await vendorApi.updateListing(listing.id, payload);
       if (response.success) {
-        toast.success('Listing published successfully!');
+        localStorage.setItem('vendor_listing_guide_seen', 'true');
+        localStorage.removeItem('vendor_listing_guide_phase');
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
+        setShowPublishCelebration(true);
         queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
         queryClient.invalidateQueries({ queryKey: ['myVendorListings'] });
-        // Force immediate refetch before navigation
-        await queryClient.refetchQueries({ queryKey: ['myVendorListings'] });
-        navigate('/vendor/listings');
       } else {
         toast.error(response.message || 'Failed to publish');
       }
@@ -698,7 +745,7 @@ export default function ListingPreview() {
                   </Button>
                   {listing.isDraft ? (
                     // Draft: Always allow saving
-                    <Button size="sm" onClick={saveChanges} disabled={isSaving} className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white">
+                    <Button size="sm" onClick={saveChanges} disabled={isSaving} data-listing-guide="preview-save-draft" className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white">
                       {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
                       Save Draft
                     </Button>
@@ -747,6 +794,7 @@ export default function ListingPreview() {
                         size="sm" 
                         onClick={publishListing} 
                         disabled={isPublishing || !canPublish} 
+                        data-listing-guide="preview-publish"
                         className={cn(
                           "h-7 text-xs",
                           canPublish 
@@ -901,7 +949,7 @@ export default function ListingPreview() {
 
             {/* Images */}
             {isEditMode ? (
-              <Card><CardContent className="p-4">
+              <Card data-listing-guide="preview-photos"><CardContent className="p-4">
                 <Label className="text-xs font-medium mb-2 block">Photos <span className="text-red-500">*</span></Label>
                 <ImageUpload 
                   images={editForm?.images || []} 
@@ -950,10 +998,15 @@ export default function ListingPreview() {
 
             {/* Header */}
             {isEditMode ? (
-              <Card><CardContent className="p-4 space-y-3">
+              <Card data-listing-guide="preview-name"><CardContent className="p-4 space-y-3">
                 <div>
                   <Label className="text-xs">Name <span className="text-red-500">*</span></Label>
-                  <Input value={editForm?.name || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, name: e.target.value }))} className="h-9 text-sm mt-1" />
+                  <Input
+                    value={editForm?.name || ''}
+                    onChange={(e) => setEditForm((p: any) => ({ ...p, name: e.target.value }))}
+                    className="h-9 text-sm mt-1"
+                    data-template-original-name={originalTemplate?.name || ''}
+                  />
                   {(!editForm?.name || !editForm.name.trim()) && (
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
@@ -1073,7 +1126,7 @@ export default function ListingPreview() {
             {/* 2. CATEGORY DETAILS - NOT collapsible (always visible) */}
             {(isEditMode || listing.categorySpecificData || (listing.isDraft && listing.categoryId && listing.categoryId !== 'other')) && (
               isEditMode ? (
-                <Card className="overflow-hidden border-0 shadow-md bg-white">
+                <Card className="overflow-hidden border-0 shadow-md bg-white" data-listing-guide="preview-pricing">
                   <div className="bg-gradient-to-r from-primary via-violet-600 to-purple-600 px-4 py-3 relative overflow-hidden">
                     <div className="relative flex items-center gap-2">
                       <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
@@ -1176,9 +1229,10 @@ export default function ListingPreview() {
               </Card>
             )}
 
+            <div data-listing-guide="preview-all-details" className="space-y-3">
             {/* 3. SERVICE DETAILS - Collapsible (collapsed by default) */}
             {(isEditMode || listing.deliveryTime || listing.serviceMode) && (
-              <Card className="overflow-hidden border-0 shadow-md bg-white">
+              <Card className="overflow-hidden border-0 shadow-md bg-white" data-listing-guide="preview-more-details">
                 {/* Collapsible Header */}
                 <button
                   type="button"
@@ -1356,10 +1410,10 @@ export default function ListingPreview() {
                                   </p>
                                 </div>
                               )}
-                              {!editForm?.venueLatitude && (
-                                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                              {!editForm?.venueLatitude && !editForm?.venueAddress && (
+                                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1" data-listing-guide="venue-location-missing">
                                   <AlertCircle className="h-3 w-3" />
-                                  Venue location is required for publishing
+                                  Venue location is required
                                 </p>
                               )}
                             </div>
@@ -1956,6 +2010,7 @@ export default function ListingPreview() {
                 </div>
               </Card>
             )}
+            </div>
           </div>
 
           {/* Right - Booking Widget - Enhanced */}
@@ -2077,6 +2132,100 @@ export default function ListingPreview() {
         itemName={listing.name}
         isDeleting={isDeleting}
       />
+      {/* Listing guide — continues from VendorListings flow */}
+      <ListingGuide />
+
+      {showPublishCelebration && createPortal(
+        <>
+          <style>{`
+@keyframes pub-confetti { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(-80px) rotate(360deg); opacity: 0; } }
+@keyframes pub-pop { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } 60% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+@keyframes pub-float-1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8px,-10px); } }
+@keyframes pub-float-2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-6px,8px); } }
+@keyframes pub-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+          `}</style>
+          <div className="fixed inset-0 z-[10001] bg-black/50 backdrop-blur-[3px]" />
+          <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 pointer-events-none">
+            <div className={cn(
+              "bg-white dark:bg-card border border-border/40 rounded-2xl shadow-2xl max-w-[420px] w-full overflow-hidden pointer-events-auto",
+              "animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-400"
+            )}>
+              <div className="relative bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 px-6 pt-8 pb-10 overflow-hidden text-center">
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute top-6 right-8 w-16 h-16 rounded-full bg-white/[0.06]" style={{ animation: 'pub-float-1 4s ease-in-out infinite' }} />
+                  <div className="absolute bottom-4 left-6 w-10 h-10 rounded-full bg-white/[0.08]" style={{ animation: 'pub-float-2 5s ease-in-out infinite' }} />
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full"
+                      style={{
+                        width: 4 + (i % 3) * 2,
+                        height: 4 + (i % 3) * 2,
+                        left: `${15 + i * 13}%`,
+                        top: '50%',
+                        background: ['#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#34d399', '#fb923c'][i],
+                        animation: `pub-confetti ${0.8 + i * 0.15}s ease-out both ${0.5 + i * 0.1}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <div className="relative">
+                  <div
+                    className="inline-flex items-center justify-center w-18 h-18 rounded-2xl bg-white/20 backdrop-blur-sm mb-4 mx-auto"
+                    style={{ width: 72, height: 72, animation: 'pub-pop 0.6s ease-out both 0.3s' }}
+                  >
+                    <Rocket className="h-9 w-9 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">
+                    You're live!
+                  </h2>
+                  <p className="text-sm text-white/80 mt-2 leading-relaxed max-w-[300px] mx-auto">
+                    Your listing is now visible to customers and ready for bookings
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-6 py-5 space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">{listing?.name || 'Your listing'}</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">Published and active</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: 'Share profile', desc: 'Get discovered' },
+                    { label: 'Add more listings', desc: 'Grow your catalog' },
+                    { label: 'Check leads', desc: 'Stay on top' },
+                  ].map((item, i) => (
+                    <div key={i} className="p-2.5 rounded-xl bg-muted/40 border border-border/30">
+                      <p className="text-[11px] font-medium text-foreground">{item.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={() => {
+                    setShowPublishCelebration(false);
+                    navigate('/vendor/listings');
+                  }}
+                  className="w-full h-11 bg-[#5950b3] hover:bg-[#4a42a0] active:scale-[0.98] text-white font-semibold rounded-xl shadow-md shadow-[#5950b3]/20 transition-all duration-150"
+                >
+                  Go to My Listings
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }

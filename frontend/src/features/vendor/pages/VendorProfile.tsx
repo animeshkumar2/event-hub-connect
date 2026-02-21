@@ -27,6 +27,8 @@ import { categories, cities, vendorProfessions } from '@/shared/constants/mockDa
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { uploadImage, validateImageFile, deleteImage, deleteImages } from '@/shared/utils/storage';
 import { getVendorPermissionInfo, getAllowedCategoryNames } from '@/shared/constants/vendorCategoryPermissions';
+import { OnboardingGuide } from '@/features/vendor/components/VendorTour/OnboardingGuide';
+import { ProfileGuide } from '@/features/vendor/components/VendorTour/ProfileGuide';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -209,10 +211,15 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
       const response = await vendorApi.onboard(payload);
       if (response.success && response.data) {
         localStorage.setItem('vendor_id', response.data.id);
+        localStorage.setItem('vendor_category_id', category);
+        // Trigger the unified profile + sidebar guide
+        localStorage.setItem('vendor_profile_guide_trigger', 'true');
         await refreshVendorInfo();
         if (user?.role !== 'VENDOR') updateUser({ role: 'VENDOR' });
         toast.success('Profile created! Now add photos and complete your profile.');
         onComplete();
+        // Dispatch event as backup in case reload is delayed
+        setTimeout(() => window.dispatchEvent(new CustomEvent('profile-guide-trigger')), 1500);
       } else {
         throw new Error(response.message || 'Failed to create profile');
       }
@@ -271,7 +278,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
 
         <div className="p-6 sm:p-8 space-y-6">
           {/* Step 1: Business Name */}
-          <div className="space-y-3">
+          <div className="space-y-3" data-onboarding="onboarding-step-1">
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
                 businessName.trim() 
@@ -295,7 +302,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
 
           {/* Step 2 & 3: City & Category */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-3">
+            <div className="space-y-3" data-onboarding="onboarding-step-2">
               <div className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
                   city 
@@ -316,7 +323,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
               </Select>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3" data-onboarding="onboarding-step-3">
               <div className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
                   category 
@@ -393,7 +400,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
 
           {/* Step 4: Service Location - Hidden for Artists */}
           {!isArtistCategory && (
-            <div className="space-y-4 pt-2">
+            <div className="space-y-4 pt-2" data-onboarding="onboarding-step-4">
               <div className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
                   serviceLocation 
@@ -543,6 +550,9 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
           </div>
         </div>
       </div>
+
+      {/* Onboarding Guide Tooltips */}
+      <OnboardingGuide />
     </div>
   );
 }
@@ -575,6 +585,15 @@ export default function VendorProfile() {
   const [serviceRadiusKm, setServiceRadiusKm] = useState(25);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
+  
+  // Inline editing states for Overview tab
+  const [isEditingBioInline, setIsEditingBioInline] = useState(false);
+  const [inlineBio, setInlineBio] = useState('');
+  const [isSavingBioInline, setIsSavingBioInline] = useState(false);
+  const [isAddingImagesInline, setIsAddingImagesInline] = useState(false);
+  const [inlinePendingFiles, setInlinePendingFiles] = useState<File[]>([]);
+  const [isSavingImagesInline, setIsSavingImagesInline] = useState(false);
+  const inlinePortfolioInputRef = useRef<HTMLInputElement>(null);
   
   // Track original values to detect changes (dirty state)
   const [originalFormData, setOriginalFormData] = useState<typeof formData | null>(null);
@@ -922,6 +941,82 @@ export default function VendorProfile() {
     e.target.value = '';
   };
 
+  // Inline bio save from Overview tab
+  const handleSaveBioInline = async () => {
+    setIsSavingBioInline(true);
+    try {
+      const response = await vendorApi.updateProfile({
+        businessName: formData.businessName,
+        bio: inlineBio.trim(),
+        coverImage: formData.coverImage,
+        profileImage: formData.profileImage,
+        portfolioImages: portfolioImages,
+      });
+      if (response.success) {
+        setFormData(prev => ({ ...prev, bio: inlineBio.trim() }));
+        if (originalFormData) setOriginalFormData({ ...originalFormData, bio: inlineBio.trim() });
+        setIsEditingBioInline(false);
+        toast.success('Bio updated!');
+        refetch();
+      } else throw new Error(response.message || 'Failed to update bio');
+    } catch (error: any) { toast.error(error.message || 'Failed to update bio'); }
+    finally { setIsSavingBioInline(false); }
+  };
+
+  // Inline portfolio image upload from Overview tab
+  const handleInlinePortfolioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      // User cancelled the file picker — reset adding mode if no pending files
+      if (inlinePendingFiles.length === 0) setIsAddingImagesInline(false);
+      return;
+    }
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { toast.error(`${file.name}: Invalid file type`); continue; }
+      const validation = validateImageFile(file);
+      if (!validation.valid) { toast.error(`${file.name}: ${validation.error}`); continue; }
+      validFiles.push(file);
+    }
+    if (validFiles.length > 0) {
+      setInlinePendingFiles(prev => [...prev, ...validFiles]);
+      setIsAddingImagesInline(true);
+    }
+    e.target.value = '';
+  };
+
+  const handleSaveImagesInline = async () => {
+    if (inlinePendingFiles.length === 0) return;
+    setIsSavingImagesInline(true);
+    try {
+      const vid = localStorage.getItem('vendor_id') || 'new';
+      const folder = `vendors/${vid}/portfolio`;
+      const newUrls: string[] = [];
+      for (const file of inlinePendingFiles) {
+        try {
+          const imageUrl = await uploadImage(file, folder);
+          newUrls.push(imageUrl);
+        } catch (err) { console.error(`Failed to upload ${file.name}:`, err); toast.error(`Failed to upload ${file.name}`); }
+      }
+      const finalImages = [...portfolioImages, ...newUrls];
+      const response = await vendorApi.updateProfile({
+        businessName: formData.businessName, bio: formData.bio,
+        coverImage: formData.coverImage, profileImage: formData.profileImage,
+        portfolioImages: finalImages,
+      });
+      if (response.success) {
+        setPortfolioImages(finalImages);
+        setOriginalPortfolioImages(finalImages);
+        setInlinePendingFiles([]);
+        setIsAddingImagesInline(false);
+        toast.success('Portfolio updated!');
+        refetch();
+      } else throw new Error(response.message || 'Failed to update portfolio');
+    } catch (error: any) { toast.error(error.message || 'Failed to update portfolio'); }
+    finally { setIsSavingImagesInline(false); }
+  };
+
   const vendorId = localStorage.getItem('vendor_id');
   const isNewVendor = !vendorId;
 
@@ -994,7 +1089,7 @@ export default function VendorProfile() {
                   </div>
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
               
               {/* Cover Image Button - Always Visible */}
               <div className="absolute top-4 right-4 flex gap-2">
@@ -1004,7 +1099,7 @@ export default function VendorProfile() {
                     <span className="ml-2 hidden sm:inline">View</span>
                   </Button>
                 )}
-                <Button size="sm" className="bg-black/70 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm border-0" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover}>
+                <Button size="sm" className="bg-black/70 hover:bg-black/90 text-white shadow-lg backdrop-blur-sm border-0" onClick={() => coverInputRef.current?.click()} disabled={isUploadingCover} data-profile-guide="profile-cover">
                   {isUploadingCover ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   <span className="ml-2">{formData.coverImage ? 'Change Cover' : 'Add Cover'}</span>
                 </Button>
@@ -1015,18 +1110,18 @@ export default function VendorProfile() {
             <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 -mt-16 sm:-mt-20 relative z-10">
               <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl border border-primary/20 bg-gradient-to-br from-white via-primary/[0.03] to-violet-500/[0.08] dark:from-card dark:via-primary/[0.05] dark:to-violet-500/[0.1]">
                 {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-primary/10 to-violet-500/10 rounded-full blur-3xl -mr-36 -mt-36" />
-                <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-violet-500/10 to-primary/5 rounded-full blur-3xl -ml-28 -mb-28" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/[0.02] rounded-full blur-3xl" />
+                <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-primary/10 to-violet-500/10 rounded-full blur-3xl -mr-36 -mt-36 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-tr from-violet-500/10 to-primary/5 rounded-full blur-3xl -ml-28 -mb-28 pointer-events-none" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/[0.02] rounded-full blur-3xl pointer-events-none" />
                 
-                <div className="relative p-4 sm:p-5 lg:p-6 xl:p-8">
+                <div className="relative p-4 sm:p-5 lg:p-6 xl:p-8" style={{ zIndex: 1 }}>
                   {/* Mobile/Tablet: Stacked layout, Large Desktop: Side by side */}
                   <div className="flex flex-col xl:flex-row gap-4 xl:gap-6">
                     
                     {/* Left Section: Profile Info */}
                     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-5 xl:flex-1">
                       {/* Profile Picture with Upload - Using ProfileImageUpload component */}
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0" data-profile-guide="profile-photo">
                         <ProfileImageUpload
                           type="profile"
                           size="2xl"
@@ -1116,10 +1211,10 @@ export default function VendorProfile() {
                                   key={i} 
                                   onClick={() => {
                                     if (check.name.includes('Photo') || check.name.includes('Cover')) setActiveSection('edit');
-                                    else if (check.name.includes('Portfolio')) setActiveSection('gallery');
+                                    else if (check.name.includes('Portfolio')) { setIsAddingImagesInline(true); setTimeout(() => inlinePortfolioInputRef.current?.click(), 100); }
                                     else if (check.name.includes('Location')) setActiveSection('location');
                                     else if (check.name.includes('Contact')) setActiveSection('contact');
-                                    else if (check.name.includes('Bio')) setActiveSection('edit');
+                                    else if (check.name.includes('Bio')) { setInlineBio(formData.bio || ''); setIsEditingBioInline(true); }
                                     else setActiveSection('edit');
                                   }}
                                   className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-muted/40 border border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-xs group"
@@ -1222,47 +1317,128 @@ export default function VendorProfile() {
             <div className="grid xl:grid-cols-3 gap-4 sm:gap-6">
               <div className="xl:col-span-2 space-y-4 sm:space-y-6">
                 {/* About */}
-                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg" data-profile-guide="profile-about">
                   <CardContent className="p-4 sm:p-5">
                     <h3 className="text-sm sm:text-base font-semibold mb-2 sm:mb-3 flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary" /> About
                     </h3>
-                    {formData.bio ? (
-                      <p className="text-sm text-muted-foreground leading-relaxed">{formData.bio}</p>
+                    {formData.bio && !isEditingBioInline ? (
+                      <div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{formData.bio}</p>
+                        <Button variant="ghost" size="sm" className="mt-2 h-7 text-xs text-primary" onClick={() => { setInlineBio(formData.bio); setIsEditingBioInline(true); }}>
+                          <Edit3 className="h-3 w-3 mr-1" /> Edit
+                        </Button>
+                      </div>
+                    ) : isEditingBioInline ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={inlineBio}
+                          onChange={(e) => setInlineBio(e.target.value)}
+                          placeholder="Tell customers about your business, experience, and what makes you special..."
+                          className="min-h-[120px] resize-none"
+                          maxLength={500}
+                          autoFocus
+                        />
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">{inlineBio.length}/500 characters {inlineBio.length < 50 && <span className="text-amber-500">(min 50 recommended)</span>}</p>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setIsEditingBioInline(false)}>Cancel</Button>
+                            <Button size="sm" className="h-8 text-xs bg-gradient-to-r from-primary to-primary-glow" onClick={handleSaveBioInline} disabled={isSavingBioInline || !inlineBio.trim()}>
+                              {isSavingBioInline ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className="text-center py-6 sm:py-8 bg-muted/30 rounded-xl">
                         <Edit3 className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mx-auto mb-2" />
                         <p className="text-sm text-muted-foreground mb-3">Add a bio to tell customers about your business</p>
-                        <Button variant="outline" size="sm" onClick={() => setActiveSection('edit')}>Add Bio</Button>
+                        <Button variant="outline" size="sm" onClick={() => { setInlineBio(''); setIsEditingBioInline(true); }}>Add Bio</Button>
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Portfolio Preview */}
-                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg">
+                <Card className="overflow-hidden border-0 shadow-md sm:shadow-lg" data-profile-guide="profile-gallery">
                   <CardContent className="p-4 sm:p-5">
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <h3 className="text-sm sm:text-base font-semibold flex items-center gap-2">
                         <ImagePlus className="h-4 w-4 text-primary" /> Portfolio ({portfolioImages.length})
                       </h3>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 text-xs sm:text-sm" onClick={() => setActiveSection('gallery')}>
-                        View All <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                      </Button>
+                      {portfolioImages.length > 0 && (
+                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs sm:text-sm" onClick={() => setActiveSection('gallery')}>
+                          View All <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      )}
                     </div>
-                    {portfolioImages.length > 0 ? (
-                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                        {portfolioImages.slice(0, 6).map((img, i) => (
-                          <div key={i} className="aspect-square rounded-lg sm:rounded-xl overflow-hidden group cursor-pointer" onClick={() => setActiveSection('gallery')}>
-                            <img src={img} alt={`Work ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    
+                    {/* Hidden file input for inline portfolio upload */}
+                    <input type="file" ref={inlinePortfolioInputRef} className="hidden" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={handleInlinePortfolioSelect} />
+                    
+                    {portfolioImages.length > 0 || (isAddingImagesInline && inlinePendingFiles.length > 0) ? (
+                      <div className="space-y-3">
+                        {portfolioImages.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                            {portfolioImages.slice(0, 6).map((img, i) => (
+                              <div key={i} className="aspect-square rounded-lg sm:rounded-xl overflow-hidden group cursor-pointer" onClick={() => setActiveSection('gallery')}>
+                                <img src={img} alt={`Work ${i + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                        
+                        {/* Inline pending images */}
+                        {isAddingImagesInline && inlinePendingFiles.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 p-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg">
+                              <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+                              <p className="text-xs text-amber-700 dark:text-amber-400">{inlinePendingFiles.length} image(s) ready to upload</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                              {inlinePendingFiles.map((file, i) => (
+                                <div key={`pending-${i}`} className="aspect-square rounded-lg sm:rounded-xl overflow-hidden relative border-2 border-dashed border-amber-400 group">
+                                  <img src={URL.createObjectURL(file)} alt={`Pending ${i + 1}`} className="w-full h-full object-cover" />
+                                  <div className="absolute top-1 left-1">
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-medium">New</span>
+                                  </div>
+                                  <button
+                                    onClick={() => setInlinePendingFiles(prev => prev.filter((_, idx) => idx !== i))}
+                                    className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => inlinePortfolioInputRef.current?.click()}>
+                                <Plus className="h-3.5 w-3.5 mr-1" /> Add More
+                              </Button>
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setInlinePendingFiles([]); setIsAddingImagesInline(false); }}>Cancel</Button>
+                                <Button size="sm" className="h-8 text-xs bg-gradient-to-r from-primary to-primary-glow" onClick={handleSaveImagesInline} disabled={isSavingImagesInline}>
+                                  {isSavingImagesInline ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                                  Save
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Add images button — shown when not actively staging files */}
+                        {(!isAddingImagesInline || inlinePendingFiles.length === 0) && (
+                          <Button variant="outline" size="sm" className="w-full h-9 text-xs" onClick={() => { setIsAddingImagesInline(true); setTimeout(() => inlinePortfolioInputRef.current?.click(), 100); }}>
+                            <ImagePlus className="h-3.5 w-3.5 mr-1.5" /> Add More Images
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center py-6 sm:py-8 bg-muted/30 rounded-xl">
                         <ImagePlus className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground mx-auto mb-2" />
                         <p className="text-sm text-muted-foreground mb-3">Showcase your work with portfolio images</p>
-                        <Button variant="outline" size="sm" onClick={() => setActiveSection('gallery')}>Add Images</Button>
+                        <Button variant="outline" size="sm" onClick={() => { setIsAddingImagesInline(true); setTimeout(() => inlinePortfolioInputRef.current?.click(), 100); }}>Add Images</Button>
                       </div>
                     )}
                   </CardContent>
@@ -1790,6 +1966,9 @@ export default function VendorProfile() {
           }}
         />
       )}
+
+      {/* Profile Guide - triggers after onboarding form completion */}
+      {profileData && <ProfileGuide />}
     </VendorLayout>
   );
 }

@@ -1375,6 +1375,7 @@ export default function VendorListings() {
             {/* Single Service Card */}
             <button 
               onClick={() => handleCreateListing('ITEM')}
+              data-listing-guide="listing-add-service"
               className="group relative p-4 rounded-xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-card hover:shadow-lg transition-all text-left"
             >
               <div className="flex items-start gap-3">
@@ -1400,6 +1401,7 @@ export default function VendorListings() {
             <button 
               onClick={() => items.length >= 2 ? handleCreateListing('PACKAGE') : toast.info('Create at least 2 services first to bundle them into a package')}
               disabled={items.length < 2}
+              data-listing-guide="listing-package-deal"
               className={`group relative p-4 rounded-xl border-2 border-dashed transition-all text-left ${items.length >= 2 ? 'border-primary/40 hover:border-primary bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-card hover:shadow-lg' : 'border-muted bg-muted/30 opacity-60 cursor-not-allowed'}`}
             >
               <div className="flex items-start gap-3">
@@ -1449,7 +1451,7 @@ export default function VendorListings() {
             else setShowCreateModal(open);
           }}>
             <DialogContent 
-              className="bg-card border-border max-w-3xl w-[calc(100%-2rem)] mx-auto max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl p-6"
+              className="bg-card border-border sm:max-w-3xl !max-h-[92dvh] sm:!max-h-[90vh] overflow-y-auto overflow-x-hidden !p-3 sm:!p-6"
               onPointerDownOutside={(e) => {
                 // Prevent dialog from closing when clicking on portaled dropdowns (like LocationAutocomplete)
                 const target = e.target as HTMLElement;

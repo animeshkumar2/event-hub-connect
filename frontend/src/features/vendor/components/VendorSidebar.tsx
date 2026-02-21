@@ -155,11 +155,14 @@ export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) =
           >
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
+              // Generate data-tour attribute from label
+              const tourId = `sidebar-${item.label.toLowerCase()}`;
               return (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   onClick={onClose}
+                  data-tour={tourId}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors',
                     'group relative',

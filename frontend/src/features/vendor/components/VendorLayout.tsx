@@ -5,6 +5,8 @@ import { Button } from '@/shared/components/ui/button';
 import { BrandedLoader } from '@/shared/components/BrandedLoader';
 import { Menu, WifiOff, RefreshCw } from 'lucide-react';
 import { vendorApi } from '@/shared/services/api';
+import { VendorTourProvider, VendorTourOverlay } from './VendorTour';
+import { ListingGuide } from './VendorTour';
 
 interface VendorLayoutProps {
   children: ReactNode;
@@ -159,6 +161,7 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
   }
 
   return (
+    <VendorTourProvider>
     <div className="min-h-screen bg-background">
       <VendorSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -194,6 +197,12 @@ export const VendorLayout = ({ children }: VendorLayoutProps) => {
       <main className="min-h-screen bg-background transition-all duration-300 md:ml-64">
         {children}
       </main>
+
+      {/* Tour overlay */}
+      <VendorTourOverlay />
+      {/* Listing guide — triggered after ProfileGuide completes */}
+      <ListingGuide />
     </div>
+    </VendorTourProvider>
   );
 };

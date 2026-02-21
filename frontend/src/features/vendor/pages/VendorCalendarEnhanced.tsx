@@ -684,7 +684,7 @@ export default function VendorCalendarEnhanced() {
   };
 
   // Loading state - wait for profile check to complete
-  if (profileLoading || !vendorProfile) {
+  if (profileLoading) {
     return (
       <VendorLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
@@ -695,7 +695,7 @@ export default function VendorCalendarEnhanced() {
   }
   
   // Only show profile completion prompt after loading is complete
-  if (!profileLoading && !profileComplete) {
+  if (!profileComplete) {
     return (
       <VendorLayout>
         <CompleteProfilePrompt 
