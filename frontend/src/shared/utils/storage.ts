@@ -41,6 +41,13 @@ export const uploadImage = async (
   const data = await response.json();
 
   if (!response.ok || !data.success) {
+    // Check for file size exceeded error
+    const errorMessage = data.message || data.details || '';
+    if (errorMessage.includes('Maximum upload size exceeded') || 
+        errorMessage.includes('FileSizeLimitExceededException') ||
+        errorMessage.includes('exceeds its maximum permitted size')) {
+      throw new Error('File size too large. Please upload an image smaller than 25MB.');
+    }
     throw new Error(data.message || 'Failed to upload image');
   }
 
@@ -87,6 +94,13 @@ export const uploadMultipleImages = async (
   const data = await response.json();
 
   if (!response.ok) {
+    // Check for file size exceeded error
+    const errorMessage = data.message || data.details || '';
+    if (errorMessage.includes('Maximum upload size exceeded') || 
+        errorMessage.includes('FileSizeLimitExceededException') ||
+        errorMessage.includes('exceeds its maximum permitted size')) {
+      throw new Error('File size too large. Please upload images smaller than 25MB each.');
+    }
     throw new Error(data.message || 'Failed to upload images');
   }
 

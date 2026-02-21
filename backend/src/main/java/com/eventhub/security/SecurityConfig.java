@@ -30,6 +30,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
+                // Static resources - public (favicon, robots, sitemap, etc.)
+                .requestMatchers("/favicon.ico", "/favicon.svg", "/robots.txt", "/sitemap.xml").permitAll()
                 // Allow all OPTIONS requests (CORS preflight) - MUST be first
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // WebSocket endpoints - public (authentication handled at WebSocket level)
