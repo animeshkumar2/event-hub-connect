@@ -85,7 +85,12 @@ export default function VendorOnboarding() {
 
       if (response.success && response.data) {
         localStorage.setItem('vendor_id', response.data.id);
+        localStorage.setItem('vendor_category_id', category);
         localStorage.removeItem('onboarding_skipped');
+        // Trigger the vendor tour on first dashboard visit
+        localStorage.setItem('vendor_tour_trigger', 'true');
+        // Trigger the profile guide when they land on the profile page
+        localStorage.setItem('vendor_profile_guide_trigger', 'true');
         
         await refreshVendorInfo();
 
@@ -97,6 +102,8 @@ export default function VendorOnboarding() {
         
         // Navigate to profile page to complete the rest
         navigate('/vendor/profile');
+        // Dispatch event so ProfileGuide picks up the trigger after navigation
+        setTimeout(() => window.dispatchEvent(new CustomEvent('profile-guide-trigger')), 2000);
       } else {
         throw new Error(response.message || 'Failed to create vendor profile');
       }

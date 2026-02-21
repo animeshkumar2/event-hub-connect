@@ -25,7 +25,9 @@ import {
   MapPin,
   ImagePlus,
   Edit3,
-  Phone
+  Phone,
+  Sparkles,
+  Rocket
 } from 'lucide-react';
 import { Progress } from '@/shared/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
@@ -34,10 +36,12 @@ import { format } from 'date-fns';
 import { useMemo } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useVendorProfile as useVendorProfileCompletion } from '@/shared/hooks/useVendorProfile';
+import { useVendorTour } from '@/features/vendor/components/VendorTour';
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasCompletedTour, startTour } = useVendorTour();
   const { isComplete: profileComplete, isLoading: profileCompletionLoading, completionPercentage, missingFields, canCreateListing } = useVendorProfileCompletion();
   
   // Fetch real data in parallel using optimized hook
@@ -320,6 +324,8 @@ export default function VendorDashboard() {
             </CardContent>
           </Card>
         )}
+
+
 
         {/* Hero Banner */}
         <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-r from-primary/10 via-background to-secondary/10 p-4 sm:p-6 lg:p-8 border border-border shadow-elegant">

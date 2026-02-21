@@ -371,62 +371,65 @@ export function TemplateSelectionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+      <DialogContent className="sm:max-w-lg !p-0 !gap-0 overflow-hidden !max-h-[90dvh] sm:!max-h-[85vh]" aria-describedby={undefined}>
         {/* Visually hidden title for accessibility */}
         <DialogTitle className="sr-only">
           {step === 'choice' ? 'Create New Service' : step === 'category' ? 'Select Category' : `${categoryTemplates?.categoryName || 'Select'} Templates`}
         </DialogTitle>
         
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-2 pb-0">
+          <div className="w-8 h-1 rounded-full bg-muted-foreground/20" />
+        </div>
+
         {/* Step 1: Choice - Template or Scratch */}
         {step === 'choice' && (
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-7 w-7 text-primary" />
+          <div className="p-4 sm:p-6">
+            <div className="text-center mb-4 sm:mb-6">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground">Create New Service</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">Create New Service</h2>
               <p className="text-sm text-muted-foreground mt-1">How would you like to start?</p>
             </div>
 
             <div className="space-y-3">
-              {/* Use Template Option */}
               <button
                 onClick={() => setStep('category')}
-                className="w-full p-4 rounded-xl border-2 border-primary/20 hover:border-primary/50 bg-gradient-to-r from-primary/5 to-violet-500/5 hover:from-primary/10 hover:to-violet-500/10 transition-all group text-left"
+                className="w-full p-3 sm:p-4 rounded-xl border-2 border-primary/20 hover:border-primary/50 bg-gradient-to-r from-primary/5 to-violet-500/5 hover:from-primary/10 hover:to-violet-500/10 transition-all group text-left active:scale-[0.98]"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                    <LayoutTemplate className="h-6 w-6 text-primary" />
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors flex-shrink-0">
+                    <LayoutTemplate className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">Use a Template</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-foreground text-sm sm:text-base">Use a Template</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Recommended</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                       Start with pre-filled details, just add your photos
                     </p>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-primary flex-shrink-0" />
                 </div>
               </button>
 
-              {/* Start from Scratch Option */}
               <button
                 onClick={handleStartBlank}
-                className="w-full p-4 rounded-xl border-2 border-border hover:border-muted-foreground/30 bg-muted/30 hover:bg-muted/50 transition-all group text-left"
+                className="w-full p-3 sm:p-4 rounded-xl border-2 border-border hover:border-muted-foreground/30 bg-muted/30 hover:bg-muted/50 transition-all group text-left active:scale-[0.98]"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-muted group-hover:bg-muted-foreground/10 flex items-center justify-center transition-colors">
-                    <PenLine className="h-6 w-6 text-muted-foreground" />
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted group-hover:bg-muted-foreground/10 flex items-center justify-center transition-colors flex-shrink-0">
+                    <PenLine className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                   </div>
-                  <div className="flex-1">
-                    <span className="font-semibold text-foreground">Start from Scratch</span>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-foreground text-sm sm:text-base">Start from Scratch</span>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                       Create your own unique listing from blank
                     </p>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-foreground flex-shrink-0" />
                 </div>
               </button>
             </div>
@@ -435,14 +438,14 @@ export function TemplateSelectionModal({
 
         {/* Step 2: Category Selection */}
         {step === 'category' && (
-          <div>
+          <div className="flex flex-col max-h-[85vh] max-h-[85dvh]">
             {/* Header with back button */}
-            <div className="p-4 border-b flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+            <div className="p-3 sm:p-4 border-b flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h2 className="font-semibold text-base">Select Category</h2>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-sm sm:text-base">Select Category</h2>
                 <p className="text-xs text-muted-foreground">
                   {vendorPermissionInfo?.isAllAccess 
                     ? 'You have access to all categories' 
@@ -453,11 +456,10 @@ export function TemplateSelectionModal({
             </div>
 
             {/* Category List - Vertical scrollable with visual hint */}
-            <div className="relative">
-              {/* Scroll hint gradient at bottom */}
+            <div className="relative flex-1 min-h-0">
               <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
               
-              <div className="p-4 space-y-2 max-h-[55vh] overflow-y-auto pb-8">
+              <div className="p-3 sm:p-4 space-y-2 overflow-y-auto pb-8 h-full">
                 {/* Available Categories */}
                 {availableCategories.map((category, index) => {
                   const Icon = category.icon;
@@ -466,22 +468,22 @@ export function TemplateSelectionModal({
                     <button
                       key={category.id}
                       onClick={() => handleSelectCategory(category.id)}
-                      className="w-full p-3 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all group text-left flex items-center gap-4"
+                      className="w-full p-2.5 sm:p-3 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all group text-left flex items-center gap-3 active:scale-[0.98] min-h-[48px]"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className={cn(
-                        "w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110",
+                        "w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110",
                         category.color
                       )}>
-                        <Icon className="h-5 w-5 text-white" />
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-sm text-foreground">{category.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {templates?.items.length || 0} ready-to-use templates
+                        <p className="text-[11px] sm:text-xs text-muted-foreground">
+                          {templates?.items.length || 0} templates
                         </p>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
                     </button>
                   );
                 })}
@@ -532,15 +534,15 @@ export function TemplateSelectionModal({
 
         {/* Step 3: Template Selection */}
         {step === 'templates' && categoryTemplates && (
-          <div>
+          <div className="flex flex-col max-h-[85vh] max-h-[85dvh]">
             {/* Header with back button */}
-            <div className="p-4 border-b flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+            <div className="p-3 sm:p-4 border-b flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div className={cn(
-                  "w-9 h-9 rounded-lg flex items-center justify-center",
+                  "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0",
                   TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.color || 'bg-primary'
                 )}>
                   {(() => {
@@ -556,42 +558,41 @@ export function TemplateSelectionModal({
             </div>
 
             {/* Templates List */}
-            <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
+            <div className="p-3 space-y-2 overflow-y-auto flex-1 min-h-0">
               {categoryTemplates.items.map((template, index) => {
                 return (
                   <button
                     key={template.id}
                     onClick={() => handleSelectTemplate(template)}
                     disabled={isCreating !== null}
-                    className="w-full text-left p-4 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all disabled:opacity-50 group"
+                    className="w-full text-left p-3 sm:p-4 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-primary/5 transition-all disabled:opacity-50 group active:scale-[0.98] min-h-[48px]"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-muted group-hover:bg-primary/10 flex items-center justify-center flex-shrink-0 transition-colors">
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-muted group-hover:bg-primary/10 flex items-center justify-center flex-shrink-0 transition-colors">
                         {isCreating === template.id ? (
-                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-primary" />
                         ) : (
-                          <span className="text-lg font-bold text-muted-foreground group-hover:text-primary">{index + 1}</span>
+                          <span className="text-base sm:text-lg font-bold text-muted-foreground group-hover:text-primary">{index + 1}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-sm text-foreground">{template.name}</span>
-                          <span className={`font-bold text-sm flex-shrink-0 ${template.displayPrice === 0 ? 'text-orange-500' : 'text-emerald-600'}`}>
+                        <div className="flex items-start justify-between gap-1.5">
+                          <span className="font-semibold text-sm text-foreground leading-tight">{template.name}</span>
+                          <span className={`font-bold text-xs sm:text-sm flex-shrink-0 ${template.displayPrice === 0 ? 'text-orange-500' : 'text-emerald-600'}`}>
                             {formatPrice(template.displayPrice, template.priceUnit)}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-1 sm:line-clamp-2">
                           {template.shortDescription}
                         </p>
-                        {/* Highlights preview */}
-                        <div className="flex flex-wrap gap-1 mt-2">
+                        <div className="flex flex-wrap gap-1 mt-1.5 sm:mt-2">
                           {template.highlights.slice(0, 3).map((highlight, i) => (
-                            <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            <span key={i} className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                               {highlight}
                             </span>
                           ))}
                           {template.highlights.length > 3 && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                               +{template.highlights.length - 3} more
                             </span>
                           )}
@@ -603,8 +604,7 @@ export function TemplateSelectionModal({
               })}
             </div>
 
-            {/* Footer hint */}
-            <div className="p-3 border-t bg-muted/30">
+            <div className="p-3 border-t bg-muted/30 flex-shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <p className="text-xs text-center text-muted-foreground">
                 <CheckCircle2 className="h-3 w-3 inline mr-1" />
                 Select a template, then choose event types
@@ -615,33 +615,33 @@ export function TemplateSelectionModal({
 
         {/* Step 4: Event Type Selection */}
         {step === 'eventTypes' && selectedTemplate && (
-          <div>
+          <div className="flex flex-col max-h-[85vh] max-h-[85dvh]">
             {/* Header with back button */}
-            <div className="p-4 border-b flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+            <div className="p-3 sm:p-4 border-b flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h2 className="font-semibold text-base">Select Event Types</h2>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-sm sm:text-base">Select Event Types</h2>
                 <p className="text-xs text-muted-foreground">Which events is this service for?</p>
               </div>
             </div>
 
             {/* Selected Template Summary */}
-            <div className="px-4 pt-3 pb-2">
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="px-3 sm:px-4 pt-2 sm:pt-3 pb-1 sm:pb-2">
+              <div className="p-2 sm:p-3 rounded-lg bg-primary/5 border border-primary/20">
                 <div className="flex items-center gap-2">
-                  <LayoutTemplate className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{selectedTemplate.name}</span>
+                  <LayoutTemplate className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-sm font-medium text-foreground truncate">{selectedTemplate.name}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{selectedTemplate.shortDescription}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 line-clamp-1 sm:line-clamp-2">{selectedTemplate.shortDescription}</p>
               </div>
             </div>
 
             {/* Event Types Grid */}
-            <div className="p-4 space-y-3">
+            <div className="p-3 sm:p-4 space-y-3 overflow-y-auto max-h-[calc(85vh-220px)] max-h-[calc(85dvh-220px)]">
               <Label className="text-sm font-medium">Event Types *</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                 {filteredEventTypes.map((et: any) => {
                   const isSelected = selectedEventTypeIds.includes(et.id);
                   const isLastSelected = isSelected && selectedEventTypeIds.length === 1;
@@ -660,7 +660,7 @@ export function TemplateSelectionModal({
                       onClick={() => toggleEventType(et.id)}
                       disabled={isLastSelected}
                       className={cn(
-                        "flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all",
+                        "flex items-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-lg border-2 text-left transition-all min-h-[40px]",
                         isSelected
                           ? "bg-primary/10 border-primary/50 text-foreground"
                           : "bg-background border-border hover:border-primary/30 text-muted-foreground hover:text-foreground",
@@ -668,10 +668,10 @@ export function TemplateSelectionModal({
                       )}
                       title={isLastSelected ? 'At least one event type required' : ''}
                     >
-                      <span className="text-lg">{icon}</span>
-                      <span className="text-sm font-medium">{et.displayName || et.name}</span>
+                      <span className="text-base sm:text-lg flex-shrink-0">{icon}</span>
+                      <span className="text-xs sm:text-sm font-medium truncate">{et.displayName || et.name}</span>
                       {isSelected && (
-                        <CheckCircle2 className="h-4 w-4 text-primary ml-auto" />
+                        <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary ml-auto flex-shrink-0" />
                       )}
                     </button>
                   );
@@ -750,11 +750,11 @@ export function TemplateSelectionModal({
             </div>
 
             {/* Create Button */}
-            <div className="p-4 border-t bg-muted/30">
+            <div className="p-3 sm:p-4 border-t bg-muted/30 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <Button
                 onClick={handleCreateFromTemplate}
                 disabled={isCreating !== null || selectedEventTypeIds.length === 0}
-                className="w-full"
+                className="w-full min-h-[44px]"
               >
                 {isCreating ? (
                   <>

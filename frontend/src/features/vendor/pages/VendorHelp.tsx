@@ -8,15 +8,18 @@ import {
   MessageCircleQuestion,
   Copy,
   Check,
-  Sparkles
+  Sparkles,
+  Rocket
 } from 'lucide-react';
 import { SUPPORT_CONFIG } from '@/shared/config/supportConfig';
 import { toast } from 'sonner';
 import { cn } from '@/shared/lib/utils';
+import { useVendorTour } from '@/features/vendor/components/VendorTour';
 
 export default function VendorHelp() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0); // First one open by default
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const { startTour } = useVendorTour();
 
   const toggleFaq = (index: number) => {
     setExpandedFaq(expandedFaq === index ? null : index);
@@ -136,6 +139,30 @@ export default function VendorHelp() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Replay Tour Card */}
+        <div className="bg-card border rounded-2xl p-5 hover:shadow-lg transition-shadow">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center flex-shrink-0">
+                <Rocket className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Take the Dashboard Tour</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  New here? Replay the guided tour to learn your way around.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={startTour}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary/10 hover:bg-primary/20 rounded-xl text-sm font-semibold text-primary transition-colors"
+            >
+              <Sparkles className="h-4 w-4" />
+              Start Tour
+            </button>
           </div>
         </div>
 

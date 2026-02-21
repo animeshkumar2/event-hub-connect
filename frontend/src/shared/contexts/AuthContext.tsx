@@ -524,6 +524,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       'user_role': null,
       'vendor_id': null,
       'onboarding_skipped': null,
+      'vendor_profile_guide_seen': null,
+      'vendor_profile_guide_trigger': null,
+      'vendor_tour_completed': null,
+      'vendor_listing_guide_seen': null,
+      'vendor_listing_guide_trigger': null,
+      'vendor_listing_guide_phase': null,
+      'vendor_category_id': null,
     });
     
     sessionStorage.removeItem('vendorSignupData');
