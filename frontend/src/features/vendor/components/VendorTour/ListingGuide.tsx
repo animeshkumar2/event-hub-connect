@@ -172,6 +172,14 @@ export const ListingGuide = ({ vendorCategoryId: propCategoryId }: ListingGuideP
     const handler = () => setTimeout(activateFromTrigger, 600);
     window.addEventListener('listing-guide-trigger', handler);
 
+    // Manual restart from "Take a tour" button — skip transition, go straight to step 1
+    const restartHandler = () => {
+      setShowTransition(false);
+      setPhase('click-add');
+      setHintVisible(true);
+    };
+    window.addEventListener('listing-guide-restart', restartHandler);
+
     // Poll localStorage as a fallback — catches triggers from ProfileGuide
     // even if the custom event was missed (e.g. timing issues, React re-renders)
     const pollInterval = setInterval(() => {
@@ -182,6 +190,7 @@ export const ListingGuide = ({ vendorCategoryId: propCategoryId }: ListingGuideP
 
     return () => {
       window.removeEventListener('listing-guide-trigger', handler);
+      window.removeEventListener('listing-guide-restart', restartHandler);
       clearInterval(pollInterval);
     };
   }, [activateFromTrigger]);
@@ -204,6 +213,15 @@ export const ListingGuide = ({ vendorCategoryId: propCategoryId }: ListingGuideP
       if (cancelled) return false;
       // Re-check localStorage in case it changed between effect setup and observer firing
       if (localStorage.getItem(LISTING_GUIDE_KEY) === 'true') return false;
+      // Skip if vendor already has listings (not a first-timer)
+      const countEl = document.querySelector('[data-listing-count]');
+      if (countEl) {
+        const count = parseInt(countEl.getAttribute('data-listing-count') || '0', 10);
+        if (count > 0) {
+          localStorage.setItem(LISTING_GUIDE_KEY, 'true');
+          return false;
+        }
+      }
       const addBtn = document.querySelector('[data-listing-guide="listing-add-service"]');
       if (addBtn) {
         setPhase('click-add');

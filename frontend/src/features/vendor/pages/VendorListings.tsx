@@ -42,7 +42,8 @@ import {
   Building2,
   Sparkle,
   Theater,
-  LucideIcon
+  LucideIcon,
+  HelpCircle
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -1358,13 +1359,25 @@ export default function VendorListings() {
     <VendorLayout>
       <div className="p-4 sm:p-6 space-y-5">
         {/* Header - Compact */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" data-listing-count={completedListings.length + (listingsData || []).filter((l: any) => l.isDraft).length}>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">My Services</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               {completedListings.length} service{completedListings.length !== 1 ? 's' : ''} • {completedListings.filter((l: any) => l.isActive).length} live
             </p>
           </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('vendor_listing_guide_seen');
+              localStorage.removeItem('vendor_listing_guide_phase');
+              window.dispatchEvent(new CustomEvent('listing-guide-restart'));
+            }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-primary/5"
+            title="Take a guided tour"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Take a tour</span>
+          </button>
         </div>
 
         {/* Add New Service Section - Prominent CTA */}
