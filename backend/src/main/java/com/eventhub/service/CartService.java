@@ -48,7 +48,7 @@ public class CartService {
         BigDecimal finalPrice = basePrice;
         
         // Calculate add-ons total
-        if (addOnIds != null && !addOnIds.isEmpty() && listing.getType() == Listing.ListingType.PACKAGE) {
+        if (addOnIds != null && !addOnIds.isEmpty()) {
             for (UUID addOnId : addOnIds) {
                 try {
                     AddOn addOn = addOnRepository.findById(addOnId).orElse(null);

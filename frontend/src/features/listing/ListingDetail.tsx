@@ -1098,7 +1098,15 @@ export default function ListingDetail() {
                   minimumQuantity: listing.minimumQuantity,
                   vendorId: listing.vendorId || '',
                   vendorName: listing.vendorName || '',
-                  addOns: [],
+                  addOns: listing.addOns?.map((a: any) => ({
+                    id: a.id,
+                    title: a.title,
+                    price: typeof a.price === 'number' ? a.price : parseFloat(a.price) || 0,
+                    description: a.description,
+                    category: a.category,
+                    imageUrl: a.imageUrl,
+                    maxQuantity: a.maxQuantity,
+                  })) || [],
                 }}
                 isVendorPreview={false}
               />

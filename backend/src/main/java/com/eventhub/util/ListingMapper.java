@@ -1,9 +1,13 @@
 package com.eventhub.util;
 
+import com.eventhub.dto.AddOnDTO;
 import com.eventhub.dto.ListingDTO;
+import com.eventhub.model.AddOn;
 import com.eventhub.model.Listing;
 import com.eventhub.model.Vendor;
+import com.eventhub.repository.AddOnRepository;
 import com.eventhub.service.DistanceService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -11,7 +15,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class ListingMapper {
+    
+    private final AddOnRepository addOnRepository;
     
     public ListingDTO toDTO(Listing listing) {
         if (listing == null) {
@@ -141,6 +148,27 @@ public class ListingMapper {
         } else {
             dto.setServiceMode(Listing.ServiceMode.BOTH.name());
             dto.setServiceModeLabel(Listing.ServiceMode.BOTH.getLabel());
+        }
+        
+        // Add-ons for listings
+        try {
+            List<AddOn> addOns = addOnRepository.findByPackageListingAndIsActiveTrueOrderBySortOrderAscTitleAsc(listing);
+            if (addOns != null && !addOns.isEmpty()) {
+                dto.setAddOns(addOns.stream().map(a -> {
+                    AddOnDTO adto = new AddOnDTO();
+                    adto.setId(a.getId());
+                    adto.setTitle(a.getTitle());
+                    adto.setDescription(a.getDescription());
+                    adto.setPrice(a.getPrice());
+                    adto.setCategory(a.getCategory());
+                    adto.setImageUrl(a.getImageUrl());
+                    adto.setMaxQuantity(a.getMaxQuantity());
+                    adto.setSortOrder(a.getSortOrder());
+                    return adto;
+                }).collect(Collectors.toList()));
+            }
+        } catch (Exception e) {
+            // Don't fail listing load if add-ons can't be fetched
         }
         
         return dto;

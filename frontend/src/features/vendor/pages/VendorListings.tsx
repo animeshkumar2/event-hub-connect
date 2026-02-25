@@ -43,7 +43,8 @@ import {
   Sparkle,
   Theater,
   LucideIcon,
-  HelpCircle
+  HelpCircle,
+  Copy
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -956,6 +957,17 @@ export default function VendorListings() {
     }
   };
 
+  const handleDuplicate = async (listing: any) => {
+    try {
+      const response = await vendorApi.duplicateListing(listing.id);
+      const newListing = response?.data || response;
+      toast.success(`Duplicated as "${newListing?.name || 'Copy of ' + listing.name}" (draft)`);
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to duplicate listing');
+    }
+  };
+
   // State for pending image changes (new approach - upload on save)
   const [pendingImageChanges, setPendingImageChanges] = useState<{
     filesToUpload: File[];
@@ -1843,6 +1855,9 @@ export default function VendorListings() {
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => navigate(`/vendor/listings/preview/${listing.id}?edit=true`)}>
                                 <Edit className="mr-2 h-3.5 w-3.5" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicate(listing)}>
+                                <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleToggleActive(listing)}>
                                 {listing.isActive ? '○ Deactivate' : '● Activate'}

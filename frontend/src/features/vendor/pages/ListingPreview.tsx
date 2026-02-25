@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +28,8 @@ import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 import { CategorySpecificDisplay } from '@/features/listing/CategorySpecificDisplay';
 import { CategoryFieldRenderer } from '@/features/vendor/components/CategoryFields';
+import { AddOnManager, type AddOnManagerHandle } from '@/features/vendor/components/AddOnManager';
+import { CATALOG_BY_ID } from '@/shared/constants/addOnCatalog';
 import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInput';
 import { ServiceModeSelector } from '@/shared/components/ServiceModeSelector';
 import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
@@ -112,6 +114,9 @@ export default function ListingPreview() {
   const [editingExtraChargeIndex, setEditingExtraChargeIndex] = useState<number | null>(null);
   
   // Collapsible section states - collapsed by default
+
+  // Add-on manager ref for saving
+  const addOnManagerRef = useRef<AddOnManagerHandle>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     serviceDetails: false,
     eventTypes: false,
@@ -137,6 +142,21 @@ export default function ListingPreview() {
   const { data: eventTypesData } = useEventTypes();
   const eventTypes = useMemo(() => eventTypesData || [], [eventTypesData]);
   const vendorId = listing?.vendorId || listing?.vendor?.id || null;
+
+  // Fetch add-ons for the summary in preview mode
+  const { data: addOnsData } = useQuery({
+    queryKey: ['listingAddOns', listingId],
+    queryFn: async () => {
+      if (!listingId) return [];
+      const response = await vendorApi.getPackageAddOns(listingId);
+      const data = response && typeof response === 'object' && 'data' in response
+        ? (response as any).data : response;
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!listingId,
+    staleTime: 30 * 1000,
+  });
+  const addOnsList = useMemo(() => addOnsData || [], [addOnsData]);
   
   // Check if this is a template-based listing
   const isTemplateBased = useMemo(() => {
@@ -528,6 +548,11 @@ export default function ListingPreview() {
       
       const response = await vendorApi.updateListing(listing.id, payload);
       if (response.success) {
+        // Save add-on changes if any
+        if (addOnManagerRef.current?.hasChanges()) {
+          try { await addOnManagerRef.current.saveAddOns(); } catch { /* toast already shown */ }
+        }
+
         // Optimistic update - directly set the cache with new data
         const updatedListing = {
           ...listing,
@@ -557,6 +582,7 @@ export default function ListingPreview() {
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
         queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
         queryClient.invalidateQueries({ queryKey: ['myVendorListings'] });
+        queryClient.invalidateQueries({ queryKey: ['listingAddOns', listingId] });
         // Force refetch the listings data so cards show updated images
         queryClient.refetchQueries({ queryKey: ['myVendorListings'] });
       } else { toast.error(response.message || 'Failed to update'); }
@@ -1187,6 +1213,63 @@ export default function ListingPreview() {
                   </CardContent>
                 </Card>
               ) : null
+            )}
+
+            {/* Add-Ons — edit mode: compact trigger card + modal; preview mode: highlighted image grid */}
+            {listingId && isEditMode && (
+              <AddOnManager
+                ref={addOnManagerRef}
+                listingId={listingId}
+                listingType={listing?.type || ''}
+                isEditMode={isEditMode}
+              />
+            )}
+            {listingId && !isEditMode && addOnsList.length > 0 && (
+              <Card className="overflow-hidden border-0 shadow-md bg-white" id="addon-manager-section">
+                <div className="bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 px-4 py-3 relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <Package className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Add-Ons & Activities</h3>
+                        <p className="text-white/70 text-[11px]">Enhance your experience</p>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-full h-7 min-w-[28px] px-2.5 flex items-center justify-center">
+                      <span className="text-xs font-bold text-violet-600">{addOnsList.length}</span>
+                    </div>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {addOnsList.map((a: any) => {
+                      const catalogItem = a.description ? CATALOG_BY_ID.get(a.description) : null;
+                      const imgUrl = a.imageUrl || catalogItem?.imageUrl;
+                      return (
+                        <div key={a.id} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white hover:shadow-md transition-shadow group">
+                          <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                            {imgUrl ? (
+                              <img src={imgUrl} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-50 to-fuchsia-50">
+                                <Package className="h-8 w-8 text-violet-200" />
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 inset-x-0 h-8 bg-gradient-to-t from-black/30 to-transparent" />
+                          </div>
+                          <div className="p-2.5">
+                            <p className="text-[13px] font-semibold text-gray-800 line-clamp-1">{a.title}</p>
+                            <p className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-600 mt-0.5">₹{Number(a.price).toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Bundled Items - Enhanced (for packages only) */}
@@ -2089,7 +2172,8 @@ export default function ListingPreview() {
                 </CardContent>
               </Card>
 
-              {/* Status Card - Enhanced */}
+              {/* Status Card */}
+
               <Card className="mt-4 border-dashed border-2 border-slate-200 rounded-xl"><CardContent className="p-4">
                 <h4 className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">Listing Status</h4>
                 <div className="grid grid-cols-3 gap-3 text-center">

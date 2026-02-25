@@ -55,5 +55,8 @@ public class ListingDTO {
     // Location System - Vendor location info for display
     private String vendorLocationName;      // Vendor's base area
     private Double distanceKm;              // Distance from customer (for search results)
+    
+    // Add-ons for packages
+    private List<AddOnDTO> addOns;          // Active add-ons for this listing
 }
 

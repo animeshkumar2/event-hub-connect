@@ -23,14 +23,10 @@ public class AddOnService {
     
     public AddOn createAddOn(UUID packageId, UUID vendorId, AddOn addOn) {
         Listing listing = listingRepository.findById(packageId)
-                .orElseThrow(() -> new NotFoundException("Package not found"));
-        
-        if (listing.getType() != Listing.ListingType.PACKAGE) {
-            throw new BusinessRuleException("Add-ons can only be added to packages");
-        }
+                .orElseThrow(() -> new NotFoundException("Listing not found"));
         
         if (!listing.getVendor().getId().equals(vendorId)) {
-            throw new BusinessRuleException("You don't have permission to add add-ons to this package");
+            throw new BusinessRuleException("You don't have permission to add add-ons to this listing");
         }
         
         addOn.setPackageListing(listing);
@@ -54,6 +50,18 @@ public class AddOnService {
         if (updatedAddOn.getPrice() != null) {
             addOn.setPrice(updatedAddOn.getPrice());
         }
+        if (updatedAddOn.getCategory() != null) {
+            addOn.setCategory(updatedAddOn.getCategory());
+        }
+        if (updatedAddOn.getImageUrl() != null) {
+            addOn.setImageUrl(updatedAddOn.getImageUrl());
+        }
+        if (updatedAddOn.getMaxQuantity() != null) {
+            addOn.setMaxQuantity(updatedAddOn.getMaxQuantity());
+        }
+        if (updatedAddOn.getSortOrder() != null) {
+            addOn.setSortOrder(updatedAddOn.getSortOrder());
+        }
         if (updatedAddOn.getIsActive() != null) {
             addOn.setIsActive(updatedAddOn.getIsActive());
         }
@@ -75,8 +83,8 @@ public class AddOnService {
     @Transactional(readOnly = true)
     public List<AddOn> getPackageAddOns(UUID packageId) {
         Listing listing = listingRepository.findById(packageId)
-                .orElseThrow(() -> new NotFoundException("Package not found"));
-        return addOnRepository.findByPackageListingAndIsActiveTrue(listing);
+                .orElseThrow(() -> new NotFoundException("Listing not found"));
+        return addOnRepository.findByPackageListingAndIsActiveTrueOrderBySortOrderAscTitleAsc(listing);
     }
 }
 

@@ -31,6 +31,18 @@ public class AddOn {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
     
+    @Column(length = 100)
+    private String category; // e.g., "Entrance Arch", "Cake Tables", "Foil Balloons"
+    
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+    
+    @Column(name = "max_quantity")
+    private Integer maxQuantity = 10;
+    
+    @Column(name = "sort_order")
+    private Integer sortOrder = 0;
+    
     @Column(name = "is_active")
     private Boolean isActive = true;
     
