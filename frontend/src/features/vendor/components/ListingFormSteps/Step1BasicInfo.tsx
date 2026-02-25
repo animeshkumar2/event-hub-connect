@@ -235,7 +235,7 @@ export function ListingFormStep1({
                 }}
                 placeholder="Search venue address..."
                 required
-                bangaloreOnly={true}
+                bangaloreOnly={false}
               />
               
               {formData.venueAddress && (
