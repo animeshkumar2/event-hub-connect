@@ -230,7 +230,7 @@ export default function VendorOnboarding() {
             {/* City */}
             <div className="space-y-2">
               <Label className="text-foreground font-medium">
-                City <span className="text-destructive">*</span>
+                Where is your business based? <span className="text-destructive">*</span>
               </Label>
               <Select value={city} onValueChange={setCity}>
                 <SelectTrigger className="h-11 bg-background">
@@ -244,6 +244,14 @@ export default function VendorOnboarding() {
                   ))}
                 </SelectContent>
               </Select>
+              {city && city !== 'bangalore' && (
+                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-blue-50 border border-blue-200/50">
+                  <span className="text-sm flex-shrink-0">🌟</span>
+                  <p className="text-[11px] text-blue-700">
+                    Launching in Bangalore first, expanding soon to your city. List your services now to be ready when we go live in your area.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* What's Next Info */}

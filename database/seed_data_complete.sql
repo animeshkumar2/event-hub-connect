@@ -41,14 +41,26 @@ ON CONFLICT DO NOTHING;
 
 -- Cities
 INSERT INTO cities (name, state, country) VALUES
+('Bangalore', 'Karnataka', 'India'),
 ('Mumbai', 'Maharashtra', 'India'),
 ('Delhi', 'Delhi', 'India'),
-('Bangalore', 'Karnataka', 'India'),
 ('Hyderabad', 'Telangana', 'India'),
 ('Chennai', 'Tamil Nadu', 'India'),
 ('Pune', 'Maharashtra', 'India'),
 ('Kolkata', 'West Bengal', 'India'),
-('Jaipur', 'Rajasthan', 'India')
+('Jaipur', 'Rajasthan', 'India'),
+('Ahmedabad', 'Gujarat', 'India'),
+('Goa', 'Goa', 'India'),
+('Lucknow', 'Uttar Pradesh', 'India'),
+('Chandigarh', 'Chandigarh', 'India'),
+('Kochi', 'Kerala', 'India'),
+('Udaipur', 'Rajasthan', 'India'),
+('Mysore', 'Karnataka', 'India'),
+('Coimbatore', 'Tamil Nadu', 'India'),
+('Indore', 'Madhya Pradesh', 'India'),
+('Bhopal', 'Madhya Pradesh', 'India'),
+('Nagpur', 'Maharashtra', 'India'),
+('Vizag', 'Andhra Pradesh', 'India')
 ON CONFLICT (name) DO NOTHING;
 
 -- =====================================================
