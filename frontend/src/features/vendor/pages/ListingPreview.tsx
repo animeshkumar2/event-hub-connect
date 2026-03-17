@@ -1592,7 +1592,7 @@ export default function ListingPreview() {
                                 }}
                                 placeholder="Search venue address..."
                                 required
-                                bangaloreOnly={true}
+                                bangaloreOnly={false}
                               />
                               {editForm?.venueAddress && (
                                 <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">

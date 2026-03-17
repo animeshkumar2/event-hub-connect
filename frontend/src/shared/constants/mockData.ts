@@ -26,6 +26,25 @@ export const vendorProfessions = [
 
 export const cities = [
   'Bangalore',
+  'Mumbai',
+  'Delhi',
+  'Hyderabad',
+  'Chennai',
+  'Pune',
+  'Kolkata',
+  'Jaipur',
+  'Ahmedabad',
+  'Goa',
+  'Lucknow',
+  'Chandigarh',
+  'Kochi',
+  'Udaipur',
+  'Mysore',
+  'Coimbatore',
+  'Indore',
+  'Bhopal',
+  'Nagpur',
+  'Vizag',
 ];
 
 export const eventTypes = [

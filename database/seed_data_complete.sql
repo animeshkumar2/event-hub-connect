@@ -109,9 +109,9 @@ WHERE et.name = 'Other';
 -- 4. CITIES
 -- =====================================================
 INSERT INTO cities (name, state, country) VALUES
+('Bangalore', 'Karnataka', 'India'),
 ('Mumbai', 'Maharashtra', 'India'),
 ('Delhi', 'Delhi', 'India'),
-('Bangalore', 'Karnataka', 'India'),
 ('Hyderabad', 'Telangana', 'India'),
 ('Chennai', 'Tamil Nadu', 'India'),
 ('Kolkata', 'West Bengal', 'India'),

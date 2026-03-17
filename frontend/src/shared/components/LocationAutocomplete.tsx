@@ -43,7 +43,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 320, openAbove: false });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -56,18 +56,31 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     }
   }, [value?.name]);
 
+  const calculatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const dropdownEstimate = 320;
+    const openAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+    const maxHeight = Math.min(dropdownEstimate, openAbove ? spaceAbove : spaceBelow);
+
+    setDropdownPosition({
+      top: openAbove ? rect.top - maxHeight - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+      maxHeight,
+      openAbove,
+    });
+  }, []);
+
   // Update dropdown position when showing
   useEffect(() => {
-    if (showDropdown && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      // Use viewport coordinates for fixed positioning
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
+    if (showDropdown) {
+      calculatePosition();
     }
-  }, [showDropdown, suggestions]);
+  }, [showDropdown, suggestions, calculatePosition]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -86,23 +99,17 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Update dropdown position on scroll (for fixed positioning)
+  // Update dropdown position on scroll/resize
   useEffect(() => {
-    const handleScroll = () => {
-      if (showDropdown && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        // Use viewport coordinates for fixed positioning
-        setDropdownPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
-          width: rect.width,
-        });
-      }
+    if (!showDropdown) return;
+    const handleReposition = () => calculatePosition();
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
     };
-
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, [showDropdown]);
+  }, [showDropdown, calculatePosition]);
 
   // Bangalore bounding box for filtering
   const BANGALORE_BOUNDS = {
@@ -283,13 +290,17 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
+            maxHeight: dropdownPosition.maxHeight,
             zIndex: 99999,
             pointerEvents: 'auto',
           }}
-          className="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+          className="bg-white border border-gray-200 rounded-xl shadow-2xl animate-in fade-in duration-200 flex flex-col"
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
         >
           {/* Header */}
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+          <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100 rounded-t-xl flex-shrink-0">
             <p className="text-xs text-gray-500 flex items-center gap-1.5">
               <Navigation className="h-3 w-3" />
               {bangaloreOnly ? 'Showing Bangalore locations' : 'Select a location'}
@@ -297,16 +308,12 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           </div>
           
           {/* Scrollable list */}
-          <div className="max-h-72 overflow-y-auto overscroll-contain">
+          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0">
             {suggestions.map((suggestion, index) => (
               <div
                 key={`${suggestion.latitude}-${suggestion.longitude}-${index}`}
                 role="button"
                 tabIndex={0}
-                onMouseDown={(e) => {
-                  // Stop propagation to prevent dialog from intercepting
-                  e.stopPropagation();
-                }}
                 onClick={() => {
                   console.log('📍 Location selected:', suggestion.shortName);
                   handleSelectSuggestion(suggestion);
@@ -319,23 +326,23 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
                 }}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={`
-                  w-full px-4 py-3.5 text-left flex items-start gap-3
+                  w-full px-3 py-2.5 text-left flex items-start gap-2.5
                   transition-colors duration-150 cursor-pointer
                   ${highlightedIndex === index ? 'bg-rose-50' : 'hover:bg-gray-50'}
                   ${index !== suggestions.length - 1 ? 'border-b border-gray-100' : ''}
                 `}
               >
                 <div className={`
-                  p-1.5 rounded-lg flex-shrink-0 mt-0.5
+                  p-1 rounded-md flex-shrink-0 mt-0.5
                   ${highlightedIndex === index ? 'bg-rose-100' : 'bg-gray-100'}
                 `}>
-                  <MapPin className={`h-4 w-4 ${highlightedIndex === index ? 'text-rose-600' : 'text-gray-500'}`} />
+                  <MapPin className={`h-3.5 w-3.5 ${highlightedIndex === index ? 'text-rose-600' : 'text-gray-500'}`} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className={`font-medium truncate ${highlightedIndex === index ? 'text-rose-900' : 'text-gray-900'}`}>
+                  <div className={`text-sm font-medium truncate ${highlightedIndex === index ? 'text-rose-900' : 'text-gray-900'}`}>
                     {suggestion.shortName}
                   </div>
-                  <div className="text-sm text-gray-500 truncate mt-0.5">
+                  <div className="text-xs text-gray-500 truncate mt-0.5">
                     {suggestion.displayName}
                   </div>
                 </div>
@@ -344,7 +351,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
           </div>
           
           {/* Footer hint */}
-          <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+          <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 rounded-b-xl flex-shrink-0">
             <p className="text-xs text-gray-400">
               Use ↑↓ to navigate, Enter to select
             </p>
@@ -363,10 +370,12 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
             left: dropdownPosition.left,
             width: dropdownPosition.width,
             zIndex: 99999,
+            pointerEvents: 'auto',
           }}
-          className="bg-white border border-gray-200 rounded-xl shadow-2xl p-4 text-center"
+          className="bg-white border border-gray-200 rounded-xl shadow-2xl p-3 text-center"
+          onMouseDown={(e) => e.stopPropagation()}
         >
-          <MapPin className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+          <MapPin className="h-6 w-6 text-gray-300 mx-auto mb-1.5" />
           <p className="text-sm text-gray-500">
             {bangaloreOnly 
               ? 'No locations found in Bangalore. Try a different search.' 

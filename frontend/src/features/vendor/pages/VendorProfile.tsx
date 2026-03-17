@@ -311,7 +311,7 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                 }`}>
                   {city ? <CheckCircle className="h-3.5 w-3.5" /> : '2'}
                 </div>
-                <Label className="text-sm font-semibold text-foreground">Where are you based?</Label>
+                <Label className="text-sm font-semibold text-foreground">Where is your business based?</Label>
               </div>
               <Select value={city} onValueChange={setCity}>
                 <SelectTrigger className="h-12 text-base border-2 border-border/50 focus:border-primary bg-background">
@@ -413,19 +413,6 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
               </div>
               
               <div className="space-y-4 ml-8">
-                {/* Bangalore Launch Notice */}
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border border-amber-200/50 dark:border-amber-500/20">
-                  <span className="text-base flex-shrink-0">🚀</span>
-                  <div>
-                    <p className="text-xs font-medium text-amber-800 dark:text-amber-400">
-                      Launching in Bangalore first!
-                    </p>
-                    <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 mt-0.5">
-                      Select your area (e.g., Koramangala, Indiranagar). More cities coming soon.
-                    </p>
-                  </div>
-                </div>
-                
                 {/* Location Autocomplete */}
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground flex items-center gap-1.5">
@@ -434,15 +421,23 @@ function MandatorySetupSection({ onComplete }: { onComplete: () => void }) {
                   <LocationAutocomplete
                     value={serviceLocation}
                     onChange={setServiceLocation}
-                    placeholder="Search your area in Bangalore..."
+                    placeholder="Search your area (e.g., Koramangala, Indiranagar)..."
                     className="h-12"
-                    bangaloreOnly={true}
+                    bangaloreOnly={false}
                   />
                   {serviceLocation && (
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <CheckCircle className="h-3 w-3 text-emerald-500" />
                       {serviceLocation.name}
                     </p>
+                  )}
+                  {city && city !== 'bangalore' && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-500/20">
+                      <span className="text-sm flex-shrink-0">🌟</span>
+                      <p className="text-[11px] text-blue-700 dark:text-blue-400">
+                        Launching in Bangalore first, expanding soon to your city. List your services now to be ready when we go live in your area.
+                      </p>
+                    </div>
                   )}
                 </div>
                 
@@ -1853,19 +1848,6 @@ export default function VendorProfile() {
                 <div className="space-y-5 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-6 lg:gap-8">
                   {/* Left: Form Fields */}
                   <div className="space-y-4 sm:space-y-5">
-                    {/* Bangalore Launch Notice */}
-                    <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border border-amber-200/50 dark:border-amber-500/20">
-                      <span className="text-base flex-shrink-0">🚀</span>
-                      <div>
-                        <p className="text-xs font-medium text-amber-800 dark:text-amber-400">
-                          Launching in Bangalore first!
-                        </p>
-                        <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 mt-0.5">
-                          Select your area (e.g., Koramangala, Indiranagar). More cities coming soon.
-                        </p>
-                      </div>
-                    </div>
-                    
                     {/* City - Read only */}
                     <div>
                       <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block text-muted-foreground">City</Label>
@@ -1880,9 +1862,17 @@ export default function VendorProfile() {
                       <LocationAutocomplete 
                         value={location} 
                         onChange={setLocation} 
-                        placeholder="Search your area in Bangalore..." 
-                        bangaloreOnly={true}
+                        placeholder="Search your area (e.g., Koramangala, Indiranagar)..." 
+                        bangaloreOnly={false}
                       />
+                      {cityName && cityName.toLowerCase() !== 'bangalore' && (
+                        <div className="flex items-start gap-2 p-2.5 mt-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-500/20">
+                          <span className="text-sm flex-shrink-0">🌟</span>
+                          <p className="text-[11px] text-blue-700 dark:text-blue-400">
+                            Launching in Bangalore first, expanding soon to your city. List your services now to be ready when we go live in your area.
+                          </p>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Radius Slider - Only show after location is set */}
