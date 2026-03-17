@@ -71,6 +71,8 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
   const [localPrices, setLocalPrices] = useState<Record<string, number>>({});
   const [localDeletedIds, setLocalDeletedIds] = useState<Set<string>>(new Set());
   const [pendingCustom, setPendingCustom] = useState<PendingCustomAddOn[]>([]);
+  // Track deselected custom add-ons (toggled off but not deleted)
+  const [disabledCustomIds, setDisabledCustomIds] = useState<Set<string>>(new Set());
 
   // ── UI state ──
   const [modalOpen, setModalOpen] = useState(false);
@@ -115,6 +117,7 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
       setLocalPrices(prices);
       setLocalDeletedIds(new Set());
       setPendingCustom([]);
+      setDisabledCustomIds(new Set());
     } catch {
       setServerAddOns([]);
     } finally {
@@ -138,6 +141,7 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
       setLocalPrices(prices);
       setLocalDeletedIds(new Set());
       setPendingCustom([]);
+      setDisabledCustomIds(new Set());
       setShowCustomForm(false);
     }
   }, [isEditMode, serverAddOns]);
@@ -171,6 +175,14 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
     }
     return serverCustomAddOns;
   }, [isEditMode, serverCustomAddOns, localDeletedIds, pendingCustom]);
+
+  // All custom add-ons (including disabled) for rendering in edit mode
+  const allCustomAddOns = effectiveCustomAddOns;
+
+  // Only enabled custom add-ons for counts and save
+  const enabledCustomAddOns = useMemo(() => {
+    return effectiveCustomAddOns.filter(a => !disabledCustomIds.has(a.id));
+  }, [effectiveCustomAddOns, disabledCustomIds]);
 
   const getPrice = (catalogId: string, defaultPrice: number) => {
     if (isEditMode) return localPrices[catalogId] ?? defaultPrice;
@@ -250,6 +262,15 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
     else setLocalDeletedIds(prev => new Set(prev).add(id));
   };
 
+  const toggleCustomAddOn = (id: string) => {
+    setDisabledCustomIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // ── Save handler ──
   const saveAddOns = useCallback(async () => {
     setSaving(true);
@@ -257,6 +278,13 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
     try {
       for (const id of localDeletedIds) {
         try { await vendorApi.deleteAddOn(listingId, id); } catch { /* ignore */ }
+      }
+      // Delete disabled custom add-ons from server
+      for (const id of disabledCustomIds) {
+        const serverItem = serverCustomAddOns.find(a => a.id === id);
+        if (serverItem) {
+          try { await vendorApi.deleteAddOn(listingId, id); } catch { /* ignore */ }
+        }
       }
       for (const serverAddOn of serverAddOns) {
         if (serverAddOn.catalogId && CATALOG_BY_ID.has(serverAddOn.catalogId) && !localEnabled.has(serverAddOn.catalogId)) {
@@ -287,6 +315,8 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
         }
       }
       for (const custom of pendingCustom) {
+        // Skip disabled custom add-ons
+        if (disabledCustomIds.has(custom.tempId)) continue;
         let imageUrl: string | null = null;
         if (custom.imageFile) {
           const compressed = await compressImage(custom.imageFile);
@@ -314,7 +344,7 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
       toast.error(err.message || 'Failed to save add-ons');
       throw err;
     } finally { setSaving(false); }
-  }, [listingId, localEnabled, localPrices, localDeletedIds, serverAddOns, serverBySlug, pendingCustom, fetchAddOns]);
+  }, [listingId, localEnabled, localPrices, localDeletedIds, disabledCustomIds, serverAddOns, serverCustomAddOns, serverBySlug, pendingCustom, fetchAddOns]);
 
   const hasChanges = useCallback(() => {
     const serverEnabled = new Set<string>();
@@ -328,15 +358,16 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
     }
     if (localDeletedIds.size > 0) return true;
     if (pendingCustom.length > 0) return true;
+    if (disabledCustomIds.size > 0) return true;
     return false;
-  }, [localEnabled, localPrices, localDeletedIds, pendingCustom, serverAddOns, serverBySlug]);
+  }, [localEnabled, localPrices, localDeletedIds, pendingCustom, disabledCustomIds, serverAddOns, serverBySlug]);
 
   useImperativeHandle(ref, () => ({ saveAddOns, hasChanges, openModal: () => setModalOpen(true) }), [saveAddOns, hasChanges]);
 
   if (!shouldRender) return null;
 
   const filteredCatalog = ADD_ON_CATALOG.filter(c => c.type === activeTab);
-  const totalEnabled = effectiveEnabled.size + effectiveCustomAddOns.length;
+  const totalEnabled = effectiveEnabled.size + enabledCustomAddOns.length;
 
   const displayCatalog = filteredCatalog
     .map(cat => {
@@ -569,23 +600,32 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
             })}
 
             {/* Custom add-ons section */}
-            {(isEditMode || effectiveCustomAddOns.length > 0) && (
+            {(isEditMode || enabledCustomAddOns.length > 0) && (
               <div className="border-t">
                 <div className="px-4 py-3 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   <span className="text-[13px] font-bold text-gray-900">Your Custom Items</span>
-                  {effectiveCustomAddOns.length > 0 && (
-                    <Badge className="bg-amber-100 text-amber-700 border-0 text-[11px] font-semibold">{effectiveCustomAddOns.length}</Badge>
+                  {enabledCustomAddOns.length > 0 && (
+                    <Badge className="bg-amber-100 text-amber-700 border-0 text-[11px] font-semibold">{enabledCustomAddOns.length}</Badge>
                   )}
                 </div>
 
-                {effectiveCustomAddOns.length > 0 && (
+                {allCustomAddOns.length > 0 && (
                   <div className="px-4 pb-3">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                      {effectiveCustomAddOns.map(item => (
-                        <div key={item.id} className={cn(
+                      {allCustomAddOns.map(item => {
+                        const isCustomEnabled = !disabledCustomIds.has(item.id);
+                        return (
+                        <div key={item.id}
+                          onClick={() => isEditMode && toggleCustomAddOn(item.id)}
+                          className={cn(
                           "relative rounded-xl overflow-hidden shadow-sm group",
-                          isEditMode ? "border-2 border-amber-200" : "border border-gray-200"
+                          isEditMode ? "cursor-pointer border-2" : "border border-gray-200",
+                          isEditMode && isCustomEnabled
+                            ? "border-amber-400 shadow-md shadow-amber-100 ring-1 ring-amber-200"
+                            : isEditMode
+                              ? "border-gray-100 opacity-60 hover:opacity-80"
+                              : ""
                         )}>
                           <div className="relative aspect-[4/3] bg-amber-50 overflow-hidden">
                             {item.imageUrl ? (
@@ -595,8 +635,9 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
                                 <Package className="h-8 w-8 text-amber-300" />
                               </div>
                             )}
+                            {isEditMode && isCustomEnabled && <div className="absolute inset-0 bg-amber-500/10" />}
                             {isEditMode && (
-                              <button onClick={() => removeCustomItem(item.id)}
+                              <button onClick={(e) => { e.stopPropagation(); removeCustomItem(item.id); }}
                                 className="absolute top-2 right-2 h-7 w-7 rounded-lg bg-white/90 border border-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
                                 aria-label={`Delete ${item.title}`}>
                                 <Trash2 className="h-3.5 w-3.5 text-red-500" />
@@ -604,7 +645,12 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
                             )}
                             {isEditMode && (
                               <div className="absolute top-2 left-2">
-                                <Badge className="bg-amber-500 text-white border-0 text-[10px] px-1.5 py-0 h-5 shadow-sm">Custom</Badge>
+                                <div className={cn(
+                                  "h-6 w-6 rounded-lg flex items-center justify-center transition-all shadow-sm",
+                                  isCustomEnabled ? "bg-amber-500 text-white" : "bg-white/90 border border-gray-300 text-transparent"
+                                )}>
+                                  <Check className="h-3.5 w-3.5" />
+                                </div>
                               </div>
                             )}
                           </div>
@@ -614,7 +660,8 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
                             <p className="text-[13px] font-bold text-gray-900">₹{item.price.toLocaleString('en-IN')}</p>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -693,10 +740,12 @@ export const AddOnManager = forwardRef<AddOnManagerHandle, AddOnManagerProps>(
       }
     }
     effectiveCustomAddOns.forEach(a => {
-      items.push({ id: a.id, title: a.title, price: a.price, imageUrl: a.imageUrl });
+      if (!disabledCustomIds.has(a.id)) {
+        items.push({ id: a.id, title: a.title, price: a.price, imageUrl: a.imageUrl });
+      }
     });
     return items;
-  }, [effectiveEnabled, effectiveCustomAddOns, localPrices]);
+  }, [effectiveEnabled, effectiveCustomAddOns, disabledCustomIds, localPrices]);
 
   // ── Render: compact trigger card + modal ──
   return (

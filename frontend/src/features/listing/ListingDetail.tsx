@@ -282,7 +282,7 @@ export default function ListingDetail() {
         // Extract based on category
         switch (listing.categoryId) {
           case 'caterer':
-            return categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+            return categoryData.pricePerPlate || categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
           case 'photographer':
           case 'cinematographer':
           case 'videographer':

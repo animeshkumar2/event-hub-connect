@@ -522,6 +522,9 @@ public class VendorListingService {
                 packageItemRepository.deleteAll(packageItems);
             }
             
+            // Clean up add-on images from R2/CDN (rows cascade-deleted by DB)
+            deleteAddOnImages(listing);
+            
             // Clean up images from R2/CDN
             deleteListingImages(listing);
             
@@ -551,6 +554,31 @@ public class VendorListingService {
                 // Log but don't fail the delete operation
                 logger.warn("Failed to delete image {} for listing {}: {}", 
                     imageUrl, listing.getId(), e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Delete all add-on images associated with a listing from R2/CDN.
+     * The add-on DB rows are cascade-deleted when the listing is removed.
+     */
+    private void deleteAddOnImages(Listing listing) {
+        List<AddOn> addOns = addOnRepository.findByPackageListing(listing);
+        if (addOns.isEmpty()) {
+            return;
+        }
+        
+        logger.info("Cleaning up images for {} add-ons on listing {}", addOns.size(), listing.getId());
+        
+        for (AddOn addOn : addOns) {
+            String imageUrl = addOn.getImageUrl();
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                try {
+                    imageUploadService.deleteImage(imageUrl);
+                } catch (Exception e) {
+                    logger.warn("Failed to delete add-on image {} for listing {}: {}",
+                        imageUrl, listing.getId(), e.getMessage());
+                }
             }
         }
     }

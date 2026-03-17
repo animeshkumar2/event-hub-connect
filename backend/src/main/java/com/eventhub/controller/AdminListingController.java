@@ -1,11 +1,16 @@
 package com.eventhub.controller;
 
 import com.eventhub.dto.ApiResponse;
+import com.eventhub.model.AddOn;
 import com.eventhub.model.EventType;
 import com.eventhub.model.Listing;
+import com.eventhub.repository.AddOnRepository;
 import com.eventhub.repository.EventTypeRepository;
 import com.eventhub.repository.ListingRepository;
+import com.eventhub.service.ImageUploadService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +24,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminListingController {
     
+    private static final Logger logger = LoggerFactory.getLogger(AdminListingController.class);
+    
     private final ListingRepository listingRepository;
     private final EventTypeRepository eventTypeRepository;
+    private final AddOnRepository addOnRepository;
+    private final ImageUploadService imageUploadService;
     
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Listing>>> getAllListings(
@@ -179,9 +188,26 @@ public class AdminListingController {
     
     @DeleteMapping("/{listingId}")
     public ResponseEntity<ApiResponse<Void>> deleteListing(@PathVariable UUID listingId) {
-        if (!listingRepository.existsById(listingId)) {
-            throw new com.eventhub.exception.NotFoundException("Listing not found");
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new com.eventhub.exception.NotFoundException("Listing not found"));
+        
+        // Clean up add-on images from CDN before cascade delete removes the rows
+        List<AddOn> addOns = addOnRepository.findByPackageListing(listing);
+        for (AddOn addOn : addOns) {
+            if (addOn.getImageUrl() != null && !addOn.getImageUrl().isBlank()) {
+                try { imageUploadService.deleteImage(addOn.getImageUrl()); }
+                catch (Exception e) { logger.warn("Failed to delete add-on image: {}", e.getMessage()); }
+            }
         }
+        
+        // Clean up listing images from CDN
+        if (listing.getImages() != null) {
+            for (String imageUrl : listing.getImages()) {
+                try { imageUploadService.deleteImage(imageUrl); }
+                catch (Exception e) { logger.warn("Failed to delete listing image: {}", e.getMessage()); }
+            }
+        }
+        
         listingRepository.deleteById(listingId);
         return ResponseEntity.ok(ApiResponse.success("Listing deleted", null));
     }

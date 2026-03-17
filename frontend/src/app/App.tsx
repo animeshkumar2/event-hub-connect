@@ -54,6 +54,7 @@ const VendorListingsPackages = lazy(() => import("@/features/vendor/pages/Vendor
 const VendorListingsItems = lazy(() => import("@/features/vendor/pages/VendorListingsItems"));
 const VendorListingsAll = lazy(() => import("@/features/vendor/pages/VendorListingsAll"));
 const ListingPreview = lazy(() => import("@/features/vendor/pages/ListingPreview"));
+const CreateListingWizard = lazy(() => import("@/features/vendor/pages/CreateListingWizard"));
 const VendorOrders = lazy(() => import("@/features/vendor/pages/VendorOrders"));
 const VendorBookings = lazy(() => import("@/features/vendor/pages/VendorBookings"));
 const VendorChat = lazy(() => import("@/features/vendor/pages/VendorChat"));
@@ -298,6 +299,27 @@ const App = () => (
               <ProtectedRoute requireVendor>
                 <Suspense fallback={<LoadingFallback />}>
                   <ListingPreview />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/vendor/create-listing/new" element={
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CreateListingWizard />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/vendor/edit-listing/:editListingId" element={
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CreateListingWizard />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/vendor/draft-listing/:editListingId" element={
+              <ProtectedRoute requireVendor>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CreateListingWizard />
                 </Suspense>
               </ProtectedRoute>
             } />

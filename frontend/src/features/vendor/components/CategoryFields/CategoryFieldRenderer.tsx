@@ -15,7 +15,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Badge } from '@/shared/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/components/ui/accordion';
-import { Plus, X, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Plus, X, CheckCircle2 } from 'lucide-react';
 
 interface CategoryFieldRendererProps {
   categoryId: string;
@@ -160,29 +160,126 @@ export const CategoryFieldRenderer: React.FC<CategoryFieldRendererProps> = ({
     return null;
   }
 
+  // Group fields into categories for better UX
+  const pricingFields = config.fields.filter(f => 
+    f.name.toLowerCase().includes('price') || 
+    f.name === 'pricePerPlate' ||
+    f.name === 'pricePerPlateVeg' || 
+    f.name === 'pricePerPlateNonVeg' ||
+    f.name === 'bridalPrice' ||
+    f.name === 'familyPrice' ||
+    f.name === 'guestPrice'
+  );
+  
+  const requiredFields = config.fields.filter(f => 
+    f.required && !pricingFields.includes(f) && !f.dependsOn
+  );
+  
+  const optionalFields = config.fields.filter(f => 
+    !f.required && !pricingFields.includes(f) && !f.dependsOn
+  );
+
+  // Calculate how many optional fields are filled
+  const filledOptionalCount = optionalFields.filter(f => {
+    const val = values[f.name];
+    if (Array.isArray(val)) return val.length > 0;
+    if (typeof val === 'boolean') return val;
+    return val !== undefined && val !== null && val !== '';
+  }).length;
+
   return (
-    <div className="space-y-3">
-      {/* Category-specific fields - Compact */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {config.fields.map((field) => {
-          if (field.dependsOn) return null;
-          const dependents = config.fields.filter(f => f.dependsOn === field.name);
-          const shouldSpanFull = field.fullWidth || dependents.length > 0;
-          
-          return (
-            <div key={field.name} className={shouldSpanFull ? 'md:col-span-2' : ''}>
-              {renderField(field)}
-              {dependents.length > 0 && values[field.name] && (
-                <div className="mt-2 pl-4 border-l-2 border-primary/30 space-y-2">
-                  {dependents.map((depField) => (
-                    <div key={depField.name}>{renderField(depField)}</div>
-                  ))}
+    <div className="space-y-5">
+      {/* Pricing Section */}
+      {pricingFields.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-1 w-1 rounded-full bg-indigo-500" />
+            <h3 className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Pricing</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {pricingFields.map((field) => (
+              <div key={field.name} className="p-3 rounded-xl bg-gradient-to-br from-slate-50 to-indigo-50/30 border border-slate-200/80">
+                {renderField(field)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Required Fields */}
+      {requiredFields.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-1 w-1 rounded-full bg-violet-500" />
+            <h3 className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Service Details</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {requiredFields.map((field) => {
+              const dependents = config.fields.filter(f => f.dependsOn === field.name);
+              const shouldSpanFull = field.fullWidth || dependents.length > 0;
+              
+              return (
+                <div key={field.name} className={`${shouldSpanFull ? 'sm:col-span-2' : ''} p-3 rounded-xl bg-gradient-to-br from-slate-50 to-violet-50/30 border border-slate-200/80`}>
+                  {renderField(field)}
+                  {dependents.length > 0 && values[field.name] && (
+                    <div className="mt-3 pl-3 border-l-2 border-violet-200 space-y-3">
+                      {dependents.map((depField) => (
+                        <div key={depField.name}>{renderField(depField)}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Optional Fields */}
+      {optionalFields.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-emerald-500" />
+              <h3 className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Extra Details</h3>
             </div>
-          );
-        })}
-      </div>
+            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+              {filledOptionalCount}/{optionalFields.length}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {optionalFields.map((field) => {
+              const val = values[field.name];
+              const isFilled = Array.isArray(val) ? val.length > 0 : 
+                              typeof val === 'boolean' ? val : 
+                              val !== undefined && val !== null && val !== '';
+              const dependents = config.fields.filter(f => f.dependsOn === field.name);
+              const shouldSpanFull = field.fullWidth || dependents.length > 0;
+              
+              return (
+                <div 
+                  key={field.name} 
+                  className={`${shouldSpanFull ? 'sm:col-span-2' : ''} p-3 rounded-xl border transition-all ${
+                    isFilled 
+                      ? 'bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200' 
+                      : 'bg-gradient-to-br from-slate-50 to-emerald-50/20 border-slate-200/80 hover:border-emerald-300'
+                  }`}
+                >
+                  {renderField(field)}
+                  {dependents.length > 0 && values[field.name] && (
+                    <div className="mt-3 pl-3 border-l-2 border-emerald-200 space-y-3">
+                      {dependents.map((depField) => (
+                        <div key={depField.name}>{renderField(depField)}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Additional Info Section - Compact */}
       {config.showPackageDetails && !hidePackageDetails && (
