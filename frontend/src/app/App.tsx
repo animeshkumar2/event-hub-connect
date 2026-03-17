@@ -39,7 +39,6 @@ import Checkout from "@/features/cart/Checkout";
 import EventPlanner from "@/features/booking/EventPlanner";
 import BookingSuccess from "@/features/booking/BookingSuccess";
 import ListingDetail from "@/features/listing/ListingDetail";
-import UserProfile from "@/features/user/pages/UserProfile";
 import OrderDetails from "@/features/user/pages/OrderDetails";
 
 // Lazy loaded vendor pages (code splitting for better performance)
@@ -69,6 +68,14 @@ const VendorTerms = lazy(() => import("@/features/vendor/pages/VendorTerms"));
 const VendorPrivacy = lazy(() => import("@/features/vendor/pages/VendorPrivacy"));
 const ClaimListing = lazy(() => import("@/features/vendor/pages/ClaimListing"));
 const TestImageUpload = lazy(() => import("@/features/vendor/TestImageUpload"));
+
+// Customer dashboard pages
+const CustomerDashboard = lazy(() => import("@/features/customer/pages/CustomerDashboard"));
+const CustomerOrders = lazy(() => import("@/features/customer/pages/CustomerOrders"));
+const CustomerWishlist = lazy(() => import("@/features/customer/pages/CustomerWishlist"));
+const CustomerAddresses = lazy(() => import("@/features/customer/pages/CustomerAddresses"));
+const CustomerProfile = lazy(() => import("@/features/customer/pages/CustomerProfile"));
+const CustomerSettings = lazy(() => import("@/features/customer/pages/CustomerSettings"));
 
 // Admin pages
 const AdminLogin = lazy(() => import("@/features/admin/pages/AdminLogin"));
@@ -219,9 +226,53 @@ const App = () => (
               </Suspense>
             } />
             
-            {/* User Routes - Protected by PreLaunchGuard */}
-            <Route path="/profile" element={<PreLaunchGuard><UserProfile /></PreLaunchGuard>} />
+            {/* User Routes - Redirect old /profile to customer dashboard */}
+            <Route path="/profile" element={<Navigate to="/customer/dashboard" replace />} />
             <Route path="/orders/:orderId" element={<PreLaunchGuard><OrderDetails /></PreLaunchGuard>} />
+            
+            {/* Customer Dashboard Routes */}
+            <Route path="/customer/dashboard" element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerDashboard />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/orders" element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerOrders />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/wishlist" element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerWishlist />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/addresses" element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerAddresses />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/profile" element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerProfile />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/customer/settings" element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CustomerSettings />
+                </Suspense>
+              </ProtectedRoute>
+            } />
             
             {/* Vendor Routes - Lazy loaded with Suspense and Protected */}
             <Route path="/vendor/onboarding" element={

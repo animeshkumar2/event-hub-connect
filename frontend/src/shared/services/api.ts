@@ -557,6 +557,22 @@ export const customerApi = {
   getOffer: (offerId: string) => apiClient.get<any>(`/customers/offers/${offerId}`),
   acceptCounterOffer: (offerId: string) => apiClient.post<any>(`/customers/offers/${offerId}/accept-counter`, {}),
   withdrawOffer: (offerId: string) => apiClient.post<any>(`/customers/offers/${offerId}/withdraw`, {}),
+
+  // Wishlist
+  getWishlist: () => apiClient.get<any[]>('/customers/wishlist'),
+  addToWishlist: (listingId: string) => apiClient.post<any>('/customers/wishlist', { listingId }),
+  removeFromWishlist: (listingId: string) => apiClient.delete<any>(`/customers/wishlist/${listingId}`),
+  isWishlisted: (listingId: string) => apiClient.get<boolean>(`/customers/wishlist/check/${listingId}`),
+  getWishlistCount: () => apiClient.get<number>('/customers/wishlist/count'),
+
+  // Addresses
+  getAddresses: () => apiClient.get<any[]>('/customers/addresses'),
+  createAddress: (data: { label: string; fullAddress: string; city?: string; state?: string; pincode?: string; isDefault?: boolean }) =>
+    apiClient.post<any>('/customers/addresses', data),
+  updateAddress: (addressId: string, data: { label: string; fullAddress: string; city?: string; state?: string; pincode?: string; isDefault?: boolean }) =>
+    apiClient.put<any>(`/customers/addresses/${addressId}`, data),
+  deleteAddress: (addressId: string) => apiClient.delete<any>(`/customers/addresses/${addressId}`),
+  setDefaultAddress: (addressId: string) => apiClient.put<any>(`/customers/addresses/${addressId}/default`, {}),
 };
 
 // Vendor API

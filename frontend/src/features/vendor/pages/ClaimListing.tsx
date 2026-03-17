@@ -611,7 +611,7 @@ export default function ClaimListing() {
 
               {/* Simple benefit line */}
               <p className="text-center text-sm text-gray-600">
-                ✓ 100% Free &nbsp; ✓ Get bookings &nbsp; ✓ Verified badge
+                ✓ Get bookings &nbsp; ✓ Verified badge &nbsp; ✓ Easy setup
               </p>
             </div>
           </CardContent>

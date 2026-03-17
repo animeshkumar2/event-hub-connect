@@ -1026,7 +1026,7 @@ export default function ListingDetail() {
                 />
               )}
               
-              {/* Chat/Offer Button - Compact */}
+              {/* Chat/Offer Button - Commented out for now
               {listing && (listing.openForNegotiation !== false) && (() => {
                 const finalListingId = listing?.id 
                   ? String(listing.id).trim() 
@@ -1058,8 +1058,9 @@ export default function ListingDetail() {
                   </Dialog>
                 );
               })()}
+              */}
               
-              {/* Regular Chat Button - Compact */}
+              {/* Regular Chat Button - Commented out for now
               {listing && !listing.openForNegotiation && (() => {
                 const finalListingId = listing?.id 
                   ? String(listing.id).trim() 
@@ -1087,6 +1088,7 @@ export default function ListingDetail() {
                   </Dialog>
                 );
               })()}
+              */}
               
               <BookingWidget
                 listing={{

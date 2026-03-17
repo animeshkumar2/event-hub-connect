@@ -290,7 +290,7 @@ export const Navbar = () => {
                       className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md hover:bg-primary/5"
                       asChild
                     >
-                      <Link to="/profile">
+                      <Link to="/customer/orders">
                         <User className="h-3.5 w-3.5 mr-1.5" />
                         My Orders
                       </Link>
@@ -313,7 +313,7 @@ export const Navbar = () => {
                     className="h-8 px-3 text-xs font-medium transition-all duration-200 rounded-md hover:bg-primary/5"
                     asChild
                   >
-                    <Link to="/profile">
+                    <Link to="/customer/dashboard">
                       <User className="h-3.5 w-3.5 mr-1.5" />
                       {user.fullName || user.email.split('@')[0]}
                     </Link>
@@ -480,7 +480,7 @@ export const Navbar = () => {
                         asChild 
                         className="flex-1 h-8 text-xs font-medium border-border"
                       >
-                        <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                        <Link to="/customer/orders" onClick={() => setMobileMenuOpen(false)}>
                           <User className="h-3.5 w-3.5 mr-1.5" />
                           My Orders
                         </Link>
@@ -503,7 +503,7 @@ export const Navbar = () => {
                       asChild 
                       className="flex-1 h-8 text-xs font-medium border-border"
                     >
-                      <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                      <Link to="/customer/dashboard" onClick={() => setMobileMenuOpen(false)}>
                         <User className="h-3.5 w-3.5 mr-1.5" />
                         {user.fullName || user.email.split('@')[0]}
                       </Link>

@@ -98,9 +98,9 @@ const OrderDetails = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 {error instanceof Error ? error.message : 'The order you are looking for does not exist.'}
               </p>
-              <Button onClick={() => navigate('/profile')} variant="outline" size="sm">
+              <Button onClick={() => navigate('/customer/orders')} variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Profile
+                Back to Orders
               </Button>
             </CardContent>
           </Card>
@@ -120,11 +120,11 @@ const OrderDetails = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/customer/orders')}
             className="gap-1.5 mb-3"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Profile
+            Back to Orders
           </Button>
           <div className="flex items-center justify-between">
             <div>

@@ -3,7 +3,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { useStats } from '@/shared/hooks/useApi';
 import { 
   Star, 
   Users, 
@@ -36,7 +35,7 @@ import {
   Mic,
   Brush
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/components/ui/dialog';
 
 
@@ -68,32 +67,11 @@ const FAQS = [
   },
 ];
 
-const EARLY_BIRD_LIMIT = 100;
-const FOMO_ALREADY_BOOKED = 49; // For FOMO: show 49 out of 100 already booked
-
 export default function VendorLandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
-  
-  // Fetch vendor count for dynamic spots remaining
-  const { data: stats, loading: statsLoading } = useStats();
-  
-  // Calculate remaining spots (starting from 51 to create FOMO - 49 already "booked")
-  const spotsRemaining = useMemo(() => {
-    // Use cached data if available, even if still loading fresh data
-    if (!stats) {
-      return null; // Return null only if no data at all (not even cached)
-    }
-    const vendorCount = stats?.vendorCount || stats?.vendors || 0;
-    // Start from 51 (100 - 49 fake booked), then subtract actual registrations
-    const remaining = EARLY_BIRD_LIMIT - FOMO_ALREADY_BOOKED - vendorCount;
-    return Math.max(0, remaining);
-  }, [stats]);
-  
-  // Determine if early bird offer is still available (only when data is loaded)
-  const isEarlyBirdAvailable = spotsRemaining !== null && spotsRemaining > 0;
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
@@ -167,36 +145,24 @@ export default function VendorLandingPage() {
         <div className="container mx-auto px-4 sm:px-6 relative">
           <div className="max-w-4xl mx-auto text-center">
             <Badge className="mb-4 sm:mb-6 bg-primary/10 text-primary border-primary/20 text-xs sm:text-sm">
-              Early Access - Limited Spots Available
+              India's Event Marketplace
             </Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-6 px-2">
               Get More Customers for Your{' '}
               <span className="text-primary">Event Business</span>
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-2">
-              Secure your spot in India's only event marketplace. Join our early vendor network 
-              and reach customers planning weddings, parties, cultural ceremonies, and more.
+              List your services on India's growing event marketplace. Reach customers 
+              planning weddings, parties, cultural ceremonies, and more.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
               <Button size="lg" className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 gap-2 w-full sm:w-auto" onClick={handleGetStarted}>
-                Get Listed Now - It's Free
+                Get Listed Now
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
-            
-            {/* Dynamic Spots Remaining Badge */}
-            {spotsRemaining !== null && isEarlyBirdAvailable ? (
-              <div className="mt-4 sm:mt-6 inline-flex flex-col sm:flex-row items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full px-4 sm:px-6 py-2 sm:py-3 mx-2">
-                <span className="text-base sm:text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                  only {spotsRemaining} spots left
-                </span>
-                <span className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-                  - First 100 vendors get FREE forever access
-                </span>
-              </div>
-            ) : null}
             <p className="text-xs sm:text-sm text-muted-foreground mt-3 sm:mt-4 px-4">
-              ✓ 100% Free to join &nbsp;•&nbsp; ✓ Setup in 5 minutes &nbsp;•&nbsp; ✓ Cancel anytime
+              ✓ Quick setup &nbsp;•&nbsp; ✓ Easy to manage &nbsp;•&nbsp; ✓ Cancel anytime
             </p>
           </div>
         </div>
@@ -259,7 +225,7 @@ export default function VendorLandingPage() {
                     <span className="text-lg sm:text-xl font-bold text-primary">3</span>
                   </div>
                 </div>
-                <h3 className="font-bold text-lg sm:text-xl text-white mb-2">Start Getting Free Leads</h3>
+                <h3 className="font-bold text-lg sm:text-xl text-white mb-2">Start Getting Leads</h3>
                 <p className="text-white/80 text-xs sm:text-sm leading-relaxed">Get customer bookings & enquiries directly on the platform.</p>
               </div>
             </div>
@@ -376,7 +342,7 @@ export default function VendorLandingPage() {
             </div>
           </div>
 
-          {/* Lalach Section + Early Vendor Benefits */}
+          {/* Growth Section + Vendor Benefits */}
           <div className="mb-8 sm:mb-12 md:mb-16">
             <Card className="overflow-hidden border-0 bg-gradient-to-r from-primary via-primary/95 to-primary/90 text-white relative">
               <div className="absolute inset-0 overflow-hidden">
@@ -392,29 +358,29 @@ export default function VendorLandingPage() {
                       <span className="text-xs sm:text-sm font-medium uppercase tracking-wider opacity-80">Growth Potential</span>
                     </div>
                     <blockquote className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight mb-4 sm:mb-6">
-                      "Vendors on CartEvent may get <span className="text-yellow-300">3x more bookings</span> than traditional marketing methods"
+                      "Reach more customers and <span className="text-yellow-300">grow your bookings</span> with India's event marketplace"
                     </blockquote>
                     <div className="flex items-center gap-3 sm:gap-4">
                       <div className="flex items-center gap-2 bg-white/10 rounded-full px-3 sm:px-4 py-1.5 sm:py-2">
                         <Target className="h-3 w-3 sm:h-4 sm:w-4" />
-                        <span className="text-xs sm:text-sm font-medium">2026 Target: 1000+ Vendors</span>
+                        <span className="text-xs sm:text-sm font-medium">Growing network of vendors & customers</span>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Right - Early Vendor Benefits */}
+                  {/* Right - Vendor Benefits */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20">
                     <h3 className="font-bold text-lg sm:text-xl mb-3 sm:mb-4 flex items-center gap-2">
                       <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-300" />
-                      Early Vendor Benefits
+                      Vendor Benefits
                     </h3>
                     <ul className="space-y-2 sm:space-y-3">
                       {[
-                        spotsRemaining !== null ? `First 100 vendors - FREE forever (only ${spotsRemaining} spots left)` : "First 100 vendors - FREE forever",
-                        "Unlimited listings - no restrictions",
-                        "0% commission - keep 100% of your earnings",
-                        "Priority placement in search results",
-                        "Featured in our launch marketing campaigns"
+                        "Unlimited listings - showcase all your services",
+                        "Direct customer connections - no middleman",
+                        "Smart calendar & booking management",
+                        "Analytics & insights to grow your business",
+                        "Reviews & ratings to build trust"
                       ].map((benefit, i) => (
                         <li key={i} className="flex items-start gap-2 sm:gap-3">
                           <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 flex-shrink-0 mt-0.5" />
@@ -422,19 +388,6 @@ export default function VendorLandingPage() {
                         </li>
                       ))}
                     </ul>
-                    {spotsRemaining !== null && isEarlyBirdAvailable ? (
-                      <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-yellow-500/20 border border-yellow-400/30 rounded-lg">
-                        <p className="text-yellow-200 text-xs sm:text-sm font-medium text-center">
-                          ⏰ Hurry! Only <span className="font-bold text-base sm:text-lg">{spotsRemaining}</span> early bird spots remaining!
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-4 p-3 bg-red-500/20 border border-red-400/30 rounded-lg">
-                        <p className="text-red-200 text-sm font-medium text-center">
-                          ❌ Early bird offer has ended. Standard pricing applies.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -447,7 +400,7 @@ export default function VendorLandingPage() {
               { icon: MessageSquare, title: "Real-time Chat", desc: "Instant customer messaging", color: "text-blue-500", bg: "bg-blue-500/10" },
               { icon: Star, title: "Reviews & Ratings", desc: "Build trust with feedback", color: "text-yellow-500", bg: "bg-yellow-500/10" },
               { icon: Package, title: "Unlimited Listings", desc: "Create packages freely", color: "text-purple-500", bg: "bg-purple-500/10" },
-              { icon: BadgeCheck, title: "100% Free", desc: "No listing fees ever", color: "text-green-500", bg: "bg-green-500/10" },
+              { icon: BadgeCheck, title: "Verified Profiles", desc: "Build credibility & trust", color: "text-green-500", bg: "bg-green-500/10" },
             ].map((feature, i) => (
               <Card key={i} className="border hover:border-primary/30 transition-all hover:shadow-lg group">
                 <CardContent className="p-3 sm:p-4 md:p-5 text-center">

@@ -363,7 +363,7 @@ export const MinimalNavbar = () => {
                       Dashboard
                     </Link>
                   ) : (
-                    <Link to="/profile">
+                    <Link to="/customer/dashboard">
                       <User className="h-3.5 w-3.5 mr-1.5" />
                       {user.fullName || user.email.split('@')[0]}
                     </Link>
@@ -473,7 +473,7 @@ export const MinimalNavbar = () => {
                         Dashboard
                       </Link>
                     ) : (
-                      <Link to="/profile" onClick={closeMobileMenu}>
+                      <Link to="/customer/dashboard" onClick={closeMobileMenu}>
                         <User className="h-4 w-4 mr-2" />
                         {user.fullName || user.email.split('@')[0]}
                       </Link>

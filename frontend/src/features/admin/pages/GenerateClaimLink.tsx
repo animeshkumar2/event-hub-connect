@@ -77,7 +77,7 @@ Just click the link and press "Claim My Account" - takes 10 seconds!
 Benefits:
 ✅ Get direct bookings from customers
 ✅ Verified business badge
-✅ 100% FREE to start
+✅ Easy to get started
 
 Questions? Reply to this message.
 

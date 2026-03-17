@@ -1,0 +1,51 @@
+import { ReactNode, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { CustomerSidebar } from './CustomerSidebar';
+import { Button } from '@/shared/components/ui/button';
+import { Menu } from 'lucide-react';
+
+interface CustomerLayoutProps {
+  children: ReactNode;
+}
+
+export const CustomerLayout = ({ children }: CustomerLayoutProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <CustomerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Mobile top bar */}
+      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 h-14 border-b border-border bg-background/95 backdrop-blur">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-foreground"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open navigation"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <Link to="/customer/dashboard" className="flex items-center gap-2">
+          <span className="text-base font-semibold text-[#5046E5]">
+            cartevent<span className="text-[#7C6BFF]">.</span>
+          </span>
+          <span className="text-xs text-muted-foreground">My Account</span>
+        </Link>
+        <div className="w-10" />
+      </header>
+
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed -inset-96 z-30 bg-black/40"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <main className="min-h-screen bg-background transition-all duration-300 md:ml-64">
+        {children}
+      </main>
+    </div>
+  );
+};
