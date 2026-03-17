@@ -58,7 +58,9 @@ public class ListingMapper {
                     
                     switch (categoryId) {
                         case "caterer":
-                            if (categoryData.has("pricePerPlateVeg")) {
+                            if (categoryData.has("pricePerPlate")) {
+                                extractedPrice = new BigDecimal(categoryData.get("pricePerPlate").asText());
+                            } else if (categoryData.has("pricePerPlateVeg")) {
                                 extractedPrice = new BigDecimal(categoryData.get("pricePerPlateVeg").asText());
                             } else if (categoryData.has("pricePerPlateNonVeg")) {
                                 extractedPrice = new BigDecimal(categoryData.get("pricePerPlateNonVeg").asText());

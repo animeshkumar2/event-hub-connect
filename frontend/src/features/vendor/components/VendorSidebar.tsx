@@ -186,6 +186,11 @@ export const VendorSidebar = ({ isOpen = false, onClose }: VendorSidebarProps) =
                       {item.label}
                     </span>
                   )}
+                  {!collapsed && item.isNew && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-full">
+                      NEW
+                    </span>
+                  )}
                   {!collapsed && item.locked && (
                     <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
                   )}

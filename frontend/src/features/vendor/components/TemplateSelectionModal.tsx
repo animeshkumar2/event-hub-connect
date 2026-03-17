@@ -298,6 +298,7 @@ export function TemplateSelectionModal({
     
     try {
       const categoryPrice = selectedTemplate.categorySpecificData?.price 
+        || selectedTemplate.categorySpecificData?.pricePerPlate
         || selectedTemplate.categorySpecificData?.pricePerPlateVeg 
         || selectedTemplate.categorySpecificData?.bridalPrice 
         || selectedTemplate.displayPrice 

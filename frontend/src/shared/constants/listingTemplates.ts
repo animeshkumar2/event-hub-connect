@@ -353,8 +353,8 @@ const decoratorPackage: PackageTemplate = {
 
 // ============================================
 // CATERING TEMPLATES
-// Fields: pricePerPlateVeg, pricePerPlateNonVeg, cuisineType, serviceStyle,
-//         minGuests, maxGuests, menuItems, includes, liveCounters, liveCounterTypes
+// Fields: foodType, pricePerPlate, cuisineTypes, serviceStyle,
+//         minGuests, menuItems, includes
 // ============================================
 
 const cateringItems: ListingTemplate[] = [
@@ -374,16 +374,13 @@ const cateringItems: ListingTemplate[] = [
     deliveryTime: 'same_day',
     eventTypeIds: [1, 2, 3, 4, 5, 6],
     categorySpecificData: {
-      pricePerPlateVeg: undefined,
-      pricePerPlateNonVeg: undefined,
-      cuisineType: ['North Indian', 'South Indian', 'Chinese'],
-      serviceStyle: 'Buffet',
+      foodType: 'Veg',
+      pricePerPlate: undefined,
+      cuisineTypes: ['North Indian', 'South Indian', 'Chinese'],
+      serviceStyle: ['Buffet'],
       minGuests: 50,
-      maxGuests: 500,
-      menuItems: '4 starters (paneer tikka, spring rolls, samosa, pakora), 6 main courses (dal makhani, paneer butter masala, mix veg, chole, aloo gobi, palak paneer), 3 breads (naan, roti, paratha), jeera rice, veg biryani, 3 desserts (gulab jamun, rasmalai, ice cream)',
-      includes: ['Servers/Waiters', 'Crockery & Cutlery', 'Setup & Decoration', 'Cleanup Service'],
-      liveCounters: true,
-      liveCounterTypes: ['Chaat Counter', 'Dosa Counter']
+      menuItems: JSON.stringify({ "Welcome Drinks": { count: 2, items: ["Mango Delight", "Green Ice"] }, "Appetizers": { count: 4, items: ["Paneer Tikka", "Spring Rolls", "Samosa", "Pakora"] }, "Soup": { count: 2, items: ["Tomato Soup", "Manchow Soup"] }, "Main Course": { count: 4, items: ["Dal Makhani", "Paneer Butter Masala", "Mix Veg", "Veg Kofta Curry", "Dum Aloo", "Palak Paneer"] }, "Rice & Breads": { count: 3, items: ["Jeera Rice", "Veg Biryani", "Butter Naan", "Masala Kulcha", "Roti"] }, "Accompaniments": { count: 5, items: ["Salad", "Raita", "Papad", "Pickles", "Chutneys"] }, "Desserts": { count: 3, items: ["Gulab Jamun", "Rasmalai", "Ice Cream"] } }),
+      includes: ['Servers/Waiters', 'Crockery & Cutlery', 'Setup & Cleanup', 'Buffet Warmers'],
     }
   },
   {
@@ -402,16 +399,13 @@ const cateringItems: ListingTemplate[] = [
     deliveryTime: 'same_day',
     eventTypeIds: [1, 2, 3, 4, 5],
     categorySpecificData: {
-      pricePerPlateVeg: undefined,
-      pricePerPlateNonVeg: undefined,
-      cuisineType: ['North Indian', 'Multi-Cuisine', 'Chinese'],
-      serviceStyle: 'Buffet',
+      foodType: 'Non-Veg',
+      pricePerPlate: undefined,
+      cuisineTypes: ['North Indian', 'Multi-Cuisine', 'Chinese'],
+      serviceStyle: ['Buffet'],
       minGuests: 50,
-      maxGuests: 400,
-      menuItems: '4 starters (2 veg: paneer tikka, spring rolls; 2 non-veg: chicken tikka, fish fry), 7 main courses (dal makhani, paneer, mix veg, butter chicken, mutton curry, fish curry, egg curry), chicken biryani, 3 desserts',
-      includes: ['Servers/Waiters', 'Crockery & Cutlery', 'Setup & Decoration', 'Cleanup Service', 'Welcome Drinks'],
-      liveCounters: true,
-      liveCounterTypes: ['Grill Counter', 'Chaat Counter']
+      menuItems: JSON.stringify({ "Welcome Drinks": { count: 2, items: ["Mango Delight", "Lemon Mint Cooler"] }, "Appetizers": { count: 4, items: ["Paneer Tikka", "Spring Rolls", "Chicken Tikka", "Fish Fry"] }, "Soup": { count: 2, items: ["Tomato Soup", "Manchow Soup"] }, "Main Course": { count: 5, items: ["Dal Makhani", "Paneer Butter Masala", "Mix Veg", "Butter Chicken", "Mutton Curry", "Fish Curry", "Egg Curry"] }, "Rice & Breads": { count: 3, items: ["Chicken Biryani", "Jeera Rice", "Butter Naan", "Masala Kulcha"] }, "Accompaniments": { count: 5, items: ["Salad", "Raita", "Papad", "Pickles", "Chutneys"] }, "Desserts": { count: 3, items: ["Gulab Jamun", "Rasmalai", "Ice Cream"] } }),
+      includes: ['Servers/Waiters', 'Crockery & Cutlery', 'Setup & Cleanup', 'Buffet Warmers', 'Mineral Water'],
     }
   },
   {
@@ -430,16 +424,13 @@ const cateringItems: ListingTemplate[] = [
     deliveryTime: 'same_day',
     eventTypeIds: [1, 3, 5],
     categorySpecificData: {
-      pricePerPlateVeg: undefined,
-      pricePerPlateNonVeg: undefined,
-      cuisineType: ['Multi-Cuisine'],
-      serviceStyle: 'Food Stations',
+      foodType: 'Veg',
+      pricePerPlate: undefined,
+      cuisineTypes: ['Multi-Cuisine'],
+      serviceStyle: ['Live Counters'],
       minGuests: 30,
-      maxGuests: 200,
-      menuItems: 'Chaat counter, Dosa counter, Pasta counter, Grill counter',
-      includes: ['Servers/Waiters', 'Setup & Decoration'],
-      liveCounters: true,
-      liveCounterTypes: ['Chaat Counter', 'Dosa Counter', 'Pasta Counter', 'Grill Counter']
+      menuItems: JSON.stringify({ "Live Counters": { count: 4, items: ["Chaat Counter", "Dosa Counter", "Pasta Counter", "Grill Counter"] } }),
+      includes: ['Servers/Waiters', 'Setup & Cleanup'],
     }
   }
 ];

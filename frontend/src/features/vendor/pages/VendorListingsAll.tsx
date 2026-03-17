@@ -121,7 +121,7 @@ export default function VendorListingsAll() {
         let extractedPrice = 0;
         switch (categoryId) {
           case 'caterer':
-            extractedPrice = categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+            extractedPrice = categoryData.pricePerPlate || categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
             break;
           case 'photographer':
           case 'cinematographer':

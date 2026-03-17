@@ -205,7 +205,7 @@ export default function AdminListingFullEdit() {
     if (catId === 'other') {
       hasPrice = true;
     } else if (catId === 'caterer') {
-      hasPrice = categoryData?.pricePerPlateVeg && parseFloat(categoryData.pricePerPlateVeg) > 0;
+      hasPrice = (categoryData?.pricePerPlate && parseFloat(categoryData.pricePerPlate) > 0) || (categoryData?.pricePerPlateVeg && parseFloat(categoryData.pricePerPlateVeg) > 0);
     } else if (catId === 'mua') {
       hasPrice = categoryData?.bridalPrice && parseFloat(categoryData.bridalPrice) > 0;
     } else {
@@ -233,7 +233,7 @@ export default function AdminListingFullEdit() {
     const catId = listing.categoryId || listing.listingCategory?.id;
     if (isItem && catId !== 'other') {
       const p = categorySpecificData;
-      finalPrice = p.pricePerPlateVeg || p.price || p.photographyPrice || p.videographyPrice || p.bridalPrice || editForm.price;
+      finalPrice = p.pricePerPlate || p.pricePerPlateVeg || p.price || p.photographyPrice || p.videographyPrice || p.bridalPrice || editForm.price;
     }
     
     setIsSaving(true);
