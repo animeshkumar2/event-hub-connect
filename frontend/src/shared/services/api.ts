@@ -593,6 +593,8 @@ export const vendorApi = {
   }>(`/vendors/listings/${listingId}/delete-check`),
   deleteListing: (listingId: string, force = false) => 
     apiClient.delete<any>(`/vendors/listings/${listingId}${force ? '?force=true' : ''}`),
+  duplicateListing: (listingId: string) =>
+    apiClient.post<any>(`/vendors/listings/${listingId}/duplicate`),
   
   // Add-ons
   getPackageAddOns: (packageId: string) => apiClient.get<any[]>(`/vendors/listings/${packageId}/add-ons`),

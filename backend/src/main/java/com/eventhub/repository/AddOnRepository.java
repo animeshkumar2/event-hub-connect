@@ -11,6 +11,7 @@ import java.util.UUID;
 public interface AddOnRepository extends JpaRepository<AddOn, UUID> {
     List<AddOn> findByPackageListingAndIsActiveTrue(Listing packageListing);
     List<AddOn> findByPackageListing(Listing packageListing);
+    List<AddOn> findByPackageListingAndIsActiveTrueOrderBySortOrderAscTitleAsc(Listing packageListing);
 }
 
 

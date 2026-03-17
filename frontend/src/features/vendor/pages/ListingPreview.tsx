@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,11 +28,14 @@ import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 import { CategorySpecificDisplay } from '@/features/listing/CategorySpecificDisplay';
 import { CategoryFieldRenderer } from '@/features/vendor/components/CategoryFields';
+import { AddOnManager, type AddOnManagerHandle } from '@/features/vendor/components/AddOnManager';
+import { CATALOG_BY_ID } from '@/shared/constants/addOnCatalog';
 import { DeliveryTimeInput } from '@/features/vendor/components/DeliveryTimeInput';
 import { ServiceModeSelector } from '@/shared/components/ServiceModeSelector';
 import { LocationAutocomplete, LocationDTO } from '@/shared/components/LocationAutocomplete';
 import { VendorPackagePreview } from './VendorPackagePreview';
 import { getTemplateById } from '@/shared/constants/listingTemplates';
+import { ListingEditWizard } from '@/features/vendor/components/ListingEditWizard';
 
 interface ExtraCharge { name: string; price: number; }
 
@@ -91,12 +94,15 @@ export default function ListingPreview() {
   const { data: listing, loading, error } = useVendorListingDetails(listingId || null);
   
   const [isEditMode, setIsEditMode] = useState(false);
+  const [useWizardMode, setUseWizardMode] = useState(true); // New: Use step-by-step wizard by default
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [showPublishCelebration, setShowPublishCelebration] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [categorySpecificData, setCategorySpecificData] = useState<Record<string, any>>({});
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
   
   const [draftHighlight, setDraftHighlight] = useState('');
   const [showHighlightInput, setShowHighlightInput] = useState(false);
@@ -112,6 +118,9 @@ export default function ListingPreview() {
   const [editingExtraChargeIndex, setEditingExtraChargeIndex] = useState<number | null>(null);
   
   // Collapsible section states - collapsed by default
+
+  // Add-on manager ref for saving
+  const addOnManagerRef = useRef<AddOnManagerHandle>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     serviceDetails: false,
     eventTypes: false,
@@ -137,6 +146,21 @@ export default function ListingPreview() {
   const { data: eventTypesData } = useEventTypes();
   const eventTypes = useMemo(() => eventTypesData || [], [eventTypesData]);
   const vendorId = listing?.vendorId || listing?.vendor?.id || null;
+
+  // Fetch add-ons for the summary in preview mode
+  const { data: addOnsData } = useQuery({
+    queryKey: ['listingAddOns', listingId],
+    queryFn: async () => {
+      if (!listingId) return [];
+      const response = await vendorApi.getPackageAddOns(listingId);
+      const data = response && typeof response === 'object' && 'data' in response
+        ? (response as any).data : response;
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!listingId,
+    staleTime: 30 * 1000,
+  });
+  const addOnsList = useMemo(() => addOnsData || [], [addOnsData]);
   
   // Check if this is a template-based listing
   const isTemplateBased = useMemo(() => {
@@ -182,7 +206,7 @@ export default function ListingPreview() {
       try {
         const d = JSON.parse(listing.categorySpecificData);
         switch (listing.categoryId) {
-          case 'caterer': return d.pricePerPlateVeg || d.pricePerPlateNonVeg || 0;
+          case 'caterer': return d.pricePerPlate || d.pricePerPlateVeg || d.pricePerPlateNonVeg || 0;
           case 'photographer': case 'cinematographer': case 'videographer': return d.photographyPrice || d.videographyPrice || d.price || 0;
           case 'decorator': case 'venue': case 'dj': case 'live-music': case 'sound-lights': return d.price || 0;
           case 'mua': return d.bridalPrice || d.nonBridalPrice || 0;
@@ -198,7 +222,7 @@ export default function ListingPreview() {
     try {
       const d = JSON.parse(listing.categorySpecificData);
       switch (listing.categoryId) {
-        case 'caterer': return displayPrice === d.pricePerPlateVeg ? '/plate (Veg)' : '/plate (Non-Veg)';
+        case 'caterer': return '/plate';
         case 'mua': return displayPrice === d.bridalPrice ? '(Bridal)' : '(Non-Bridal)';
         default: return null;
       }
@@ -207,71 +231,20 @@ export default function ListingPreview() {
 
   const enterEditMode = useCallback(() => {
     if (!listing) return;
-    
-    let extraChargesDetailed: { name: string; price: string }[] = [];
-    if (listing.extraChargesJson) { try { extraChargesDetailed = JSON.parse(listing.extraChargesJson).map((ec: any) => ({ name: ec.name, price: ec.price?.toString() || '' })); } catch {} }
-    
-    // Parse category-specific data
-    let parsedCategoryData: Record<string, any> = {};
-    if (listing.categorySpecificData) { 
-      try { 
-        let data = listing.categorySpecificData;
-        console.log('[EditMode] Raw categorySpecificData:', data, 'type:', typeof data);
-        
-        // Keep parsing while it's a string (handles multiple levels of stringification)
-        while (typeof data === 'string') {
-          data = JSON.parse(data);
-        }
-        
-        // Ensure it's an object
-        if (data && typeof data === 'object' && !Array.isArray(data)) {
-          parsedCategoryData = data;
-        }
-        
-        console.log('[EditMode] Parsed categorySpecificData:', parsedCategoryData);
-      } catch (e) {
-        console.error('[EditMode] Failed to parse categorySpecificData:', e);
-        console.error('[EditMode] Raw value was:', listing.categorySpecificData);
-      }
-    } else {
-      console.log('[EditMode] No categorySpecificData on listing');
-    }
-    
-    let eventTypeIds: number[] = listing.eventTypeIds || (listing.eventTypes?.map((et: any) => typeof et === 'object' ? et.id : et).filter(Boolean) || []);
-    console.log('[EditMode] Event types debug:', {
-      'listing.eventTypeIds': listing.eventTypeIds,
-      'listing.eventTypes': listing.eventTypes,
-      'computed eventTypeIds': eventTypeIds
-    });
-    setEditForm({
-      name: listing.name || '', description: listing.description || '', price: listing.price?.toString() || '',
-      images: listing.images || [], highlights: listing.highlights || [],
-      includedItemsText: listing.includedItemsText || [], excludedItemsText: listing.excludedItemsText || [],
-      extraChargesDetailed, deliveryTime: listing.deliveryTime || '', customNotes: listing.customNotes || '',
-      serviceMode: listing.serviceMode || 'BOTH', openForNegotiation: listing.openForNegotiation || false,
-      eventTypeIds, minimumQuantity: listing.minimumQuantity || 0,
-      // Custom event type name (when "Other" is selected)
-      customEventTypeName: listing.customEventTypeName || '',
-      // Venue location fields
-      venueAddress: listing.venueAddress || '',
-      venueCity: listing.venueCity || '',
-      venueLatitude: listing.venueLatitude || null,
-      venueLongitude: listing.venueLongitude || null,
-    });
-    setCategorySpecificData(parsedCategoryData);
-    setIsEditMode(true);
-  }, [listing]);
+    // Navigate to the Airbnb-style edit wizard
+    navigate(`/vendor/edit-listing/${listing.id}`);
+  }, [listing, navigate]);
 
   // Auto-enter edit mode if ?edit=true query param
   useEffect(() => {
     const shouldEdit = searchParams.get('edit') === 'true';
-    if (shouldEdit && listing && !isEditMode) {
-      enterEditMode();
-      // Clear the query param
+    if (shouldEdit && listing) {
+      // Clear the query param and navigate to edit wizard
       searchParams.delete('edit');
       setSearchParams(searchParams, { replace: true });
+      navigate(`/vendor/edit-listing/${listing.id}`, { replace: true });
     }
-  }, [searchParams, listing, isEditMode, enterEditMode, setSearchParams]);
+  }, [searchParams, listing, setSearchParams, navigate]);
 
   useEffect(() => {
     const handleEnterEditMode = () => {
@@ -332,7 +305,7 @@ export default function ListingPreview() {
       // For 'other' category, check the generic price field
       hasPrice = categoryData?.price && parseFloat(categoryData.price) > 0;
     } else if (catId === 'caterer') {
-      hasPrice = categoryData?.pricePerPlateVeg && parseFloat(categoryData.pricePerPlateVeg) > 0;
+      hasPrice = (categoryData?.pricePerPlate && parseFloat(categoryData.pricePerPlate) > 0) || (categoryData?.pricePerPlateVeg && parseFloat(categoryData.pricePerPlateVeg) > 0);
     } else if (catId === 'mua') {
       hasPrice = categoryData?.bridalPrice && parseFloat(categoryData.bridalPrice) > 0;
     } else {
@@ -427,7 +400,7 @@ export default function ListingPreview() {
     let finalPrice = editForm.price;
     if (isItem && listing.categoryId !== 'other') {
       const p = categorySpecificData;
-      finalPrice = p.pricePerPlateVeg || p.price || p.photographyPrice || p.videographyPrice || p.bridalPrice || editForm.price;
+      finalPrice = p.pricePerPlate || p.pricePerPlateVeg || p.price || p.photographyPrice || p.videographyPrice || p.bridalPrice || editForm.price;
     }
     
     setIsSaving(true);
@@ -528,6 +501,11 @@ export default function ListingPreview() {
       
       const response = await vendorApi.updateListing(listing.id, payload);
       if (response.success) {
+        // Save add-on changes if any
+        if (addOnManagerRef.current?.hasChanges()) {
+          try { await addOnManagerRef.current.saveAddOns(); } catch { /* toast already shown */ }
+        }
+
         // Optimistic update - directly set the cache with new data
         const updatedListing = {
           ...listing,
@@ -557,6 +535,7 @@ export default function ListingPreview() {
         queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
         queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
         queryClient.invalidateQueries({ queryKey: ['myVendorListings'] });
+        queryClient.invalidateQueries({ queryKey: ['listingAddOns', listingId] });
         // Force refetch the listings data so cards show updated images
         queryClient.refetchQueries({ queryKey: ['myVendorListings'] });
       } else { toast.error(response.message || 'Failed to update'); }
@@ -659,7 +638,8 @@ export default function ListingPreview() {
       if (response.success) {
         localStorage.setItem('vendor_listing_guide_seen', 'true');
         localStorage.removeItem('vendor_listing_guide_phase');
-        queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', listingId] });
+        // Force immediate refetch so the DRAFT bar disappears
+        await queryClient.refetchQueries({ queryKey: ['vendorListingDetails', listingId] });
         setShowPublishCelebration(true);
         queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
         queryClient.invalidateQueries({ queryKey: ['myVendorListings'] });
@@ -722,59 +702,68 @@ export default function ListingPreview() {
     );
   }
 
+  // Render wizard mode when editing
+  if (isEditMode && useWizardMode && editForm) {
+    return (
+      <ListingEditWizard
+        listing={listing}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        categorySpecificData={categorySpecificData}
+        setCategorySpecificData={setCategorySpecificData}
+        onSave={saveChanges}
+        onCancel={cancelEditMode}
+        isSaving={isSaving}
+        canPublish={canPublish}
+        publishRequirements={publishRequirements}
+        pendingImageChanges={pendingImageChanges}
+        setPendingImageChanges={setPendingImageChanges}
+        highlights={editForm?.highlights || []}
+        onAddHighlight={(text) => setEditForm((p: any) => ({ ...p, highlights: [...(p.highlights || []), text] }))}
+        onRemoveHighlight={(index) => setEditForm((p: any) => ({ ...p, highlights: p.highlights.filter((_: any, i: number) => i !== index) }))}
+        onEditHighlight={(index, text) => setEditForm((p: any) => ({ ...p, highlights: p.highlights.map((h: string, i: number) => i === index ? text : h) }))}
+        onPublish={publishListing}
+        isPublishing={isPublishing}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Vendor Owner Banner - Like customer view but with edit controls */}
-      <div className="bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 border-b border-primary/20">
-        <div className="max-w-6xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/15">
-                <Eye className="h-4 w-4 text-primary" />
+    <div className="min-h-screen bg-white">
+      {/* Vendor Owner Banner */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center">
+                <Eye className="h-4 w-4 text-brand" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-primary">Customer's View</p>
-                <p className="text-[10px] text-primary/70">How customers see this service</p>
+                <p className="text-sm font-semibold text-slate-900 leading-tight">Preview</p>
+                <p className="text-xs text-slate-400">How customers see this listing</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {isEditMode ? (
                 <>
-                  <Button variant="outline" size="sm" onClick={cancelEditMode} disabled={isSaving} className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10">
-                    <X className="h-3 w-3 mr-1" />Cancel
+                  <Button variant="outline" size="sm" onClick={cancelEditMode} disabled={isSaving} className="h-8 text-xs gap-1.5">
+                    <X className="h-3.5 w-3.5" />Cancel
                   </Button>
                   {listing.isDraft ? (
-                    // Draft: Always allow saving
-                    <Button size="sm" onClick={saveChanges} disabled={isSaving} data-listing-guide="preview-save-draft" className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white">
-                      {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                    <Button size="sm" onClick={saveChanges} disabled={isSaving} data-listing-guide="preview-save-draft" className="h-8 text-xs gap-1.5 bg-slate-900 hover:bg-slate-800 text-white">
+                      {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                       Save Draft
                     </Button>
                   ) : (
-                    // Published: Only allow saving when all requirements met
                     <div className="relative group">
-                      <Button 
-                        size="sm" 
-                        onClick={saveChanges} 
-                        disabled={isSaving || !canPublish} 
-                        className={cn(
-                          "h-7 text-xs",
-                          canPublish 
-                            ? "bg-green-600 hover:bg-green-700 text-white" 
-                            : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        )}
-                      >
-                        {isSaving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
-                        Save
+                      <Button size="sm" onClick={saveChanges} disabled={isSaving || !canPublish}
+                        className={cn("h-8 text-xs gap-1.5", canPublish ? "bg-slate-900 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                        {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}Save
                       </Button>
                       {!canPublish && (
                         <div className="absolute top-full right-0 mt-1 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
                           <p className="font-medium mb-1">Complete to save:</p>
-                          {missingRequirements.map(r => (
-                            <p key={r.id} className="flex items-center gap-1">
-                              <AlertCircle className="h-2.5 w-2.5 text-amber-400" />
-                              {r.label}
-                            </p>
-                          ))}
+                          {missingRequirements.map(r => (<p key={r.id} className="flex items-center gap-1"><AlertCircle className="h-2.5 w-2.5 text-amber-400" />{r.label}</p>))}
                         </div>
                       )}
                     </div>
@@ -782,38 +771,22 @@ export default function ListingPreview() {
                 </>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/vendor/listings')} className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10">
-                    <ArrowLeft className="h-3 w-3 mr-1" />Back
+                  <Button variant="outline" size="sm" onClick={() => navigate('/vendor/listings')} className="h-8 text-xs gap-1.5">
+                    <ArrowLeft className="h-3.5 w-3.5" />Back
                   </Button>
-                  <Button size="sm" variant="outline" onClick={enterEditMode} className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10">
-                    <Pencil className="h-3 w-3 mr-1" />Edit
+                  <Button size="sm" onClick={enterEditMode} className="h-8 text-xs gap-1.5 bg-brand hover:bg-brand-dark text-white">
+                    <Pencil className="h-3.5 w-3.5" />Edit Listing
                   </Button>
                   {listing.isDraft && (
                     <div className="relative group">
-                      <Button 
-                        size="sm" 
-                        onClick={publishListing} 
-                        disabled={isPublishing || !canPublish} 
-                        data-listing-guide="preview-publish"
-                        className={cn(
-                          "h-7 text-xs",
-                          canPublish 
-                            ? "bg-green-600 hover:bg-green-700 text-white" 
-                            : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                        )}
-                      >
-                        {isPublishing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
-                        Publish
+                      <Button size="sm" onClick={publishListing} disabled={isPublishing || !canPublish} data-listing-guide="preview-publish"
+                        className={cn("h-8 text-xs gap-1.5", canPublish ? "bg-slate-900 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed")}>
+                        {isPublishing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}Publish
                       </Button>
                       {!canPublish && (
                         <div className="absolute top-full right-0 mt-1 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
                           <p className="font-medium mb-1">Complete to publish:</p>
-                          {missingRequirements.map(r => (
-                            <p key={r.id} className="flex items-center gap-1">
-                              <AlertCircle className="h-2.5 w-2.5 text-amber-400" />
-                              {r.label}
-                            </p>
-                          ))}
+                          {missingRequirements.map(r => (<p key={r.id} className="flex items-center gap-1"><AlertCircle className="h-2.5 w-2.5 text-amber-400" />{r.label}</p>))}
                         </div>
                       )}
                     </div>
@@ -826,57 +799,28 @@ export default function ListingPreview() {
       </div>
 
       {isEditMode && (
-        <div className={cn(
-          "border-b-2 py-2 px-4",
-          canPublish 
-            ? "bg-green-50 border-green-300" 
-            : "bg-amber-50 border-amber-300"
-        )}>
+        <div className={cn("border-b py-2 px-4", canPublish ? "bg-slate-50 border-slate-200" : "bg-amber-50/50 border-amber-200")}>
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              {/* Left: Edit mode indicator */}
               <div className="flex items-center gap-2">
-                <div className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-lg",
-                  canPublish ? "bg-green-200" : "bg-amber-200"
-                )}>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-200">
                   <Pencil className="h-3.5 w-3.5" />
-                  <span className="text-xs font-bold">EDITING</span>
+                  <span className="text-xs font-medium">EDITING</span>
                 </div>
-                {listing.isDraft && (
-                  <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded">Draft</span>
-                )}
+                {listing.isDraft && <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Draft</span>}
               </div>
-
-              {/* Center: Checklist items */}
               <div className="flex items-center gap-2 flex-wrap">
                 {publishRequirements.map((req) => (
-                  <div key={req.id} className={cn(
-                    "flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md border",
-                    req.met 
-                      ? "bg-green-100 text-green-700 border-green-300" 
-                      : "bg-red-100 text-red-700 border-red-300"
-                  )}>
-                    {req.met ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : (
-                      <XCircle className="h-3 w-3" />
-                    )}
-                    {req.label}
+                  <div key={req.id} className={cn("flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md border",
+                    req.met ? "bg-white text-slate-700 border-slate-200" : "bg-red-50 text-red-600 border-red-200")}>
+                    {req.met ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}{req.label}
                   </div>
                 ))}
               </div>
-
-              {/* Right: Status */}
               {canPublish ? (
-                <span className="text-[11px] text-green-700 font-medium flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  All fields complete
-                </span>
+                <span className="text-[11px] text-slate-600 font-medium flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />All fields complete</span>
               ) : (
-                <span className="text-[11px] text-amber-700 font-medium">
-                  {listing.isDraft ? 'Complete to publish' : 'Complete to save'}
-                </span>
+                <span className="text-[11px] text-amber-700 font-medium">{listing.isDraft ? 'Complete to publish' : 'Complete to save'}</span>
               )}
             </div>
           </div>
@@ -884,57 +828,35 @@ export default function ListingPreview() {
       )}
 
       {listing.isDraft && !isEditMode && (
-        <div className="bg-amber-50 border-b-2 border-amber-300 py-3 px-4">
+        <div className="bg-slate-50 border-b border-slate-200 py-3 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Left: Draft status with progress */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 bg-amber-200 px-3 py-1.5 rounded-lg">
-                  <span className="text-lg">📝</span>
-                  <span className="text-sm font-bold text-amber-900">DRAFT</span>
+                <div className="flex items-center gap-2 bg-slate-200 px-3 py-1.5 rounded-lg">
+                  <span className="text-sm">📝</span>
+                  <span className="text-xs font-medium text-slate-700">DRAFT</span>
                 </div>
                 <div className="hidden sm:flex items-center gap-1">
-                  <div className="w-24 h-2 bg-amber-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 transition-all duration-300" 
-                      style={{ width: `${(publishRequirements.filter(r => r.met).length / publishRequirements.length) * 100}%` }}
-                    />
+                  <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-slate-900 transition-all duration-300" style={{ width: `${(publishRequirements.filter(r => r.met).length / publishRequirements.length) * 100}%` }} />
                   </div>
-                  <span className="text-xs font-medium text-amber-800">
-                    {publishRequirements.filter(r => r.met).length}/{publishRequirements.length}
-                  </span>
+                  <span className="text-xs text-slate-500">{publishRequirements.filter(r => r.met).length}/{publishRequirements.length}</span>
                 </div>
               </div>
-
-              {/* Center: Checklist items */}
               <div className="flex items-center gap-2 flex-wrap">
                 {publishRequirements.map((req) => (
-                  <div key={req.id} className={cn(
-                    "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border-2 transition-all",
-                    req.met 
-                      ? "bg-green-100 text-green-800 border-green-300" 
-                      : "bg-red-100 text-red-800 border-red-300 animate-pulse"
-                  )}>
-                    {req.met ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    {req.label}
+                  <div key={req.id} className={cn("flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border",
+                    req.met ? "bg-white text-slate-700 border-slate-200" : "bg-red-50 text-red-600 border-red-200")}>
+                    {req.met ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}{req.label}
                   </div>
                 ))}
               </div>
-
-              {/* Right: Status message */}
               {canPublish ? (
-                <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-1.5 rounded-lg">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span className="text-sm font-bold">Ready to Publish!</span>
+                <div className="flex items-center gap-2 bg-slate-900 text-white px-4 py-1.5 rounded-lg">
+                  <CheckCircle2 className="h-4 w-4" /><span className="text-sm font-medium">Ready to Publish</span>
                 </div>
               ) : (
-                <div className="text-xs text-amber-800 font-medium max-w-[150px] text-right">
-                  Complete missing items to publish
-                </div>
+                <div className="text-xs text-slate-500 font-medium max-w-[150px] text-right">Complete missing items to publish</div>
               )}
             </div>
           </div>
@@ -942,13 +864,92 @@ export default function ListingPreview() {
       )}
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left - Main */}
-          <div className="lg:col-span-2 space-y-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
 
-            {/* Images */}
-            {isEditMode ? (
+        {/* Full-width image grid (view mode only) */}
+        {!isEditMode && (
+          <div className="rounded-2xl overflow-hidden mb-6">
+            {listing.images?.length >= 5 ? (
+              /* 5+ images: 1 large left + 4 small right grid */
+              <div className="grid grid-cols-4 gap-1.5 h-[340px] sm:h-[420px]">
+                <button onClick={() => { setSelectedImageIndex(0); setShowAllPhotos(true); }} className="relative col-span-2 row-span-2 overflow-hidden group cursor-pointer">
+                  <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(1); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[1]} alt={`${listing.name} 2`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(2); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[2]} alt={`${listing.name} 3`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(3); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[3]} alt={`${listing.name} 4`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(4); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[4]} alt={`${listing.name} 5`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {listing.images.length > 5 && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">+{listing.images.length - 5} more</span>
+                    </div>
+                  )}
+                </button>
+              </div>
+            ) : listing.images?.length === 4 ? (
+              /* 4 images: 1 large left + 3 right (1 top spanning full, 2 bottom) */
+              <div className="grid grid-cols-4 gap-1.5 h-[340px] sm:h-[420px]">
+                <button onClick={() => { setSelectedImageIndex(0); setShowAllPhotos(true); }} className="relative col-span-2 row-span-2 overflow-hidden group cursor-pointer">
+                  <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(1); setShowAllPhotos(true); }} className="relative col-span-2 overflow-hidden group cursor-pointer">
+                  <img src={listing.images[1]} alt={`${listing.name} 2`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(2); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[2]} alt={`${listing.name} 3`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(3); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[3]} alt={`${listing.name} 4`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+              </div>
+            ) : listing.images?.length === 3 ? (
+              /* 3 images: 1 large left + 2 stacked right */
+              <div className="grid grid-cols-3 gap-1.5 h-[340px] sm:h-[420px]">
+                <button onClick={() => { setSelectedImageIndex(0); setShowAllPhotos(true); }} className="relative col-span-2 row-span-2 overflow-hidden group cursor-pointer">
+                  <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(1); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[1]} alt={`${listing.name} 2`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(2); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[2]} alt={`${listing.name} 3`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+              </div>
+            ) : listing.images?.length === 2 ? (
+              <div className="grid grid-cols-2 gap-1.5 h-[300px] sm:h-[400px]">
+                <button onClick={() => { setSelectedImageIndex(0); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+                <button onClick={() => { setSelectedImageIndex(1); setShowAllPhotos(true); }} className="relative overflow-hidden group cursor-pointer">
+                  <img src={listing.images[1]} alt={`${listing.name} 2`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+              </div>
+            ) : listing.images?.length === 1 ? (
+              <button onClick={() => { setSelectedImageIndex(0); setShowAllPhotos(true); }} className="relative w-full h-[300px] sm:h-[420px] overflow-hidden group cursor-pointer">
+                <img src={listing.images[0]} alt={listing.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </button>
+            ) : (
+              <div className="w-full h-[240px] bg-slate-50 flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200">
+                <Camera className="h-14 w-14 text-slate-200" />
+                <span className="text-xs text-slate-300">No photos yet</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Left - Main */}
+          <div className="lg:col-span-2 space-y-0">
+
+            {/* Images — edit mode only (view mode is full-width above) */}
+            {isEditMode && (
               <Card data-listing-guide="preview-photos"><CardContent className="p-4">
                 <Label className="text-xs font-medium mb-2 block">Photos <span className="text-red-500">*</span></Label>
                 <ImageUpload 
@@ -964,36 +965,6 @@ export default function ListingPreview() {
                   </p>
                 )}
               </CardContent></Card>
-            ) : (
-              <div className="space-y-2">
-                {/* Main Image */}
-                <div className="relative rounded-xl overflow-hidden bg-slate-100 min-h-[200px] max-h-[500px] flex items-center justify-center">
-                  {listing.images?.[selectedImageIndex] ? (
-                    <img src={listing.images[selectedImageIndex]} alt={listing.name} className="max-w-full max-h-[500px] object-contain" />
-                  ) : listing.images?.[0] ? (
-                    <img src={listing.images[0]} alt={listing.name} className="max-w-full max-h-[500px] object-contain" />
-                  ) : (
-                    <div className="w-full h-[200px] flex items-center justify-center"><Camera className="h-12 w-12 text-slate-400" /></div>
-                  )}
-                  <div className="absolute top-3 left-3 flex gap-2">
-                    {isPackage && <Badge className="bg-primary text-white text-xs px-2 py-1"><Package className="h-3 w-3 mr-1" />Package</Badge>}
-                    {isItem && <Badge className="bg-emerald-500 text-white text-xs px-2 py-1">Service</Badge>}
-                  </div>
-                  {listing.images?.length > 1 && (
-                    <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">{selectedImageIndex + 1} / {listing.images.length}</div>
-                  )}
-                </div>
-                {/* Thumbnail Gallery */}
-                {listing.images?.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {listing.images.map((img: string, i: number) => (
-                      <button key={i} onClick={() => setSelectedImageIndex(i)} className={cn("flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all", selectedImageIndex === i ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-slate-300")}>
-                        <img src={img} alt={`${listing.name} ${i + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             )}
 
             {/* Header */}
@@ -1017,115 +988,403 @@ export default function ListingPreview() {
                 <div><Label className="text-xs">Description</Label><Textarea value={editForm?.description || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, description: e.target.value }))} rows={3} className="text-sm mt-1" /></div>
               </CardContent></Card>
             ) : (
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">{listing.name}</h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-slate-500">
-                  <span className="flex items-center gap-1"><User className="h-4 w-4" /><span className="font-medium">{listing.vendorName}</span></span>
-                  {listing.vendorCity && <><span className="text-slate-300">•</span><span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{listing.vendorCity}</span></>}
-                  {listing.vendorRating > 0 && <><span className="text-slate-300">•</span><span className="flex items-center gap-1"><Star className="h-4 w-4 fill-amber-400 text-amber-400" />{listing.vendorRating.toFixed(1)}</span></>}
+              <div className="pt-5 pb-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight tracking-tight">{listing.name}</h1>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-sm text-slate-500">
+                  <span className="flex items-center gap-1.5"><User className="h-4 w-4" />{listing.vendorName}</span>
+                  {listing.vendorCity && <><span className="text-slate-200">·</span><span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{listing.vendorCity}</span></>}
+                  {listing.vendorRating > 0 && <><span className="text-slate-200">·</span><span className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-brand text-brand" />{listing.vendorRating.toFixed(1)}</span></>}
+                  <span className="text-slate-200">·</span>
+                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{listing.categoryName || listing.categoryId}</span>
+                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">{listing.type === 'PACKAGE' ? 'Package' : 'Service'}</span>
+                  <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full", listing.isActive ? "bg-brand/10 text-brand" : "bg-slate-100 text-slate-400")}>
+                    <span className={cn("w-1.5 h-1.5 rounded-full", listing.isActive ? "bg-brand" : "bg-slate-300")} />
+                    {listing.isActive ? 'Live' : 'Inactive'}
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* Description (view only) */}
-            {!isEditMode && listing.description && (
-              <Card><CardContent className="p-4">
-                <p className="text-sm text-slate-600 leading-relaxed">{listing.description}</p>
-              </CardContent></Card>
+            {/* ===== TAB BAR (view mode only) ===== */}
+            {!isEditMode && (() => {
+              const hasDetails = !!listing.categorySpecificData;
+              const hasEvents = listing.eventTypeIds?.length > 0;
+              const hasNotes = !!listing.customNotes;
+              const tabs = [
+                { id: 'overview', label: 'Overview' },
+                { id: 'pricing', label: 'Pricing' },
+                ...(hasDetails ? [{ id: 'details', label: 'Details' }] : []),
+                ...(hasEvents ? [{ id: 'events', label: 'Events' }] : []),
+                ...(hasNotes ? [{ id: 'notes', label: 'Notes' }] : []),
+              ];
+              return (
+                <div className="border-b border-slate-200 sticky top-0 bg-white z-20">
+                  <div className="flex gap-0 overflow-x-auto">
+                    {tabs.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                          "px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-colors relative",
+                          activeTab === tab.id
+                            ? "text-slate-900"
+                            : "text-slate-400 hover:text-slate-600"
+                        )}
+                      >
+                        {tab.label}
+                        {activeTab === tab.id && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand rounded-full" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ===== TAB: OVERVIEW ===== */}
+            {!isEditMode && activeTab === 'overview' && (
+              <div className="space-y-0">
+                {/* Description */}
+                {listing.description && (
+                  <div className="py-6 border-b border-slate-100">
+                    <p className="text-[15px] text-slate-600 leading-relaxed">{listing.description}</p>
+                  </div>
+                )}
+
+                {/* Key Highlights */}
+                {displayHighlights.length > 0 && (
+                  <div className="py-6 border-b border-slate-100">
+                    <h3 className="text-base font-semibold text-slate-900 mb-4">Key Highlights</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {displayHighlights.map((item: string, i: number) => (
+                        <div key={i} className="relative rounded-xl bg-gradient-to-br from-brand/[0.05] to-brand/[0.10] border border-brand/10 px-4 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-brand/15 flex items-center justify-center flex-shrink-0">
+                              <Sparkles className="h-4 w-4 text-brand" />
+                            </div>
+                            <span className="text-sm font-medium text-slate-800">{item}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+
+                {/* Add-Ons (decorator only) */}
+                {listing.categoryId === 'decorator' && addOnsList.length > 0 && (
+                  <div className="py-6 border-b border-slate-100" id="addon-manager-section">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-base font-semibold text-slate-900">Add-Ons & Activities</h3>
+                      <span className="text-xs text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{addOnsList.length} available</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {addOnsList.map((a: any) => {
+                        const catalogItem = a.description ? CATALOG_BY_ID.get(a.description) : null;
+                        const imgUrl = a.imageUrl || catalogItem?.imageUrl;
+                        return (
+                          <div key={a.id} className="rounded-2xl overflow-hidden border border-slate-200/80 bg-white group shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
+                              {imgUrl ? (
+                                <img src={imgUrl} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-slate-50">
+                                  <Package className="h-8 w-8 text-slate-200" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3">
+                              <p className="text-sm font-medium text-slate-900 line-clamp-1">{a.title}</p>
+                              <p className="text-sm font-semibold text-slate-700 mt-1">₹{Number(a.price).toLocaleString('en-IN')}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Bundled Items (packages only) */}
+                {isPackage && linkedItems.length > 0 && (
+                  <div className="py-6 border-b border-slate-100">
+                    <h3 className="text-base font-semibold text-slate-900 mb-5">What's Included · {linkedItems.length} services</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {linkedItems.map((item: any) => (
+                        <div key={item.id} className="group rounded-2xl border border-slate-200/80 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                            {item.images?.[0] ? (
+                              <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><Package className="h-6 w-6 text-slate-300" /></div>
+                            )}
+                          </div>
+                          <div className="p-3">
+                            <p className="text-sm font-medium text-slate-900 truncate">{item.name}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{item.categoryName || 'Service'}</p>
+                            <p className="text-sm font-semibold text-slate-700 mt-1.5">₹{Number(item.price).toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
-            {/* 1. KEY HIGHLIGHTS - Compact Design (NOT collapsible) */}
-            {(displayHighlights.length > 0 || isEditMode) && (
+            {/* ===== TAB: PRICING ===== */}
+            {!isEditMode && activeTab === 'pricing' && (
+              <div className="py-6 space-y-5">
+                {/* Price hero + badges */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-slate-500 mb-1">Price</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm text-brand/60">₹</span>
+                        <span className="text-4xl font-bold text-slate-900 tracking-tight">{displayPrice.toLocaleString('en-IN')}</span>
+                        {priceLabel && <span className="text-sm text-slate-400 ml-1">{priceLabel}</span>}
+                        {isItem && listing.unit && !priceLabel && <span className="text-sm text-slate-400 ml-1">/{listing.unit}</span>}
+                      </div>
+                    </div>
+                    <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border", listing.openForNegotiation ? "border-brand/20 bg-brand/5 text-brand" : "border-slate-100 bg-slate-50 text-slate-400")}>
+                      <IndianRupee className="h-3 w-3" />
+                      {listing.openForNegotiation ? 'Negotiable' : 'Fixed'}
+                    </span>
+                  </div>
+
+                  {/* Min plates for caterer */}
+                  {listing.categoryId === 'caterer' && (() => {
+                    let minPlates = listing.minimumQuantity;
+                    if ((!minPlates || minPlates <= 1) && listing.categorySpecificData) {
+                      try {
+                        const csd = typeof listing.categorySpecificData === 'string' ? JSON.parse(listing.categorySpecificData) : listing.categorySpecificData;
+                        if (csd.minOrderPlates && parseInt(csd.minOrderPlates) > 0) minPlates = parseInt(csd.minOrderPlates);
+                      } catch {}
+                    }
+                    return minPlates > 0 ? (
+                      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 text-sm text-slate-500">
+                        <Users className="h-4 w-4 text-slate-400" />
+                        Minimum order: {minPlates} plates
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+
+                {/* Category-specific pricing tiers */}
+                {listing.categorySpecificData && (() => {
+                  try {
+                    const catData = JSON.parse(listing.categorySpecificData);
+                    const cards: { label: string; value: string; sublabel?: string }[] = [];
+
+                    if (listing.categoryId === 'caterer') {
+                      if (!catData.pricePerPlate && catData.pricePerPlateNonVeg > 0) cards.push({ label: 'Non-Veg', value: `₹${Number(catData.pricePerPlateNonVeg).toLocaleString('en-IN')}`, sublabel: 'per plate' });
+                      if (catData.minGuests) cards.push({ label: 'Min Guests', value: String(catData.minGuests) });
+                      if (catData.maxGuests > 0) cards.push({ label: 'Max Guests', value: String(catData.maxGuests) });
+                    } else if (listing.categoryId === 'mua') {
+                      if (catData.familyPrice > 0) cards.push({ label: 'Family', value: `₹${Number(catData.familyPrice).toLocaleString('en-IN')}`, sublabel: 'per person' });
+                      if (catData.guestPrice > 0) cards.push({ label: 'Guest', value: `₹${Number(catData.guestPrice).toLocaleString('en-IN')}`, sublabel: 'per person' });
+                      if (catData.trialPrice > 0) cards.push({ label: 'Trial', value: `₹${Number(catData.trialPrice).toLocaleString('en-IN')}`, sublabel: 'session' });
+                    } else if (listing.categoryId === 'dj' || listing.categoryId === 'dj-entertainment' || listing.categoryId === 'live-music') {
+                      if (catData.extraHourPrice > 0) cards.push({ label: 'Extra Hour', value: `₹${Number(catData.extraHourPrice).toLocaleString('en-IN')}` });
+                    } else if (listing.categoryId === 'sound-lights') {
+                      if (catData.extraDayPrice > 0) cards.push({ label: 'Extra Day', value: `₹${Number(catData.extraDayPrice).toLocaleString('en-IN')}` });
+                    } else if (listing.categoryId === 'venue') {
+                      if (catData.peakSeasonSurcharge > 0) cards.push({ label: 'Peak Season', value: `+${catData.peakSeasonSurcharge}%`, sublabel: 'surcharge' });
+                    }
+
+                    if (cards.length === 0) return null;
+                    return (
+                      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+                        {cards.map((card, i) => (
+                          <div key={i} className="flex items-center justify-between px-5 py-4">
+                            <div>
+                              <p className="text-sm text-slate-500">{card.label}</p>
+                              {card.sublabel && <p className="text-xs text-slate-400">{card.sublabel}</p>}
+                            </div>
+                            <p className="text-base font-semibold text-slate-900">{card.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  } catch { return null; }
+                })()}
+
+                {/* Extra Charges */}
+                {parsedExtraCharges.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-slate-100">
+                      <h3 className="text-sm font-semibold text-slate-900">Extra Charges</h3>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {parsedExtraCharges.map((c, i) => (
+                        <div key={i} className="flex items-center justify-between px-5 py-3.5">
+                          <span className="text-sm text-slate-600">{c.name}</span>
+                          <span className="text-sm font-semibold text-slate-900">+ ₹{Number(c.price).toLocaleString('en-IN')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Included / Excluded */}
+                {(() => {
+                  // Merge listing-level includes with category-specific includes (e.g. caterer's "Included with Service")
+                  let includedItems: string[] = listing.includedItemsText?.length > 0 ? [...listing.includedItemsText] : [];
+                  if (listing.categorySpecificData) {
+                    try {
+                      const catData = typeof listing.categorySpecificData === 'string' ? JSON.parse(listing.categorySpecificData) : listing.categorySpecificData;
+                      if (catData.includes) {
+                        const catIncludes = Array.isArray(catData.includes) ? catData.includes : (typeof catData.includes === 'string' ? catData.includes.split(',').map((s: string) => s.trim()) : []);
+                        // Add category includes that aren't already in the list
+                        catIncludes.forEach((item: string) => {
+                          if (!includedItems.some(existing => existing.toLowerCase() === item.toLowerCase())) {
+                            includedItems.push(item);
+                          }
+                        });
+                      }
+                    } catch {}
+                  }
+                  const excludedItems: string[] = listing.excludedItemsText?.length > 0 ? listing.excludedItemsText : [];
+                  if (includedItems.length === 0 && excludedItems.length === 0) return null;
+                  return (
+                    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                      {includedItems.length > 0 && (
+                        <div className="p-5">
+                          <h4 className="text-sm font-semibold text-slate-900 mb-3">What's Included</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                            {includedItems.map((item: string, i: number) => (
+                              <div key={i} className="flex items-center gap-2.5">
+                                <div className="w-5 h-5 rounded-full bg-brand flex items-center justify-center flex-shrink-0"><CheckCircle2 className="h-3 w-3 text-white" /></div>
+                                <span className="text-sm text-slate-700">{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {excludedItems.length > 0 && (
+                        <div className={cn("p-5", includedItems.length > 0 && "border-t border-slate-100")}>
+                          <h4 className="text-sm font-semibold text-slate-900 mb-3">Not Included</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                            {excludedItems.map((item: string, i: number) => (
+                              <div key={i} className="flex items-center gap-2.5">
+                                <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0"><XCircle className="h-3 w-3 text-slate-400" /></div>
+                                <span className="text-sm text-slate-400">{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* ===== TAB: DETAILS ===== */}
+            {!isEditMode && activeTab === 'details' && (
+              <div className="py-6 space-y-6">
+                {listing.categorySpecificData ? (
+                  <CategorySpecificDisplay categoryId={listing.categoryId} categorySpecificData={listing.categorySpecificData} hidePricing />
+                ) : listing.isDraft && listing.categoryId && listing.categoryId !== 'other' ? (
+                  <div className="text-center py-12">
+                    <AlertCircle className="h-8 w-8 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm text-slate-500">Category details not added yet</p>
+                    <p className="text-xs text-slate-400 mt-1">Click Edit to add pricing and details</p>
+                  </div>
+                ) : null}
+
+              </div>
+            )}
+
+
+            {/* ===== TAB: EVENTS ===== */}
+            {!isEditMode && activeTab === 'events' && (
+              <div className="py-6">
+                <h3 className="text-base font-semibold text-slate-900 mb-2">Suitable Event Types</h3>
+                <p className="text-sm text-slate-400 mb-5">This service is a great fit for these events</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {listing.eventTypeIds?.map((id: number) => {
+                    const eventIcons: Record<number, string> = {
+                      1: '💒', 2: '🎂', 3: '💝', 4: '🏢', 5: '💍',
+                      6: '👶', 7: '🌙', 8: '🎵', 9: '✨'
+                    };
+                    const isOther = id === 9 || eventTypeNames[id] === 'Other';
+                    if (isOther && listing.customEventTypeName) {
+                      let customTypes: string[] = [];
+                      const val = listing.customEventTypeName;
+                      if (Array.isArray(val)) { customTypes = val; }
+                      else { try { const parsed = JSON.parse(val); if (Array.isArray(parsed)) customTypes = parsed; else customTypes = [val]; } catch { customTypes = val.split(',').map((s: string) => s.trim()).filter(Boolean); } }
+                      return customTypes.map((customType, idx) => (
+                        <div key={`${id}-${idx}`} className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-brand/[0.04] border border-brand/10">
+                          <span className="text-base">✨</span>
+                          <span className="text-sm font-medium text-slate-700">{customType}</span>
+                        </div>
+                      ));
+                    }
+                    return (
+                      <div key={id} className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-brand/[0.04] border border-brand/10">
+                        <span className="text-base">{eventIcons[id] || '🎉'}</span>
+                        <span className="text-sm font-medium text-slate-700">{eventTypeNames[id] || `Event ${id}`}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ===== TAB: NOTES ===== */}
+            {!isEditMode && activeTab === 'notes' && listing.customNotes && (
+              <div className="py-6">
+                <h3 className="text-base font-semibold text-slate-900 mb-4">Additional Notes</h3>
+                <div className="p-5 rounded-2xl bg-slate-50/60 border border-slate-100">
+                  <p className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{listing.customNotes}</p>
+                </div>
+              </div>
+            )}
+
+            {/* ===== EDIT MODE SECTIONS (unchanged) ===== */}
+
+            {/* Edit: Key Highlights */}
+            {isEditMode && (
               <Card className="overflow-hidden border-0 shadow-md bg-white">
                 <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 px-4 py-3 relative overflow-hidden">
                   <div className="relative flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
                       <Zap className="h-3.5 w-3.5 text-white" />
                     </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-white">Key Highlights</h3>
-                    </div>
-                    {!isEditMode && displayHighlights.length > 0 && (
-                      <Badge className="ml-auto bg-white/20 text-white border-0 backdrop-blur-sm text-[10px] h-5 px-2">
-                        {displayHighlights.length}
-                      </Badge>
-                    )}
+                    <h3 className="text-xs font-bold text-white">Key Highlights</h3>
                   </div>
                 </div>
                 <CardContent className="p-3">
-                  {isEditMode ? (
-                    <div className="space-y-1.5">
-                      {(editForm?.highlights || []).map((item: string, i: number) => (
-                        editingHighlightIndex === i ? null : (
-                          <div key={i} className="group flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/60 hover:shadow-sm transition-all">
-                            <div className="p-1 rounded bg-emerald-100">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            </div>
-                            <span className="flex-1 text-xs font-medium text-emerald-900">{item}</span>
-                            <Button size="sm" variant="ghost" onClick={() => startEditHighlight(i)} className="h-6 w-6 p-0 text-slate-500 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => removeHighlight(i)} className="h-6 w-6 p-0 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )
-                      ))}
-                      {showHighlightInput ? (
-                        <div className="flex items-center gap-2 p-2 rounded-lg border-2 border-primary bg-primary/5">
-                          <div className="p-1 rounded bg-primary/20">
-                            {editingHighlightIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
-                          </div>
-                          <Input 
-                            value={draftHighlight} 
-                            onChange={(e) => setDraftHighlight(e.target.value)} 
-                            onKeyDown={(e) => { 
-                              if (e.key === 'Enter') addHighlight(); 
-                              if (e.key === 'Escape') { setShowHighlightInput(false); setDraftHighlight(''); setEditingHighlightIndex(null); } 
-                            }} 
-                            className="flex-1 h-7 text-xs border-0 bg-transparent focus-visible:ring-0" 
-                            placeholder={editingHighlightIndex !== null ? "Edit highlight..." : "Type a highlight..."} 
-                            autoFocus 
-                          />
-                          <Button size="sm" onClick={addHighlight} disabled={!draftHighlight.trim()} className="h-7 px-3 text-xs bg-emerald-600 hover:bg-emerald-700">
-                            {editingHighlightIndex !== null ? 'Save' : 'Add'}
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => { setShowHighlightInput(false); setDraftHighlight(''); setEditingHighlightIndex(null); }} className="h-7 w-7 p-0 text-slate-500">
-                            <X className="h-3 w-3" />
-                          </Button>
+                  <div className="space-y-1.5">
+                    {(editForm?.highlights || []).map((item: string, i: number) => (
+                      editingHighlightIndex === i ? null : (
+                        <div key={i} className="group flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/60 hover:shadow-sm transition-all">
+                          <div className="p-1 rounded bg-emerald-100"><CheckCircle2 className="h-3 w-3 text-emerald-600" /></div>
+                          <span className="flex-1 text-xs font-medium text-emerald-900">{item}</span>
+                          <Button size="sm" variant="ghost" onClick={() => startEditHighlight(i)} className="h-6 w-6 p-0 text-slate-500 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="h-3 w-3" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => removeHighlight(i)} className="h-6 w-6 p-0 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></Button>
                         </div>
-                      ) : (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setShowHighlightInput(true)} 
-                          className="w-full h-8 text-xs border border-dashed border-emerald-300 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg"
-                        >
-                          <Plus className="h-3 w-3 mr-1" />Add Highlight
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {displayHighlights.map((item: string, i: number) => (
-                        <div 
-                          key={i} 
-                          className="flex items-start gap-2 p-2 rounded-lg bg-gradient-to-br from-emerald-50/80 to-teal-50/50 border border-emerald-200/40"
-                        >
-                          <div className="flex-shrink-0 w-5 h-5 rounded bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mt-0.5">
-                            <CheckCircle2 className="h-3 w-3 text-white" />
-                          </div>
-                          <span className="text-xs font-medium text-slate-700 leading-relaxed">{item}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                      )
+                    ))}
+                    {showHighlightInput ? (
+                      <div className="flex items-center gap-2 p-2 rounded-lg border-2 border-primary bg-primary/5">
+                        <div className="p-1 rounded bg-primary/20">{editingHighlightIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}</div>
+                        <Input value={draftHighlight} onChange={(e) => setDraftHighlight(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addHighlight(); if (e.key === 'Escape') { setShowHighlightInput(false); setDraftHighlight(''); setEditingHighlightIndex(null); } }} className="flex-1 h-7 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder={editingHighlightIndex !== null ? "Edit highlight..." : "Type a highlight..."} autoFocus />
+                        <Button size="sm" onClick={addHighlight} disabled={!draftHighlight.trim()} className="h-7 px-3 text-xs bg-emerald-600 hover:bg-emerald-700">{editingHighlightIndex !== null ? 'Save' : 'Add'}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setShowHighlightInput(false); setDraftHighlight(''); setEditingHighlightIndex(null); }} className="h-7 w-7 p-0 text-slate-500"><X className="h-3 w-3" /></Button>
+                      </div>
+                    ) : (
+                      <Button variant="outline" onClick={() => setShowHighlightInput(true)} className="w-full h-8 text-xs border border-dashed border-emerald-300 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg"><Plus className="h-3 w-3 mr-1" />Add Highlight</Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* 2. CATEGORY DETAILS - NOT collapsible (always visible) */}
-            {(isEditMode || listing.categorySpecificData || (listing.isDraft && listing.categoryId && listing.categoryId !== 'other')) && (
-              isEditMode ? (
+            {/* Edit: Category Details */}
+            {isEditMode && listing.categoryId && listing.categoryId !== 'other' && (
                 <Card className="overflow-hidden border-0 shadow-md bg-white" data-listing-guide="preview-pricing">
                   <div className="bg-gradient-to-r from-primary via-violet-600 to-purple-600 px-4 py-3 relative overflow-hidden">
                     <div className="relative flex items-center gap-2">
@@ -1149,24 +1408,17 @@ export default function ListingPreview() {
                       listingType={listing.type}
                       hidePackageDetails={true}
                     />
-                    {/* Price validation message */}
                     {(() => {
                       const p = categorySpecificData;
                       const hasPrice = 
-                        (listing.categoryId === 'caterer' && p.pricePerPlateVeg && parseFloat(p.pricePerPlateVeg) > 0) ||
+                        (listing.categoryId === 'caterer' && (p.pricePerPlate && parseFloat(p.pricePerPlate) > 0 || p.pricePerPlateVeg && parseFloat(p.pricePerPlateVeg) > 0)) ||
                         (listing.categoryId === 'mua' && p.bridalPrice && parseFloat(p.bridalPrice) > 0) ||
                         (['photographer', 'photography-videography', 'photo-video', 'venue', 'decorator', 'dj', 'dj-entertainment', 'sound-lights', 'live-music', 'cinematographer', 'videographer'].includes(listing.categoryId) && p.price && parseFloat(p.price) > 0);
-                      
                       if (!hasPrice && listing.categoryId !== 'other') {
                         return (
                           <div className="mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-2">
-                            <div className="p-1.5 rounded-lg bg-amber-100">
-                              <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-amber-800">Price is required</p>
-                              <p className="text-[10px] text-amber-600">Fill in pricing above to continue</p>
-                            </div>
+                            <div className="p-1.5 rounded-lg bg-amber-100"><AlertCircle className="h-3.5 w-3.5 text-amber-600" /></div>
+                            <div><p className="text-xs font-semibold text-amber-800">Price is required</p><p className="text-[10px] text-amber-600">Fill in pricing above to continue</p></div>
                           </div>
                         );
                       }
@@ -1174,94 +1426,33 @@ export default function ListingPreview() {
                     })()}
                   </CardContent>
                 </Card>
-              ) : listing.categorySpecificData ? (
-                <CategorySpecificDisplay categoryId={listing.categoryId} categorySpecificData={listing.categorySpecificData} />
-              ) : listing.isDraft && listing.categoryId && listing.categoryId !== 'other' ? (
-                <Card className="border-dashed border-2 border-amber-300 bg-amber-50/50 shadow-md">
-                  <CardContent className="p-4 text-center">
-                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-2">
-                      <AlertCircle className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <p className="text-sm font-semibold text-amber-800">Category Details Missing</p>
-                    <p className="text-xs text-amber-600 mt-0.5">Click Edit to add pricing</p>
-                  </CardContent>
-                </Card>
-              ) : null
             )}
 
-            {/* Bundled Items - Enhanced (for packages only) */}
-            {isPackage && linkedItems.length > 0 && !isEditMode && (
-              <Card className="border-primary/20 overflow-hidden">
-                <div className="bg-gradient-to-r from-primary/10 to-violet-500/10 px-5 py-3 border-b border-primary/20">
-                  <h3 className="text-sm font-semibold flex items-center gap-2 text-primary">
-                    <Package className="h-4 w-4" />
-                    What's Included ({linkedItems.length} services)
-                  </h3>
-                </div>
-                <CardContent className="p-5">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {linkedItems.map((item: any, index: number) => (
-                      <div key={item.id} className="group rounded-xl border-2 border-slate-100 overflow-hidden bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300">
-                        <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                          {item.images?.[0] ? (
-                            <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-6 w-6 text-slate-300" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <Badge className="absolute top-2 left-2 bg-white/90 text-slate-700 text-[10px] h-5 px-1.5 shadow-sm">
-                            #{index + 1}
-                          </Badge>
-                          <Badge className="absolute bottom-2 right-2 bg-primary text-white text-xs h-6 px-2 shadow-lg">
-                            ₹{Number(item.price).toLocaleString('en-IN')}
-                          </Badge>
-                        </div>
-                        <div className="p-3">
-                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{item.name}</p>
-                          <p className="text-xs text-slate-500 mt-0.5 truncate">{item.categoryName || 'Service'}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Edit: Add-Ons (decorator only) */}
+            {listingId && isEditMode && listing.categoryId === 'decorator' && (
+              <AddOnManager
+                ref={addOnManagerRef}
+                listingId={listingId}
+                listingType={listing?.type || ''}
+                isEditMode={isEditMode}
+              />
             )}
 
             <div data-listing-guide="preview-all-details" className="space-y-3">
-            {/* 3. SERVICE DETAILS - Collapsible (collapsed by default) */}
-            {(isEditMode || listing.deliveryTime || listing.serviceMode) && (
-              <Card className="overflow-hidden border-0 shadow-md bg-white" data-listing-guide="preview-more-details">
-                {/* Collapsible Header */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection('serviceDetails')}
-                  className="w-full bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-2.5 flex items-center justify-between group hover:from-slate-700 hover:to-slate-600 transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
-                      <Clock className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-xs font-bold text-white">Service Details</h3>
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "p-1 rounded bg-white/10 transition-transform duration-300",
-                    expandedSections.serviceDetails ? "rotate-180" : ""
-                  )}>
-                    <ChevronDown className="h-4 w-4 text-white" />
-                  </div>
+            {/* Edit: Service Details (collapsible) */}
+            {isEditMode && (
+              <Card className="overflow-hidden border border-slate-200 shadow-none bg-white" data-listing-guide="preview-more-details">
+                <button type="button" onClick={() => toggleSection('serviceDetails')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <h3 className="text-sm font-semibold text-slate-900">Service Details</h3>
+                  <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-300", expandedSections.serviceDetails ? "rotate-180" : "")} />
                 </button>
-                
-                {/* Collapsible Content */}
                 <div className={cn(
                   "transition-all duration-300 ease-in-out overflow-hidden",
                   expandedSections.serviceDetails ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
                 )}>
                   <CardContent className="p-3">
-                    {isEditMode ? (
+                    {true ? (
                       <div className="space-y-3">
                         {/* Delivery Time Section - Hide for DJ and Venue categories */}
                         {listing.categoryId !== 'dj-entertainment' && listing.categoryId !== 'venue' && (
@@ -1420,150 +1611,28 @@ export default function ListingPreview() {
                           </>
                         )}
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* Delivery Time Card - Hide for DJ and Venue categories */}
-                        {listing.categoryId !== 'dj-entertainment' && listing.categoryId !== 'venue' && listing.deliveryTime && (() => {
-                          const delivery = formatDeliveryTime(listing.deliveryTime);
-                          return (
-                            <div className="rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/60 p-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="p-1 rounded bg-blue-100">
-                                  <Clock className="h-3 w-3 text-blue-600" />
-                                </div>
-                                <p className="text-[10px] font-medium text-blue-600/80 uppercase">Delivery</p>
-                              </div>
-                              <p className="text-xs font-bold text-blue-900">{delivery.label}</p>
-                            </div>
-                          );
-                        })()}
-                        
-                        {/* Service Mode Card - Hide for venue category */}
-                        {listing.categoryId !== 'venue' && listing.serviceMode && (() => {
-                          const mode = getServiceModeWithDescription(listing.serviceMode);
-                          const modeIcons = {
-                            'CUSTOMER_VISITS': MapPin,
-                            'VENDOR_TRAVELS': Users,
-                            'BOTH': Sparkles
-                          };
-                          const ModeIcon = modeIcons[listing.serviceMode as keyof typeof modeIcons] || MapPin;
-                          return (
-                            <div className="rounded-lg bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200/60 p-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="p-1 rounded bg-violet-100">
-                                  <ModeIcon className="h-3 w-3 text-violet-600" />
-                                </div>
-                                <p className="text-[10px] font-medium text-violet-600/80 uppercase">Mode</p>
-                              </div>
-                              <p className="text-xs font-bold text-violet-900">{mode.label}</p>
-                            </div>
-                          );
-                        })()}
-                        
-                        {/* Negotiation Card */}
-                        <div className={cn(
-                          "rounded-lg border p-3",
-                          listing.openForNegotiation 
-                            ? "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200/60" 
-                            : "bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200/60"
-                        )}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className={cn(
-                              "p-1 rounded",
-                              listing.openForNegotiation ? "bg-emerald-100" : "bg-slate-100"
-                            )}>
-                              <IndianRupee className={cn(
-                                "h-3 w-3",
-                                listing.openForNegotiation ? "text-emerald-600" : "text-slate-500"
-                              )} />
-                            </div>
-                            <p className={cn(
-                              "text-[10px] font-medium uppercase",
-                              listing.openForNegotiation ? "text-emerald-600/80" : "text-slate-500/80"
-                            )}>Pricing</p>
-                          </div>
-                          <p className={cn(
-                            "text-xs font-bold",
-                            listing.openForNegotiation ? "text-emerald-900" : "text-slate-700"
-                          )}>
-                            {listing.openForNegotiation ? 'Negotiable' : 'Non-negotiable'}
-                          </p>
-                        </div>
-                        
-                        {/* Minimum Order for Caterers */}
-                        {listing.categoryId === 'caterer' && listing.minimumQuantity > 0 && (
-                          <div className="rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="p-1 rounded bg-amber-100">
-                                <Users className="h-3 w-3 text-amber-600" />
-                              </div>
-                              <p className="text-[10px] font-medium text-amber-600/80 uppercase">Min Order</p>
-                            </div>
-                            <p className="text-xs font-bold text-amber-900">{listing.minimumQuantity} plates</p>
-                          </div>
-                        )}
-
-                        {/* Venue Location - Only for venue category */}
-                        {listing.categoryId === 'venue' && listing.venueAddress && (
-                          <div className="col-span-2 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/60 p-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="p-1 rounded bg-emerald-100">
-                                <MapPin className="h-3 w-3 text-emerald-600" />
-                              </div>
-                              <p className="text-[10px] font-medium text-emerald-600/80 uppercase">Venue Location</p>
-                            </div>
-                            <p className="text-xs font-bold text-emerald-900">{listing.venueAddress}</p>
-                            {listing.venueCity && (
-                              <p className="text-[10px] text-emerald-700 mt-0.5">{listing.venueCity}</p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    ) : null}
                   </CardContent>
                 </div>
               </Card>
             )}
 
-            {/* 4. EVENT TYPES - Collapsible (collapsed by default) */}
-            {(isEditMode || listing.eventTypeIds?.length > 0) && (
-              <Card className="overflow-hidden border-0 shadow-md bg-white">
-                {/* Collapsible Header */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection('eventTypes')}
-                  className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-4 py-2.5 flex items-center justify-between group hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 transition-all"
-                >
+            {/* 4. EVENT TYPES */}
+            {isEditMode && (
+              <Card className="overflow-hidden border border-slate-200 shadow-none bg-white">
+                <button type="button" onClick={() => toggleSection('eventTypes')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
-                      <Calendar className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-xs font-bold text-white">Event Types</h3>
-                    </div>
+                    <h3 className="text-sm font-semibold text-slate-900">Event Types</h3>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {!isEditMode && listing.eventTypeIds?.length > 0 && (
-                      <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm text-[10px] h-5 px-2">
-                        {listing.eventTypeIds.length}
-                      </Badge>
-                    )}
-                    <div className={cn(
-                      "p-1 rounded bg-white/10 transition-transform duration-300",
-                      expandedSections.eventTypes ? "rotate-180" : ""
-                    )}>
-                      <ChevronDown className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
+                  <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-300", expandedSections.eventTypes ? "rotate-180" : "")} />
                 </button>
-                
-                {/* Collapsible Content */}
                 <div className={cn(
                   "transition-all duration-300 ease-in-out overflow-hidden",
                   expandedSections.eventTypes ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
                 )}>
                   <CardContent className="p-3">
-                    {isEditMode ? (
+                    {true ? (
                       <div className="space-y-2">
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
                           {eventTypes.map((et: any) => {
@@ -1700,312 +1769,112 @@ export default function ListingPreview() {
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {listing.eventTypeIds?.map((id: number) => {
-                          const eventIcons: Record<number, string> = {
-                            1: '💒', 2: '🎂', 3: '💝', 4: '🏢', 5: '💍',
-                            6: '👶', 7: '🌙', 8: '🎵', 9: '✨'
-                          };
-                          // For "Other" event type, show custom types as separate badges
-                          const isOther = id === 9 || eventTypeNames[id] === 'Other';
-                          
-                          if (isOther && listing.customEventTypeName) {
-                            // Parse custom event types
-                            let customTypes: string[] = [];
-                            const val = listing.customEventTypeName;
-                            if (Array.isArray(val)) {
-                              customTypes = val;
-                            } else {
-                              try {
-                                const parsed = JSON.parse(val);
-                                if (Array.isArray(parsed)) customTypes = parsed;
-                                else customTypes = [val];
-                              } catch {
-                                // Legacy: single string or comma-separated
-                                customTypes = val.split(',').map((s: string) => s.trim()).filter(Boolean);
-                              }
-                            }
-                            
-                            // Return multiple badges for custom types
-                            return customTypes.map((customType, idx) => (
-                              <div 
-                                key={`${id}-${idx}`}
-                                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 px-2 py-1.5"
-                              >
-                                <span className="text-sm">✨</span>
-                                <span className="text-xs font-medium text-amber-800">{customType}</span>
-                              </div>
-                            ));
-                          }
-                          
-                          return (
-                            <div 
-                              key={id} 
-                              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200/60 px-2 py-1.5"
-                            >
-                              <span className="text-sm">{eventIcons[id] || '🎉'}</span>
-                              <span className="text-xs font-medium text-violet-800">{eventTypeNames[id] || `Event ${id}`}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    ) : null}
                   </CardContent>
                 </div>
               </Card>
             )}
 
-            {/* 5. WHAT'S INCLUDED/EXCLUDED - Collapsible (collapsed by default) */}
-            {(isEditMode || listing.includedItemsText?.length > 0 || listing.excludedItemsText?.length > 0 || parsedExtraCharges.length > 0) && (
-              <Card className="overflow-hidden border-0 shadow-md bg-white">
-                {/* Collapsible Header */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection('includedExcluded')}
-                  className="w-full bg-gradient-to-r from-teal-600 via-emerald-600 to-green-600 px-4 py-2.5 flex items-center justify-between group hover:from-teal-500 hover:via-emerald-500 hover:to-green-500 transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
-                      <Gift className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-xs font-bold text-white">What's Included & Excluded</h3>
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "p-1 rounded bg-white/10 transition-transform duration-300",
-                    expandedSections.includedExcluded ? "rotate-180" : ""
-                  )}>
-                    <ChevronDown className="h-4 w-4 text-white" />
-                  </div>
+            {/* 5. WHAT'S INCLUDED/EXCLUDED */}
+            {isEditMode && (
+              <Card className="overflow-hidden border border-slate-200 shadow-none bg-white">
+                <button type="button" onClick={() => toggleSection('includedExcluded')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <h3 className="text-sm font-semibold text-slate-900">What's Included & Excluded</h3>
+                  <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-300", expandedSections.includedExcluded ? "rotate-180" : "")} />
                 </button>
-                
-                {/* Collapsible Content */}
-                <div className={cn(
-                  "transition-all duration-300 ease-in-out overflow-hidden",
-                  expandedSections.includedExcluded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
-                )}>
+                <div className={cn("transition-all duration-300 ease-in-out overflow-hidden", expandedSections.includedExcluded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
                   <CardContent className="p-3 space-y-3">
-                    {/* Included Section */}
-                    {(isEditMode || listing.includedItemsText?.length > 0) && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <div className="p-1 rounded bg-emerald-100">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                          </div>
-                          <h4 className="text-xs font-medium text-emerald-800">Included</h4>
-                          {!isEditMode && listing.includedItemsText?.length > 0 && (
-                            <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] h-4 px-1.5">{listing.includedItemsText.length}</Badge>
-                          )}
-                        </div>
-                        {isEditMode ? (
-                          <div className="space-y-1 p-2 rounded-lg bg-emerald-50/50 border border-emerald-200/60">
-                            {(editForm?.includedItemsText || []).map((item: string, i: number) => (
-                              editingIncludedIndex === i ? null : (
-                                <div key={i} className="group flex items-center gap-2 p-1.5 rounded bg-white border border-emerald-200 text-xs">
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-                                  <span className="flex-1 text-slate-700">{item}</span>
-                                  <Button size="sm" variant="ghost" onClick={() => startEditIncludedItem(i)} className="h-5 w-5 p-0 text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Pencil className="h-2.5 w-2.5" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => removeIncludedItem(i)} className="h-5 w-5 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <X className="h-2.5 w-2.5" />
-                                  </Button>
-                                </div>
-                              )
-                            ))}
-                            {showIncludedItemInput ? (
-                              <div className="flex items-center gap-2 p-1.5 rounded border-2 border-primary bg-white">
-                                {editingIncludedIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
-                                <Input value={draftIncludedItem} onChange={(e) => setDraftIncludedItem(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addIncludedItem(); if (e.key === 'Escape') { setShowIncludedItemInput(false); setDraftIncludedItem(''); setEditingIncludedIndex(null); } }} className="flex-1 h-6 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder={editingIncludedIndex !== null ? "Edit item..." : "Add item..."} autoFocus />
-                                <Button size="sm" onClick={addIncludedItem} disabled={!draftIncludedItem.trim()} className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-700">{editingIncludedIndex !== null ? 'Save' : 'Add'}</Button>
-                              </div>
-                            ) : (
-                              <Button variant="outline" onClick={() => setShowIncludedItemInput(true)} className="w-full h-7 text-[10px] border-dashed border-emerald-400 text-emerald-700 hover:bg-emerald-100">
-                                <Plus className="h-3 w-3 mr-1" />Add
-                              </Button>
-                            )}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-slate-500" /><h4 className="text-xs font-medium text-slate-900">Included</h4></div>
+                      <div className="space-y-1 p-2 rounded-lg bg-emerald-50/50 border border-emerald-200/60">
+                        {(editForm?.includedItemsText || []).map((item: string, i: number) => (
+                          editingIncludedIndex === i ? null : (
+                            <div key={i} className="group flex items-center gap-2 p-1.5 rounded bg-white border border-emerald-200 text-xs">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-500 flex-shrink-0" /><span className="flex-1 text-slate-700">{item}</span>
+                              <Button size="sm" variant="ghost" onClick={() => startEditIncludedItem(i)} className="h-5 w-5 p-0 text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="h-2.5 w-2.5" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => removeIncludedItem(i)} className="h-5 w-5 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2.5 w-2.5" /></Button>
+                            </div>
+                          )
+                        ))}
+                        {showIncludedItemInput ? (
+                          <div className="flex items-center gap-2 p-1.5 rounded border-2 border-primary bg-white">
+                            {editingIncludedIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
+                            <Input value={draftIncludedItem} onChange={(e) => setDraftIncludedItem(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addIncludedItem(); if (e.key === 'Escape') { setShowIncludedItemInput(false); setDraftIncludedItem(''); setEditingIncludedIndex(null); } }} className="flex-1 h-6 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder={editingIncludedIndex !== null ? "Edit item..." : "Add item..."} autoFocus />
+                            <Button size="sm" onClick={addIncludedItem} disabled={!draftIncludedItem.trim()} className="h-6 px-2 text-[10px] bg-emerald-600 hover:bg-emerald-700">{editingIncludedIndex !== null ? 'Save' : 'Add'}</Button>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                            {listing.includedItemsText.map((item: string, i: number) => (
-                              <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/60">
-                                <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
-                                </div>
-                                <span className="text-xs text-slate-700">{item}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <Button variant="outline" onClick={() => setShowIncludedItemInput(true)} className="w-full h-7 text-[10px] border-dashed border-emerald-400 text-emerald-700 hover:bg-emerald-100"><Plus className="h-3 w-3 mr-1" />Add</Button>
                         )}
                       </div>
-                    )}
-
-                    {/* Excluded Section */}
-                    {(isEditMode || listing.excludedItemsText?.length > 0) && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <div className="p-1 rounded bg-red-100">
-                            <XCircle className="h-3 w-3 text-red-600" />
-                          </div>
-                          <h4 className="text-xs font-medium text-red-800">Not Included</h4>
-                          {!isEditMode && listing.excludedItemsText?.length > 0 && (
-                            <Badge className="bg-red-100 text-red-700 border-0 text-[10px] h-4 px-1.5">{listing.excludedItemsText.length}</Badge>
-                          )}
-                        </div>
-                        {isEditMode ? (
-                          <div className="space-y-1 p-2 rounded-lg bg-red-50/50 border border-red-200/60">
-                            {(editForm?.excludedItemsText || []).map((item: string, i: number) => (
-                              editingExcludedIndex === i ? null : (
-                                <div key={i} className="group flex items-center gap-2 p-1.5 rounded bg-white border border-red-200 text-xs">
-                                  <XCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
-                                  <span className="flex-1 text-slate-700">{item}</span>
-                                  <Button size="sm" variant="ghost" onClick={() => startEditExcludedItem(i)} className="h-5 w-5 p-0 text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Pencil className="h-2.5 w-2.5" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => removeExcludedItem(i)} className="h-5 w-5 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <X className="h-2.5 w-2.5" />
-                                  </Button>
-                                </div>
-                              )
-                            ))}
-                            {showExcludedItemInput ? (
-                              <div className="flex items-center gap-2 p-1.5 rounded border-2 border-primary bg-white">
-                                {editingExcludedIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
-                                <Input value={draftExcludedItem} onChange={(e) => setDraftExcludedItem(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addExcludedItem(); if (e.key === 'Escape') { setShowExcludedItemInput(false); setDraftExcludedItem(''); setEditingExcludedIndex(null); } }} className="flex-1 h-6 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder={editingExcludedIndex !== null ? "Edit item..." : "Add item..."} autoFocus />
-                                <Button size="sm" onClick={addExcludedItem} disabled={!draftExcludedItem.trim()} className="h-6 px-2 text-[10px] bg-red-600 hover:bg-red-700">{editingExcludedIndex !== null ? 'Save' : 'Add'}</Button>
-                              </div>
-                            ) : (
-                              <Button variant="outline" onClick={() => setShowExcludedItemInput(true)} className="w-full h-7 text-[10px] border-dashed border-red-400 text-red-700 hover:bg-red-100">
-                                <Plus className="h-3 w-3 mr-1" />Add
-                              </Button>
-                            )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5"><XCircle className="h-3 w-3 text-slate-400" /><h4 className="text-xs font-medium text-slate-900">Not Included</h4></div>
+                      <div className="space-y-1 p-2 rounded-lg bg-red-50/50 border border-red-200/60">
+                        {(editForm?.excludedItemsText || []).map((item: string, i: number) => (
+                          editingExcludedIndex === i ? null : (
+                            <div key={i} className="group flex items-center gap-2 p-1.5 rounded bg-white border border-red-200 text-xs">
+                              <XCircle className="h-3 w-3 text-red-500 flex-shrink-0" /><span className="flex-1 text-slate-700">{item}</span>
+                              <Button size="sm" variant="ghost" onClick={() => startEditExcludedItem(i)} className="h-5 w-5 p-0 text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="h-2.5 w-2.5" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => removeExcludedItem(i)} className="h-5 w-5 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2.5 w-2.5" /></Button>
+                            </div>
+                          )
+                        ))}
+                        {showExcludedItemInput ? (
+                          <div className="flex items-center gap-2 p-1.5 rounded border-2 border-primary bg-white">
+                            {editingExcludedIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
+                            <Input value={draftExcludedItem} onChange={(e) => setDraftExcludedItem(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addExcludedItem(); if (e.key === 'Escape') { setShowExcludedItemInput(false); setDraftExcludedItem(''); setEditingExcludedIndex(null); } }} className="flex-1 h-6 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder={editingExcludedIndex !== null ? "Edit item..." : "Add item..."} autoFocus />
+                            <Button size="sm" onClick={addExcludedItem} disabled={!draftExcludedItem.trim()} className="h-6 px-2 text-[10px] bg-red-600 hover:bg-red-700">{editingExcludedIndex !== null ? 'Save' : 'Add'}</Button>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                            {listing.excludedItemsText.map((item: string, i: number) => (
-                              <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-gradient-to-r from-red-50 to-rose-50 border border-red-200/60">
-                                <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <XCircle className="h-2.5 w-2.5 text-red-600" />
-                                </div>
-                                <span className="text-xs text-slate-700">{item}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <Button variant="outline" onClick={() => setShowExcludedItemInput(true)} className="w-full h-7 text-[10px] border-dashed border-red-400 text-red-700 hover:bg-red-100"><Plus className="h-3 w-3 mr-1" />Add</Button>
                         )}
                       </div>
-                    )}
-
-                    {/* Extra Charges Section */}
-                    {(isEditMode || parsedExtraCharges.length > 0) && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <div className="p-1 rounded bg-amber-100">
-                            <IndianRupee className="h-3 w-3 text-amber-600" />
-                          </div>
-                          <h4 className="text-xs font-medium text-amber-800">Extra Charges</h4>
-                          {!isEditMode && parsedExtraCharges.length > 0 && (
-                            <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px] h-4 px-1.5">{parsedExtraCharges.length}</Badge>
-                          )}
-                        </div>
-                        {isEditMode ? (
-                          <div className="space-y-1 p-2 rounded-lg bg-amber-50/50 border border-amber-200/60">
-                            {(editForm?.extraChargesDetailed || []).map((c: any, i: number) => (
-                              editingExtraChargeIndex === i ? null : (
-                                <div key={i} className="group flex items-center gap-2 p-1.5 rounded bg-white border border-amber-200">
-                                  <span className="text-amber-600 font-bold text-xs">+</span>
-                                  <span className="flex-1 text-xs text-slate-700">{c.name}</span>
-                                  <span className="text-xs font-bold text-amber-700">₹{Number(c.price).toLocaleString('en-IN')}</span>
-                                  <Button size="sm" variant="ghost" onClick={() => startEditExtraCharge(i)} className="h-5 w-5 p-0 text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Pencil className="h-2.5 w-2.5" />
-                                  </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => removeExtraCharge(i)} className="h-5 w-5 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <X className="h-2.5 w-2.5" />
-                                  </Button>
-                                </div>
-                              )
-                            ))}
-                            {showExtraChargeInput ? (
-                              <div className="flex items-center gap-1.5 p-1.5 rounded border-2 border-primary bg-white">
-                                {editingExtraChargeIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
-                                <Input value={draftExtraCharge.name} onChange={(e) => setDraftExtraCharge(p => ({ ...p, name: e.target.value }))} className="flex-1 h-6 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder="Name..." autoFocus />
-                                <div className="flex items-center gap-0.5 bg-slate-100 rounded px-1.5 py-0.5">
-                                  <span className="text-xs text-slate-600">₹</span>
-                                  <Input type="number" value={draftExtraCharge.price} onChange={(e) => setDraftExtraCharge(p => ({ ...p, price: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') addExtraCharge(); if (e.key === 'Escape') { setShowExtraChargeInput(false); setDraftExtraCharge({ name: '', price: '' }); setEditingExtraChargeIndex(null); } }} className="w-16 h-6 text-xs border-0 bg-transparent focus-visible:ring-0 p-0" placeholder="0" />
-                                </div>
-                                <Button size="sm" onClick={addExtraCharge} disabled={!draftExtraCharge.name.trim() || !draftExtraCharge.price} className="h-6 px-2 text-[10px] bg-amber-600 hover:bg-amber-700">{editingExtraChargeIndex !== null ? 'Save' : 'Add'}</Button>
-                              </div>
-                            ) : (
-                              <Button variant="outline" onClick={() => setShowExtraChargeInput(true)} className="w-full h-7 text-[10px] border-dashed border-amber-400 text-amber-700 hover:bg-amber-100">
-                                <Plus className="h-3 w-3 mr-1" />Add Charge
-                              </Button>
-                            )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5"><IndianRupee className="h-3 w-3 text-slate-400" /><h4 className="text-xs font-medium text-slate-900">Extra Charges</h4></div>
+                      <div className="space-y-1 p-2 rounded-lg bg-amber-50/50 border border-amber-200/60">
+                        {(editForm?.extraChargesDetailed || []).map((c: any, i: number) => (
+                          editingExtraChargeIndex === i ? null : (
+                            <div key={i} className="group flex items-center gap-2 p-1.5 rounded bg-white border border-amber-200">
+                              <span className="text-amber-600 font-bold text-xs">+</span><span className="flex-1 text-xs text-slate-700">{c.name}</span>
+                              <span className="text-xs font-bold text-amber-700">₹{Number(c.price).toLocaleString('en-IN')}</span>
+                              <Button size="sm" variant="ghost" onClick={() => startEditExtraCharge(i)} className="h-5 w-5 p-0 text-slate-500 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="h-2.5 w-2.5" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => removeExtraCharge(i)} className="h-5 w-5 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-2.5 w-2.5" /></Button>
+                            </div>
+                          )
+                        ))}
+                        {showExtraChargeInput ? (
+                          <div className="flex items-center gap-1.5 p-1.5 rounded border-2 border-primary bg-white">
+                            {editingExtraChargeIndex !== null ? <Pencil className="h-3 w-3 text-primary" /> : <Plus className="h-3 w-3 text-primary" />}
+                            <Input value={draftExtraCharge.name} onChange={(e) => setDraftExtraCharge(p => ({ ...p, name: e.target.value }))} className="flex-1 h-6 text-xs border-0 bg-transparent focus-visible:ring-0" placeholder="Name..." autoFocus />
+                            <div className="flex items-center gap-0.5 bg-slate-100 rounded px-1.5 py-0.5">
+                              <span className="text-xs text-slate-600">₹</span>
+                              <Input type="number" value={draftExtraCharge.price} onChange={(e) => setDraftExtraCharge(p => ({ ...p, price: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') addExtraCharge(); if (e.key === 'Escape') { setShowExtraChargeInput(false); setDraftExtraCharge({ name: '', price: '' }); setEditingExtraChargeIndex(null); } }} className="w-16 h-6 text-xs border-0 bg-transparent focus-visible:ring-0 p-0" placeholder="0" />
+                            </div>
+                            <Button size="sm" onClick={addExtraCharge} disabled={!draftExtraCharge.name.trim() || !draftExtraCharge.price} className="h-6 px-2 text-[10px] bg-amber-600 hover:bg-amber-700">{editingExtraChargeIndex !== null ? 'Save' : 'Add'}</Button>
                           </div>
                         ) : (
-                          <div className="space-y-1">
-                            {parsedExtraCharges.map((c, i) => (
-                              <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-amber-600 font-bold text-xs">+</span>
-                                  <span className="text-xs text-slate-700">{c.name}</span>
-                                </div>
-                                <span className="text-xs font-bold text-amber-700">₹{Number(c.price).toLocaleString('en-IN')}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <Button variant="outline" onClick={() => setShowExtraChargeInput(true)} className="w-full h-7 text-[10px] border-dashed border-amber-400 text-amber-700 hover:bg-amber-100"><Plus className="h-3 w-3 mr-1" />Add Charge</Button>
                         )}
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </div>
               </Card>
             )}
 
-            {/* 6. ADDITIONAL NOTES - Collapsible (collapsed by default) */}
-            {(isEditMode || listing.customNotes) && (
-              <Card className="overflow-hidden border-0 shadow-md bg-white">
-                {/* Collapsible Header */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection('additionalNotes')}
-                  className="w-full bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 px-4 py-2.5 flex items-center justify-between group hover:from-slate-500 hover:via-slate-600 hover:to-slate-700 transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
-                      <FileText className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-xs font-bold text-white">Additional Notes</h3>
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "p-1 rounded bg-white/10 transition-transform duration-300",
-                    expandedSections.additionalNotes ? "rotate-180" : ""
-                  )}>
-                    <ChevronDown className="h-4 w-4 text-white" />
-                  </div>
+            {/* 6. ADDITIONAL NOTES */}
+            {isEditMode && (
+              <Card className="overflow-hidden border border-slate-200 shadow-none bg-white">
+                <button type="button" onClick={() => toggleSection('additionalNotes')}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <h3 className="text-sm font-semibold text-slate-900">Additional Notes</h3>
+                  <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-300", expandedSections.additionalNotes ? "rotate-180" : "")} />
                 </button>
-                
-                {/* Collapsible Content */}
-                <div className={cn(
-                  "transition-all duration-300 ease-in-out overflow-hidden",
-                  expandedSections.additionalNotes ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-                )}>
+                <div className={cn("transition-all duration-300 ease-in-out overflow-hidden", expandedSections.additionalNotes ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0")}>
                   <CardContent className="p-3">
-                    {isEditMode ? (
-                      <Textarea 
-                        value={editForm?.customNotes || ''} 
-                        onChange={(e) => setEditForm((p: any) => ({ ...p, customNotes: e.target.value }))} 
-                        rows={3} 
-                        className="text-xs resize-none" 
-                        placeholder="Add any additional terms or notes..."
-                      />
-                    ) : (
-                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200/60">
-                        <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">{listing.customNotes}</p>
-                      </div>
-                    )}
+                    <Textarea value={editForm?.customNotes || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, customNotes: e.target.value }))} rows={3} className="text-xs resize-none" placeholder="Add any additional terms or notes..." />
                   </CardContent>
                 </div>
               </Card>
@@ -2013,54 +1882,45 @@ export default function ListingPreview() {
             </div>
           </div>
 
-          {/* Right - Booking Widget - Enhanced */}
+          {/* Right - Booking Widget */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <Card className="border-2 border-slate-200 shadow-xl relative overflow-hidden rounded-2xl">
-                {/* Preview Overlay - Enhanced */}
+              <Card className="border border-slate-200/80 shadow-lg relative overflow-hidden rounded-2xl bg-white">
+                {/* Preview Overlay */}
                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
-                  <div className="bg-white rounded-2xl shadow-xl p-5 text-center border border-slate-100">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                      <Lock className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="text-sm font-semibold text-slate-800">Preview Mode</p>
-                    <p className="text-xs text-slate-500 mt-1">Booking is disabled in preview</p>
+                  <div className="text-center">
+                    <Lock className="h-5 w-5 text-slate-400 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-slate-700">Preview Mode</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Booking disabled</p>
                   </div>
                 </div>
 
-                <CardHeader className="p-5 pb-3 bg-gradient-to-br from-slate-50 to-white">
+                <CardHeader className="p-6 pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold text-slate-900">₹{displayPrice.toLocaleString('en-IN')}</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold text-slate-900 tracking-tight">₹{displayPrice.toLocaleString('en-IN')}</span>
                         {priceLabel && <span className="text-sm text-slate-500">{priceLabel}</span>}
                         {isItem && listing.unit && !priceLabel && <span className="text-sm text-slate-500">/{listing.unit}</span>}
                       </div>
                       {listing.openForNegotiation && (
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />Price negotiable
-                        </p>
+                        <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" />Price negotiable</p>
                       )}
                     </div>
-                    {isPackage && (
-                      <Badge className="bg-gradient-to-r from-primary to-violet-600 text-white text-xs h-7 px-3">
-                        <Package className="h-3 w-3 mr-1" />Package
-                      </Badge>
-                    )}
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-5 pt-3 space-y-4">
+                <CardContent className="p-6 pt-3 space-y-5">
                   <div>
-                    <Label className="text-xs font-semibold text-slate-700">Event Date *</Label>
+                    <Label className="text-xs font-medium text-slate-700">Event Date</Label>
                     <Button variant="outline" className="w-full justify-start text-left h-11 text-sm mt-2 text-slate-400 border-slate-200" disabled>
-                      <CalendarIcon className="mr-2 h-4 w-4" />Select your event date
+                      <CalendarIcon className="mr-2 h-4 w-4" />Select date
                     </Button>
                   </div>
 
                   {isItem && (
                     <div>
-                      <Label className="text-xs font-semibold text-slate-700">Quantity</Label>
+                      <Label className="text-xs font-medium text-slate-700">Quantity</Label>
                       <div className="flex items-center gap-3 mt-2">
                         <Button variant="outline" size="icon" className="h-10 w-10 rounded-full" disabled><span className="text-lg">−</span></Button>
                         <Input value={listing.minimumQuantity || 1} className="w-16 h-10 text-center text-lg font-semibold" disabled />
@@ -2075,48 +1935,58 @@ export default function ListingPreview() {
                     <div className="flex justify-between"><span className="text-slate-500">Base price</span><span className="font-medium">₹{displayPrice.toLocaleString('en-IN')}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Service fee</span><span className="font-medium">₹{Math.round(displayPrice * 0.05).toLocaleString('en-IN')}</span></div>
                     <Separator />
-                    <div className="flex justify-between text-base font-bold"><span>Total</span><span className="text-primary">₹{Math.round(displayPrice * 1.05).toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between text-base font-semibold"><span>Total</span><span>₹{Math.round(displayPrice * 1.05).toLocaleString('en-IN')}</span></div>
                   </div>
 
-                  <Button className="w-full h-12 text-sm font-semibold bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-700 shadow-lg" disabled>
+                  <Button className="w-full h-12 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-xl" disabled>
                     <ShoppingCart className="mr-2 h-4 w-4" />Add to Cart
                   </Button>
 
-                  <div className="pt-3 border-t space-y-2">
-                    <p className="text-xs text-slate-600 flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" />Free cancellation up to 48 hours</p>
-                    <p className="text-xs text-slate-600 flex items-center gap-2"><AlertCircle className="h-4 w-4 text-amber-500" />Pay only after vendor confirms</p>
+                  <div className="pt-4 border-t border-slate-100 space-y-2.5">
+                    <p className="text-xs text-slate-500 flex items-center gap-2.5"><CheckCircle2 className="h-3.5 w-3.5 text-slate-400" />Free cancellation up to 48 hours</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-2.5"><AlertCircle className="h-3.5 w-3.5 text-slate-400" />Pay only after vendor confirms</p>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Status Card - Enhanced */}
-              <Card className="mt-4 border-dashed border-2 border-slate-200 rounded-xl"><CardContent className="p-4">
-                <h4 className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">Listing Status</h4>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="p-3 rounded-lg bg-slate-50">
-                    <p className="text-[10px] text-slate-400 mb-1">Status</p>
-                    {listing.isActive ? (
-                      <Badge className="bg-green-100 text-green-700 text-xs h-6 px-2">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />Live
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-xs h-6 px-2">Inactive</Badge>
-                    )}
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50">
-                    <p className="text-[10px] text-slate-400 mb-1">Type</p>
-                    <p className="text-sm font-semibold text-slate-700">{listing.type === 'PACKAGE' ? 'Package' : 'Service'}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-50">
-                    <p className="text-[10px] text-slate-400 mb-1">Category</p>
-                    <p className="text-sm font-semibold text-slate-700 truncate">{listing.categoryName || listing.categoryId}</p>
-                  </div>
-                </div>
-              </CardContent></Card>
+              {/* Status Card */}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Photo Lightbox */}
+      {showAllPhotos && listing.images?.length > 0 && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col">
+          <div className="flex items-center justify-between p-4">
+            <span className="text-white/70 text-sm">{selectedImageIndex + 1} / {listing.images.length}</span>
+            <button onClick={() => setShowAllPhotos(false)} className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          <div className="flex-1 flex items-center justify-center relative px-16">
+            {listing.images.length > 1 && (
+              <button onClick={() => setSelectedImageIndex(i => (i - 1 + listing.images.length) % listing.images.length)} className="absolute left-4 text-white/60 hover:text-white p-3 rounded-full hover:bg-white/10 transition-colors">
+                <span className="text-2xl font-light">‹</span>
+              </button>
+            )}
+            <img src={listing.images[selectedImageIndex]} alt={`${listing.name} ${selectedImageIndex + 1}`} className="max-h-[80vh] max-w-full object-contain rounded-lg" />
+            {listing.images.length > 1 && (
+              <button onClick={() => setSelectedImageIndex(i => (i + 1) % listing.images.length)} className="absolute right-4 text-white/60 hover:text-white p-3 rounded-full hover:bg-white/10 transition-colors">
+                <span className="text-2xl font-light">›</span>
+              </button>
+            )}
+          </div>
+          <div className="flex justify-center gap-2 p-4 overflow-x-auto">
+            {listing.images.map((img: string, i: number) => (
+              <button key={i} onClick={() => setSelectedImageIndex(i)} className={cn("w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all", selectedImageIndex === i ? "border-white opacity-100" : "border-transparent opacity-50 hover:opacity-80")}>
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
@@ -2150,7 +2020,7 @@ export default function ListingPreview() {
               "bg-white dark:bg-card border border-border/40 rounded-2xl shadow-2xl max-w-[420px] w-full overflow-hidden pointer-events-auto",
               "animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-400"
             )}>
-              <div className="relative bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 px-6 pt-8 pb-10 overflow-hidden text-center">
+              <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 px-6 pt-8 pb-10 overflow-hidden text-center">
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute top-6 right-8 w-16 h-16 rounded-full bg-white/[0.06]" style={{ animation: 'pub-float-1 4s ease-in-out infinite' }} />
                   <div className="absolute bottom-4 left-6 w-10 h-10 rounded-full bg-white/[0.08]" style={{ animation: 'pub-float-2 5s ease-in-out infinite' }} />

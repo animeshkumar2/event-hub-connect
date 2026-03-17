@@ -522,6 +522,9 @@ public class VendorListingService {
                 packageItemRepository.deleteAll(packageItems);
             }
             
+            // Clean up add-on images from R2/CDN (rows cascade-deleted by DB)
+            deleteAddOnImages(listing);
+            
             // Clean up images from R2/CDN
             deleteListingImages(listing);
             
@@ -554,6 +557,31 @@ public class VendorListingService {
             }
         }
     }
+
+    /**
+     * Delete all add-on images associated with a listing from R2/CDN.
+     * The add-on DB rows are cascade-deleted when the listing is removed.
+     */
+    private void deleteAddOnImages(Listing listing) {
+        List<AddOn> addOns = addOnRepository.findByPackageListing(listing);
+        if (addOns.isEmpty()) {
+            return;
+        }
+        
+        logger.info("Cleaning up images for {} add-ons on listing {}", addOns.size(), listing.getId());
+        
+        for (AddOn addOn : addOns) {
+            String imageUrl = addOn.getImageUrl();
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                try {
+                    imageUploadService.deleteImage(imageUrl);
+                } catch (Exception e) {
+                    logger.warn("Failed to delete add-on image {} for listing {}: {}",
+                        imageUrl, listing.getId(), e.getMessage());
+                }
+            }
+        }
+    }
     
     @Transactional(readOnly = true)
     public List<Listing> getVendorListings(UUID vendorId) {
@@ -572,5 +600,75 @@ public class VendorListingService {
         
         return listings;
     }
+
+    /**
+     * Duplicate a listing — copies everything, prefixes name with "Copy of", always creates as draft
+     */
+    public Listing duplicateListing(UUID listingId, UUID vendorId) {
+        Listing source = listingRepository.findById(listingId)
+                .orElseThrow(() -> new NotFoundException("Listing not found"));
+
+        if (!source.getVendor().getId().equals(vendorId)) {
+            throw new BusinessRuleException("You don't have permission to duplicate this listing");
+        }
+
+        Listing copy = new Listing();
+        copy.setVendor(source.getVendor());
+        copy.setType(source.getType());
+        copy.setName("Copy of " + source.getName());
+        copy.setDescription(source.getDescription());
+        copy.setPrice(source.getPrice());
+        copy.setListingCategory(source.getListingCategory());
+        copy.setCustomCategoryName(source.getCustomCategoryName());
+        copy.setCustomEventTypeName(source.getCustomEventTypeName());
+        copy.setImages(source.getImages() != null ? List.copyOf(source.getImages()) : null);
+        copy.setHighlights(source.getHighlights() != null ? List.copyOf(source.getHighlights()) : null);
+        copy.setIncludedItemsText(source.getIncludedItemsText() != null ? List.copyOf(source.getIncludedItemsText()) : null);
+        copy.setExcludedItemsText(source.getExcludedItemsText() != null ? List.copyOf(source.getExcludedItemsText()) : null);
+        copy.setIncludedItemIds(source.getIncludedItemIds() != null ? List.copyOf(source.getIncludedItemIds()) : null);
+        copy.setDeliveryTime(source.getDeliveryTime());
+        copy.setExtraChargesJson(source.getExtraChargesJson());
+        copy.setExtraCharges(source.getExtraCharges() != null ? List.copyOf(source.getExtraCharges()) : null);
+        copy.setCategorySpecificData(source.getCategorySpecificData());
+        copy.setUnit(source.getUnit());
+        copy.setMinimumQuantity(source.getMinimumQuantity());
+        copy.setServiceMode(source.getServiceMode());
+        copy.setOpenForNegotiation(source.getOpenForNegotiation());
+        copy.setCustomNotes(source.getCustomNotes());
+        copy.setVenueAddress(source.getVenueAddress());
+        copy.setVenueCity(source.getVenueCity());
+        copy.setVenueLatitude(source.getVenueLatitude());
+        copy.setVenueLongitude(source.getVenueLongitude());
+
+        // Always create as draft
+        copy.setIsDraft(true);
+        copy.setIsActive(true);
+
+        // Copy event types
+        if (source.getEventTypes() != null && !source.getEventTypes().isEmpty()) {
+            copy.setEventTypes(List.copyOf(source.getEventTypes()));
+        }
+
+        copy = listingRepository.save(copy);
+
+        // Copy add-ons
+        List<AddOn> sourceAddOns = addOnRepository.findByPackageListingAndIsActiveTrueOrderBySortOrderAscTitleAsc(source);
+        for (AddOn srcAddOn : sourceAddOns) {
+            AddOn copyAddOn = new AddOn();
+            copyAddOn.setPackageListing(copy);
+            copyAddOn.setTitle(srcAddOn.getTitle());
+            copyAddOn.setDescription(srcAddOn.getDescription());
+            copyAddOn.setPrice(srcAddOn.getPrice());
+            copyAddOn.setCategory(srcAddOn.getCategory());
+            copyAddOn.setImageUrl(srcAddOn.getImageUrl());
+            copyAddOn.setMaxQuantity(srcAddOn.getMaxQuantity());
+            copyAddOn.setSortOrder(srcAddOn.getSortOrder());
+            copyAddOn.setIsActive(true);
+            addOnRepository.save(copyAddOn);
+        }
+
+        return copy;
+    }
+
 }
 

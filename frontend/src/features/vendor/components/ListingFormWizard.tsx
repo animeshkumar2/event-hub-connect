@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as React from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save } from 'lucide-react';
-import { Progress } from '@/shared/components/ui/progress';
+import { Badge } from '@/shared/components/ui/badge';
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Save, X, ChevronDown, ChevronUp, Tag, IndianRupee, Sparkles, Camera, FileText, Package } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 // Import step components
 import { ListingFormStep1 } from './ListingFormSteps/Step1BasicInfo';
@@ -25,18 +26,15 @@ interface ListingFormWizardProps {
   onCancel: () => void;
   isPublishing: boolean;
   isSaving: boolean;
-  // Data props
   eventTypesData: any[];
   categoriesData: any[];
   items: any[];
   availableEventTypes: any[];
   coreCategories: any[];
   eventTypeCategories: any[];
-  // Helper functions
   getCategoryName: (categoryId: string) => string;
   getAllDbCategoryIds: (coreCategoryId: string) => string[];
   toggleLinkedItem: (itemId: string) => void;
-  // Draft state handlers
   draftIncludedItem: string;
   setDraftIncludedItem: (value: string) => void;
   showIncludedItemInput: boolean;
@@ -67,429 +65,255 @@ interface ListingFormWizardProps {
   removeHighlight: (index: number) => void;
   handleImagesChange: (images: string[]) => void;
   handlePendingImageDeletes: (urls: string[]) => void;
-  handlePendingImageChanges?: (changes: {
-    filesToUpload: File[];
-    urlsToDelete: string[];
-    finalOrder: (string | File)[];
-  }) => void;
-  // Count of pending images (not yet uploaded)
+  handlePendingImageChanges?: (changes: { filesToUpload: File[]; urlsToDelete: string[]; finalOrder: (string | File)[]; }) => void;
   pendingImagesCount?: number;
 }
 
-export const ListingFormWizard = React.memo(function ListingFormWizard(props: ListingFormWizardProps) {
-  const [currentStep, setCurrentStep] = useState(1);
-  
-  // Different total steps for packages vs items
-  const totalSteps = props.listingType === 'PACKAGE' ? 5 : 4;
+interface Section {
+  id: string;
+  stepNumber: number;
+  title: string;
+  subtitle: string;
+  icon: React.ElementType;
+  isRequired: boolean;
+}
 
-  const steps = props.listingType === 'PACKAGE' ? [
-    { number: 1, title: 'Basic Info', description: 'Name & description' },
-    { number: 2, title: 'Bundle Services', description: 'Select services to bundle' },
-    { number: 3, title: 'Pricing', description: 'Set package price' },
-    { number: 4, title: 'Anything Else', description: 'Additional notes' },
-    { number: 5, title: 'Images', description: 'Upload photos' },
+export const ListingFormWizard = React.memo(function ListingFormWizard(props: ListingFormWizardProps) {
+  const [expandedSection, setExpandedSection] = useState<string>('basic');
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Define sections based on listing type
+  const sections: Section[] = props.listingType === 'PACKAGE' ? [
+    { id: 'basic', stepNumber: 1, title: 'Basic Info', subtitle: 'Name & description', icon: Tag, isRequired: true },
+    { id: 'bundle', stepNumber: 2, title: 'Bundle Services', subtitle: 'Select services to bundle', icon: Package, isRequired: true },
+    { id: 'pricing', stepNumber: 3, title: 'Pricing', subtitle: 'Set package price', icon: IndianRupee, isRequired: true },
+    { id: 'extras', stepNumber: 4, title: 'Anything Else', subtitle: 'Additional notes', icon: FileText, isRequired: false },
+    { id: 'photos', stepNumber: 5, title: 'Photos', subtitle: 'Upload photos', icon: Camera, isRequired: true },
   ] : [
-    { number: 1, title: 'Basic Info', description: 'Name, category & event types' },
-    { number: 2, title: 'Details & Pricing', description: 'Pricing & inclusions' },
-    { number: 3, title: 'Anything Else', description: 'Additional notes' },
-    { number: 4, title: 'Images', description: 'Upload photos' },
+    { id: 'basic', stepNumber: 1, title: 'Basic Info', subtitle: 'Name, category & event types', icon: Tag, isRequired: true },
+    { id: 'pricing', stepNumber: 2, title: 'Details & Pricing', subtitle: 'Pricing & inclusions', icon: IndianRupee, isRequired: true },
+    { id: 'extras', stepNumber: 3, title: 'Anything Else', subtitle: 'Additional notes', icon: FileText, isRequired: false },
+    { id: 'photos', stepNumber: 4, title: 'Photos', subtitle: 'Upload photos', icon: Camera, isRequired: true },
   ];
 
-  // Detailed validation with specific error messages
-  const getStep1Errors = React.useCallback((): string[] => {
+  // Validation functions
+  const getBasicErrors = React.useCallback((): string[] => {
     const errors: string[] = [];
-    if (!props.formData.name?.trim()) errors.push('Listing name is required');
+    if (!props.formData.name?.trim()) errors.push('Name required');
     if (props.listingType === 'ITEM') {
-      if (!props.formData.categoryId) errors.push('Category is required');
-      if (props.formData.categoryId === 'other' && !props.formData.customCategoryName?.trim()) {
-        errors.push('Custom category name is required');
-      }
-      if (!props.formData.eventTypeIds || props.formData.eventTypeIds.length === 0) {
-        errors.push('Select at least one event type');
-      }
-      // Venue location is required for venue category
-      if (props.formData.categoryId === 'venue' && (!props.formData.venueLatitude || !props.formData.venueLongitude)) {
-        errors.push('Venue location is required');
-      }
+      if (!props.formData.categoryId) errors.push('Category required');
+      if (props.formData.categoryId === 'other' && !props.formData.customCategoryName?.trim()) errors.push('Custom category required');
+      if (!props.formData.eventTypeIds?.length) errors.push('Event type required');
+      if (props.formData.categoryId === 'venue' && (!props.formData.venueLatitude || !props.formData.venueLongitude)) errors.push('Venue location required');
     }
     return errors;
-  }, [props.formData.name, props.formData.categoryId, props.formData.customCategoryName, props.formData.eventTypeIds, props.formData.venueLatitude, props.formData.venueLongitude, props.listingType]);
+  }, [props.formData, props.listingType]);
 
-  const getStep2Errors = React.useCallback((): string[] => {
+  const getBundleErrors = React.useCallback((): string[] => {
+    if (props.listingType !== 'PACKAGE') return [];
+    return props.formData.includedItemIds?.length < 2 ? ['Select at least 2 items'] : [];
+  }, [props.formData.includedItemIds, props.listingType]);
+
+  const getPricingErrors = React.useCallback((): string[] => {
     const errors: string[] = [];
-    
     if (props.listingType === 'PACKAGE') {
-      if (props.formData.includedItemIds.length < 2) {
-        errors.push('Select at least 2 items to bundle');
-      }
-      return errors;
-    }
-    
-    // For ITEM type
-    // Delivery time not required for DJ and Venue categories
-    if (props.formData.categoryId !== 'dj-entertainment' && props.formData.categoryId !== 'venue' && !props.formData.deliveryTime?.trim()) {
-      errors.push('Delivery time is required');
-    }
-    
-    // Price validation based on category
-    if (props.formData.categoryId === 'other') {
-      if (!props.formData.price) {
-        errors.push('Price is required');
-      }
+      if (!props.formData.price) errors.push('Price required');
     } else {
-      const categoryData = props.categorySpecificData;
-      const hasPriceField = !!(
-        categoryData.price ||
-        categoryData.pricePerPlateVeg ||
-        categoryData.bridalPrice ||
-        categoryData.photographyPrice ||
-        categoryData.videographyPrice
-      );
-      
-      if (!hasPriceField) {
-        // Give category-specific price field name
-        switch (props.formData.categoryId) {
-          case 'caterer':
-            errors.push('Vegetarian price per plate is required');
-            break;
-          case 'mua':
-            errors.push('Bridal makeup price is required');
-            break;
-          case 'photographer':
-          case 'photography-videography':
-            errors.push('Service price is required');
-            break;
-          default:
-            errors.push('Price is required');
+      if (props.formData.categoryId !== 'dj-entertainment' && props.formData.categoryId !== 'venue' && !props.formData.deliveryTime?.trim()) {
+        errors.push('Delivery time required');
+      }
+      if (props.formData.categoryId === 'other') {
+        if (!props.formData.price) errors.push('Price required');
+      } else {
+        const cd = props.categorySpecificData;
+        if (!(cd?.price || cd?.pricePerPlate || cd?.pricePerPlateVeg || cd?.bridalPrice || cd?.photographyPrice || cd?.videographyPrice)) {
+          errors.push('Price required');
         }
       }
     }
-    
     return errors;
-  }, [props.listingType, props.formData.includedItemIds, props.formData.categoryId, props.formData.price, props.formData.deliveryTime, props.categorySpecificData]);
+  }, [props.formData, props.categorySpecificData, props.listingType]);
 
-  const getStep3Errors = React.useCallback((): string[] => {
-    const errors: string[] = [];
-    if (props.listingType === 'PACKAGE' && !props.formData.price) {
-      errors.push('Package price is required');
+  const getPhotosErrors = React.useCallback((): string[] => {
+    const total = (props.formData.images?.length || 0) + (props.pendingImagesCount || 0);
+    return total === 0 ? ['Add at least one image'] : [];
+  }, [props.formData.images, props.pendingImagesCount]);
+
+  // Check section completion
+  const isSectionComplete = React.useCallback((sectionId: string): boolean => {
+    switch (sectionId) {
+      case 'basic': return getBasicErrors().length === 0;
+      case 'bundle': return getBundleErrors().length === 0;
+      case 'pricing': return getPricingErrors().length === 0;
+      case 'photos': return getPhotosErrors().length === 0;
+      case 'extras': return true; // Optional
+      default: return false;
     }
-    return errors;
-  }, [props.listingType, props.formData.price]);
+  }, [getBasicErrors, getBundleErrors, getPricingErrors, getPhotosErrors]);
 
-  const getStep4Errors = React.useCallback((): string[] => {
-    const errors: string[] = [];
-    const totalImages = props.formData.images.length + (props.pendingImagesCount || 0);
-    if (props.listingType === 'ITEM' && totalImages === 0) {
-      errors.push('Add at least one image');
-    }
-    return errors;
-  }, [props.listingType, props.formData.images, props.pendingImagesCount]);
+  const completedCount = sections.filter(s => isSectionComplete(s.id)).length;
+  const requiredComplete = sections.filter(s => s.isRequired).every(s => isSectionComplete(s.id));
 
-  const getStep5Errors = React.useCallback((): string[] => {
-    const errors: string[] = [];
-    const totalImages = props.formData.images.length + (props.pendingImagesCount || 0);
-    if (props.listingType === 'PACKAGE' && totalImages === 0) {
-      errors.push('Add at least one image');
-    }
-    return errors;
-  }, [props.listingType, props.formData.images, props.pendingImagesCount]);
-
-  // Validation flags
-  const isStep1Valid = getStep1Errors().length === 0;
-  const isStep2Valid = getStep2Errors().length === 0;
-  const isStep3Valid = getStep3Errors().length === 0;
-  const isStep4Valid = getStep4Errors().length === 0;
-  const isStep5Valid = getStep5Errors().length === 0;
-
-  // Get all errors for display
-  const getAllErrors = React.useCallback((): { step: number; errors: string[] }[] => {
-    const allErrors: { step: number; errors: string[] }[] = [];
-    const step1Errors = getStep1Errors();
-    const step2Errors = getStep2Errors();
-    const step3Errors = getStep3Errors();
-    const step4Errors = getStep4Errors();
-    const step5Errors = getStep5Errors();
-    
-    if (step1Errors.length > 0) allErrors.push({ step: 1, errors: step1Errors });
-    if (step2Errors.length > 0) allErrors.push({ step: 2, errors: step2Errors });
-    if (step3Errors.length > 0) allErrors.push({ step: 3, errors: step3Errors });
-    if (step4Errors.length > 0) allErrors.push({ step: 4, errors: step4Errors });
-    if (props.listingType === 'PACKAGE' && step5Errors.length > 0) allErrors.push({ step: 5, errors: step5Errors });
-    
-    return allErrors;
-  }, [getStep1Errors, getStep2Errors, getStep3Errors, getStep4Errors, getStep5Errors, props.listingType]);
-
-  const canProceedToNext = () => {
-    // Must complete ALL previous steps before proceeding
-    if (currentStep === 1) return isStep1Valid;
-    if (currentStep === 2) return isStep1Valid && isStep2Valid;
-    if (currentStep === 3) return isStep1Valid && isStep2Valid && isStep3Valid;
-    if (currentStep === 4) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
-    if (currentStep === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid && isStep5Valid;
-    return true;
-  };
-
-  // Check if a specific step can be accessed
-  const canAccessStep = (stepNumber: number) => {
-    if (stepNumber === 1) return true;
-    if (stepNumber === 2) return isStep1Valid;
-    if (stepNumber === 3) return isStep1Valid && isStep2Valid;
-    if (stepNumber === 4) return isStep1Valid && isStep2Valid && isStep3Valid;
-    if (stepNumber === 5) return isStep1Valid && isStep2Valid && isStep3Valid && isStep4Valid;
-    return false;
-  };
-
-  const handleNext = () => {
-    if (canProceedToNext() && currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+  // Navigate to next incomplete section
+  const goToNext = (currentId: string) => {
+    const currentIdx = sections.findIndex(s => s.id === currentId);
+    for (let i = currentIdx + 1; i < sections.length; i++) {
+      if (!isSectionComplete(sections[i].id) || i === sections.length - 1) {
+        setExpandedSection(sections[i].id);
+        setTimeout(() => sectionRefs.current[sections[i].id]?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        return;
+      }
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+  // Render section content
+  const renderContent = (sectionId: string) => {
+    switch (sectionId) {
+      case 'basic':
+        return <ListingFormStep1 {...props} />;
+      case 'bundle':
+        return <ListingFormStep2BundleItems {...props} />;
+      case 'pricing':
+        return props.listingType === 'PACKAGE' ? <ListingFormStep3PackagePricing {...props} /> : <ListingFormStep2 {...props} />;
+      case 'extras':
+        return <ListingFormStepAnythingElse {...props} />;
+      case 'photos':
+        return <ListingFormStep3 {...props} />;
+      default:
+        return null;
     }
   };
-
-  const handleStepClick = (stepNumber: number) => {
-    // Allow going back to any previous step
-    if (stepNumber < currentStep) {
-      setCurrentStep(stepNumber);
-    }
-    // Allow going forward only if all previous steps are valid
-    else if (stepNumber > currentStep && canAccessStep(stepNumber)) {
-      setCurrentStep(stepNumber);
-    }
-  };
-
-  const progress = (currentStep / totalSteps) * 100;
 
   return (
-    <div className="space-y-6 w-full">{/* Removed overflow-x-hidden to prevent border clipping */}
-      {/* Progress Bar */}
-      <div className="space-y-3">
-        <Progress value={progress} className="h-2" />
-        
-        {/* Step Indicators - Mobile Optimized */}
-        <div className="space-y-2 overflow-hidden">
-          {/* Mobile: Show only current step info */}
-          <div className="sm:hidden">
-            <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-primary/10 border-2 border-primary">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                {currentStep}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-primary">
-                  {steps[currentStep - 1].title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Step {currentStep} of {totalSteps}
-                </p>
+    <div className="space-y-3">
+      {/* Header with progress */}
+      <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          {sections.map((s, i) => (
+            <button
+              key={s.id}
+              onClick={() => setExpandedSection(s.id)}
+              className={cn(
+                "w-2.5 h-2.5 rounded-full transition-all",
+                isSectionComplete(s.id) ? "bg-emerald-500" : expandedSection === s.id ? "bg-primary ring-2 ring-primary/30" : "bg-slate-300"
+              )}
+            />
+          ))}
+          <span className="text-xs text-muted-foreground ml-2">{completedCount}/{sections.length}</span>
+        </div>
+        {!props.editingListing && (
+          <Button variant="ghost" size="sm" onClick={props.onSaveAsDraft} disabled={props.isSaving} className="h-8 text-xs">
+            {props.isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+            Save Draft
+          </Button>
+        )}
+      </div>
+
+      {/* Accordion Sections */}
+      <div className="space-y-2">
+        {sections.map((section) => {
+          const isExpanded = expandedSection === section.id;
+          const isComplete = isSectionComplete(section.id);
+          const Icon = section.icon;
+
+          return (
+            <div
+              key={section.id}
+              ref={el => sectionRefs.current[section.id] = el}
+              className={cn(
+                "rounded-xl border-2 overflow-hidden transition-all duration-200",
+                isExpanded ? "border-primary/40 shadow-md bg-card" : isComplete ? "border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/10" : "border-border bg-card/50"
+              )}
+            >
+              {/* Section Header */}
+              <button
+                onClick={() => setExpandedSection(isExpanded ? '' : section.id)}
+                className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
+              >
+                <div className={cn(
+                  "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                  isComplete ? "bg-emerald-100 dark:bg-emerald-900/30" : isExpanded ? "bg-primary/10" : "bg-muted"
+                )}>
+                  {isComplete ? (
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <Icon className={cn("h-4.5 w-4.5", isExpanded ? "text-primary" : "text-muted-foreground")} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("font-medium text-sm", isComplete ? "text-emerald-700 dark:text-emerald-400" : "text-foreground")}>
+                      {section.title}
+                    </span>
+                    {section.isRequired && !isComplete && (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-amber-300 text-amber-600 bg-amber-50">Required</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{section.subtitle}</p>
+                </div>
+                <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0", isExpanded ? "bg-primary/10" : "bg-muted/50")}>
+                  {isExpanded ? <ChevronUp className="h-4 w-4 text-primary" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              </button>
+
+              {/* Collapsible Content */}
+              <div className={cn(
+                "grid transition-all duration-300 ease-in-out",
+                isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              )}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 pt-2 border-t border-border/50">
+                    {renderContent(section.id)}
+                    
+                    {/* Continue button */}
+                    <div className="mt-5 flex justify-end">
+                      <Button
+                        onClick={() => goToNext(section.id)}
+                        size="sm"
+                        className="gap-1.5 bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90"
+                      >
+                        Continue <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          );
+        })}
+      </div>
 
-          {/* Desktop: Show all steps - Compact */}
-          <div className="hidden sm:grid sm:grid-cols-5 sm:gap-1">
-            {steps.map((step) => {
-              const isActive = currentStep === step.number;
-              const isCompleted = currentStep > step.number;
-              const isAccessible = canAccessStep(step.number);
-              const isClickable = step.number < currentStep || (step.number > currentStep && isAccessible);
-              
-              return (
-                <button
-                  key={step.number}
-                  onClick={() => handleStepClick(step.number)}
-                  disabled={!isClickable && step.number > currentStep}
-                  className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all ${
-                    isActive
-                      ? 'bg-primary/10 border-2 border-primary'
-                      : isCompleted
-                      ? 'bg-green-500/10 border border-green-500/30 cursor-pointer hover:bg-green-500/20'
-                      : isAccessible
-                      ? 'bg-muted/30 border border-border cursor-pointer hover:bg-muted/50'
-                      : 'bg-muted/30 border border-border opacity-40 cursor-not-allowed'
-                  }`}
-                >
-                  {/* Step Number/Icon */}
-                  <div
-                    className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : isCompleted
-                        ? 'bg-green-500 text-white'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.number}
-                  </div>
-                  
-                  {/* Step Info */}
-                  <div className="text-center w-full">
-                    <p className={`text-[10px] font-semibold truncate ${
-                      isActive ? 'text-primary' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
-                    }`}>
-                      {step.title}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground truncate">{step.description}</p>
-                  </div>
-                </button>
-              );
-            })}
+      {/* Bottom Actions */}
+      <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative w-10 h-10">
+            <svg className="w-10 h-10 -rotate-90">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted" />
+              <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray={`${(completedCount / sections.length) * 100.5} 100.5`} className="text-primary transition-all duration-500" />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">{Math.round((completedCount / sections.length) * 100)}%</span>
+          </div>
+          <div className="hidden sm:block">
+            <p className="text-xs font-medium">{requiredComplete ? 'Ready!' : 'Complete required'}</p>
+            <p className="text-[10px] text-muted-foreground">{completedCount}/{sections.length} done</p>
           </div>
         </div>
-      </div>
 
-      {/* Step Content */}
-      <div className="min-h-[400px] px-1">{/* Added horizontal padding to prevent border clipping */}
-        {currentStep === 1 && <ListingFormStep1 {...props} />}
-        
-        {/* PACKAGE FLOW */}
-        {props.listingType === 'PACKAGE' && (
-          <>
-            {currentStep === 2 && <ListingFormStep2BundleItems {...props} />}
-            {currentStep === 3 && <ListingFormStep3PackagePricing {...props} />}
-            {currentStep === 4 && <ListingFormStepAnythingElse {...props} />}
-            {currentStep === 5 && <ListingFormStep3 {...props} />}
-          </>
-        )}
-        
-        {/* ITEM FLOW */}
-        {props.listingType === 'ITEM' && (
-          <>
-            {currentStep === 2 && <ListingFormStep2 {...props} />}
-            {currentStep === 3 && <ListingFormStepAnythingElse {...props} />}
-            {currentStep === 4 && <ListingFormStep3 {...props} />}
-          </>
-        )}
-      </div>
-
-      {/* Navigation Buttons */}
-      <div className="pt-4 border-t border-border space-y-3">
-        {/* Step Navigation - Back/Next */}
-        {currentStep < totalSteps ? (
-          <div className="space-y-3">
-            {/* Back Button */}
-            {currentStep > 1 && (
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                className="w-full"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Previous Step
-              </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={props.onCancel} className="h-9 px-3">Cancel</Button>
+          <Button
+            onClick={props.onSubmit}
+            disabled={!requiredComplete || props.isPublishing}
+            size="sm"
+            className={cn(
+              "h-9 px-4 gap-1.5",
+              requiredComplete ? "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700" : ""
             )}
-            
-            {/* Primary Actions Row - matching final step layout */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              {/* Save as Draft - only show for NEW listings, not when editing */}
-              {!props.editingListing && (
-                <Button
-                  variant="outline"
-                  onClick={props.onSaveAsDraft}
-                  disabled={props.isSaving || props.isPublishing}
-                  className="w-full sm:flex-1 border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-                >
-                  {props.isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save as Draft
-                    </>
-                  )}
-                </Button>
-              )}
-              
-              {/* Continue Button */}
-              <Button
-                onClick={handleNext}
-                disabled={!canProceedToNext()}
-                className={`${!props.editingListing ? 'w-full sm:flex-1' : 'w-full'} bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow`}
-              >
-                Continue
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          /* Final Step - Publish Actions */
-          <div className="space-y-3">
-            {/* Back Button */}
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              className="w-full"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Back to Previous Step</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
-
-            {/* Primary Actions */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              {/* Save as Draft - only for new listings */}
-              {!props.editingListing && (
-                <Button
-                  variant="outline"
-                  onClick={props.onSaveAsDraft}
-                  disabled={props.isSaving || props.isPublishing}
-                  className="w-full sm:flex-1 border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  {props.isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save as Draft'
-                  )}
-                </Button>
-              )}
-              
-              {/* Publish Button */}
-              <Button
-                onClick={props.onSubmit}
-                disabled={
-                  !isStep1Valid || 
-                  !isStep2Valid || 
-                  !isStep3Valid || 
-                  !isStep4Valid || 
-                  (props.listingType === 'PACKAGE' && !isStep5Valid) ||
-                  props.isPublishing || 
-                  props.isSaving
-                }
-                className={`${!props.editingListing ? 'w-full sm:flex-1' : 'w-full'} bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:shadow-glow disabled:opacity-50`}
-              >
-                {props.isPublishing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {props.editingListing ? 'Updating...' : 'Publishing...'}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {props.editingListing ? 'Update Listing' : 'Publish Listing'}
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-        
-        {/* Cancel Button - Always at bottom */}
-        <Button
-          variant="ghost"
-          onClick={props.onCancel}
-          className="w-full text-muted-foreground hover:text-foreground text-sm"
-        >
-          Cancel
-        </Button>
+          >
+            {props.isPublishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            {props.editingListing ? 'Update' : 'Publish'}
+          </Button>
+        </div>
       </div>
     </div>
   );

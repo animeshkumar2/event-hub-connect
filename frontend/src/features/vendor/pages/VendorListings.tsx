@@ -43,7 +43,8 @@ import {
   Sparkle,
   Theater,
   LucideIcon,
-  HelpCircle
+  HelpCircle,
+  Copy
 } from 'lucide-react';
 import { ImageUpload } from '@/shared/components/ImageUpload';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
@@ -66,6 +67,7 @@ import { ServiceModeSelector, ServiceMode, getServiceModeLabel } from '@/shared/
 import { TemplateSelectionModal } from '@/features/vendor/components/TemplateSelectionModal';
 import { CATEGORY_TEMPLATES } from '@/shared/constants/listingTemplates';
 import { getAllowedCategoriesForVendor } from '@/shared/constants/vendorCategoryPermissions';
+import { cn } from '@/shared/lib/utils';
 
 // Category icon mapping
 const getCategoryIcon = (categoryName: string) => {
@@ -260,7 +262,7 @@ export default function VendorListings() {
         let extractedPrice = 0;
         switch (categoryId) {
           case 'caterer':
-            extractedPrice = categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+            extractedPrice = categoryData.pricePerPlate || categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
             break;
           case 'photographer':
           case 'cinematographer':
@@ -556,7 +558,7 @@ export default function VendorListings() {
       
       switch (formData.categoryId) {
         case 'caterer':
-          finalPrice = categorySpecificData.pricePerPlateVeg || '';
+          finalPrice = categorySpecificData.pricePerPlate || categorySpecificData.pricePerPlateVeg || '';
           break;
         case 'photography-videography':
         case 'photographer':
@@ -956,6 +958,17 @@ export default function VendorListings() {
     }
   };
 
+  const handleDuplicate = async (listing: any) => {
+    try {
+      const response = await vendorApi.duplicateListing(listing.id);
+      const newListing = response?.data || response;
+      toast.success(`Duplicated as "${newListing?.name || 'Copy of ' + listing.name}" (draft)`);
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to duplicate listing');
+    }
+  };
+
   // State for pending image changes (new approach - upload on save)
   const [pendingImageChanges, setPendingImageChanges] = useState<{
     filesToUpload: File[];
@@ -1171,7 +1184,7 @@ export default function VendorListings() {
       if (formData.categoryId && formData.categoryId !== 'other') {
         switch (formData.categoryId) {
           case 'caterer':
-            finalPrice = categorySpecificData.pricePerPlateVeg || '';
+            finalPrice = categorySpecificData.pricePerPlate || categorySpecificData.pricePerPlateVeg || '';
             break;
           case 'photography-videography':
           case 'photographer':
@@ -1380,71 +1393,39 @@ export default function VendorListings() {
           </button>
         </div>
 
-        {/* Add New Service Section - Prominent CTA */}
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground px-1">What would you like to create?</p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Single Service Card */}
-            <button 
-              onClick={() => handleCreateListing('ITEM')}
-              data-listing-guide="listing-add-service"
-              className="group relative p-4 rounded-xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-gradient-to-br from-emerald-50/80 to-white dark:from-emerald-950/20 dark:to-card hover:shadow-lg transition-all text-left"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 group-hover:scale-110 transition-transform shadow-sm">
-                  <Plus className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground text-sm group-hover:text-emerald-600 transition-colors">Add Single Service</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                    Photography, Catering, Decoration, etc.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-emerald-100 text-emerald-700 border-emerald-200">Most Common</Badge>
-                <span className="text-[10px] text-emerald-600 font-medium group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                  Get started <ArrowRight className="h-3 w-3" />
-                </span>
-              </div>
-            </button>
-
-            {/* Package Deal Card */}
-            <button 
-              onClick={() => items.length >= 2 ? handleCreateListing('PACKAGE') : toast.info('Create at least 2 services first to bundle them into a package')}
-              disabled={items.length < 2}
-              data-listing-guide="listing-package-deal"
-              className={`group relative p-4 rounded-xl border-2 border-dashed transition-all text-left ${items.length >= 2 ? 'border-primary/40 hover:border-primary bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-card hover:shadow-lg' : 'border-muted bg-muted/30 opacity-60 cursor-not-allowed'}`}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`p-2.5 rounded-xl shadow-sm transition-transform ${items.length >= 2 ? 'bg-gradient-to-br from-primary to-violet-600 group-hover:scale-110' : 'bg-muted-foreground/30'}`}>
-                  <Package className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className={`font-semibold text-sm transition-colors ${items.length >= 2 ? 'text-foreground group-hover:text-primary' : 'text-muted-foreground'}`}>Create Package Deal</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                    Bundle services at a special price
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                {items.length >= 2 ? (
-                  <>
-                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">Higher Value</Badge>
-                    <span className="text-[10px] text-primary font-medium group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      Create bundle <ArrowRight className="h-3 w-3" />
-                    </span>
-                  </>
-                ) : (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-amber-600 border-amber-300 bg-amber-50">
-                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> Min. 2 services required
-                  </Badge>
-                )}
-              </div>
-            </button>
-          </div>
+        {/* Create listing CTAs */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/vendor/create-listing/new')}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add a Service
+          </button>
+          <button
+            onClick={() => items.length >= 2 ? navigate('/vendor/create-listing/new?type=package') : null}
+            className={cn(
+              "flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-colors",
+              items.length >= 2
+                ? "border-slate-300 text-slate-900 hover:bg-slate-50"
+                : "border-slate-200 cursor-not-allowed"
+            )}
+          >
+            <span className={cn("flex items-center gap-2 text-sm font-medium", items.length >= 2 ? "text-slate-900" : "text-slate-400")}>
+              <Package className="w-4 h-4" />
+              Bundle a Package
+            </span>
+            {items.length < 2 && (
+              <span className="text-[10px] text-slate-400 mt-0.5">
+                {items.length === 0 ? '2 services needed' : '1 more service needed'}
+              </span>
+            )}
+          </button>
         </div>
+
+        {/* COMMENTED OUT: Create section + Package Deal — moving to different experience
+        See git history for original "Add Single Service" button and "Create Package Deal" button
+        */}
 
         {/* Template Selection Modal */}
         <TemplateSelectionModal
@@ -1617,7 +1598,7 @@ export default function VendorListings() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/vendor/listings/preview/${listing.id}?edit=true`)}
+                        onClick={() => navigate(`/vendor/draft-listing/${listing.id}`)}
                         className="h-8 px-3 text-xs font-medium border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-700 dark:text-amber-300"
                       >
                         <Edit className="h-3 w-3 mr-1.5" />
@@ -1843,6 +1824,9 @@ export default function VendorListings() {
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => navigate(`/vendor/listings/preview/${listing.id}?edit=true`)}>
                                 <Edit className="mr-2 h-3.5 w-3.5" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDuplicate(listing)}>
+                                <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleToggleActive(listing)}>
                                 {listing.isActive ? '○ Deactivate' : '● Activate'}

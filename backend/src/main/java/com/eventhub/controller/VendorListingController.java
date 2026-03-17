@@ -82,6 +82,16 @@ public class VendorListingController {
         ListingDeleteCheckDTO check = vendorListingService.checkDeleteListing(listingId, vendorId);
         return ResponseEntity.ok(ApiResponse.success(check));
     }
+
+  @PostMapping("/{listingId}/duplicate")
+  public ResponseEntity<ApiResponse<Listing>> duplicateListing(
+          @RequestHeader(value = "X-Vendor-Id", required = false) UUID headerVendorId,
+          @PathVariable UUID listingId) {
+      UUID vendorId = vendorIdResolver.resolveVendorId(headerVendorId);
+      Listing duplicate = vendorListingService.duplicateListing(listingId, vendorId);
+      return ResponseEntity.ok(ApiResponse.success("Listing duplicated successfully", duplicate));
+  }
+
   
   @DeleteMapping("/{listingId}")
     public ResponseEntity<ApiResponse<Void>> deleteListing(

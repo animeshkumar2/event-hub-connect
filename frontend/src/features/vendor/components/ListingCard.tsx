@@ -19,7 +19,8 @@ import {
   Sparkles,
   Music,
   Lightbulb,
-  Tag
+  Tag,
+  Copy
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { useMemo } from 'react';
@@ -30,6 +31,7 @@ interface ListingCardProps {
   onEdit: (listing: any) => void;
   onDelete: (listing: any) => void;
   onToggleActive?: (listing: any) => void;
+  onDuplicate?: (listing: any) => void;
   isDeleting?: boolean;
   getCategoryName?: (categoryId: string) => string;
   allItems?: any[]; // All items for looking up bundled items in packages
@@ -54,6 +56,7 @@ export function ListingCard({
   onEdit, 
   onDelete, 
   onToggleActive,
+  onDuplicate,
   isDeleting = false,
   getCategoryName,
   allItems = []
@@ -106,7 +109,7 @@ export function ListingCard({
         let extractedPrice = 0;
         switch (categoryId) {
           case 'caterer':
-            extractedPrice = categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
+            extractedPrice = categoryData.pricePerPlate || categoryData.pricePerPlateVeg || categoryData.pricePerPlateNonVeg || 0;
             break;
           case 'photographer':
           case 'cinematographer':
@@ -350,6 +353,11 @@ export function ListingCard({
               }}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
+              {onDuplicate && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(listing); }}>
+                  <Copy className="mr-2 h-4 w-4" /> Duplicate
+                </DropdownMenuItem>
+              )}
               {onToggleActive && (
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleActive(listing); }}>
                   {listing.isActive ? '○ Deactivate' : '● Activate'}

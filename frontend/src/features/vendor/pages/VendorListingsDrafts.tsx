@@ -56,6 +56,17 @@ export default function VendorListingsDrafts() {
     }
   };
 
+  const handleDuplicate = async (listing: any) => {
+    try {
+      const response = await vendorApi.duplicateListing(listing.id);
+      const newListing = response?.data || response;
+      toast.success(`Duplicated as "${newListing?.name || 'Copy of ' + listing.name}" (draft)`);
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to duplicate listing');
+    }
+  };
+
   if (loading) {
     return (
       <VendorLayout>
@@ -119,6 +130,7 @@ export default function VendorListingsDrafts() {
                 isDraft={true}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
                 isDeleting={isDeleting === listing.id}
               />
             ))}

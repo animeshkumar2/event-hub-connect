@@ -1,10 +1,9 @@
-// Category field configurations (frontend-only for now)
-// This will eventually come from the backend API
+// Category field configurations — trimmed to essentials
 
 export interface FieldSchema {
   name: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'checkbox' | 'radio' | 'time';
+  type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'checkbox' | 'radio' | 'time' | 'deliveryTime';
   required: boolean;
   placeholder?: string;
   helpText?: string;
@@ -13,763 +12,145 @@ export interface FieldSchema {
   max?: number;
   options?: string[];
   defaultValue?: any;
-  dependsOn?: string; // Field only shows if this field has a truthy value
-  dependsOnValue?: string | string[]; // Specific value(s) that should show this field
-  fullWidth?: boolean; // Take full width in grid
+  dependsOn?: string;
+  dependsOnValue?: string | string[];
+  fullWidth?: boolean;
 }
 
 export interface CategoryConfig {
   categoryId: string;
   pricingModel: string;
   fields: FieldSchema[];
-  showPackageDetails?: boolean; // Whether to show inclusions/exclusions section
+  showPackageDetails?: boolean;
 }
 
 export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
   'caterer': {
     categoryId: 'caterer',
     pricingModel: 'per_plate',
-    showPackageDetails: true, // Enable package details section
+    showPackageDetails: true,
     fields: [
-      {
-        name: 'pricePerPlateVeg',
-        label: 'Price per Plate (Vegetarian)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 100,
-        helpText: 'This is your base price - price per vegetarian plate'
-      },
-      {
-        name: 'pricePerPlateNonVeg',
-        label: 'Price per Plate (Non-Vegetarian)',
-        type: 'number',
-        required: false,
-        unit: '₹',
-        min: 100,
-        helpText: "Leave empty if you don't offer non-veg"
-      },
-      {
-        name: 'cuisineType',
-        label: 'Cuisine Types',
-        type: 'multiselect',
-        required: true,
-        options: ['North Indian', 'South Indian', 'Chinese', 'Continental', 'Italian', 'Mexican', 'Thai', 'Multi-Cuisine'],
-        placeholder: 'e.g., Punjabi, Bengali, Gujarati',
-        helpText: 'Select all cuisine styles you offer in this package',
-        fullWidth: true
-      },
-      {
-        name: 'serviceStyle',
-        label: 'Service Style',
-        type: 'select',
-        required: true,
-        options: ['Buffet', 'Plated Service', 'Family Style', 'Cocktail Style', 'Food Stations']
-      },
-      {
-        name: 'minGuests',
-        label: 'Minimum Guest Count',
-        type: 'number',
-        required: true,
-        min: 1,
-        helpText: 'Minimum number of guests you cater for'
-      },
-      {
-        name: 'maxGuests',
-        label: 'Maximum Guest Count',
-        type: 'number',
-        required: false,
-        min: 1,
-        helpText: 'Maximum capacity (leave empty for no limit)'
-      },
-      {
-        name: 'menuItems',
-        label: 'Menu Items',
-        type: 'textarea',
-        required: true,
-        placeholder: 'e.g., 4 starters, 3 main courses, 2 breads, rice, dessert',
-        helpText: "List what's included in the menu",
-        fullWidth: true
-      },
-      {
-        name: 'includes',
-        label: "What's Included",
-        type: 'multiselect',
-        required: false,
-        options: ['Servers/Waiters', 'Crockery & Cutlery', 'Tables & Chairs', 'Setup & Decoration', 'Cleanup Service', 'Mineral Water', 'Welcome Drinks'],
-        placeholder: 'e.g., Buffet Warmers, Serving Trays',
-        fullWidth: true
-      },
-      {
-        name: 'liveCounters',
-        label: 'Live Counters Available',
-        type: 'checkbox',
-        required: false,
-        helpText: 'Do you offer live cooking stations?'
-      },
-      {
-        name: 'liveCounterTypes',
-        label: 'Live Counter Types',
-        type: 'multiselect',
-        required: false,
-        options: ['Chaat Counter', 'Dosa Counter', 'Pasta Counter', 'Grill Counter', 'Dessert Counter'],
-        placeholder: 'e.g., Biryani Counter, Juice Bar',
-        helpText: 'Select if live counters are available',
-        dependsOn: 'liveCounters',
-        fullWidth: true
-      }
-    ]
+      { name: 'foodType', label: 'Food Type', type: 'select', required: true, options: ['Veg', 'Non-Veg'], helpText: 'What type of food do you serve?' },
+      { name: 'pricePerPlate', label: 'Price per Plate (₹)', type: 'number', required: true, unit: '₹', min: 100, helpText: 'Base price per plate' },
+      { name: 'minGuests', label: 'Minimum Guests', type: 'number', required: true, min: 1, helpText: 'Minimum guests you cater for' },
+      { name: 'minOrderPlates', label: 'Minimum Order (Plates)', type: 'number', required: true, min: 1, helpText: 'Minimum plates per booking' },
+      { name: 'cuisineTypes', label: 'Cuisine Types', type: 'multiselect', required: true, fullWidth: true, options: ['North Indian','South Indian','Chinese','Continental','Italian','Mexican','Thai','Multi-Cuisine','Mughlai','Rajasthani','Bengali','Gujarati','Street Food'] },
+      { name: 'serviceStyle', label: 'Service Style', type: 'multiselect', required: true, options: ['Buffet','Plated/Sit-down','Live Counters','Stall Setup','Home Delivery','Takeaway'] },
+      { name: 'menuItems', label: 'Menu Items', type: 'textarea', required: true, fullWidth: true, placeholder: 'Add items from each course category', helpText: 'What dishes are included in this menu' },
+      { name: 'includes', label: "What's Included", type: 'multiselect', required: false, fullWidth: true, options: ['Servers/Waiters','Crockery & Cutlery','Tables & Chairs','Setup & Cleanup','Buffet Warmers','Mineral Water','Chafing Dishes','Disposable Plates'] },
+    ],
   },
-
   'photo-video': {
     categoryId: 'photo-video',
     pricingModel: 'per_event',
     showPackageDetails: true,
     fields: [
-      {
-        name: 'serviceType',
-        label: 'Service Type',
-        type: 'select',
-        required: true,
-        options: ['Photography Only', 'Videography Only', 'Both Photography & Videography']
-      },
-      {
-        name: 'pricingType',
-        label: 'Pricing Type',
-        type: 'radio',
-        required: true,
-        options: ['Per Hour', 'Per Event'],
-        defaultValue: 'Per Event',
-        helpText: 'How do you charge for this service?'
-      },
-      {
-        name: 'price',
-        label: 'Price (₹)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 1000,
-        helpText: 'Your base price for this listing',
-        fullWidth: false
-      },
-      {
-        name: 'durationHours',
-        label: 'Duration (Hours)',
-        type: 'number',
-        required: false,
-        min: 1,
-        max: 24,
-        helpText: 'For hourly pricing or package duration',
-        dependsOn: 'pricingType',
-        dependsOnValue: 'Per Hour'
-      },
-      {
-        name: 'teamSize',
-        label: 'Team Composition',
-        type: 'text',
-        required: true,
-        placeholder: 'e.g., 2 photographers + 1 videographer',
-        helpText: 'Describe your team size and roles'
-      },
-      {
-        name: 'editedPhotos',
-        label: 'Number of Edited Photos',
-        type: 'number',
-        required: true,
-        min: 0,
-        helpText: 'How many edited photos will be delivered'
-      },
-      {
-        name: 'rawPhotos',
-        label: 'Raw Photos Included',
-        type: 'checkbox',
-        required: false,
-        helpText: 'Will you provide unedited raw photos?'
-      },
-      {
-        name: 'highlightVideo',
-        label: 'Highlight Video Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'highlightVideoMinutes',
-        label: 'Highlight Video Duration (Minutes)',
-        type: 'number',
-        required: false,
-        min: 1,
-        max: 30,
-        dependsOn: 'highlightVideo'
-      },
-      {
-        name: 'fullVideo',
-        label: 'Full Event Video Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'fullVideoMinutes',
-        label: 'Full Video Duration (Minutes)',
-        type: 'number',
-        required: false,
-        min: 1,
-        dependsOn: 'fullVideo'
-      },
-      {
-        name: 'droneIncluded',
-        label: 'Drone Coverage Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'albumIncluded',
-        label: 'Physical Album Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'albumPages',
-        label: 'Album Pages',
-        type: 'number',
-        required: false,
-        min: 10,
-        helpText: 'Number of pages in the album',
-        dependsOn: 'albumIncluded'
-      },
-      {
-        name: 'preWeddingIncluded',
-        label: 'Pre-Wedding Shoot Included',
-        type: 'checkbox',
-        required: false
-      }
-    ]
+      { name: 'serviceType', label: 'Service Type', type: 'select', required: true, options: ['Photography Only', 'Videography Only', 'Both Photography & Videography'] },
+      { name: 'pricingType', label: 'Pricing Type', type: 'radio', required: true, options: ['Per Hour', 'Per Event'], defaultValue: 'Per Event', helpText: 'How do you charge?' },
+      { name: 'price', label: 'Price (₹)', type: 'number', required: true, unit: '₹', min: 1000, helpText: 'Your base price' },
+      { name: 'durationHours', label: 'Duration (Hours)', type: 'number', required: false, min: 1, max: 24, helpText: 'Hours included in price', dependsOn: 'pricingType', dependsOnValue: 'Per Hour' },
+      { name: 'teamComposition', label: 'Team Composition', type: 'text', required: true, placeholder: 'e.g., 2 photographers + 1 videographer', helpText: 'Describe your team size and roles' },
+      { name: 'editedPhotos', label: 'Number of Edited Photos', type: 'number', required: true, min: 1, helpText: 'How many edited photos will be delivered' },
+      { name: 'rawPhotos', label: 'Raw Photos Included', type: 'checkbox', required: false, helpText: 'Will you provide unedited raw photos?' },
+      { name: 'highlightVideo', label: 'Highlight Video Included', type: 'checkbox', required: false, helpText: 'Short cinematic highlight reel' },
+      { name: 'highlightVideoMinutes', label: 'Highlight Video Duration (Minutes)', type: 'number', required: false, min: 1, max: 30, helpText: 'Length of the highlight reel', dependsOn: 'highlightVideo' },
+      { name: 'fullEventVideo', label: 'Full Event Video Included', type: 'checkbox', required: false, helpText: 'Complete event coverage video' },
+      { name: 'fullVideoMinutes', label: 'Full Video Duration (Minutes)', type: 'number', required: false, min: 1, helpText: 'Approximate length of full video', dependsOn: 'fullEventVideo' },
+      { name: 'droneIncluded', label: 'Drone Coverage Included', type: 'checkbox', required: false, helpText: 'Aerial shots with drone' },
+      { name: 'albumIncluded', label: 'Physical Album Included', type: 'checkbox', required: false, helpText: 'Printed photo album included' },
+      { name: 'albumPages', label: 'Album Pages', type: 'number', required: false, min: 10, helpText: 'Number of pages in the album', dependsOn: 'albumIncluded' },
+      { name: 'preWeddingShoot', label: 'Pre-Wedding Shoot Included', type: 'checkbox', required: false, helpText: 'Separate pre-wedding photo session' },
+      { name: 'deliveryTime', label: 'Delivery Time', type: 'deliveryTime', required: true, helpText: 'When will you deliver the final photos/videos?' },
+      { name: 'includes', label: "What's Included", type: 'multiselect', required: false, fullWidth: true, options: ['Candid Photography','Traditional Photography','Photo Editing','Video Editing','Online Gallery','USB Drive','Soft Copies','Framed Prints','Thank You Cards','Second Shooter'] },
+    ],
   },
-
   'venue': {
     categoryId: 'venue',
     pricingModel: 'per_session',
     showPackageDetails: true,
     fields: [
-      {
-        name: 'venueType',
-        label: 'Venue Type',
-        type: 'select',
-        required: true,
-        options: ['Banquet Hall', 'Lawn/Garden', 'Farmhouse', 'Hotel', 'Resort', 'Terrace', 'Beach', 'Heritage Property', 'Other']
-      },
-      {
-        name: 'venueSession',
-        label: 'Session Type',
-        type: 'select',
-        required: true,
-        options: ['Morning-Lunch (6 AM - 3 PM)', 'Evening-Dinner (4 PM - 12 AM)', 'Full Day'],
-        helpText: 'Which session is this listing for?'
-      },
-      {
-        name: 'price',
-        label: 'Price (₹)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 1000,
-        helpText: 'Price for this session'
-      },
-      {
-        name: 'numberOfHalls',
-        label: 'Number of Halls/Spaces',
-        type: 'number',
-        required: false,
-        min: 1,
-        helpText: 'Total halls or event spaces'
-      },
-      {
-        name: 'capacitySeating',
-        label: 'Seating Capacity',
-        type: 'number',
-        required: true,
-        min: 10,
-        helpText: 'Max guests with seating'
-      },
-      {
-        name: 'capacityStanding',
-        label: 'Standing Capacity',
-        type: 'number',
-        required: false,
-        min: 10,
-        helpText: 'Max guests for cocktail events'
-      },
-      {
-        name: 'areaSquareFeet',
-        label: 'Area (sq ft)',
-        type: 'number',
-        required: false,
-        min: 100,
-        unit: 'sq ft'
-      },
-      {
-        name: 'roomsAvailable',
-        label: 'Rooms Available',
-        type: 'number',
-        required: false,
-        min: 0,
-        helpText: 'Total rooms for accommodation'
-      },
-      {
-        name: 'acRooms',
-        label: 'AC Rooms',
-        type: 'number',
-        required: false,
-        min: 0,
-        dependsOn: 'roomsAvailable'
-      },
-      {
-        name: 'nonAcRooms',
-        label: 'Non-AC Rooms',
-        type: 'number',
-        required: false,
-        min: 0,
-        dependsOn: 'roomsAvailable'
-      },
-      {
-        name: 'parkingCapacity',
-        label: 'Parking (Vehicles)',
-        type: 'number',
-        required: false,
-        min: 0
-      },
-      {
-        name: 'valetParking',
-        label: 'Valet Parking Available',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'amenities',
-        label: 'Amenities Included',
-        type: 'multiselect',
-        required: false,
-        options: ['Air Conditioning', 'Parking', 'Power Backup', 'Restrooms', 'Green Room', 'Stage', 'Dance Floor', 'WiFi', 'Sound System', 'Projector', 'Swimming Pool', 'Elevator', 'Wheelchair Access'],
-        fullWidth: true
-      },
-      {
-        name: 'cateringPolicy',
-        label: 'Catering Policy',
-        type: 'select',
-        required: true,
-        options: ['In-house Only', 'Outside Allowed', 'Both Options Available']
-      },
-      {
-        name: 'decorationPolicy',
-        label: 'Decoration Policy',
-        type: 'select',
-        required: false,
-        options: ['In-house Only', 'Outside Decorators Allowed', 'Both Options Available'],
-        helpText: 'Can customers bring own decorators?'
-      },
-      {
-        name: 'alcoholPolicy',
-        label: 'Alcohol Policy',
-        type: 'select',
-        required: true,
-        options: ['Allowed', 'Not Allowed', 'Allowed with License']
-      },
-      {
-        name: 'peakSeasonSurcharge',
-        label: 'Peak Season Surcharge',
-        type: 'number',
-        required: false,
-        min: 0,
-        max: 100,
-        unit: '%',
-        helpText: 'Extra charge during peak season'
-      }
-    ]
-  },
+      { name: 'venueType', label: 'Venue Type', type: 'select', required: true, options: ['Banquet Hall', 'Lawn/Garden', 'Farmhouse', 'Hotel', 'Resort', 'Terrace', 'Beach', 'Heritage Property', 'Other'] },
+      { name: 'venueSession', label: 'Session Type', type: 'select', required: true, options: ['Morning-Lunch (6 AM - 3 PM)', 'Evening-Dinner (4 PM - 12 AM)', 'Full Day'], helpText: 'Which session?' },
+      { name: 'price', label: 'Price (₹)', type: 'number', required: true, unit: '₹', min: 1000, helpText: 'Price for this session' },
+      { name: 'capacitySeating', label: 'Seating Capacity', type: 'number', required: true, min: 10, helpText: 'Max guests with seating' },
 
+      { name: 'areaSquareFeet', label: 'Area (sq. ft.)', type: 'number', required: false, min: 100, helpText: 'Total usable area' },
+      { name: 'numberOfHalls', label: 'Number of Halls', type: 'number', required: false, min: 1, helpText: 'How many halls/spaces available' },
+      { name: 'cateringPolicy', label: 'Catering Policy', type: 'select', required: true, options: ['In-house Only', 'Outside Allowed', 'Both Options Available'] },
+      { name: 'alcoholPolicy', label: 'Alcohol Policy', type: 'select', required: true, options: ['Allowed', 'Not Allowed', 'Allowed with License'] },
+      { name: 'parkingCapacity', label: 'Parking Capacity (Cars)', type: 'number', required: false, min: 0, helpText: 'Number of cars that can be parked' },
+      { name: 'djPolicy', label: 'DJ/Music Policy', type: 'select', required: false, options: ['Allowed till 10 PM', 'Allowed till 12 AM', 'No Restrictions', 'Not Allowed'] },
+      { name: 'decorPolicy', label: 'Decoration Policy', type: 'select', required: false, options: ['In-house Only', 'Outside Allowed', 'Both Options Available'] },
+      { name: 'roomsAvailable', label: 'Rooms Available', type: 'checkbox', required: false, helpText: 'Changing rooms or stay rooms' },
+      { name: 'numberOfRooms', label: 'Number of Rooms', type: 'number', required: false, min: 1, helpText: 'Rooms available for guests', dependsOn: 'roomsAvailable' },
+      { name: 'amenities', label: 'Amenities Included', type: 'multiselect', required: false, fullWidth: true, options: ['Air Conditioning','Parking','Power Backup','Restrooms','Green Room','Stage','Dance Floor','WiFi','Sound System','Projector','Swimming Pool','Elevator','Wheelchair Access','Bridal Suite','Garden Area','Terrace Access','Kitchen Access','Generator'] },
+    ],
+  },
   'decorator': {
     categoryId: 'decorator',
     pricingModel: 'per_setup',
     showPackageDetails: true,
     fields: [
-      {
-        name: 'price',
-        label: 'Price (₹)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 1000,
-        helpText: 'Your base price for this décor setup',
-        fullWidth: false
-      },
-      {
-        name: 'decorType',
-        label: 'Décor Type',
-        type: 'multiselect',
-        required: true,
-        options: ['Stage Decoration', 'Entrance Decoration', 'Full Venue Decoration', 'Mandap Decoration', 'Photo Booth', 'Ceiling Draping', 'Table Centerpieces', 'Aisle Decoration'],
-        placeholder: 'e.g., Car Decoration, Mehendi Setup',
-        fullWidth: true
-      },
-      {
-        name: 'theme',
-        label: 'Theme Style',
-        type: 'select',
-        required: false,
-        options: ['Traditional', 'Modern', 'Floral', 'Minimalist', 'Royal', 'Rustic', 'Beach', 'Vintage', 'Contemporary', 'Custom']
-      },
-      {
-        name: 'coverageArea',
-        label: 'Coverage Area',
-        type: 'number',
-        required: false,
-        min: 10,
-        unit: 'sq ft',
-        helpText: 'Area covered by decoration'
-      },
-      {
-        name: 'tableCenterpieces',
-        label: 'Number of Table Centerpieces',
-        type: 'number',
-        required: false,
-        min: 0
-      },
-      {
-        name: 'includes',
-        label: "What's Included",
-        type: 'multiselect',
-        required: false,
-        options: ['Fresh Flowers', 'Artificial Flowers', 'Drapes & Fabrics', 'Lighting', 'Props', 'Furniture', 'Backdrop', 'Entrance Arch', 'Ceiling Decoration'],
-        placeholder: 'e.g., LED Name Board, Floral Chandelier',
-        fullWidth: true
-      },
-      {
-        name: 'stageBackdrop',
-        label: 'Stage Backdrop Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'entranceArch',
-        label: 'Entrance Arch Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'ceilingDraping',
-        label: 'Ceiling Draping Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'aisleDecoration',
-        label: 'Aisle Decoration Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'dismantlingIncluded',
-        label: 'Dismantling Included',
-        type: 'checkbox',
-        required: false,
-        defaultValue: true
-      },
-      {
-        name: 'customizationAvailable',
-        label: 'Customization Available',
-        type: 'checkbox',
-        required: false,
-        helpText: 'Can customers request custom designs?'
-      }
-    ]
+      { name: 'price', label: 'Price (₹)', type: 'number', required: true, unit: '₹', min: 1000, helpText: 'Base price for this décor setup' },
+      { name: 'includes', label: "What's Included", type: 'multiselect', required: false, fullWidth: true, options: ['Fresh Flowers','Artificial Flowers','Drapes & Fabrics','Lighting','Props','Furniture','Backdrop','Entrance Arch','Ceiling Decoration','Stage Decoration','Table Centerpieces','Aisle Decoration','Setup & Dismantling'] },
+    ],
   },
-
   'mua': {
     categoryId: 'mua',
     pricingModel: 'per_person',
     showPackageDetails: true,
     fields: [
-      {
-        name: 'bridalPrice',
-        label: 'Bridal Makeup Price (₹)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        helpText: 'This is your base/starting price for bridal makeup'
-      },
-      {
-        name: 'familyPrice',
-        label: 'Family Makeup Price (₹ per person)',
-        type: 'number',
-        required: false,
-        unit: '₹',
-        helpText: 'Price for family members makeup'
-      },
-      {
-        name: 'guestPrice',
-        label: 'Guest Makeup Price (₹ per person)',
-        type: 'number',
-        required: false,
-        unit: '₹',
-        helpText: 'Price for guest makeup'
-      },
-      {
-        name: 'serviceFor',
-        label: 'Service For',
-        type: 'multiselect',
-        required: true,
-        options: ['Bride', 'Groom', 'Family Members', 'Guests'],
-        placeholder: 'e.g., Bridesmaids, Flower Girls',
-        fullWidth: true
-      },
-      {
-        name: 'servicesIncluded',
-        label: 'Services Included',
-        type: 'multiselect',
-        required: true,
-        options: ['Makeup', 'Hair Styling', 'Saree Draping', 'Jewelry Setting', 'Nail Art', 'Mehendi'],
-        placeholder: 'e.g., Eyelash Extensions, Facial',
-        fullWidth: true
-      },
-      {
-        name: 'makeupType',
-        label: 'Makeup Type',
-        type: 'select',
-        required: true,
-        options: ['HD Makeup', 'Airbrush Makeup', 'Traditional Makeup', 'Mineral Makeup']
-      },
-      {
-        name: 'productsUsed',
-        label: 'Products/Brands Used',
-        type: 'text',
-        required: false,
-        placeholder: 'e.g., MAC, Huda Beauty, Bobbi Brown',
-        helpText: 'Brands you use for makeup'
-      },
-      {
-        name: 'numberOfLooks',
-        label: 'Number of Looks (for Bride)',
-        type: 'number',
-        required: false,
-        min: 1,
-        max: 5,
-        helpText: 'Different makeup looks for different events'
-      },
-      {
-        name: 'touchupHours',
-        label: 'Touch-up Service (Hours)',
-        type: 'number',
-        required: false,
-        min: 0,
-        helpText: "How long you'll stay for touch-ups"
-      },
-      {
-        name: 'trialIncluded',
-        label: 'Trial Session Included',
-        type: 'checkbox',
-        required: false
-      },
-      {
-        name: 'trialPrice',
-        label: 'Trial Session Price',
-        type: 'number',
-        required: false,
-        unit: '₹',
-        helpText: 'Leave empty if trial is included'
-      },
-      {
-        name: 'travelIncludedKm',
-        label: 'Travel Included',
-        type: 'number',
-        required: false,
-        min: 0,
-        unit: 'km',
-        helpText: 'Free travel within this distance'
-      },
-      {
-        name: 'travelChargePerKm',
-        label: 'Travel Charge Beyond',
-        type: 'number',
-        required: false,
-        min: 0,
-        unit: '₹/km'
-      }
-    ]
+      { name: 'bridalPrice', label: 'Bridal Makeup Price (₹)', type: 'number', required: true, unit: '₹', helpText: 'Base/starting price for bridal makeup' },
+      { name: 'makeupType', label: 'Makeup Type', type: 'select', required: true, options: ['HD Makeup', 'Airbrush Makeup', 'Traditional Makeup', 'Mineral Makeup'] },
+      { name: 'numberOfLooks', label: 'Number of Looks', type: 'number', required: true, min: 1, helpText: 'How many looks included in this price' },
+      { name: 'trialIncluded', label: 'Trial Session Included', type: 'checkbox', required: false, helpText: 'Pre-event trial makeup session' },
+      { name: 'hairStyling', label: 'Hair Styling Included', type: 'checkbox', required: false, helpText: 'Hair styling along with makeup' },
+      { name: 'drapingIncluded', label: 'Saree/Dupatta Draping Included', type: 'checkbox', required: false, helpText: 'Saree or dupatta draping service' },
+      { name: 'productsUsed', label: 'Products / Brands Used', type: 'text', required: false, placeholder: 'e.g., MAC, Bobbi Brown, Huda Beauty', helpText: 'Key brands you use' },
+      { name: 'deliveryTime', label: 'Delivery Time', type: 'deliveryTime', required: true, helpText: 'How long does the makeup session take?' },
+      { name: 'servicesIncluded', label: 'Services Included', type: 'multiselect', required: false, fullWidth: true, options: ['Makeup','Hair Styling','Saree Draping','Jewelry Setting','Nail Art','Mehendi','Eyelash Extensions','Facial','Touch-ups','Dupatta Setting'] },
+    ],
   },
-
   'dj-entertainment': {
     categoryId: 'dj-entertainment',
     pricingModel: 'per_event',
     showPackageDetails: true,
     fields: [
-      {
-        name: 'serviceType',
-        label: 'Service Type',
-        type: 'select',
-        required: true,
-        options: ['DJ', 'Live Band', 'Anchor/Emcee', 'Dancer/Performer', 'DJ + Anchor', 'DJ + Dancers']
-      },
-      {
-        name: 'price',
-        label: 'Price (₹)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 1000,
-        helpText: 'Your base price for this listing',
-        fullWidth: false
-      },
-      {
-        name: 'durationHours',
-        label: 'Max Duration (Hours)',
-        type: 'number',
-        required: true,
-        min: 1,
-        max: 24,
-        helpText: 'Maximum hours included in this price'
-      },
-      {
-        name: 'equipmentIncluded',
-        label: 'Equipment Included',
-        type: 'multiselect',
-        required: false,
-        options: ['Sound System', 'LED Lighting', 'Dance Floor Lighting', 'LED Screen', 'Smoke Machine', 'Wireless Microphones', 'Mixer Console'],
-        placeholder: 'e.g., Laser Show, CO2 Cannons',
-        fullWidth: true
-      },
-      {
-        name: 'soundSystemWattage',
-        label: 'Sound System Power',
-        type: 'number',
-        required: false,
-        min: 1000,
-        unit: 'W'
-      },
-      {
-        name: 'teamSize',
-        label: 'Team Size',
-        type: 'number',
-        required: false,
-        min: 1,
-        helpText: 'Number of team members'
-      },
-      {
-        name: 'musicGenre',
-        label: 'Music Genres',
-        type: 'multiselect',
-        required: false,
-        options: ['Bollywood', 'EDM', 'Retro', 'Classical', 'Punjabi', 'Hip Hop', 'House', 'Commercial', 'Regional'],
-        placeholder: 'e.g., Sufi, Ghazals, Rock',
-        fullWidth: true
-      },
-      {
-        name: 'customPlaylist',
-        label: 'Custom Playlist Accepted',
-        type: 'checkbox',
-        required: false,
-        defaultValue: true
-      },
-      {
-        name: 'extraHourPrice',
-        label: 'Extra Hour Price',
-        type: 'number',
-        required: false,
-        unit: '₹',
-        helpText: 'Price for additional hours beyond package'
-      }
-    ]
+      { name: 'serviceType', label: 'Service Type', type: 'select', required: true, options: ['DJ', 'Live Band', 'Anchor/Emcee', 'Dancer/Performer', 'DJ + Anchor', 'DJ + Dancers'] },
+      { name: 'price', label: 'Price (₹)', type: 'number', required: true, unit: '₹', min: 1000, helpText: 'Base price per event' },
+      { name: 'durationHours', label: 'Max Duration (Hours)', type: 'number', required: true, min: 1, max: 24, helpText: 'Hours included in price' },
+      { name: 'musicGenres', label: 'Music Genres', type: 'multiselect', required: true, fullWidth: true, options: ['Bollywood','EDM','Hip Hop','Punjabi','Sufi','Retro','Pop','Rock','Classical','Instrumental','Regional'] },
+      { name: 'teamSize', label: 'Team Size', type: 'number', required: true, min: 1, helpText: 'Number of team members' },
+      { name: 'languages', label: 'Languages (for Anchor)', type: 'multiselect', required: false, fullWidth: true, options: ['Hindi','English','Kannada','Tamil','Telugu','Marathi','Punjabi','Bengali','Gujarati'], helpText: 'Languages your anchor/emcee can host in' },
+      { name: 'setupTime', label: 'Setup Time (Minutes)', type: 'number', required: false, min: 15, helpText: 'Time needed to set up before the event' },
+      { name: 'backupEquipment', label: 'Backup Equipment Available', type: 'checkbox', required: false, helpText: 'Do you carry backup gear?' },
+      { name: 'equipmentIncluded', label: 'Equipment Included', type: 'multiselect', required: false, fullWidth: true, options: ['Sound System','LED Lighting','Dance Floor Lighting','LED Screen','Smoke Machine','Fog Machine','Wireless Microphones','Mixer Console','Laser Show','CO2 Jets','Confetti Cannon','Sparkler Machine'] },
+    ],
   },
-
   'sound-lights': {
     categoryId: 'sound-lights',
     pricingModel: 'per_day',
     showPackageDetails: true,
     fields: [
-      {
-        name: 'price',
-        label: 'Price per Day (₹)',
-        type: 'number',
-        required: true,
-        unit: '₹',
-        min: 1000,
-        helpText: 'Your base price per day for this equipment',
-        fullWidth: false
-      },
-      {
-        name: 'equipmentType',
-        label: 'Equipment Type',
-        type: 'multiselect',
-        required: true,
-        options: ['Sound System', 'LED Par Lights', 'Moving Head Lights', 'Laser Lights', 'Follow Spot', 'Stage Lighting', 'Architectural Lighting', 'Microphones', 'Mixer Console', 'Amplifiers'],
-        placeholder: 'e.g., Truss System, DMX Controller',
-        fullWidth: true
-      },
-      {
-        name: 'coverageArea',
-        label: 'Coverage Area',
-        type: 'number',
-        required: false,
-        min: 100,
-        unit: 'sq ft'
-      },
-      {
-        name: 'powerRequirement',
-        label: 'Power Requirement',
-        type: 'number',
-        required: false,
-        min: 1,
-        unit: 'KW'
-      },
-      {
-        name: 'teamSize',
-        label: 'Number of Technicians',
-        type: 'number',
-        required: false,
-        min: 1,
-        helpText: 'Technicians included in package'
-      },
-      {
-        name: 'durationDays',
-        label: 'Duration (Days)',
-        type: 'number',
-        required: true,
-        min: 1,
-        defaultValue: 1
-      },
-      {
-        name: 'setupIncluded',
-        label: 'Setup Included',
-        type: 'checkbox',
-        required: false,
-        defaultValue: true
-      },
-      {
-        name: 'dismantlingIncluded',
-        label: 'Dismantling Included',
-        type: 'checkbox',
-        required: false,
-        defaultValue: true
-      },
-      {
-        name: 'extraDayPrice',
-        label: 'Extra Day Price',
-        type: 'number',
-        required: false,
-        unit: '₹'
-      }
-    ]
-  }
+      { name: 'price', label: 'Price per Day (₹)', type: 'number', required: true, unit: '₹', min: 1000, helpText: 'Base price per day' },
+      { name: 'durationHours', label: 'Hours Included', type: 'text', required: true, placeholder: 'e.g., 3-4 hours, Up to 6 hours', helpText: 'How many hours are included in this price' },
+      { name: 'equipmentType', label: 'Equipment Type', type: 'multiselect', required: true, fullWidth: true, options: ['Sound System','LED Par Lights','Moving Head Lights','Laser Lights','Follow Spot','Stage Lighting','Architectural Lighting','Microphones','Mixer Console','Amplifiers','Subwoofers','LED Wall/Screen'] },
+      { name: 'technicianIncluded', label: 'Technician Included', type: 'checkbox', required: false, helpText: 'Operator/technician provided with equipment' },
+      { name: 'numberOfTechnicians', label: 'Number of Technicians', type: 'number', required: false, min: 1, helpText: 'How many technicians will be provided', dependsOn: 'technicianIncluded' },
+      { name: 'setupDismantling', label: 'Setup & Dismantling Included', type: 'checkbox', required: false, helpText: 'Setup and takedown handled by your team' },
+      { name: 'powerBackup', label: 'Power Backup Available', type: 'checkbox', required: false, helpText: 'Generator or backup power provided' },
+      { name: 'includes', label: "What's Included", type: 'multiselect', required: false, fullWidth: true, options: ['Delivery & Pickup','Setup & Dismantling','Technician/Operator','Cables & Connectors','Stands & Mounts','Power Backup','Spare Equipment','Sound Check'] },
+    ],
+  },
 };
 
-// Map core category IDs to their configs
 export const getCategoryConfig = (categoryId: string): CategoryConfig | null => {
-  // Handle old category IDs for backward compatibility
   const categoryMapping: Record<string, string> = {
     'photographer': 'photo-video',
     'cinematographer': 'photo-video',
     'photography-videography': 'photo-video',
     'dj': 'dj-entertainment',
   };
-  
   const mappedId = categoryMapping[categoryId] || categoryId;
   return CATEGORY_CONFIGS[mappedId] || null;
 };
