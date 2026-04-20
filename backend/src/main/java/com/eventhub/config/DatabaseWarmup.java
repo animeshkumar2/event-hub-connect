@@ -54,11 +54,17 @@ public class DatabaseWarmup {
     }
 
     /**
-     * Keep connections alive every 5 minutes.
-     * HikariCP's built-in keepalive-time (60s) handles actual connection validation.
-     * This is just a safety net to ensure the pool stays healthy.
+     * Keep-alive scheduler DISABLED for Neon free tier.
+     *
+     * Neon charges by compute-hour and auto-suspends when idle.
+     * A periodic ping every 5 minutes would prevent auto-suspend and burn
+     * compute hours 24/7. HikariCP's own connection validation handles
+     * pool health when actual requests arrive.
+     *
+     * If you migrate back to Supabase (which doesn't charge by compute-hour),
+     * re-enable the @Scheduled annotation below.
      */
-    @Scheduled(fixedRate = 300000, initialDelay = 60000) // Every 5 min, start after 1 min
+    // @Scheduled(fixedRate = 300000, initialDelay = 60000)
     public void keepAlive() {
         try (Connection conn = dataSource.getConnection()) {
             conn.createStatement().execute("SELECT 1");
