@@ -12,7 +12,6 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -175,15 +174,14 @@ public class ImageUploadService {
         // (PNG, GIF, BMP, TIFF, WebP → JPEG)
         String outputFormat = "jpeg";
 
+        // Read input into a byte array ONCE to avoid reading the stream twice
+        // (MultipartFile may not support re-reading the stream on all implementations).
+        // Also avoids the double-load-into-memory pattern (ImageIO.read + Thumbnails.of)
+        // that was OOMing Render's 512MB container on larger images.
+        byte[] inputBytes = file.getBytes();
+
         try {
-            // First try to read the image to verify it's valid
-            BufferedImage image = ImageIO.read(file.getInputStream());
-            if (image == null) {
-                throw new IOException("Unable to read image. Format may not be supported. Supported formats: JPG, PNG, GIF, WebP, BMP, TIFF");
-            }
-            
-            // Reset stream and compress
-            Thumbnails.of(file.getInputStream())
+            Thumbnails.of(new ByteArrayInputStream(inputBytes))
                     .size(maxWidth, maxHeight)
                     .keepAspectRatio(true)
                     .outputQuality(compressionQuality)
@@ -193,6 +191,9 @@ public class ImageUploadService {
             // Provide helpful error message for unsupported formats
             String supportedFormats = String.join(", ", Arrays.asList(ImageIO.getReaderFormatNames()));
             throw new IOException("Unable to process image format '" + extension + "'. Supported formats: " + supportedFormats, e);
+        } catch (IllegalArgumentException e) {
+            // Thumbnailator throws IllegalArgumentException when the image can't be read
+            throw new IOException("Unable to read image. Format may not be supported. Supported formats: JPG, PNG, GIF, WebP, BMP, TIFF", e);
         }
 
         return outputStream.toByteArray();
@@ -200,19 +201,14 @@ public class ImageUploadService {
 
     private byte[] compressImageBytes(byte[] imageBytes, String extension) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
 
         // Convert all formats to JPEG
         String outputFormat = "jpeg";
 
         try {
-            // First verify the image can be read
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
-            if (image == null) {
-                throw new IOException("Unable to read image data. Format may not be supported.");
-            }
-            
-            Thumbnails.of(inputStream)
+            // Single read pass via Thumbnailator (avoids the extra ImageIO.read
+            // that was doubling memory usage on Render's 512MB container).
+            Thumbnails.of(new ByteArrayInputStream(imageBytes))
                     .size(maxWidth, maxHeight)
                     .keepAspectRatio(true)
                     .outputQuality(compressionQuality)
@@ -220,6 +216,8 @@ public class ImageUploadService {
                     .toOutputStream(outputStream);
         } catch (javax.imageio.IIOException e) {
             throw new IOException("Unable to process image format '" + extension + "'", e);
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Unable to read image data. Format may not be supported.", e);
         }
 
         return outputStream.toByteArray();

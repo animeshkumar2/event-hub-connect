@@ -413,6 +413,59 @@ export const CreateListingWizard = () => {
     setEditDataLoaded(true);
   }, [isEditMode, editListing, editDataLoaded]);
 
+  // Load existing add-ons when editing a decorator listing
+  // Without this, the Add-Ons step shows "None added" even when add-ons exist in DB.
+  const [addOnsLoaded, setAddOnsLoaded] = useState(false);
+  useEffect(() => {
+    if (!isEditMode || !editListingId || addOnsLoaded) return;
+    // Only decorators have the add-ons step, skip others to avoid noise
+    if (editListing?.categoryId && editListing.categoryId !== 'decorator') {
+      setAddOnsLoaded(true);
+      return;
+    }
+    if (!editListing) return;
+
+    (async () => {
+      try {
+        const response = await vendorApi.getPackageAddOns(editListingId);
+        const data = response && typeof response === 'object' && 'data' in response
+          ? (response as any).data : response;
+        const rows: any[] = Array.isArray(data) ? data : [];
+
+        const catalogSelected = new Set<string>();
+        const catalogPrices: Record<string, number> = {};
+        const customs: { id: string; title: string; price: number; category: string; imageFile?: File; imagePreview?: string }[] = [];
+
+        rows.forEach(row => {
+          const slug = typeof row.description === 'string' ? row.description : '';
+          const price = typeof row.price === 'number' ? row.price : parseFloat(row.price) || 0;
+          if (slug && CATALOG_BY_ID.has(slug)) {
+            // Catalog add-on: restore selection + edited price
+            catalogSelected.add(slug);
+            catalogPrices[slug] = price;
+          } else {
+            // Custom add-on: rebuild the same shape the wizard uses locally
+            customs.push({
+              id: row.id,
+              title: row.title || '',
+              price,
+              category: row.category || 'Custom',
+              imagePreview: row.imageUrl || undefined,
+            });
+          }
+        });
+
+        setPendingAddOns(catalogSelected);
+        setAddOnPrices(catalogPrices);
+        setCustomAddOns(customs);
+      } catch (err) {
+        console.warn('Failed to load existing add-ons for edit:', err);
+      } finally {
+        setAddOnsLoaded(true);
+      }
+    })();
+  }, [isEditMode, editListingId, editListing, addOnsLoaded]);
+
   // Filter event types based on selected category
   const availableEventTypes = useMemo(() => {
     if (!eventTypesData.length) return [];
@@ -960,6 +1013,102 @@ export const CreateListingWizard = () => {
 
         const response = await vendorApi.updateListing(editListingId, payload);
         if (response.success) {
+          // Sync add-ons for decorator listings in edit mode.
+          // Strategy: reconcile current wizard state against what the server has:
+          //  - Delete server rows no longer selected (catalog) or no longer in customAddOns
+          //  - Create new catalog selections / new custom add-ons
+          //  - Update prices on existing catalog rows where price changed
+          if (formData.category === 'decorator') {
+            try {
+              const serverResp = await vendorApi.getPackageAddOns(editListingId);
+              const serverData = serverResp && typeof serverResp === 'object' && 'data' in serverResp
+                ? (serverResp as any).data : serverResp;
+              const serverRows: any[] = Array.isArray(serverData) ? serverData : [];
+
+              // Map by catalog slug for fast lookup
+              const serverBySlug = new Map<string, any>();
+              const serverCustomRows: any[] = [];
+              serverRows.forEach(r => {
+                const slug = typeof r.description === 'string' ? r.description : '';
+                if (slug && CATALOG_BY_ID.has(slug)) {
+                  serverBySlug.set(slug, r);
+                } else {
+                  serverCustomRows.push(r);
+                }
+              });
+
+              // 1. Catalog: delete deselected, update prices, create new selections
+              for (const [slug, serverRow] of serverBySlug) {
+                if (!pendingAddOns.has(slug)) {
+                  try { await vendorApi.deleteAddOn(editListingId, serverRow.id); } catch { /* ignore */ }
+                }
+              }
+              for (const slug of pendingAddOns) {
+                const catalogItem = CATALOG_BY_ID.get(slug);
+                if (!catalogItem) continue;
+                const price = addOnPrices[slug] ?? catalogItem.defaultPrice;
+                const existing = serverBySlug.get(slug);
+                if (!existing) {
+                  try {
+                    await vendorApi.createAddOn(editListingId, {
+                      title: catalogItem.title,
+                      description: slug,
+                      price,
+                      category: catalogItem.category,
+                      maxQuantity: 10,
+                    });
+                  } catch (e) { console.warn('Failed to create catalog add-on', slug, e); }
+                } else if (Number(existing.price) !== price) {
+                  try { await vendorApi.updateAddOn(editListingId, existing.id, { price }); } catch { /* ignore */ }
+                }
+              }
+
+              // 2. Custom add-ons: ids that came from server have real UUIDs;
+              //    ids that were created locally in this session have generated string ids.
+              //    Delete server customs that are no longer in wizard state OR toggled off.
+              const currentCustomIds = new Set(customAddOns.map(c => c.id));
+              for (const serverCustom of serverCustomRows) {
+                if (!currentCustomIds.has(serverCustom.id) || disabledCustomAddOnIds.has(serverCustom.id)) {
+                  try { await vendorApi.deleteAddOn(editListingId, serverCustom.id); } catch { /* ignore */ }
+                }
+              }
+              // Create any custom add-ons that don't exist on the server yet
+              const serverCustomIds = new Set(serverCustomRows.map(r => r.id));
+              for (const custom of customAddOns) {
+                if (disabledCustomAddOnIds.has(custom.id)) continue;
+                if (serverCustomIds.has(custom.id)) continue; // already persisted
+                try {
+                  // Upload the local file to R2 first, if one was attached.
+                  // imagePreview is a blob: URL (not reachable from server) — only
+                  // use it as a URL when it's already an https link (e.g. previously
+                  // saved add-on being re-created after edit).
+                  let imageUrl: string | null = null;
+                  if (custom.imageFile) {
+                    const { uploadImage, compressImage } = await import('@/shared/utils/storage');
+                    const compressed = await compressImage(custom.imageFile);
+                    imageUrl = await uploadImage(compressed, `vendors/${vendorId}/listings/${editListingId}/addons`);
+                  } else if (custom.imagePreview && /^https?:\/\//i.test(custom.imagePreview)) {
+                    imageUrl = custom.imagePreview;
+                  }
+                  await vendorApi.createAddOn(editListingId, {
+                    title: custom.title,
+                    description: null,
+                    price: custom.price,
+                    category: custom.category,
+                    maxQuantity: 10,
+                    imageUrl,
+                  });
+                } catch (e) { console.warn('Failed to create custom add-on', custom.title, e); }
+              }
+            } catch (e) {
+              console.warn('Failed to sync add-ons during listing update:', e);
+            }
+            // Wait for the add-ons query to actually refetch before navigating,
+            // so the preview page renders the new set on first paint.
+            await queryClient.invalidateQueries({ queryKey: ['listingAddOns', editListingId] });
+            await queryClient.refetchQueries({ queryKey: ['listingAddOns', editListingId] });
+          }
+
           // Invalidate caches so preview shows fresh data
           queryClient.invalidateQueries({ queryKey: ['vendorListingDetails', editListingId] });
           queryClient.invalidateQueries({ queryKey: ['vendorListings'] });
